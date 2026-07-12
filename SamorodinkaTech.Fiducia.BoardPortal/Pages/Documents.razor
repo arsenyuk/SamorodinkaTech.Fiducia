@@ -1,0 +1,96 @@
+@page "/documents/{MeetingId:int}"
+@using SamorodinkaTech.Fiducia.Domain.Entities
+@using SamorodinkaTech.Fiducia.Domain.Interfaces
+@inject IApplicationDbContext DbContext
+
+<PageTitle>Fiducia — Документы</PageTitle>
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3>Документы — @(_meeting?.MeetingNumber)</h3>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Список документов</h5>
+        </div>
+        <div class="card-body">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Документ</th>
+                        <th>Тип</th>
+                        <th>Статус</th>
+                        <th>Действия</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Протокол заседания</strong></td>
+                        <td>PDF</td>
+                        <td><span class="badge bg-success">Готов</span></td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-primary">Просмотр</button>
+                            <button class="btn btn-sm btn-outline-secondary">Скачать</button>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><strong>Уведомление о созыве</strong></td>
+                        <td>PDF</td>
+                        <td><span class="badge bg-success">Готов</span></td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-primary">Просмотр</button>
+                            <button class="btn btn-sm btn-outline-secondary">Скачать</button>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><strong>Бюллетень голосования</strong></td>
+                        <td>PDF</td>
+                        <td><span class="badge bg-warning">Заполняется</span></td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-secondary" disabled>Ожидание</button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">Просмотр документа</h5>
+        </div>
+        <div class="card-body">
+            <div class="position-relative border rounded p-4 bg-white" style="min-height: 400px;">
+                <div class="position-absolute top-50 start-50 translate-middle text-muted opacity-25"
+                     style="transform: translate(-50%, -50%) rotate(-30deg); font-size: 1.5rem; font-weight: bold; white-space: nowrap;">
+                    Иванов Иван Иванович · 192.168.1.45
+                </div>
+                <div class="position-relative" style="z-index: 1; font-family: 'Times New Roman', Georgia, serif; line-height: 1.8;">
+                    <h4 class="text-center text-uppercase mb-4">ПРОТОКОЛ<br />заседания Совета директоров<br />АО «Ромашка»</h4>
+                    <p class="text-indent">Председатель Совета директоров Иванов И.И. открыл заседание в 10:00 по московскому времени.</p>
+                    <p class="text-indent">Присутствовали: Иванов И.И. (председатель), Петров П.П., Сидорова М.А. — 3 человека.</p>
+                    <p class="text-indent">Кворум имеется.</p>
+                    <div class="mt-4">
+                        <span class="badge bg-primary fs-6">ЭЦП: Иванов И.И. · TSP verified</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .text-indent { text-indent: 1.5em; }
+</style>
+
+@code {
+    [Parameter] public int MeetingId { get; set; }
+
+    private Meeting? _meeting;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _meeting = await DbContext.Meetings.FindAsync(MeetingId);
+    }
+}

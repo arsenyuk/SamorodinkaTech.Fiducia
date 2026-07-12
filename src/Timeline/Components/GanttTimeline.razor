@@ -1,0 +1,102 @@
+@namespace SamorodinkaTech.Fiducia.Timeline.Components
+@inherits GanttTimelineBase
+
+<div style="width:100%;overflow:hidden;border:1px solid #e0e0e0;border-radius:4px;background:#fff">
+    <div style="position:relative;width:100%;overflow-x:auto;overflow-y:hidden" @ref="_scrollRef">
+        <div style="width:@(_totalWidthPx)px">
+            @if (_days != null)
+            {
+                <div style="display:flex;flex-direction:row;border-bottom:1px solid #999;background:#e0e0e0">
+                    @foreach (var y in _years)
+                    {
+                        <div data-sticky-cell style="width:@(y.Span * _dayWidth)px;height:22px;flex-shrink:0;position:relative;border-right:1px solid #999;box-sizing:border-box">
+                            <span data-sticky-label style="position:absolute;left:50%;top:50%;transform:translateX(calc(-50% + var(--sticky-shift, 0px))) translateY(-50%);white-space:nowrap;background:#e0e0e0;padding:0 6px;border-radius:2px;font-size:12px;font-weight:600;color:#222">@y.Label</span>
+                        </div>
+                    }
+                </div>
+                @if (EffectiveQuarters)
+                {
+                <div style="display:flex;flex-direction:row;border-bottom:1px solid #aaa;background:#e8e8e8">
+                    @{ var qi = _quarters.Count; }
+                    @foreach (var q in _quarters)
+                    {
+                        var z = qi--;
+                        <div data-sticky-cell style="width:@(q.Span * _dayWidth)px;height:22px;flex-shrink:0;position:relative;border-right:1px solid #aaa;box-sizing:border-box">
+                            <span data-sticky-label style="position:absolute;left:50%;top:50%;transform:translateX(calc(-50% + var(--sticky-shift, 0px))) translateY(-50%);white-space:nowrap;z-index:@z;background:#e8e8e8;padding:0 6px;border-radius:2px;font-size:12px;font-weight:600;color:#333">@q.Label</span>
+                        </div>
+                    }
+                </div>
+                }
+                @if (EffectiveMonths)
+                {
+                <div style="display:flex;flex-direction:row;border-bottom:1px solid #ccc;background:#f0f0f0">
+                    @{ var mi = _months.Count; }
+                    @foreach (var m in _months)
+                    {
+                        var z = mi--;
+                        <div data-sticky-cell style="width:@(m.Span * _dayWidth)px;height:20px;flex-shrink:0;position:relative;border-right:1px solid #ccc;box-sizing:border-box">
+                            <span data-sticky-label style="position:absolute;left:50%;top:50%;transform:translateX(calc(-50% + var(--sticky-shift, 0px))) translateY(-50%);white-space:nowrap;z-index:@z;background:#f0f0f0;padding:0 4px;border-radius:2px;font-size:11px;font-weight:500;color:#444">@m.Label</span>
+                        </div>
+                    }
+                </div>
+                }
+                @if (EffectiveDecades)
+                {
+                <div style="display:flex;flex-direction:row;border-bottom:1px solid #d0d0d0;background:#f2f2f2">
+                    @foreach (var dec in _decades)
+                    {
+                        <div style="width:@(dec.Span * _dayWidth)px;height:18px;flex-shrink:0;display:flex;align-items:center;justify-content:center;border-right:1px solid #d0d0d0;box-sizing:border-box;font-size:10px;color:#555">
+                            @dec.Label
+                        </div>
+                    }
+                </div>
+                }
+                @if (EffectiveWeeks)
+                {
+                <div style="display:flex;flex-direction:row;border-bottom:1px solid #d0d0d0;background:#f5f5f5">
+                    @foreach (var w in _weeks)
+                    {
+                        <div style="width:@(w.Span * _dayWidth)px;height:20px;flex-shrink:0;display:flex;align-items:center;justify-content:center;border-right:1px solid #d0d0d0;box-sizing:border-box;font-size:10px;color:#555">
+                            Неделя @w.WeekNumber
+                        </div>
+                    }
+                </div>
+                }
+                @if (EffectiveDayNames)
+                {
+                <div style="display:flex;flex-direction:row;border-bottom:1px solid #e0e0e0">
+                    @for (var i = 0; i < _dayNames.Count; i++)
+                    {
+                        var d2 = _days![i];
+                        var bg2 = d2.IsHoliday ? "#fff0f0"
+                               : d2.IsWeekend ? "#fef7f0"
+                               : d2.Date == _today ? "#e8f5e9"
+                               : "#fafafa";
+                        var fw2 = d2.Date == _today ? "font-weight:600" : "";
+                        <div style="width:@(_dayWidth)px;height:18px;flex-shrink:0;display:flex;align-items:center;justify-content:center;border-right:1px solid #e0e0e0;box-sizing:border-box;font-size:9px;color:#888;background:@bg2;@fw2">
+                            @_dayNames[i]
+                        </div>
+                    }
+                </div>
+                }
+                @if (EffectiveDayNumbers)
+                {
+                <div style="display:flex;flex-direction:row">
+                    @foreach (var d in _days)
+                    {
+                        var bg = d.IsHoliday ? "#fff0f0"
+                               : d.IsWeekend ? "#fef7f0"
+                               : d.Date == _today ? "#e8f5e9"
+                               : "#fff";
+                        var fw = d.Date == _today ? "font-weight:600" : "";
+
+                        <div style="width:@(_dayWidth)px;height:24px;flex-shrink:0;display:flex;align-items:center;justify-content:center;border-right:1px solid #e8e8e8;box-sizing:border-box;font-size:10px;background:@bg;@fw">
+                            @d.Date.Day
+                        </div>
+                    }
+                </div>
+                }
+            }
+        </div>
+    </div>
+</div>

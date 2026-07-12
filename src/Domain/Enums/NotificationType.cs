@@ -1,0 +1,15 @@
+namespace SamorodinkaTech.Fiducia.Domain.Enums;
+
+public enum NotificationType
+{
+    MEETING_SUMMONS = 0,
+    VOTE_REMINDER = 1,
+    PROTOCOL_SIGNED = 2,
+    COMMITTEE_PROTOCOL_SIGNED = 3,
+    VOTE_DEADLINE = 4,
+    CHAIRMAN_NOMINATION = 5,
+    DEPUTY_CHAIRMAN_NOMINATION = 6,
+    CHAIRMAN_CONSENT = 7,
+    DEPUTY_CHAIRMAN_CONSENT = 8,
+    GENERAL = 9
+}

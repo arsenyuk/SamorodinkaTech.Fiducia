@@ -1,0 +1,123 @@
+@inherits LayoutComponentBase
+@inject IJSRuntime JS
+@inject HttpClient Http
+@inject IDbContextFactory<SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext> DbFactory
+
+<PageTitle>Fiducia — Board Portal</PageTitle>
+
+@if (_isPublicPage)
+{
+    <div class="container py-4">
+        @Body
+    </div>
+}
+else
+{
+    <div class="page">
+        <div class="sidebar">
+            <NavMenu />
+        </div>
+
+        <main>
+            <div class="top-row px-4 d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">@_legalEntityName</h5>
+                <div class="d-flex align-items-center gap-3">
+                    <span>@_userName</span>
+                    <a href="/logout" class="btn btn-sm btn-outline-secondary">Выход</a>
+                </div>
+            </div>
+
+            <article class="content px-4">
+                <ErrorBoundary @ref="_errorBoundary">
+                    <ChildContent>
+                        @Body
+                    </ChildContent>
+                    <ErrorContent Context="exception">
+                        <div class="alert alert-danger m-3">
+                            <h4>Произошла ошибка</h4>
+                            <p>При отображении страницы возникла непредвиденная ошибка. Попробуйте обновить страницу или обратитесь к администратору.</p>
+                            <button class="btn btn-outline-danger btn-sm" @onclick="RecoverFromError">Повторить попытку</button>
+                        </div>
+                    </ErrorContent>
+                </ErrorBoundary>
+            </article>
+        </main>
+    </div>
+}
+
+@code {
+    private string _userName = "Гость";
+    private string _legalEntityName = "Fiducia Board Portal";
+    private bool _isInitialized;
+    private ErrorBoundary? _errorBoundary;
+    [Inject] private NavigationManager NavigationManager { get; set; } = default!;
+
+    private bool _isPublicPage => IsPublicUrl(NavigationManager.Uri);
+
+    private static readonly string[] _publicPaths = { "/login", "/logout", "/proposal", "/onboarding", "/election", "/gantt-test" };
+
+    private static bool IsPublicUrl(string uri)
+    {
+        var path = new Uri(uri).AbsolutePath;
+        if (path == "/") return true;
+
+        foreach (var p in _publicPaths)
+        {
+            if (path.StartsWith(p, StringComparison.OrdinalIgnoreCase))
+                return true;
+        }
+        return false;
+    }
+
+    protected override void OnParametersSet()
+    {
+        _errorBoundary?.Recover();
+    }
+
+    private void RecoverFromError()
+    {
+        _errorBoundary?.Recover();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !_isInitialized)
+        {
+            _isInitialized = true;
+            _userName = await JS.InvokeAsync<string>("localStorage.getItem", "currentUserName") ?? "Гость";
+
+            try
+            {
+                await using var ctx = await DbFactory.CreateDbContextAsync();
+                var workplace = await ctx.CurrentWorkplaces.FirstOrDefaultAsync();
+                if (workplace?.LastSelectedLegalEntityId is not null && workplace.LastSelectedLegalEntityId != Guid.Empty)
+                {
+                    var le = await ctx.LegalEntities
+                        .Where(x => x.Id == workplace.LastSelectedLegalEntityId.Value)
+                        .Select(x => x.Name)
+                        .FirstOrDefaultAsync();
+                    if (!string.IsNullOrWhiteSpace(le))
+                        _legalEntityName = le;
+                }
+            }
+            catch { /* fallback: Fiducia Board Portal */ }
+
+            try
+            {
+                var config = await Http.GetFromJsonAsync<SessionConfig>("/api/session/config");
+                if (config?.IdleTimeoutMinutes > 0)
+                {
+                    await JS.InvokeVoidAsync("idleTimer.start", config.IdleTimeoutMinutes);
+                }
+            }
+            catch
+            {
+                await JS.InvokeVoidAsync("idleTimer.start", 5);
+            }
+
+            StateHasChanged();
+        }
+    }
+
+    private record SessionConfig(int IdleTimeoutMinutes);
+}

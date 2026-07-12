@@ -1,0 +1,208 @@
+@page "/org-plan"
+@using Microsoft.EntityFrameworkCore
+@using SamorodinkaTech.Fiducia.Domain.Entities
+@using SamorodinkaTech.Fiducia.Timeline.Components
+@using SamorodinkaTech.Fiducia.Timeline.Models
+@inject IDbContextFactory<SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext> DbFactory
+@inject ILogger<OrgPlan> Logger
+
+<div style="display:flex; flex-direction:column; height:calc(100vh - 80px)">
+<h3>План организационных мероприятий</h3>
+
+@if (_ganttInput == null)
+{
+    <div class="text-muted">Загрузка...</div>
+}
+else if (_ganttInput.Nodes.Count == 0)
+{
+    <div class="text-muted">План мероприятий не создан. Завершите первое заседание СД для формирования плана.</div>
+}
+else
+{
+    <div style="flex:1; min-height:0; border:1px solid #ccc; border-radius:4px; margin-top:8px">
+        <GanttChart Data="@_ganttInput" RowHeight="32" BottomPaddingPx="60"
+                    TaskColor="#42a5f5" StageColor="#78909c"
+                    MilestoneColor="#9c27b0" OverdueColor="#d32f2f"
+                    ProgressColor="rgba(0,0,0,0.15)">
+            <TooltipTemplate>
+                <div class="gantt-tooltip-name">@context.Name</div>
+                <div class="gantt-tooltip-path">@context.BreadcrumbPath</div>
+                @{
+                    var dates = context.NodeType == GanttNodeType.Milestone
+                        ? FormatDate(context.MilestoneDate)
+                        : $"{FormatDate(context.StartDate)} – {FormatDate(context.EndDate)}";
+                }
+                <div class="gantt-tooltip-dates">@dates</div>
+                @if (context.AssignedUserName is { Length: > 0 })
+                {
+                    <div class="gantt-tooltip-executor">@context.AssignedUserName</div>
+                }
+            </TooltipTemplate>
+        </GanttChart>
+    </div>
+}</div>
+
+@code {
+    private GanttChartInput? _ganttInput;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+            var wp = await ctx.CurrentWorkplaces.FirstOrDefaultAsync();
+            var endPaddingWeeks = wp?.GanttEndPaddingWeeks ?? 2;
+
+            var intents = await ctx.OrgIntents.OrderBy(x => x.SortOrder).ThenBy(x => x.Name).ToListAsync();
+            var stages = await ctx.OrgStages
+                .Include(s => s.Intent)
+                .OrderBy(x => x.SortOrder).ThenBy(x => x.Name).ToListAsync();
+            var tasks = await ctx.OrgTasks
+                .Include(t => t.AssignedUser)
+                .OrderBy(x => x.SortOrder).ThenBy(x => x.Name).ToListAsync();
+
+            var nodes = new List<GanttNode>();
+            var dependencies = new List<GanttDependency>();
+            var sort = 0;
+
+            foreach (var intent in intents)
+            {
+                var intentId = $"intent-{intent.Id}";
+                nodes.Add(new GanttNode
+                {
+                    Id = intentId, Name = intent.Name, NodeType = GanttNodeType.Project,
+                    SortOrder = sort++, Expanded = true
+                });
+
+                var intentStages = stages.Where(s => s.IntentId == intent.Id).ToList();
+                foreach (var stage in intentStages)
+                {
+                    var stageId = $"stage-{stage.Id}";
+                    var stageProgress = stage.Status == "COMPLETED" ? 1.0 : stage.Status == "IN_PROGRESS" ? 0.5 : 0.0;
+
+                    nodes.Add(new GanttNode
+                    {
+                        Id = stageId, ParentId = intentId, Name = stage.Name,
+                        NodeType = GanttNodeType.Stage,
+                        StartDate = stage.PlannedStart ?? stage.ActualStart,
+                        EndDate = stage.PlannedEnd ?? stage.ActualEnd,
+                        Progress = stageProgress, SortOrder = sort++,
+                        BreadcrumbPath = $"Активность > {stage.Name}"
+                    });
+
+                    var stageTasks = tasks.Where(t => t.StageId == stage.Id).ToList();
+                    foreach (var task in stageTasks)
+                    {
+                        var taskProgress = task.Status == "COMPLETED" ? 1.0 : task.Status == "IN_PROGRESS" ? 0.5 : 0.0;
+
+                        nodes.Add(new GanttNode
+                        {
+                            Id = $"task-{task.Id}", ParentId = stageId, Name = task.Name,
+                            NodeType = GanttNodeType.Task,
+                            StartDate = task.PlannedStart ?? task.ActualStart,
+                            EndDate = task.PlannedEnd ?? task.ActualEnd,
+                            Progress = taskProgress, SortOrder = sort++,
+                            BreadcrumbPath = $"Активность > {stage.Name}",
+                            AssignedUserName = task.AssignedUser != null
+                                ? $"{task.AssignedUser.LastName} {task.AssignedUser.FirstName}"
+                                : null
+                        });
+                    }
+                }
+            }
+
+            // Связи между этапами
+            foreach (var stage in stages.Where(s => !string.IsNullOrEmpty(s.PredecessorStageIds)))
+            {
+                try
+                {
+                    var predIds = System.Text.Json.JsonSerializer.Deserialize<Guid[]>(stage.PredecessorStageIds!);
+                    if (predIds != null)
+                    {
+                        foreach (var predId in predIds)
+                        {
+                            dependencies.Add(new GanttDependency
+                            {
+                                FromId = $"stage-{predId}",
+                                ToId = $"stage-{stage.Id}",
+                                Type = GanttDependencyType.Regular
+                            });
+                        }
+                    }
+                }
+                catch { /* некорректный JSON — пропускаем */ }
+            }
+
+            // Связи между задачами
+            foreach (var task in tasks.Where(t => !string.IsNullOrEmpty(t.PredecessorTaskIds)))
+            {
+                try
+                {
+                    var predIds = System.Text.Json.JsonSerializer.Deserialize<Guid[]>(task.PredecessorTaskIds!);
+                    if (predIds != null)
+                    {
+                        foreach (var predId in predIds)
+                        {
+                            dependencies.Add(new GanttDependency
+                            {
+                                FromId = $"task-{predId}",
+                                ToId = $"task-{task.Id}",
+                                Type = GanttDependencyType.Regular
+                            });
+                        }
+                    }
+                }
+                catch { /* некорректный JSON — пропускаем */ }
+            }
+
+            var chartStart = ComputeChartStart(nodes);
+            var chartEnd = ComputeChartEnd(nodes, endPaddingWeeks);
+
+            var today = DateOnly.FromDateTime(DateTime.Today);
+            _ganttInput = new GanttChartInput
+            {
+                Nodes = nodes,
+                CalendarDays = WorkCalendar.GenerateCalendar(chartStart.Year, chartEnd.Year),
+                StartDate = chartStart,
+                EndDate = chartEnd,
+                Today = today,
+                EndPaddingWeeks = endPaddingWeeks,
+                Dependencies = dependencies
+            };
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Ошибка загрузки плана");
+        }
+    }
+
+    private static DateOnly ComputeChartStart(List<GanttNode> nodes)
+    {
+        DateOnly? min = null;
+        foreach (var n in nodes)
+        {
+            var d = n.StartDate ?? n.MilestoneDate;
+            if (d.HasValue && (min == null || d.Value < min.Value))
+                min = d.Value;
+        }
+        if (min == null) return new DateOnly(DateTime.Today.Year, 1, 1);
+        return new DateOnly(min.Value.Year, min.Value.Month, 1);
+    }
+
+    private static DateOnly ComputeChartEnd(List<GanttNode> nodes, int paddingWeeks)
+    {
+        DateOnly? max = null;
+        foreach (var n in nodes)
+        {
+            var d = n.EndDate ?? n.StartDate ?? n.MilestoneDate;
+            if (d.HasValue && (max == null || d.Value > max.Value))
+                max = d.Value;
+        }
+        if (max == null) return new DateOnly(DateTime.Today.Year, 12, 31);
+
+        var padded = max.Value.AddDays(paddingWeeks * 7);
+        return new DateOnly(padded.Year, padded.Month, 1).AddMonths(1).AddDays(-1);
+    }
+
+    private static string FormatDate(DateOnly? d) => d.HasValue ? d.Value.ToString("dd.MM.yyyy") : "—";
+}

@@ -1,0 +1,520 @@
+.gantt-chart {
+    display: flex;
+    flex-direction: column;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    background: #fff;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-size: 12px;
+    user-select: none;
+    width: 100%;
+    height: 100%;
+    min-width: 0;
+    min-height: 300px;
+    box-sizing: border-box;
+}
+
+/* ── Left panel controls ─────────────────────────────────── */
+
+.gantt-left-controls {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 3px;
+    padding: 4px 6px;
+    background: #f5f5f5;
+    border-bottom: 1px solid #e0e0e0;
+    box-sizing: border-box;
+}
+
+.gantt-left-controls .gantt-btn-today {
+    margin-left: auto;
+}
+
+.gantt-chk {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    font-size: 11px;
+    cursor: pointer;
+    margin: 0;
+    white-space: nowrap;
+}
+
+.gantt-chk input {
+    margin: 0;
+}
+
+/* ── Modal ───────────────────────────────────────────── */
+
+.gantt-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.gantt-modal {
+    background: #fff;
+    border-radius: 6px;
+    padding: 16px 20px;
+    min-width: 220px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.gantt-modal-title {
+    font-weight: 600;
+    font-size: 13px;
+    margin-bottom: 4px;
+}
+
+.gantt-modal-actions {
+    display: flex;
+    gap: 6px;
+    justify-content: flex-end;
+    margin-top: 4px;
+}
+
+/* ── Toolbar (removed) ──────────────────────────────────── */
+/* ── Main layout ──────────────────────────────────────── */
+    padding: 3px 10px;
+    border: 1px solid #d0d0d0;
+    border-radius: 3px;
+    background: #fff;
+    font-size: 11px;
+    cursor: pointer;
+    color: #444;
+    line-height: 1.4;
+}
+
+.gantt-btn:hover {
+    background: #e8e8e8;
+}
+
+.gantt-btn-active {
+    background: #1976d2;
+    color: #fff;
+    border-color: #1565c0;
+}
+
+.gantt-btn-today {
+    border-color: #4caf50;
+    color: #2e7d32;
+}
+
+.gantt-btn-today:hover {
+    background: #e8f5e9;
+}
+
+/* ── Main layout ──────────────────────────────────────── */
+
+.gantt-main {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+    min-height: 0;
+}
+
+/* ── Left panel ───────────────────────────────────────── */
+
+.gantt-left {
+    width: 300px;
+    min-width: 200px;
+    border-right: 1px solid #e0e0e0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.gantt-left-body {
+    overflow-y: auto;
+    overflow-x: hidden;
+    flex: 1;
+}
+
+/* ── Right panel ──────────────────────────────────────── */
+
+.gantt-right {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+    max-width: 100%;
+}
+
+.gantt-right-header {
+    flex-shrink: 0;
+    overflow: hidden;
+    background: #fff;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.gantt-right-scroll {
+    flex: 1;
+    overflow: auto;
+    min-height: 0;
+}
+
+.gantt-bars {
+    position: relative;
+}
+
+/* ── Rows ─────────────────────────────────────────────── */
+
+.gantt-row {
+    display: flex;
+    align-items: center;
+    border-bottom: 1px solid #f0f0f0;
+    gap: 4px;
+    white-space: nowrap;
+    box-sizing: border-box;
+}
+
+.gantt-row:hover {
+    background: #f5f8ff;
+}
+
+.gantt-row-group {
+    font-weight: 600;
+    background: #fafafa;
+}
+
+.gantt-row-group:hover {
+    background: #f0f4ff;
+}
+
+.gantt-row-project {
+    background: #e3f2fd;
+    font-weight: 700;
+}
+
+.gantt-row-project:hover {
+    background: #bbdefb;
+}
+
+.gantt-expand {
+    width: 14px;
+    height: 14px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 9px;
+    cursor: pointer;
+    color: #666;
+    flex-shrink: 0;
+}
+
+.gantt-expand:hover {
+    color: #1976d2;
+}
+
+.gantt-expand-empty {
+    visibility: hidden;
+}
+
+.gantt-milestone-icon {
+    color: #9c27b0;
+    font-size: 14px;
+    flex-shrink: 0;
+}
+
+.gantt-row-clickable {
+    cursor: pointer;
+}
+
+.gantt-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* ── Row backgrounds (right panel) ────────────────────── */
+
+.gantt-row-bg {
+    position: absolute;
+    left: 0;
+    right: 0;
+    border-bottom: 1px solid #f0f0f0;
+    pointer-events: none;
+}
+
+.gantt-row-bg-group {
+    background: #fafafa;
+}
+
+.gantt-row-bg-project {
+    background: #e3f2fd;
+}
+
+/* ── Bars ─────────────────────────────────────────────── */
+
+.gantt-bar {
+    position: absolute;
+    height: 24px;
+    border-radius: 3px;
+    cursor: pointer;
+    overflow: hidden;
+    box-sizing: border-box;
+    min-width: 2px;
+}
+
+.gantt-bar-task {
+    background: #42a5f5;
+    border: 1px solid #1e88e5;
+}
+
+.gantt-bar-task:hover {
+    background: #64b5f6;
+}
+
+.gantt-bar-group {
+    background: #78909c;
+    border: 1px solid #546e7a;
+    height: 20px;
+    border-radius: 2px;
+}
+
+.gantt-bar-group:hover {
+    background: #90a4ae;
+}
+
+.gantt-bar-progress {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.15);
+    border-radius: 2px 0 0 2px;
+    pointer-events: none;
+}
+
+.gantt-bar-label {
+    position: absolute;
+    left: 6px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 10px;
+    color: #fff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: calc(100% - 12px);
+    pointer-events: none;
+    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.3);
+}
+
+/* ── Stage bracket ────────────────────────────────────── */
+
+.gantt-bar-bracket {
+    position: absolute;
+    height: 24px;
+    cursor: pointer;
+    pointer-events: auto;
+}
+
+.gantt-bar-bracket-line {
+    position: absolute;
+    top: 50%;
+    left: 4px;
+    right: 4px;
+    height: 2px;
+    transform: translateY(-50%);
+}
+
+.gantt-bar-bracket-leg {
+    position: absolute;
+    top: 4px;
+    bottom: 4px;
+    width: 3px;
+    border-radius: 2px;
+}
+
+.gantt-bar-bracket-leg-left  { left: 0; }
+.gantt-bar-bracket-leg-right { right: 0; }
+
+.gantt-bar-bracket:hover .gantt-bar-bracket-line,
+.gantt-bar-bracket:hover .gantt-bar-bracket-leg {
+    opacity: 0.85;
+}
+
+.gantt-bar-bracket .gantt-bar-progress {
+    left: 0;
+    top: 0;
+    bottom: 0;
+}
+
+/* ── Tooltip ──────────────────────────────────────────── */
+
+.gantt-tooltip {
+    position: absolute;
+    z-index: 100;
+    background: #fff;
+    border: 1px solid #bbb;
+    border-radius: 5px;
+    padding: 6px 10px;
+    font-size: 11px;
+    line-height: 1.4;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    pointer-events: none;
+    max-width: 320px;
+    white-space: nowrap;
+}
+
+.gantt-tooltip-name {
+    font-weight: 600;
+    margin-bottom: 2px;
+    color: #222;
+}
+
+.gantt-tooltip-path {
+    color: #888;
+    font-size: 10px;
+    margin-bottom: 3px;
+    white-space: normal;
+}
+
+.gantt-tooltip-dates {
+    color: #444;
+}
+
+.gantt-tooltip-executor {
+    color: #1976d2;
+    margin-top: 3px;
+}
+
+/* ── Milestone ────────────────────────────────────────── */
+
+.gantt-bar-milestone {
+    position: absolute;
+    width: 14px;
+    height: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    color: #9c27b0;
+    cursor: pointer;
+    z-index: 2;
+}
+
+.gantt-bar-milestone:hover {
+    color: #ba68c8;
+    transform: scale(1.2);
+}
+
+/* ── Column stripes (weekend / holiday zebra) ──────────── */
+
+.gantt-col-stripe {
+    position: absolute;
+    top: 0;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.gantt-col-weekend {
+    background: #faf8f5;
+}
+
+.gantt-col-holiday {
+    background: #fff0f0;
+}
+
+/* ── Today line ───────────────────────────────────────── */
+
+.gantt-today-line {
+    position: absolute;
+    top: 0;
+    width: 2px;
+    background: #d32f2f;
+    pointer-events: none;
+    z-index: 3;
+}
+/* ═══════════════════════════════════════════════════════
+   Зебра / столбцы выходных и праздников — поверх баров
+   ═══════════════════════════════════════════════════════ */
+
+.gantt-col-stripe.zebra {
+    z-index: 5;
+    pointer-events: none;
+}
+
+.gantt-col-stripe.zebra.gantt-col-weekend-stripe {
+    background: #f0ece6;
+    opacity: 0.85;
+}
+
+.gantt-col-stripe.zebra.gantt-col-holiday-stripe {
+    background: #fce4ec;
+    opacity: 0.90;
+}
+
+/* ── Bar wrappers — текст не покрывается зеброй ─────────── */
+
+.gantt-bar-task-wrap {
+    position: absolute;
+    display: flex;
+    align-items: center;
+}
+
+/* Текстовый бар — всегда с solid background, тексту нечего бояться │
+   полосы зебры видны только по краям (inset margin)                │ */
+
+.gantt-bar-gutter {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+}
+
+.gantt-bar-task.task-solid {
+    border-radius: 3px;
+    overflow: hidden;
+    transition: box-shadow .12s ease;
+}
+
+/* Wrapper задачи — под зеброй (z-index:5), чтобы полосы просвечивали сквозь фон бара */
+.gantt-bar-task-wrap {
+    z-index: 2;
+}
+
+/* Текст задачи — над зеброй, ограничен баром */
+.gantt-bar-task-wrap .gantt-bar-label {
+    z-index: 7;
+}
+
+/* ── Stage bracket — когда на полосе зебры, пунктирный контур ── */
+
+.bracket-on-zebra.zebra-crossed .gantt-bar-bracket-line {
+    stroke-dasharray: 2px 6px !important;
+    stroke-dashoffset: 0 !important;
+    border-bottom: 1px dashed rgba(0, 0, 0, 0.3) !important;
+}
+
+.bracket-on-zebra.zebra-crossed .gantt-bar-bracket-leg-left,
+.bracket-on-zebra.zebra-crossed .gantt-bar-bracket-leg-right {
+    border-left: 1px dashed rgba(0, 0, 0, 0.25);
+}
+
+/* ── Milestone — пунктирное кольцо при попадании на зёбру ────── */
+
+.milestone-on-strip {
+    filter: drop-shadow(0 0 3px rgba(156, 39, 176, 0.6));
+}
+
+/* ── Tooltip — поверх всего ─────────────────────────────── */
+
+.tooltip-ztop {
+    z-index: 50;
+}
+
+/* ── Dependencies — поверх всего интерфейса ───────────────── */
+
+.dep-overall {
+    z-index: 10;
+}

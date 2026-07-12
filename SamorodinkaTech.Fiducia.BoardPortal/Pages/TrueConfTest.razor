@@ -1,0 +1,738 @@
+@page "/trueconf-test"
+@using SamorodinkaTech.Fiducia.Domain.Entities
+@using SamorodinkaTech.Fiducia.Domain.Interfaces
+@using SamorodinkaTech.Fiducia.Domain.Models.TrueConf
+@using SamorodinkaTech.Fiducia.Infrastructure.Services
+@using Microsoft.Extensions.Options
+@inject IApplicationDbContext DbContext
+@inject ITrueConfApiClient? TrueConfClient
+@inject IOptions<TrueConfOptions>? TrueConfOptions
+@inject ILogger<TrueConfTest> Logger
+
+<PageTitle>Fiducia — TrueConf Тест</PageTitle>
+
+<div class="container-fluid">
+    <h3 class="mb-4">Тест TrueConf — Заседание СД</h3>
+
+    @if (TrueConfClient == null || TrueConfOptions?.Value?.Enabled != true)
+    {
+        <div class="alert alert-warning">
+            <strong>TrueConf отключён.</strong> Включите интеграцию в <code>appsettings.json</code>:
+            <code>"TrueConf": { "Enabled": true }</code>
+        </div>
+    }
+
+    @if (_serverInfo != null)
+    {
+        <div class="alert alert-info">
+            <strong>Сервер:</strong> @_serverInfo.Name v@_serverInfo.Version (@_serverInfo.Platform)
+            @if (!string.IsNullOrEmpty(_serverInfo.DocumentationUrl))
+            {
+                <span class="ms-2">| <a href="@_serverInfo.DocumentationUrl" target="_blank">Документация API</a></span>
+            }
+            @if (!string.IsNullOrEmpty(_serverInfo.SiteUrl))
+            {
+                <span class="ms-2">| <a href="@_serverInfo.SiteUrl" target="_blank">TrueConf</a></span>
+            }
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(_versionWarning))
+    {
+        <div class="alert alert-danger">
+            <strong>Внимание!</strong> @_versionWarning
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(_statusMessage))
+    {
+        <div class="alert @(_isError ? "alert-danger" : "alert-success") alert-dismissible">
+            @_statusMessage
+            <button type="button" class="btn-close" @onclick="() => _statusMessage = null"></button>
+        </div>
+    }
+
+    @* === Секция 1: Заседание СД === *@
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Заседание СД</h5>
+        </div>
+        <div class="card-body">
+            @if (_currentMeeting == null)
+            {
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Название заседания</label>
+                        <input type="text" class="form-control" @bind="_newMeetingTitle"
+                               placeholder="Заседание СД — 12 августа 2026">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Описание (необязательно)</label>
+                        <input type="text" class="form-control" @bind="_newMeetingDescription"
+                               placeholder="Рассмотрение вопросов повестки">
+                    </div>
+                    <div class="col-12">
+                        <button class="btn btn-primary" @onclick="CreateMeeting"
+                                disabled="@(_isSaving || string.IsNullOrWhiteSpace(_newMeetingTitle))">
+                            @if (_isSaving)
+                            {
+                                <span class="spinner-border spinner-border-sm me-1"></span>
+                            }
+                            Создать заседание
+                        </button>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <h6>@_currentMeeting.Title</h6>
+                        @if (!string.IsNullOrEmpty(_currentMeeting.Description))
+                        {
+                            <p class="text-muted mb-0">@_currentMeeting.Description</p>
+                        }
+                        <small class="text-muted">
+                            Статус: <span class="badge @GetStatusBadgeClass(_currentMeeting.Status)">@_currentMeeting.Status</span>
+                            @if (_currentMeeting.AllMembersVoted)
+                            {
+                                <span class="badge bg-info ms-1">Все проголосовали</span>
+                            }
+                            @if (_currentMeeting.DecisionAccepted.HasValue)
+                            {
+                                <span class="badge @(_currentMeeting.DecisionAccepted.Value ? "bg-success" : "bg-danger") ms-1">
+                                    @(_currentMeeting.DecisionAccepted.Value ? "Решение принято" : "Решение отклонено")
+                                </span>
+                            }
+                        </small>
+                    </div>
+                    <button class="btn btn-outline-danger btn-sm" @onclick="DeleteMeeting">Удалить</button>
+                </div>
+            }
+        </div>
+    </div>
+
+    @* === Секция 2: Конференция TrueConf === *@
+    @if (_currentMeeting != null)
+    {
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Конференция TrueConf</h5>
+            </div>
+            <div class="card-body">
+                @if (string.IsNullOrEmpty(_currentMeeting.TrueConfConferenceId))
+                {
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Название конференции</label>
+                            <input type="text" class="form-control" @bind="_conferenceDisplayName"
+                                   placeholder="СД Тест">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Длительность (мин)</label>
+                            <input type="number" class="form-control" @bind="_conferenceDurationMinutes" min="5" max="480">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Владелец (организатор)</label>
+                            @if (_trueConfUsers.Any())
+                            {
+                                <select class="form-select" @bind="_selectedOwnerId">
+                                    <option value="">— Выберите владельца —</option>
+                                    @foreach (var user in _trueConfUsers)
+                                    {
+                                        <option value="@user.LoginName">@user.DisplayName (@user.LoginName)</option>
+                                    }
+                                </select>
+                            }
+                            else
+                            {
+                                <input type="text" class="form-control" @bind="_selectedOwnerId"
+                                       placeholder="user_id в TrueConf">
+                            }
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Участники для приглашения</label>
+                            @if (_trueConfUsers.Any())
+                            {
+                                <div class="border rounded p-2" style="max-height: 120px; overflow-y: auto;">
+                                    @foreach (var user in _trueConfUsers)
+                                    {
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox"
+                                                   checked="@_selectedInvitationIds.Contains(user.LoginName)"
+                                                   @onchange="() => ToggleInvitation(user.LoginName)">
+                                            <label class="form-check-label">
+                                                @user.DisplayName (@user.LoginName)
+                                            </label>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                            else
+                            {
+                                <input type="text" class="form-control" @bind="_invitationsInput"
+                                       placeholder="user1, user2 (через запятую)">
+                            }
+                        </div>
+                        <div class="col-12">
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" @bind="_openAccess" id="openAccess">
+                                <label class="form-check-label" for="openAccess">
+                                    Открытый доступ — любой приглашённый может зайти без авторизации
+                                </label>
+                            </div>
+                            <button class="btn btn-success" @onclick="CreateConference"
+                                    disabled="@(_isSaving || TrueConfClient == null || string.IsNullOrEmpty(_selectedOwnerId))">
+                                @if (_isSaving)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-1"></span>
+                                }
+                                Создать конференцию (старт через 3 сек)
+                            </button>
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="alert alert-info mb-2">
+                                <strong>ID конференции:</strong>
+                                <code class="fs-5 ms-2">@_currentMeeting.TrueConfConferenceId</code>
+                            </div>
+                            <p class="mb-1"><strong>Состояние:</strong> @(_currentMeeting.ConferenceState ?? "неизвестно")</p>
+                            @if (!string.IsNullOrEmpty(_currentMeeting.TrueConfJoinLink))
+                            {
+                                <p class="mb-2">
+                                    <strong>Ссылка для входа:</strong>
+                                    <a href="@_currentMeeting.TrueConfJoinLink" target="_blank">
+                                        @_currentMeeting.TrueConfJoinLink
+                                    </a>
+                                </p>
+                            }
+                            <p class="mb-1">
+                                <strong>Владелец:</strong>
+                                <span class="badge bg-primary">@_selectedOwnerId</span>
+                            </p>
+                            @if (_selectedInvitationIds.Any())
+                            {
+                                <p class="mb-0">
+                                    <strong>Участники:</strong>
+                                    @foreach (var participant in _selectedInvitationIds.Where(id => id != _selectedOwnerId))
+                                    {
+                                        <span class="badge bg-secondary me-1">@participant</span>
+                                    }
+                                </p>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+
+    @* === Секция 3: Вопросы повестки === *@
+    @if (_currentMeeting != null)
+    {
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Вопросы повестки</h5>
+                <span class="badge bg-secondary">@_questions.Count</span>
+            </div>
+            <div class="card-body">
+                @* Форма добавления вопроса *@
+                <div class="row g-2 mb-3">
+                    <div class="col-md-5">
+                        <input type="text" class="form-control form-control-sm" @bind="_newQuestionText"
+                               placeholder="Текст вопроса">
+                    </div>
+                    <div class="col-md-5">
+                        <input type="text" class="form-control form-control-sm" @bind="_newQuestionResolution"
+                               placeholder="Проект решения">
+                    </div>
+                    <div class="col-md-2">
+                        <button class="btn btn-outline-primary btn-sm w-100" @onclick="AddQuestion"
+                                disabled="@(string.IsNullOrWhiteSpace(_newQuestionText))">
+                            Добавить
+                        </button>
+                    </div>
+                </div>
+
+                @* Список вопросов *@
+                @if (_questions.Any())
+                {
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th style="width:40px">#</th>
+                                <th>Вопрос</th>
+                                <th>Решение</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var q in _questions.OrderBy(q => q.SequenceNumber))
+                            {
+                                <tr>
+                                    <td>@q.SequenceNumber</td>
+                                    <td>@q.QuestionText</td>
+                                    <td><small class="text-muted">@q.ProposedResolution</small></td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                }
+                else
+                {
+                    <p class="text-muted text-center mb-0">Добавьте вопросы повестки</p>
+                }
+            </div>
+        </div>
+    }
+
+    @* === Секция 4: История заседаний === *@
+    @if (_meetingHistory.Any())
+    {
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">История заседаний</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>Название</th>
+                            <th>Статус</th>
+                            <th>Конференция</th>
+                            <th>Вопросов</th>
+                            <th>Все голосуют</th>
+                            <th>Решение</th>
+                            <th>Создано</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var m in _meetingHistory)
+                        {
+                            <tr class="@(_currentMeeting?.Id == m.Id ? "table-active" : "")"
+                                style="cursor:pointer" @onclick="() => LoadMeeting(m.Id)">
+                                <td>@m.Title</td>
+                                <td><span class="badge @GetStatusBadgeClass(m.Status)">@m.Status</span></td>
+                                <td>
+                                    @if (!string.IsNullOrEmpty(m.TrueConfConferenceId))
+                                    {
+                                        <span class="text-success">✓</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">—</span>
+                                    }
+                                </td>
+                                <td>@_questionCounts.GetValueOrDefault(m.Id, 0)</td>
+                                <td>
+                                    @if (m.AllMembersVoted)
+                                    {
+                                        <span class="text-success">✓</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">—</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (m.DecisionAccepted.HasValue)
+                                    {
+                                        <span class="badge @(m.DecisionAccepted.Value ? "bg-success" : "bg-danger")">
+                                            @(m.DecisionAccepted.Value ? "Принято" : "Отклонено")
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">—</span>
+                                    }
+                                </td>
+                                <td><small>@m.CreatedAt.ToString("dd.MM.yyyy HH:mm")</small></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private TrueConfTestMeeting? _currentMeeting;
+    private List<TrueConfTestQuestion> _questions = new();
+    private List<TrueConfTestMeeting> _meetingHistory = new();
+    private Dictionary<Guid, int> _questionCounts = new();
+    private string _newMeetingTitle = string.Empty;
+    private string _newMeetingDescription = string.Empty;
+    private string _conferenceDisplayName = "СД Тест";
+    private int _conferenceDurationMinutes = 60;
+    private string _newQuestionText = string.Empty;
+    private string _newQuestionResolution = string.Empty;
+
+    private List<TrueConfUser> _trueConfUsers = new();
+    private string _selectedOwnerId = string.Empty;
+    private HashSet<string> _selectedInvitationIds = new();
+    private string _invitationsInput = string.Empty;
+    private bool _openAccess = true;
+
+    private bool _isSaving;
+    private string? _statusMessage;
+    private bool _isError;
+
+    private TrueConfServerInfo? _serverInfo;
+    private string? _versionWarning;
+
+    private System.Threading.Timer? _refreshTimer;
+
+    private static readonly Version MinPollsVersion = new(5, 5, 3);
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadHistory();
+        if (TrueConfClient != null && TrueConfOptions?.Value?.Enabled == true)
+        {
+            await CheckServerVersionAsync();
+            await LoadTrueConfUsers();
+        }
+    }
+
+    private async Task CheckServerVersionAsync()
+    {
+        if (TrueConfClient == null) return;
+
+        try
+        {
+            if (!await EnsureTokenAsync()) return;
+
+            _serverInfo = await TrueConfClient.GetServerInfoAsync();
+
+            if (_serverInfo != null)
+            {
+                Logger.LogInformation("TrueConf Server: {Name} v{Version} ({Platform})",
+                    _serverInfo.Name, _serverInfo.Version, _serverInfo.Platform);
+
+                if (Version.TryParse(_serverInfo.Version, out var ver) && ver < MinPollsVersion)
+                {
+                    _versionWarning = $"Версия сервера {_serverInfo.Version} не поддерживает API опросов. " +
+                                      $"Требуется версия {MinPollsVersion} или выше. " +
+                                      $"Опросы будут недоступны через API.";
+                    Logger.LogWarning(_versionWarning);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Ошибка получения информации о сервере TrueConf");
+        }
+    }
+
+    private async Task LoadTrueConfUsers()
+    {
+        if (TrueConfClient == null || TrueConfOptions?.Value?.Enabled != true) return;
+
+        try
+        {
+            if (!await EnsureTokenAsync()) return;
+            _trueConfUsers = (await TrueConfClient.GetUsersAsync()).ToList();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Ошибка загрузки пользователей TrueConf");
+        }
+    }
+
+    private void ToggleInvitation(string loginName)
+    {
+        if (_selectedInvitationIds.Contains(loginName))
+            _selectedInvitationIds.Remove(loginName);
+        else
+            _selectedInvitationIds.Add(loginName);
+    }
+
+    private async Task LoadHistory()
+    {
+        try
+        {
+            _meetingHistory = await DbContext.TrueConfTestMeetings
+                .OrderByDescending(m => m.CreatedAt)
+                .ToListAsync();
+
+            foreach (var m in _meetingHistory)
+            {
+                _questionCounts[m.Id] = await DbContext.TrueConfTestQuestions
+                    .CountAsync(q => q.MeetingId == m.Id);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Ошибка загрузки истории заседаний");
+            _meetingHistory = new List<TrueConfTestMeeting>();
+        }
+    }
+
+    private async Task LoadMeeting(Guid meetingId)
+    {
+        try
+        {
+            _currentMeeting = await DbContext.TrueConfTestMeetings.FindAsync(meetingId);
+            if (_currentMeeting != null)
+            {
+                _questions = await DbContext.TrueConfTestQuestions
+                    .Where(q => q.MeetingId == meetingId)
+                    .OrderBy(q => q.SequenceNumber)
+                    .ToListAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Ошибка загрузки заседания {MeetingId}", meetingId);
+            ShowError($"Ошибка загрузки: {ex.Message}");
+        }
+    }
+
+    private async Task CreateMeeting()
+    {
+        if (string.IsNullOrWhiteSpace(_newMeetingTitle)) return;
+
+        _isSaving = true;
+        try
+        {
+            var meeting = new TrueConfTestMeeting
+            {
+                Title = _newMeetingTitle,
+                Description = _newMeetingDescription,
+                Status = "PREPARING"
+            };
+
+            DbContext.TrueConfTestMeetings.Add(meeting);
+            await DbContext.SaveChangesAsync();
+
+            // Дефолтные вопросы повестки
+            var defaultQuestions = new List<TrueConfTestQuestion>
+            {
+                new()
+                {
+                    MeetingId = meeting.Id,
+                    SequenceNumber = 1,
+                    QuestionText = "Об избрании Председателя Совета директоров",
+                    ProposedResolution = "Избрать Председателем Совета директоров кандидата, получившего большинство голосов"
+                },
+                new()
+                {
+                    MeetingId = meeting.Id,
+                    SequenceNumber = 2,
+                    QuestionText = "Об избрании Корпоративного секретаря (Секретаря Совета директоров)",
+                    ProposedResolution = "Избрать Корпоративным секретарём кандидата, получившего большинство голосов"
+                }
+            };
+
+            DbContext.TrueConfTestQuestions.AddRange(defaultQuestions);
+            await DbContext.SaveChangesAsync();
+
+            _currentMeeting = meeting;
+            _newMeetingTitle = string.Empty;
+            _newMeetingDescription = string.Empty;
+            _questions = defaultQuestions;
+
+            await LoadHistory();
+            ShowSuccess("Заседание создано с 2 вопросами повестки");
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Ошибка создания заседания");
+            ShowError($"Ошибка: {ex.Message}");
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+
+    private async Task DeleteMeeting()
+    {
+        if (_currentMeeting == null) return;
+
+        _isSaving = true;
+        try
+        {
+            DbContext.TrueConfTestMeetings.Remove(_currentMeeting);
+            await DbContext.SaveChangesAsync();
+
+            _currentMeeting = null;
+            _questions.Clear();
+
+            await LoadHistory();
+            ShowSuccess("Заседание удалено");
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Ошибка удаления заседания");
+            ShowError($"Ошибка: {ex.Message}");
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+
+    private async Task CreateConference()
+    {
+        if (_currentMeeting == null || TrueConfClient == null || string.IsNullOrEmpty(_selectedOwnerId)) return;
+
+        _isSaving = true;
+        try
+        {
+            if (!await EnsureTokenAsync()) return;
+
+            var startTime = DateTimeOffset.UtcNow.AddSeconds(3).ToUnixTimeSeconds();
+            var duration = _conferenceDurationMinutes * 60;
+
+            // Формируем список приглашённых: владелец + выбранные участники
+            var invitations = new List<TrueConfInvitation>
+            {
+                new() { Id = _selectedOwnerId, Role = "moderator" }
+            };
+
+            // Если используется UI-чекбоксы
+            if (_trueConfUsers.Any())
+            {
+                foreach (var loginName in _selectedInvitationIds.Where(id => id != _selectedOwnerId))
+                {
+                    invitations.Add(new TrueConfInvitation { Id = loginName, Role = "participant" });
+                }
+            }
+            // Если используется текстовый ввод
+            else if (!string.IsNullOrWhiteSpace(_invitationsInput))
+            {
+                foreach (var id in _invitationsInput.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+                {
+                    if (id != _selectedOwnerId)
+                        invitations.Add(new TrueConfInvitation { Id = id, Role = "participant" });
+                }
+            }
+
+            var request = new CreateTrueConfConferenceRequest
+            {
+                DisplayName = string.IsNullOrWhiteSpace(_conferenceDisplayName)
+                    ? _currentMeeting.Title
+                    : _conferenceDisplayName,
+                StartTime = startTime,
+                Duration = duration,
+                Topic = _currentMeeting.Title,
+                Owner = _selectedOwnerId,
+                Invitations = invitations,
+                AccessMode = _openAccess ? "open" : "restricted",
+                Tag = $"fiducia-test-{_currentMeeting.Id}"
+            };
+
+            var conference = await TrueConfClient.CreateConferenceAsync(request);
+
+            _currentMeeting.TrueConfConferenceId = conference.Id;
+            _currentMeeting.TrueConfJoinLink = conference.JoinLink;
+            _currentMeeting.ConferenceState = conference.State;
+            _currentMeeting.Status = "IN_PROGRESS";
+            _currentMeeting.StartedAt = DateTime.UtcNow;
+
+            await DbContext.SaveChangesAsync();
+            await LoadHistory();
+
+            ShowSuccess($"Конференция создана: {conference.Id}");
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Ошибка создания конференции TrueConf");
+            ShowError($"Ошибка TrueConf: {ex.Message}");
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+
+    private async Task AddQuestion()
+    {
+        if (_currentMeeting == null || string.IsNullOrWhiteSpace(_newQuestionText)) return;
+
+        _isSaving = true;
+        try
+        {
+            var seq = _questions.Any() ? _questions.Max(q => q.SequenceNumber) + 1 : 1;
+
+            var question = new TrueConfTestQuestion
+            {
+                MeetingId = _currentMeeting.Id,
+                SequenceNumber = seq,
+                QuestionText = _newQuestionText,
+                ProposedResolution = _newQuestionResolution
+            };
+
+            DbContext.TrueConfTestQuestions.Add(question);
+            await DbContext.SaveChangesAsync();
+
+            _questions.Add(question);
+            _newQuestionText = string.Empty;
+            _newQuestionResolution = string.Empty;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Ошибка добавления вопроса");
+            ShowError($"Ошибка: {ex.Message}");
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+
+    private void ShowSuccess(string message)
+    {
+        _statusMessage = message;
+        _isError = false;
+    }
+
+    private void ShowError(string message)
+    {
+        _statusMessage = message;
+        _isError = true;
+    }
+
+    private async Task<bool> EnsureTokenAsync()
+    {
+        if (TrueConfClient == null || TrueConfOptions?.Value == null) return false;
+
+        try
+        {
+            var tokenResponse = await TrueConfClient.GetTokenAsync(
+                TrueConfOptions.Value.ClientId,
+                TrueConfOptions.Value.ClientSecret);
+
+            if (string.IsNullOrEmpty(tokenResponse.AccessToken))
+            {
+                ShowError("Не удалось получить токен TrueConf. Проверьте ClientId/ClientSecret.");
+                return false;
+            }
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Ошибка получения токена TrueConf");
+            ShowError($"Ошибка токена: {ex.Message}");
+            return false;
+        }
+    }
+
+    private static string GetStatusBadgeClass(string status) => status switch
+    {
+        "PREPARING" => "bg-secondary",
+        "IN_PROGRESS" => "bg-warning text-dark",
+        "COMPLETED" => "bg-success",
+        _ => "bg-secondary"
+    };
+
+    public void Dispose()
+    {
+        _refreshTimer?.Dispose();
+    }
+}

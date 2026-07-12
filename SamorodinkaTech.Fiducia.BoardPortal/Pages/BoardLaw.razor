@@ -1,0 +1,63 @@
+@page "/board-law/{articlePath}"
+@using Markdig
+@inject HttpClient Http
+@inject NavigationManager Nav
+@inject ILogger<BoardLaw> Logger
+@inject ILogger<BoardLaw> Logger
+
+@if (_html is not null)
+{
+    <div class="container mt-3">
+        <div class="mb-3">
+            <a href="javascript:history.back()" class="btn btn-sm btn-outline-secondary">← Назад</a>
+        </div>
+        <div class="law-content">
+            @((MarkupString)_html)
+        </div>
+    </div>
+}
+else if (_error is not null)
+{
+    <div class="alert alert-danger m-3">@_error</div>
+}
+else
+{
+    <div class="text-muted m-3">Загрузка...</div>
+}
+
+@code {
+    private string? _html;
+    private string? _error;
+
+    [Parameter]
+    public string? ArticlePath { get; set; }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _html = null;
+        _error = null;
+
+        if (string.IsNullOrWhiteSpace(ArticlePath))
+        {
+            _error = "Не указан путь к статье закона.";
+            return;
+        }
+
+        try
+        {
+            var url = $"{Nav.BaseUri}laws/{ArticlePath}.txt";
+            var md = await Http.GetStringAsync(url);
+            _html = Markdown.ToHtml(md, new MarkdownPipelineBuilder().UseAdvancedExtensions().Build());
+        }
+        catch (HttpRequestException ex)
+        {
+            Logger.LogWarning(ex, "Закон не найден: {ArticlePath}", ArticlePath);
+            _error = ex.Message;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Ошибка загрузки: {ArticlePath}", ArticlePath);
+            _error = ex.Message;
+        }
+    }
+}

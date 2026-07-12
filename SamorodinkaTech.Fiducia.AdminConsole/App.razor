@@ -1,0 +1,45 @@
+@using SamorodinkaTech.Fiducia.Infrastructure.Common.Exceptions
+@inject NavigationManager Nav
+@inject ILogger<App> Logger
+
+<SamorodinkaTech.Fiducia.AdminConsole.Shared.AppErrorBoundary @ref="_boundary">
+    <Router AppAssembly="@typeof(App).Assembly">
+        <Found Context="routeData">
+            <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)">
+                <NotAuthorized>
+                    <RedirectToLogin />
+                </NotAuthorized>
+            </AuthorizeRouteView>
+            <FocusOnNavigate RouteData="@routeData" Selector="h1" />
+        </Found>
+        <NotFound>
+            <PageTitle>Not found</PageTitle>
+            <LayoutView Layout="@typeof(MainLayout)">
+                <p role="alert">Sorry, there's nothing at this address.</p>
+            </LayoutView>
+        </NotFound>
+    </Router>
+</SamorodinkaTech.Fiducia.AdminConsole.Shared.AppErrorBoundary>
+
+@code {
+    private Microsoft.AspNetCore.Components.Web.ErrorBoundary? _boundary;
+
+    protected override void OnInitialized()
+    {
+        Nav.LocationChanged += OnLocationChanged;
+    }
+
+    private void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
+    {
+        // Восстанавливаем ErrorBoundary при навигации, чтобы не блокировать последующие страницы
+        _boundary?.Recover();
+        StateHasChanged();
+    }
+
+    // Логирование ошибок теперь обрабатывается в AppErrorBoundary.OnErrorAsync
+
+    public void Dispose()
+    {
+        Nav.LocationChanged -= OnLocationChanged;
+    }
+}

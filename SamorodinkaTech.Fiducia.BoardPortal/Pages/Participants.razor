@@ -1,0 +1,259 @@
+@page "/participants"
+@using Microsoft.EntityFrameworkCore
+@inject IDbContextFactory<SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext> DbFactory
+@inject ILogger<Participants> Logger
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+
+<PageTitle>Fiducia — Состав участников</PageTitle>
+
+<h3>Состав участников</h3>
+
+@if (_error is not null)
+{
+    <div class="alert alert-danger">@_error</div>
+}
+else if (!_isLLC)
+{
+    <div class="text-muted">Раздел доступен только для обществ с ограниченной ответственностью (ООО).</div>
+}
+else if (_founders.Count == 0)
+{
+    <div class="text-muted">
+        Данные об участниках не загружены.
+        @if (_lastFetch is not null)
+        {
+            <span>Последний запрос к СПАРК: <strong>@_lastFetch.Value.ToString("dd.MM.yyyy HH:mm")</strong> (МСК)</span>
+        }
+        else
+        {
+            <span>Загрузите данные через кнопку «СПАРК» в Административной консоли (раздел «Юридические лица»).</span>
+        }
+    </div>
+}
+else
+{
+    @if (_treasuryShare > 0m)
+    {
+        <div class="mb-1">Казначейская доля: <strong class="text-success">@(((decimal)_treasuryShare).ToString("0.##"))%</strong></div>
+    }
+    @if (_lastFetch is not null)
+    {
+        <div class="text-muted small mb-3">Время обновления: @_lastFetch.Value.ToString("dd.MM.yyyy HH:mm") (МСК)</div>
+    }
+    <div class="d-flex justify-content-end align-items-center mb-3">
+        <div class="d-flex align-items-center gap-3 text-nowrap">
+            <label class="form-label mb-0" for="status-filter">Статус:</label>
+            <select id="status-filter" class="form-select form-select-sm" style="width: auto;" @bind="_statusFilter">
+                <option value="active">Действующий</option>
+                <option value="exited">Выбывший</option>
+                <option value="all">Все</option>
+            </select>
+        </div>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-striped align-middle">
+            <thead>
+                <tr>
+                    <th>Участник</th>
+                    <th>Тип</th>
+                    <th>ИНН</th>
+                    <th>ОГРН(ИП)</th>
+                    <th>Страна</th>
+                    <th>Доля</th>
+                    <th>В составе с</th>
+                    <th>Статус</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var f in _filteredFounders)
+                {
+                    var isExited = f.ExitDate.HasValue;
+                    var isUL = !string.IsNullOrEmpty(f.Name);
+                    var displayName = f.FullName ?? f.Name ?? "—";
+
+                    <tr class="@(isExited ? "text-muted text-decoration-line-through" : "")">
+                        <td>
+                            <div class="fw-semibold">@displayName</div>
+                            @if (f.IsForeign)
+                            {
+                                <span class="badge bg-warning text-dark">Иностранное ЮЛ</span>
+                            }
+                            @if (f.HeadOfOther is > 0)
+                            {
+                                <span class="badge bg-info">Руководит @f.HeadOfOther орг.</span>
+                            }
+                            @if (f.FounderOfOther is > 0)
+                            {
+                                <span class="badge bg-secondary">Учредитель в @f.FounderOfOther орг.</span>
+                            }
+                        </td>
+                        <td>
+                            @if (isUL)
+                            {
+                                @("ЮЛ")
+                            }
+                            else if (f.IsEntrepreneur)
+                            {
+                                @("ФЛ (ИП)")
+                            }
+                            else
+                            {
+                                @("ФЛ")
+                            }
+                        </td>
+                        <td class="small font-monospace">
+                            @(f.PersonInn ?? f.Inn ?? "—")
+                        </td>
+                        <td class="small font-monospace">
+                            @(f.Ogrn ?? f.Ogrnip ?? "—")
+                        </td>
+                        <td class="small">
+                            @if (isUL)
+                            {
+                                @(f.Country ?? "—")
+                            }
+                            else
+                            {
+                                @(f.Citizenship ?? "—")
+                            }
+                        </td>
+                        <td>
+                            @if (f.SharePercent.HasValue)
+                            {
+                                <span class="fw-bold">@f.SharePercent.Value.ToString("0.##")%</span>
+                            }
+                            @if (f.ShareAmount.HasValue)
+                            {
+                                <span class="text-muted small d-block">@f.ShareAmount.Value.ToString("N2") ₽</span>
+                            }
+                            else if (!f.SharePercent.HasValue)
+                            {
+                                <span class="text-muted">—</span>
+                            }
+                        </td>
+                        <td class="small">
+                            @f.EntryDate?.ToString("dd.MM.yyyy")
+                        </td>
+                        <td>
+                            @if (isExited)
+                            {
+                                <span class="badge bg-secondary">Выбыл @f.ExitDate?.ToString("dd.MM.yyyy")</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-success">Действующий</span>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    @if (_lastFetch is not null)
+    {
+        <div class="text-muted small mt-2">
+            Данные загружены из СПАРК: <strong>@_lastFetch.Value.ToString("dd.MM.yyyy HH:mm")</strong> (МСК)
+        </div>
+    }
+}
+
+@code {
+    private bool _isLLC;
+    private DateTime? _lastFetch;
+    private string? _error;
+    private string _statusFilter = "active";
+    private List<SparkFounderRow> _founders = new();
+
+    // Казначейская доля = остаток от 100% минуса суммарная доля всех участников (для текущего фильтра)
+    private decimal _treasuryShare => Math.Max(0m, 100m - _filteredFounders.Where(f => f.SharePercent.HasValue).Sum(f => f.SharePercent!.Value));
+
+    private List<SparkFounderRow> _filteredFounders => _statusFilter switch
+    {
+        "active" => _founders.Where(f => !f.ExitDate.HasValue).ToList(),
+        "exited" => _founders.Where(f => f.ExitDate.HasValue).ToList(),
+        _ => _founders
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+
+            var workplace = await ctx.CurrentWorkplaces.FirstOrDefaultAsync();
+            if (workplace?.LastSelectedLegalEntityId is null)
+            {
+                _error = "Юридическое лицо не выбрано. Перейдите в Административную консоль → Юридические лица и выберите ООО.";
+                return;
+            }
+
+            var le = await ctx.LegalEntities
+                .Include(x => x.RefOkopf)
+                .FirstOrDefaultAsync(x => x.Id == workplace.LastSelectedLegalEntityId.Value);
+
+            if (le is null)
+            {
+                _error = "Выбранное юридическое лицо не найдено.";
+                return;
+            }
+
+            _isLLC = le.RefOkopf?.Code == "12300";
+
+            if (!_isLLC)
+                return;
+
+            var founders = await ctx.ExtSparkFounders
+                .Where(x => x.Inn == le.Inn)
+                .OrderByDescending(x => x.SharePercent)
+                .ToListAsync();
+
+            _founders = founders.Select(f => new SparkFounderRow
+            {
+                FullName = f.FullName,
+                Name = f.Name,
+                PersonInn = f.PersonInn,
+                Inn = f.FounderInn,
+                Ogrn = f.FounderOgrn,
+                Country = f.Country,
+                IsForeign = f.IsForeign,
+                Citizenship = f.Citizenship,
+                HeadOfOther = f.HeadOfOther,
+                FounderOfOther = f.FounderOfOther,
+                IsEntrepreneur = f.IsEntrepreneur,
+                Ogrnip = f.Ogrnip,
+                SharePercent = f.SharePercent,
+                ShareAmount = f.ShareAmount,
+                EntryDate = f.EntryDate,
+                ExitDate = f.ExitDate
+            }).ToList();
+
+            _lastFetch = founders.FirstOrDefault()?.FetchedAt;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Ошибка загрузки состава участников");
+            _error = "Не удалось загрузить данные.";
+        }
+    }
+
+    private class SparkFounderRow
+    {
+        public string? FullName { get; init; }
+        public string? Name { get; init; }
+        public string? PersonInn { get; init; }
+        public string? Inn { get; init; }
+        public string? Ogrn { get; init; }
+        public string? Country { get; init; }
+        public bool IsForeign { get; init; }
+        public string? Citizenship { get; init; }
+        public int? HeadOfOther { get; init; }
+        public int? FounderOfOther { get; init; }
+        public bool IsEntrepreneur { get; init; }
+        public string? Ogrnip { get; init; }
+        public decimal? SharePercent { get; init; }
+        public decimal? ShareAmount { get; init; }
+        public DateTime? EntryDate { get; init; }
+        public DateTime? ExitDate { get; init; }
+    }
+}

@@ -1,0 +1,51 @@
+@page "/main"
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "SYS_ADMIN")]
+@using SamorodinkaTech.Fiducia.Domain.Entities
+@using SamorodinkaTech.Fiducia.Domain.Interfaces
+@inject IApplicationDbContext DbContext
+
+<PageTitle>Fiducia — Admin Console</PageTitle>
+
+<div class="container-fluid">
+    <h3 class="mb-4">Дашборд</h3>
+
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h5 class="card-title text-muted">Пользователей</h5>
+                    <h2 class="text-primary">@_userCount</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h5 class="card-title text-muted">Комитетов</h5>
+                    <h2 class="text-success">@_committeeCount</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h5 class="card-title text-muted">Заседаний</h5>
+                    <h2 class="text-info">@_meetingCount</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private int _userCount;
+    private int _committeeCount;
+    private int _meetingCount;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _userCount = await DbContext.Users.CountAsync();
+        _committeeCount = await DbContext.Committees.CountAsync(c => c.IsActive);
+        _meetingCount = await DbContext.Meetings.CountAsync();
+    }
+}

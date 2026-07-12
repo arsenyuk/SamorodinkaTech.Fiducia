@@ -1,0 +1,286 @@
+@page "/election/consent/{Token}"
+@layout AuthLayout
+@using Microsoft.EntityFrameworkCore
+@using SamorodinkaTech.Fiducia.Domain.Entities
+@inject IDbContextFactory<SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext> DbFactory
+@inject ILogger<ElectionConsentPage> Logger
+@inject IJSRuntime JS
+
+<PageTitle>Fiducia — Согласие на выдвижение</PageTitle>
+
+<div class="container py-4" style="max-width: 600px;">
+
+@if (_error is not null)
+{
+    <div class="alert alert-danger">@_error</div>
+}
+
+@if (_completed)
+{
+    <div class="card">
+        <div class="card-body text-center py-5">
+            @if (_consentGiven)
+            {
+                <h4 class="text-success mb-3">✓ Согласие подписано</h4>
+                <p class="text-muted">Вы дали согласие на выдвижение на должность <strong>@_positionLabel</strong>.</p>
+            }
+            else
+            {
+                <h4 class="text-secondary mb-3">⊗ Отказ зафиксирован</h4>
+                <p class="text-muted">Вы отказались от выдвижения на должность <strong>@_positionLabel</strong>.</p>
+            }
+            <p class="small text-muted">Дата: @DateTime.Now.ToString("dd.MM.yyyy HH:mm")</p>
+            <p class="small text-muted">Подтверждение равнозначно собственноручной подписи в соответствии с 63-ФЗ</p>
+        </div>
+    </div>
+    return;
+}
+
+@if (_loading)
+{
+    <div class="text-center py-4">
+        <div class="spinner-border text-primary" role="status"></div>
+        <p class="text-muted mt-2">Загрузка...</p>
+    </div>
+    return;
+}
+
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0">Согласие на выдвижение</h5>
+    </div>
+    <div class="card-body">
+
+        @if (!_otpSent)
+        {
+            <div class="mb-4">
+                <p><strong>Должность:</strong> @_positionLabel</p>
+                <p><strong>Организация:</strong> @_legalEntityName</p>
+                <p><strong>Кандидат:</strong> @_candidateFullName</p>
+            </div>
+
+            <div class="bg-light p-4 rounded mb-4" style="max-height: 250px; overflow-y: auto; font-size: 0.9rem;">
+                <p><strong>СОГЛАСИЕ</strong></p>
+                <p>на выдвижение кандидатом на должность @_positionLabel совета директоров @_legalEntityName</p>
+
+                <p>Я, @_candidateFullName, настоящим даю согласие на выдвижение моей кандидатуры
+                на должность @_positionLabel совета директоров @_legalEntityName
+                для избрания на первом (организационном) заседании совета директоров.</p>
+
+                <p>Я подтверждаю, что:</p>
+                <ul>
+                    <li>Соответствую требованиям, предъявляемым к членам совета директоров 208-ФЗ;</li>
+                    <li>Не имею ограничений на занятие данной должности;</li>
+                    <li>Ознакомлен(а) с правами и обязанностями @_positionLabel.</li>
+                </ul>
+
+                <p>Настоящее согласие подписывается простой электронной подписью (ПЭП)
+                и равнозначно собственноручной подписи в соответствии
+                с Федеральным законом от 06.04.2011 № 63-ФЗ «Об электронной подписи».</p>
+            </div>
+
+            <div class="d-flex gap-2">
+                <button class="btn btn-success" @onclick="RequestOtp">Подписать согласие (ПЭП)</button>
+                <button class="btn btn-outline-danger" @onclick="Decline">Отказаться</button>
+            </div>
+        }
+        else
+        {
+            <div class="mb-3">
+                <label class="form-label">Введите код подтверждения из SMS</label>
+                <p class="text-muted small">Код отправлен на номер, указанный в вашей учётной записи</p>
+                <input type="text" class="form-control" @bind="_otpCode"
+                       placeholder="123456" maxlength="6" style="max-width: 200px;">
+            </div>
+
+            @if (!string.IsNullOrEmpty(_otpError))
+            {
+                <div class="alert alert-danger">@_otpError</div>
+            }
+
+            <div class="d-flex gap-2">
+                <button class="btn btn-outline-secondary" @onclick="CancelOtp">Назад</button>
+                <button class="btn btn-primary" @onclick="VerifyOtp"
+                        disabled="@(_otpCode.Length != 6)">Подтвердить</button>
+                <button class="btn btn-outline-secondary" @onclick="RequestOtp">Отправить повторно</button>
+            </div>
+        }
+    </div>
+</div>
+
+</div>
+
+@code {
+    [Parameter] public string Token { get; set; } = string.Empty;
+
+    private Guid _proposalId;
+    private string _legalEntityName = "";
+    private string _positionLabel = "";
+    private string _candidateFullName = "";
+    private bool _loading = true;
+    private bool _completed;
+    private bool _consentGiven;
+    private string? _error;
+    private Guid _candidateMemberId;
+
+    // ПЭП
+    private bool _otpSent;
+    private string _otpCode = "";
+    private string _otpError = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var userIdStr = await JS.InvokeAsync<string>("localStorage.getItem", "currentUserId") ?? "";
+            await LoadAsync(userIdStr);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Ошибка загрузки страницы согласия Token={Token}", Token);
+            _error = "Ошибка загрузки данных";
+        }
+        finally { _loading = false; }
+    }
+
+    private async Task LoadAsync(string userIdStr)
+    {
+        await using var ctx = await DbFactory.CreateDbContextAsync();
+
+        // Находим запись согласия по токену
+        var consent = await ctx.ElectionConsents
+            .FirstOrDefaultAsync(c => c.ConsentToken == Token);
+
+        if (consent is null)
+        {
+            _error = "Ссылка недействительна или срок её действия истёк";
+            return;
+        }
+
+        _proposalId = consent.ProposalId;
+        _candidateMemberId = consent.CandidateMemberId;
+
+        // Если согласие/отказ уже даны — показываем результат
+        if (consent.SignedAt.HasValue)
+        {
+            _completed = true;
+            _consentGiven = consent.ConsentGiven;
+        }
+
+        // Загружаем предложение
+        var proposal = await ctx.ElectionProposals
+            .Include(p => p.Candidacies)
+            .FirstOrDefaultAsync(p => p.Id == consent.ProposalId);
+
+        if (proposal is null)
+        {
+            _error = "Предложение не найдено";
+            return;
+        }
+
+        _positionLabel = proposal.Position switch
+        {
+            "CHAIR" => "Председателя СД",
+            "DEPUTY_CHAIR" => "Заместителя председателя СД",
+            "SECRETARY" => "Секретаря СД",
+            _ => proposal.Position
+        };
+
+        // Получаем наименование юрлица
+        var legalEntityName = await ctx.AgendaItems
+            .Where(a => a.BoardOfDirectorsId == proposal.BoardOfDirectorsId && a.LegalEntityId != null)
+            .Join(ctx.LegalEntities,
+                a => a.LegalEntityId,
+                le => le.Id,
+                (a, le) => le.ShortName ?? le.Name)
+            .FirstOrDefaultAsync();
+
+        _legalEntityName = legalEntityName ?? "Организация";
+
+        // Получаем ФИО кандидата
+        var boardMember = await ctx.BoardMembers
+            .FirstOrDefaultAsync(bm => bm.Id == _candidateMemberId);
+
+        _candidateFullName = boardMember?.FullName ?? "Кандидат";
+
+        // Проверяем, что текущий пользователь — именно этот кандидат
+        if (!Guid.TryParse(userIdStr, out var userId) || boardMember?.UserId != userId)
+        {
+            _error = "Эта ссылка предназначена для другого кандидата";
+            return;
+        }
+    }
+
+    private async Task RequestOtp()
+    {
+        _otpSent = true;
+        _otpError = "";
+        await Task.CompletedTask;
+    }
+
+    private async Task CancelOtp()
+    {
+        _otpSent = false;
+        _otpCode = "";
+        _otpError = "";
+        await Task.CompletedTask;
+    }
+
+    private async Task VerifyOtp()
+    {
+        if (_otpCode != "123456")
+        {
+            _otpError = "Неверный код. Попробуйте ещё раз.";
+            return;
+        }
+
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+
+            var consent = await ctx.ElectionConsents
+                .FirstOrDefaultAsync(c => c.ConsentToken == Token);
+
+            if (consent is not null)
+            {
+                consent.ConsentGiven = true;
+                consent.SignedAt = DateTime.UtcNow;
+            }
+
+            await ctx.SaveChangesAsync();
+            _completed = true;
+            _consentGiven = true;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Ошибка сохранения согласия Token={Token}", Token);
+            _error = "Ошибка сохранения. Попробуйте позже.";
+        }
+    }
+
+    private async Task Decline()
+    {
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+
+            var consent = await ctx.ElectionConsents
+                .FirstOrDefaultAsync(c => c.ConsentToken == Token);
+
+            if (consent is not null)
+            {
+                consent.ConsentGiven = false;
+                consent.SignedAt = DateTime.UtcNow;
+            }
+
+            await ctx.SaveChangesAsync();
+            _completed = true;
+            _consentGiven = false;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Ошибка сохранения отказа Token={Token}", Token);
+            _error = "Ошибка сохранения. Попробуйте позже.";
+        }
+    }
+}

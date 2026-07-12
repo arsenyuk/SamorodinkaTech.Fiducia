@@ -1,0 +1,51 @@
+# =============================================================================
+# OpenLDAP — демо-каталог Совета директоров (bitnami)
+# =============================================================================
+# Запуск:  docker compose -f docker-compose.ldap.yml up -d
+# Загрузка seed-данных (однократно):
+#   docker cp tools/ldap/seed-bitnami.ldif fiducia-ldap:/tmp/seed.ldif
+#   docker exec fiducia-ldap ldapadd -x -H ldap://localhost:1389 \
+#     -D "cn=admin,dc=bryansk-arsenal,dc=local" -w admin -f /tmp/seed.ldif
+#
+# LDAP-сервер доступен по ldap://localhost:389
+#   Base DN: dc=bryansk-arsenal,dc=local
+#   Admin DN: cn=admin,dc=bryansk-arsenal,dc=local
+#   Admin Password: admin
+# =============================================================================
+
+services:
+  openldap:
+    image: bitnamilegacy/openldap:latest
+    platform: linux/amd64
+    container_name: fiducia-ldap
+    environment:
+      LDAP_ROOT: dc=bryansk-arsenal,dc=local
+      LDAP_ADMIN_USERNAME: admin
+      LDAP_ADMIN_PASSWORD: admin
+      LDAP_PORT_NUMBER: 1389
+      LDAP_ALLOW_ANON_BINDING: "no"
+      LDAP_CUSTOM_LDIF_DIR: /tmp/seed.ldif
+    ports:
+      - "389:1389"
+    networks:
+      - ldap-net
+    restart: "no"
+
+  phpldapadmin:
+    image: osixia/phpldapadmin:latest
+    platform: linux/amd64
+    container_name: fiducia-phpldapadmin
+    environment:
+      PHPLDAPADMIN_LDAP_HOSTS: openldap
+      PHPLDAPADMIN_HTTPS: "false"
+    ports:
+      - "8082:80"
+    depends_on:
+      - openldap
+    networks:
+      - ldap-net
+    restart: "no"
+
+networks:
+  ldap-net:
+    driver: bridge

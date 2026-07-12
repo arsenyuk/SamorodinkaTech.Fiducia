@@ -1,0 +1,315 @@
+@page "/org-templates/intents/{IntentId:guid}/gantt"
+@using Microsoft.EntityFrameworkCore
+@using SamorodinkaTech.Fiducia.Timeline.Services
+@using SamorodinkaTech.Fiducia.Timeline.Models
+@using SamorodinkaTech.Fiducia.Infrastructure.Services
+@inject IDbContextFactory<SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext> DbFactory
+@inject ILogger<OrgTemplates> Logger
+@inject NavigationManager Nav
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "SYS_ADMIN")]
+
+<div style="display:flex; flex-direction:column; height:calc(100vh - 56px); overflow:hidden; margin-top:-1.1rem; margin-left:-2rem; margin-right:-1.5rem; padding-left:2rem; padding-right:1.5rem; padding-top:1.1rem">
+
+<h3>
+    <a href="/org-templates" class="text-decoration-none">Шаблоны</a> →
+    <a href="/org-templates/intents/@IntentId/stages" class="text-decoration-none">@(_intentName ?? "Этапы")</a> →
+    Диаграмма Ганта
+</h3>
+
+@if (!string.IsNullOrEmpty(_error))
+{
+    <div class="alert alert-danger">@_error</div>
+}
+
+@if (_ganttInput == null)
+{
+    <div class="text-muted">Загрузка...</div>
+}
+else if (_ganttInput.Nodes.Count == 0)
+{
+    <div class="text-muted">Нет этапов и задач для отображения.</div>
+}
+else
+{
+    <div class="small text-muted mb-1">Узлов: @_ganttInput.Nodes.Count, связей: @_ganttInput.Dependencies.Count,
+        дат: @FormatDate(_ganttInput.StartDate) – @FormatDate(_ganttInput.EndDate)</div>
+    <div style="flex:1; min-height:0; border:1px solid #ccc; border-radius:4px;">
+        <GanttChart Data="@_ganttInput" RowHeight="32" BottomPaddingPx="60"
+                    TaskColor="#42a5f5" StageColor="#78909c"
+                    MilestoneColor="#9c27b0" OverdueColor="#d32f2f"
+                    ProgressColor="rgba(0,0,0,0.15)"
+                    OnNodeDoubleClick="HandleDoubleClick">
+            <TooltipTemplate>
+                <div class="gantt-tooltip-name">@context.Name</div>
+                <div class="gantt-tooltip-path">@context.BreadcrumbPath</div>
+                @{
+                    var dates = context.NodeType == GanttNodeType.Milestone
+                        ? FormatDate(context.MilestoneDate)
+                        : $"{FormatDate(context.StartDate)} – {FormatDate(context.EndDate)}";
+                }
+                <div class="gantt-tooltip-dates">@dates</div>
+            </TooltipTemplate>
+        </GanttChart>
+    </div>
+}</div>
+
+@code {
+    [Parameter] public Guid IntentId { get; set; }
+
+    private GanttChartInput? _ganttInput;
+    private string? _intentName;
+    private string? _error;
+    private Dictionary<Guid, Guid> _offerStageMap = new();
+
+    /// <summary>Отступ в днях до начала первого этапа на диаграмме.</summary>
+    private const int ChartStartPaddingDays = 7;
+
+    /// <summary>Отступ в днях после окончания последнего этапа на диаграмме.</summary>
+    private const int ChartEndPaddingDays = 30;
+
+    /// <summary>Отступ в днях после максимальной даты в ComputeChartEnd.</summary>
+    private const int ComputeChartEndPaddingDays = 14;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+            var intent = await ctx.TplOrgIntents.FirstOrDefaultAsync(x => x.Id == IntentId);
+            if (intent == null) { _error = "Шаблон не найден."; return; }
+            _intentName = intent.Name;
+
+            var stages = await ctx.TplOrgStages
+                .Where(x => x.IntentId == IntentId)
+                .OrderBy(x => x.SortOrder).ThenBy(x => x.Name).ToListAsync();
+
+            var stageIds = stages.Select(s => s.Id).ToList();
+            var offers = await ctx.TplOrgOffers
+                .Where(x => stageIds.Contains(x.StageId))
+                .OrderBy(x => x.StartOffsetDays ?? 0).ThenBy(x => x.Name).ToListAsync();
+
+            var today = DateOnly.FromDateTime(DateTime.Today);
+            var planStart = today.AddDays(1);
+            var holidays = WorkingDayHelper.GetHolidays(today.Year);
+            holidays.UnionWith(WorkingDayHelper.GetHolidays(today.Year + 1));
+            var nodes = new List<GanttNode>();
+            var dependencies = new List<GanttDependency>();
+            var computedStageStart = new Dictionary<Guid, DateOnly>();
+            var computedStageEnd = new Dictionary<Guid, DateOnly>();
+            var computedOfferDates = new Dictionary<Guid, (DateOnly Start, DateOnly End)>();
+
+            // ── Проход 1: вычисление дат с каскадным сдвигом и расширением ──
+            DateOnly? maxEndSoFar = null;
+            foreach (var stage in stages)
+            {
+                var rawStart = planStart.AddDays(stage.StartOffsetDays ?? 0);
+
+                // Каскад: этап не может начаться раньше следующего дня после конца предыдущего
+                if (maxEndSoFar.HasValue && maxEndSoFar.Value > rawStart)
+                    rawStart = maxEndSoFar.Value.AddDays(1);
+
+                // Явные предшественники
+                if (!string.IsNullOrEmpty(stage.PredecessorStageIds))
+                {
+                    try
+                    {
+                        var predIds = System.Text.Json.JsonSerializer.Deserialize<Guid[]>(stage.PredecessorStageIds!);
+                        if (predIds != null)
+                        {
+                            foreach (var pid in predIds)
+                            {
+                                if (computedStageEnd.TryGetValue(pid, out var pe) && pe > rawStart)
+                                    rawStart = pe.AddDays(1);
+                            }
+                        }
+                    }
+                    catch { }
+                }
+
+                var stageStart = WorkingDayHelper.GetNextWorkingDay(rawStart, holidays);
+                DateOnly? stageEnd = null;
+                if (!string.IsNullOrEmpty(stage.DeadlineRule) && stage.DeadlineDays.HasValue)
+                {
+                    var raw = stageStart.AddDays(Math.Max(0, stage.DeadlineDays.Value - 1));
+                    stageEnd = WorkingDayHelper.IsNonWorking(raw, holidays)
+                        ? WorkingDayHelper.GetNextWorkingDay(raw, holidays)
+                        : raw;
+                }
+
+                // Задачи этапа — расширяют stageEnd
+                var stageOffers = offers.Where(o => o.StageId == stage.Id).ToList();
+                foreach (var offer in stageOffers)
+                {
+                    var offerStart = WorkingDayHelper.GetNextWorkingDay(
+                        stageStart.AddDays(offer.StartOffsetDays ?? 0), holidays);
+                    DateOnly? offerEnd = null;
+                    if (!string.IsNullOrEmpty(offer.DeadlineRule) && offer.DeadlineDays.HasValue)
+                    {
+                        var raw = offerStart.AddDays(Math.Max(0, offer.DeadlineDays.Value - 1));
+                        offerEnd = WorkingDayHelper.IsNonWorking(raw, holidays)
+                            ? WorkingDayHelper.GetNextWorkingDay(raw, holidays)
+                            : raw;
+                    }
+                    var end = offerEnd ?? offerStart.AddDays(1);
+                    computedOfferDates[offer.Id] = (offerStart, end);
+                    if (end > (stageEnd ?? stageStart))
+                        stageEnd = end;
+                }
+
+                var finalEnd = stageEnd ?? stageStart;
+                computedStageStart[stage.Id] = stageStart;
+                computedStageEnd[stage.Id] = finalEnd;
+                if (!maxEndSoFar.HasValue || finalEnd > maxEndSoFar.Value)
+                    maxEndSoFar = finalEnd;
+            }
+
+            // ── Проход 2: создание узлов в исходном порядке (stage → offers) ──
+            var sort = 0;
+            var intentId = $"intent-{IntentId}";
+            nodes.Add(new GanttNode
+            {
+                Id = intentId, Name = intent.Name, NodeType = GanttNodeType.Project,
+                SortOrder = sort++, Expanded = true
+            });
+
+            foreach (var stage in stages)
+            {
+                var stageStart = computedStageStart[stage.Id];
+                var stageEnd = computedStageEnd[stage.Id];
+                var stageId = $"stage-{stage.Id}";
+                nodes.Add(new GanttNode
+                {
+                    Id = stageId, ParentId = intentId, Name = stage.Name,
+                    NodeType = GanttNodeType.Stage,
+                    StartDate = stageStart,
+                    EndDate = stageEnd,
+                    SortOrder = sort++,
+                    BreadcrumbPath = $"{intent.Name} > {stage.Name}"
+                });
+
+                var stageOffers = offers.Where(o => o.StageId == stage.Id).ToList();
+                foreach (var offer in stageOffers)
+                {
+                    _offerStageMap[offer.Id] = stage.Id;
+                    var (offerStart, offerEnd) = computedOfferDates[offer.Id];
+                    nodes.Add(new GanttNode
+                    {
+                        Id = $"offer-{offer.Id}", ParentId = stageId, Name = offer.Name,
+                        NodeType = GanttNodeType.Task,
+                        StartDate = offerStart,
+                        EndDate = offerEnd,
+                        SortOrder = sort++,
+                        BreadcrumbPath = $"{intent.Name} > {stage.Name}"
+                    });
+                }
+            }
+
+            // Связи между этапами
+            foreach (var stage in stages.Where(s => !string.IsNullOrEmpty(s.PredecessorStageIds)))
+            {
+                try
+                {
+                    var predIds = System.Text.Json.JsonSerializer.Deserialize<Guid[]>(stage.PredecessorStageIds!);
+                    if (predIds != null)
+                    {
+                        foreach (var predId in predIds)
+                        {
+                            dependencies.Add(new GanttDependency
+                            {
+                                FromId = $"stage-{predId}",
+                                ToId = $"stage-{stage.Id}",
+                                Type = GanttDependencyType.Regular
+                            });
+                        }
+                    }
+                }
+                catch { }
+            }
+
+            // Связи между оферами
+            foreach (var offer in offers.Where(o => !string.IsNullOrEmpty(o.PredecessorOfferIds)))
+            {
+                try
+                {
+                    var predIds = System.Text.Json.JsonSerializer.Deserialize<Guid[]>(offer.PredecessorOfferIds!);
+                    if (predIds != null)
+                    {
+                        foreach (var predId in predIds)
+                        {
+                            dependencies.Add(new GanttDependency
+                            {
+                                FromId = $"offer-{predId}",
+                                ToId = $"offer-{offer.Id}",
+                                Type = GanttDependencyType.Regular
+                            });
+                        }
+                    }
+                }
+                catch { }
+            }
+
+            var chartStart = ComputeChartStart(nodes).AddDays(-ChartStartPaddingDays);
+            var chartEnd = ComputeChartEnd(nodes).AddDays(ChartEndPaddingDays);
+
+            var allDays = WorkCalendar.GenerateCalendar(chartStart.Year, chartEnd.Year);
+            var calendarDays = allDays.Where(d => d.Date >= chartStart && d.Date <= chartEnd).ToList();
+
+            _ganttInput = new GanttChartInput
+            {
+                Nodes = nodes,
+                CalendarDays = calendarDays,
+                StartDate = chartStart,
+                EndDate = chartEnd,
+                Today = today,
+                EndPaddingWeeks = 0,
+                Dependencies = dependencies
+            };
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Ошибка загрузки диаграммы Ганта");
+            _error = ExceptionFlattener.Unwrap(ex);
+        }
+    }
+
+    private async Task HandleDoubleClick(GanttNode node)
+    {
+        Logger.LogDebug("Gantt double-click: {NodeId} {NodeName}", node.Id, node.Name);
+        if (node.Id.StartsWith("offer-"))
+        {
+            var offerId = Guid.Parse(node.Id[6..]);
+            if (_offerStageMap.TryGetValue(offerId, out var stageId))
+            {
+                Logger.LogDebug("Navigating to stage offers: {StageId}", stageId);
+                Nav.NavigateTo($"/org-templates/stages/{stageId}/offers");
+            }
+        }
+    }
+
+    private static DateOnly ComputeChartStart(List<GanttNode> nodes)
+    {
+        DateOnly? min = null;
+        foreach (var n in nodes)
+        {
+            var d = n.StartDate ?? n.MilestoneDate;
+            if (d.HasValue && (min == null || d.Value < min.Value))
+                min = d.Value;
+        }
+        return min ?? DateOnly.FromDateTime(DateTime.Today);
+    }
+
+    private static DateOnly ComputeChartEnd(List<GanttNode> nodes)
+    {
+        DateOnly? max = null;
+        foreach (var n in nodes)
+        {
+            var d = n.EndDate ?? n.StartDate ?? n.MilestoneDate;
+            if (d.HasValue && (max == null || d.Value > max.Value))
+                max = d.Value;
+        }
+        if (max == null) max = DateOnly.FromDateTime(DateTime.Today);
+        return max.Value.AddDays(ComputeChartEndPaddingDays);
+    }
+
+    private static string FormatDate(DateOnly? d) => d.HasValue ? d.Value.ToString("dd.MM.yyyy") : "—";
+}

@@ -1,0 +1,385 @@
+@page "/osu-meetings"
+@implements IDisposable
+@using Microsoft.EntityFrameworkCore
+@using SamorodinkaTech.Fiducia.Domain.Entities
+@using SamorodinkaTech.Fiducia.Domain.Interfaces
+@using SamorodinkaTech.Fiducia.Domain.Models.Ldap
+@inject IDbContextFactory<SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext> DbFactory
+@inject ILegalEntityGosaIntervalService GosaSvc
+@inject ILogger<OsuMeetings> Logger
+@inject NavigationManager Nav
+@inject IConfiguration Config
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+
+<h3>Общие собрания участников</h3>
+
+@* === Режим создания === *@
+@if (showForm)
+{
+    <div class="card mb-3">
+        <div class="card-body">
+            <h5 class="card-title">Новое собрание участников</h5>
+            <div class="mb-3">
+                <label class="form-label">Тип</label>
+                <select class="form-select" @onchange="OnOsaTypeChanged">
+                    <option value="" selected="@(selectedOsaFormId == Guid.Empty)">— Выберите тип —</option>
+                    @foreach (var form in osaForms)
+                    {
+                        <option value="@form.Id">@form.Name</option>
+                    }
+                </select>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Название</label>
+                <input class="form-control"
+                       @bind="createTitle"
+                       disabled="@(selectedFormCode == "OOSU")" />
+                @if (selectedFormCode == "OOSU")
+                {
+                    <div class="text-muted small mt-1">Заполняется автоматически по шаблону из настроек</div>
+                }
+            </div>
+
+            @if (selectedFormCode == "OOSU")
+            {
+                <div class="mb-3">
+                    <div class="text-muted small mb-2">
+                        Разрешённый интервал: <strong>@_allowedStart.ToString("dd.MM.yyyy") – @_allowedEnd.ToString("dd.MM.yyyy")</strong>
+                        @if (!string.IsNullOrEmpty(_dateWarning))
+                        {
+                            <br><span class="text-warning">⚠ @_dateWarning</span>
+                        }
+                    </div>
+                    <div class="row g-3 align-items-end">
+                        <div class="col-auto">
+                            <label class="form-label">Дата проведения</label>
+                            <InputDate @bind-Value="gosaStart" class="form-control" style="width:200px"
+                                       @bind-Value:after="() => { electionYear = gosaStart.Year; gosaEnd = gosaStart; ValidateDate(); }" />
+                        </div>
+                        <div class="col-auto">
+                            <input type="hidden" @bind="electionYear" />
+                        </div>
+                        <div class="col-auto">
+                            @if (!string.IsNullOrEmpty(gosaError))
+                            {
+                                <span class="text-danger small">@gosaError</span>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+
+            @if (selectedFormCode == "VOSU")
+            {
+                <div class="mb-3">
+                    <label class="form-label">Дата собрания</label>
+                    <InputDate @bind-Value="gosaStart" class="form-control" style="width:200px" />
+                    <div class="text-muted small mt-1">Законодательный срок созыва — не позднее 45 дней с даты получения требования (<a href="/board-law/article-14fz-35">ст. 35 14-ФЗ</a>). Уведомление участников — не менее чем за 30 дней.</div>
+                </div>
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="checkbox" id="createAbsentee" @bind="createAbsenteeVoting" />
+                    <label class="form-check-label" for="createAbsentee">Заочное голосование</label>
+                    @if (createAbsenteeVoting)
+                    {
+                        <span class="ms-3">
+                            <label class="form-label small mb-0">Дата окончания приема бюллетеней</label>
+                            <InputDate @bind-Value="createBallotDeadline" class="form-control form-control-sm d-inline-block ms-2" style="width:180px" />
+                        </span>
+                    }
+                </div>
+            }
+
+            <div class="d-flex gap-2">
+                <button class="btn btn-success" @onclick="Save" disabled="@(selectedOsaFormId == Guid.Empty)">Сохранить</button>
+                <button class="btn btn-secondary" @onclick="CancelForm">Отмена</button>
+            </div>
+        </div>
+    </div>
+}
+
+@* === Список === *@
+@if (!showForm)
+{
+    <button class="btn btn-primary mb-3" @onclick="OpenForm">Добавить</button>
+}
+
+@if (!string.IsNullOrEmpty(saveError))
+{
+    <div class="alert alert-danger">❌ @saveError</div>
+}
+@if (!string.IsNullOrEmpty(saveSuccess))
+{
+    <div class="alert alert-success">✅ @saveSuccess</div>
+}
+
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Название</th>
+            <th>Тип собрания</th>
+            <th>Дата проведения заседания</th>
+            <th>Статус</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+    @if (!osaMeetings.Any())
+    {
+        <tr><td colspan="5" class="text-muted">Записей собраний пока нет.</td></tr>
+    }
+    else
+    {
+        @foreach (var m in osaMeetings)
+        {
+            var isApproved = m.Status == "APPROVED";
+            <tr>
+                <td>@(m.Title ?? "—")</td>
+                <td>
+                    <span title="@m.FormName">@(m.FormShortName ?? m.FormName)</span>
+                </td>
+                <td>
+                    @if (m.GosaWindowStart.HasValue)
+                    {
+                        <span>@m.GosaWindowStart.Value.ToString("dd.MM.yyyy")</span>
+                    }
+                    else
+                    {
+                        <span class="text-muted">—</span>
+                    }
+                </td>
+                <td>
+                    @if (isApproved)
+                    {
+                        <span class="badge bg-success">Завершено</span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-secondary">Черновик</span>
+                    }
+                </td>
+                <td>
+                    <a href="/osu-meetings/@m.Id" class="btn btn-sm btn-outline-primary">
+                        @(isApproved ? "Просмотр" : "Редактировать")
+                    </a>
+                    @if (!isApproved)
+                    {
+                    <button class="btn btn-sm btn-outline-danger ms-1" @onclick="() => DeleteFromList(m.Id)">Удалить</button>
+                    }
+                </td>
+            </tr>
+        }
+    }
+    </tbody>
+</table>
+
+@code {
+    private List<RefOsaForm> osaForms = new();
+    private List<OsaMeetingVm> osaMeetings = new();
+
+    private bool showForm;
+    private Guid selectedOsaFormId;
+    private string? selectedFormCode;
+    private DateOnly gosaStart;
+    private DateOnly gosaEnd;
+    private int? electionYear;
+    private bool createAbsenteeVoting;
+    private DateTime createBallotDeadline = DateTime.UtcNow.AddDays(20);
+    private string createTitle = string.Empty;
+    private string? gosaError;
+    private string? saveError;
+    private string? saveSuccess;
+    private Guid _currentLegalEntityId;
+    private DateOnly _allowedStart;
+    private DateOnly _allowedEnd;
+    private string? _dateWarning;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Nav.LocationChanged += OnLocationChanged;
+        await LoadData();
+    }
+
+    private async void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
+    {
+        showForm = false;
+        saveError = null;
+        saveSuccess = null;
+        await LoadData();
+        StateHasChanged();
+    }
+
+    public void Dispose()
+    {
+        Nav.LocationChanged -= OnLocationChanged;
+    }
+
+    private async Task LoadData()
+    {
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+            var workplace = await ctx.CurrentWorkplaces.FirstOrDefaultAsync();
+            _currentLegalEntityId = workplace?.LastSelectedLegalEntityId ?? Guid.Empty;
+
+            if (_currentLegalEntityId != Guid.Empty)
+            {
+                var le = await ctx.LegalEntities
+                    .Where(x => x.Id == _currentLegalEntityId)
+                    .Select(x => new { x.RefOkopf!.Code })
+                    .FirstOrDefaultAsync();
+                (_allowedStart, _allowedEnd) = GosaSvc.GetWindowForOkopf(le?.Code);
+            }
+
+            var osuCodes = new[] { "OOSU", "VOSU" };
+            osaForms = await ctx.OsaForms
+                .Where(x => osuCodes.Contains(x.Code))
+                .OrderBy(x => x.Name).ToListAsync();
+            var meetings = await ctx.OsaMeetings
+                .Where(x => x.LegalEntityId == _currentLegalEntityId)
+                .OrderByDescending(x => x.CreatedAt)
+                .ToListAsync();
+            osaMeetings = meetings.Select(x => new OsaMeetingVm
+            {
+                Id = x.Id,
+                Title = x.Title,
+                OsaFormId = x.OsaFormId,
+                FormName = osaForms.FirstOrDefault(f => f.Id == x.OsaFormId)?.Name ?? "—",
+                FormShortName = osaForms.FirstOrDefault(f => f.Id == x.OsaFormId)?.ShortName,
+                Status = x.Status ?? "DRAFT",
+                ElectionYear = x.ElectionYear,
+                GosaWindowStart = x.GosaWindowStart,
+            }).ToList();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Ошибка загрузки списка собраний");
+        }
+    }
+
+    private void OpenForm()
+    {
+        showForm = true;
+        selectedOsaFormId = Guid.Empty;
+        selectedFormCode = null;
+        createTitle = string.Empty;
+        gosaStart = new DateOnly(DateTime.UtcNow.Year, 3, 1);
+        gosaEnd = new DateOnly(DateTime.UtcNow.Year, 4, 30);
+        electionYear = null;
+        createAbsenteeVoting = false;
+        createBallotDeadline = DateTime.UtcNow.AddDays(20);
+        gosaError = null;
+        saveError = null;
+        saveSuccess = null;
+    }
+
+    private void CancelForm()
+    {
+        showForm = false;
+        gosaError = null;
+        saveError = null;
+    }
+
+    private void OnOsaTypeChanged(ChangeEventArgs e)
+    {
+        var id = Guid.TryParse(e.Value?.ToString(), out var parsed) ? parsed : Guid.Empty;
+        selectedOsaFormId = id;
+        selectedFormCode = osaForms.FirstOrDefault(f => f.Id == id)?.Code;
+        gosaError = null;
+        if (selectedFormCode == "OOSU")
+        {
+            gosaStart = _allowedStart;
+            gosaEnd = _allowedEnd;
+            createTitle = BuildGosaTitle(gosaStart);
+        }
+        else
+        {
+            createTitle = string.Empty;
+        }
+    }
+
+    private void ValidateDate()
+    {
+        _dateWarning = null;
+        if (gosaStart < _allowedStart || gosaStart > _allowedEnd)
+            _dateWarning = $"Дата выходит за разрешённый интервал ({_allowedStart:dd.MM} – {_allowedEnd:dd.MM}). Собрание может быть признано недействительным.";
+    }
+
+    private async Task Save()
+    {
+        gosaError = null;
+        saveError = null;
+        saveSuccess = null;
+
+        if (selectedFormCode == "OOSU" && gosaStart > gosaEnd)
+        {
+            gosaError = "Дата начала не может быть позже даты завершения";
+            return;
+        }
+
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+            var meeting = new OsaMeeting
+            {
+                Id = Guid.NewGuid(),
+                LegalEntityId = _currentLegalEntityId,
+                OsaFormId = selectedOsaFormId,
+                Title = selectedFormCode == "OOSU" ? BuildGosaTitle(gosaStart) : createTitle.Trim(),
+                GosaWindowStart = gosaStart,
+                GosaWindowEnd = gosaEnd,
+                ElectionYear = electionYear,
+                AbsenteeVoting = createAbsenteeVoting,
+                BallotDeadline = createAbsenteeVoting ? createBallotDeadline.ToUniversalTime() : null,
+                Status = "DRAFT",
+                CreatedAt = DateTime.UtcNow
+            };
+            ctx.OsaMeetings.Add(meeting);
+            await ctx.SaveChangesAsync();
+
+            saveSuccess = "Собрание участников создано";
+            showForm = false;
+            await LoadData();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Ошибка создания собрания");
+            saveError = $"Ошибка: {ExceptionFlattener.Unwrap(ex)}";
+        }
+    }
+
+    private async Task DeleteFromList(Guid meetingId)
+    {
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+            var m = await ctx.OsaMeetings.FirstOrDefaultAsync(x => x.Id == meetingId);
+            if (m is null || m.Status == "APPROVED") return;
+            ctx.OsaMeetings.Remove(m);
+            await ctx.SaveChangesAsync();
+            await LoadData();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Ошибка удаления собрания {Id}", meetingId);
+            saveError = $"Ошибка удаления: {ExceptionFlattener.Unwrap(ex)}";
+        }
+    }
+
+    private string OosuTitleTemplate => Config["Osu:OosuTitleTemplate"] ?? "Очередное за {YYYY} год";
+
+    private string BuildGosaTitle(DateOnly start) =>
+        OosuTitleTemplate.Replace("{YYYY}", start.Year.ToString());
+
+    private class OsaMeetingVm
+    {
+        public Guid Id { get; set; }
+        public string? Title { get; set; }
+        public Guid OsaFormId { get; set; }
+        public string? FormName { get; set; }
+        public string? FormShortName { get; set; }
+        public string? Status { get; set; }
+        public int? ElectionYear { get; set; }
+        public DateOnly? GosaWindowStart { get; set; }
+    }
+}

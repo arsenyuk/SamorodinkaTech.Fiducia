@@ -1,0 +1,138 @@
+@page "/gantt-test"
+@layout AuthLayout
+
+<h3>Диаграмма Ганта — тестовая страница</h3>
+<p class="text-muted">Демонстрация компонента GanttChart с тестовыми данными.</p>
+
+@if (_input == null)
+{
+    <div class="alert alert-info">Загрузка данных...</div>
+}
+else
+{
+    <div style="height: 500px; border: 1px solid #ccc; border-radius: 4px; margin-top: 16px">
+        <GanttChart Data="@_input" RowHeight="32"
+                     TaskColor="#42a5f5" StageColor="#78909c"
+                     MilestoneColor="#9c27b0" OverdueColor="#d32f2f"
+                     ProgressColor="rgba(0,0,0,0.15)" />
+    </div>
+}
+
+@code {
+    private GanttChartInput? _input;
+
+    protected override void OnInitialized()
+    {
+        // Генерируем календарь на 2026–2027 гг.
+        var calendarDays = WorkCalendar.GenerateCalendar(2026, 2027);
+        var today = DateOnly.FromDateTime(DateTime.Today);
+
+        // Тестовые узлы проекта
+        var nodes = new List<GanttNode>
+        {
+            new()
+            {
+                Id = "project-1", Name = "Проект: Разработка платформы",
+                NodeType = GanttNodeType.Project,
+                StartDate = new DateOnly(2026, 1, 12), EndDate = new DateOnly(2027, 3, 31),
+                SortOrder = 1, Expanded = true
+            },
+            new()
+            {
+                Id = "stage-1", ParentId = "project-1", Name = "Проектирование", NodeType = GanttNodeType.Stage,
+                StartDate = new DateOnly(2026, 1, 12), EndDate = new DateOnly(2026, 3, 13),
+                SortOrder = 1, Expanded = true
+            },
+            new()
+            {
+                Id = "task-1-1", ParentId = "stage-1", Name = "Разработка ТЗ",
+                NodeType = GanttNodeType.Task,
+                StartDate = new DateOnly(2026, 1, 12), EndDate = new DateOnly(2026, 2, 6),
+                Progress = 1.0, SortOrder = 1
+            },
+            new()
+            {
+                Id = "task-1-2", ParentId = "stage-1", Name = "Архитектура системы",
+                NodeType = GanttNodeType.Task,
+                StartDate = new DateOnly(2026, 2, 9), EndDate = new DateOnly(2026, 3, 13),
+                Progress = 0.7, SortOrder = 2
+            },
+            new()
+            {
+                Id = "milestone-1", ParentId = "stage-1", Name = "Утверждение архитектуры",
+                NodeType = GanttNodeType.Milestone,
+                MilestoneDate = new DateOnly(2026, 3, 13), SortOrder = 3
+            },
+            new()
+            {
+                Id = "stage-2", ParentId = "project-1", Name = "Разработка", NodeType = GanttNodeType.Stage,
+                StartDate = new DateOnly(2026, 3, 16), EndDate = new DateOnly(2026, 7, 31),
+                SortOrder = 2, Expanded = true
+            },
+            new()
+            {
+                Id = "task-2-1", ParentId = "stage-2", Name = "Бэкенд API",
+                NodeType = GanttNodeType.Task,
+                StartDate = new DateOnly(2026, 3, 16), EndDate = new DateOnly(2026, 5, 29),
+                Progress = 0.3, SortOrder = 1
+            },
+            new()
+            {
+                Id = "task-2-2", ParentId = "stage-2", Name = "Фронтенд",
+                NodeType = GanttNodeType.Task,
+                StartDate = new DateOnly(2026, 4, 13), EndDate = new DateOnly(2026, 7, 17),
+                Progress = 0.1, SortOrder = 2
+            },
+            new()
+            {
+                Id = "stage-3", ParentId = "project-1", Name = "Тестирование", NodeType = GanttNodeType.Stage,
+                StartDate = new DateOnly(2026, 7, 20), EndDate = new DateOnly(2026, 10, 1),
+                SortOrder = 3, Expanded = true
+            },
+            new()
+            {
+                Id = "task-3-1", ParentId = "stage-3", Name = "Интеграционное тестирование",
+                NodeType = GanttNodeType.Task,
+                StartDate = new DateOnly(2026, 7, 20), EndDate = new DateOnly(2026, 8, 28),
+                Progress = 0.0, SortOrder = 1
+            },
+            new()
+            {
+                Id = "task-3-2", ParentId = "stage-3", Name = "Нагрузочное тестирование",
+                NodeType = GanttNodeType.Task,
+                StartDate = new DateOnly(2026, 8, 31), EndDate = new DateOnly(2026, 9, 25),
+                Progress = 0.0, SortOrder = 2
+            },
+            new()
+            {
+                Id = "milestone-3", ParentId = "stage-3", Name = "Релиз v1.0",
+                NodeType = GanttNodeType.Milestone,
+                MilestoneDate = new DateOnly(2026, 10, 1), SortOrder = 3
+            },
+            new()
+            {
+                Id = "task-3-3", ParentId = "stage-3", Name = "Сопровождение v1.0",
+                NodeType = GanttNodeType.Task,
+                StartDate = new DateOnly(2026, 10, 2), EndDate = new DateOnly(2027, 3, 31),
+                Progress = 0.0, SortOrder = 4
+            },
+        };
+
+        _input = new GanttChartInput
+        {
+            Nodes = nodes,
+            CalendarDays = calendarDays,
+            StartDate = new DateOnly(2026, 1, 1),
+            EndDate = new DateOnly(2027, 12, 31),
+            Today = today,
+            DayCellWidth = 30,
+            Dependencies = new List<GanttDependency>
+            {
+                new() { FromId = "task-1-1", ToId = "task-1-2", Type = GanttDependencyType.Regular, Color = "#90a4ae" },
+                new() { FromId = "task-2-1", ToId = "task-2-2", Type = GanttDependencyType.CriticalPath, Color = "#d32f2f", Style = "dashed", Thickness = 2 },
+                new() { FromId = "task-1-2", ToId = "task-2-1" },
+                new() { FromId = "task-3-1", ToId = "task-3-2", Type = GanttDependencyType.CriticalPath, Color = "#d32f2f", Thickness = 2 },
+            }
+        };
+    }
+}

@@ -1,0 +1,122 @@
+# =============================================================================
+# Seed-данные LDAP для bitnami/openldap
+# =============================================================================
+# Organisation: ПАО «Брянский арсенал»
+
+# ── Группа «Совет директоров» ──────────────────────────────────────────────
+dn: cn=BoardOfDirectors,ou=groups,dc=bryansk-arsenal,dc=local
+objectClass: groupOfNames
+cn: BoardOfDirectors
+description: Совет директоров ПАО «Брянский арсенал»
+member: cn=Иванов Иван Иванович,ou=users,dc=bryansk-arsenal,dc=local
+
+# ── Группа «Администраторы системы» ─────────────────────────────────────────
+dn: cn=SysAdmins,ou=groups,dc=bryansk-arsenal,dc=local
+objectClass: groupOfNames
+cn: SysAdmins
+description: Администраторы системы Fiducia
+member: cn=Васильева Вера Васильевна,ou=users,dc=bryansk-arsenal,dc=local
+
+# ── Члены Совета директоров ─────────────────────────────────────────────────
+
+# Председатель СД
+dn: cn=Иванов Иван Иванович,ou=users,dc=bryansk-arsenal,dc=local
+objectClass: inetOrgPerson
+cn: Иванов Иван Иванович
+sn: Иванов
+givenName: Иван
+displayName: Иванов И.И.
+uid: i.ivanov
+mail: i.ivanov@bryansk-arsenal.ru
+title: Председатель Совета директоров
+telephoneNumber: +7-999-100-10-01
+userPassword: fiducia2026
+
+# Независимый директор
+dn: cn=Петров Пётр Петрович,ou=users,dc=bryansk-arsenal,dc=local
+objectClass: inetOrgPerson
+cn: Петров Пётр Петрович
+sn: Петров
+givenName: Пётр
+displayName: Петров П.П.
+uid: p.petrov
+mail: p.petrov@bryansk-arsenal.ru
+title: Независимый директор
+telephoneNumber: +7-999-200-20-02
+userPassword: fiducia2026
+
+# Неисполнительный директор
+dn: cn=Сидоров Сидор Сидорович,ou=users,dc=bryansk-arsenal,dc=local
+objectClass: inetOrgPerson
+cn: Сидоров Сидор Сидорович
+sn: Сидоров
+givenName: Сидор
+displayName: Сидоров С.С.
+uid: s.sidorov
+mail: s.sidorov@bryansk-arsenal.ru
+title: Неисполнительный директор
+telephoneNumber: +7-999-300-30-03
+userPassword: fiducia2026
+
+# Исполнительный директор
+dn: cn=Кузнецов Кузьма Кузьмич,ou=users,dc=bryansk-arsenal,dc=local
+objectClass: inetOrgPerson
+cn: Кузнецов Кузьма Кузьмич
+sn: Кузнецов
+givenName: Кузьма
+displayName: Кузнецов К.К.
+uid: k.kuznetsov
+mail: k.kuznetsov@bryansk-arsenal.ru
+title: Исполнительный директор
+telephoneNumber: +7-999-400-40-04
+userPassword: fiducia2026
+
+# Член СД
+dn: cn=Смирнова Анна Владимировна,ou=users,dc=bryansk-arsenal,dc=local
+objectClass: inetOrgPerson
+cn: Смирнова Анна Владимировна
+sn: Смирнова
+givenName: Анна
+displayName: Смирнова А.В.
+uid: a.smirnova
+mail: a.smirnova@bryansk-arsenal.ru
+title: Член Совета директоров
+telephoneNumber: +7-999-500-50-05
+userPassword: fiducia2026
+
+# Член СД — представитель миноритариев
+dn: cn=Фёдоров Фёдор Фёдорович,ou=users,dc=bryansk-arsenal,dc=local
+objectClass: inetOrgPerson
+cn: Фёдоров Фёдор Фёдорович
+sn: Фёдоров
+givenName: Фёдор
+displayName: Фёдоров Ф.Ф.
+uid: f.fedorov
+mail: f.fedorov@bryansk-arsenal.ru
+title: Член Совета директоров (представитель миноритариев)
+telephoneNumber: +7-999-600-60-06
+userPassword: fiducia2026
+
+# Корпоративный секретарь (администратор системы)
+dn: cn=Васильева Вера Васильевна,ou=users,dc=bryansk-arsenal,dc=local
+objectClass: inetOrgPerson
+cn: Васильева Вера Васильевна
+sn: Васильева
+givenName: Вера
+displayName: Васильева В.В.
+uid: v.vasilieva
+mail: v.vasilieva@bryansk-arsenal.ru
+title: Корпоративный секретарь
+telephoneNumber: +7-999-700-70-07
+userPassword: fiducia2026
+
+# ── Добавление остальных членов в группу «Совет директоров» ─────────────────
+
+dn: cn=BoardOfDirectors,ou=groups,dc=bryansk-arsenal,dc=local
+changetype: modify
+add: member
+member: cn=Петров Пётр Петрович,ou=users,dc=bryansk-arsenal,dc=local
+member: cn=Сидоров Сидор Сидорович,ou=users,dc=bryansk-arsenal,dc=local
+member: cn=Кузнецов Кузьма Кузьмич,ou=users,dc=bryansk-arsenal,dc=local
+member: cn=Смирнова Анна Владимировна,ou=users,dc=bryansk-arsenal,dc=local
+member: cn=Фёдоров Фёдор Фёдорович,ou=users,dc=bryansk-arsenal,dc=local

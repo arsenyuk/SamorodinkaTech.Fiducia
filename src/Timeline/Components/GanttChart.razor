@@ -1,0 +1,186 @@
+@namespace SamorodinkaTech.Fiducia.Timeline.Components
+
+<div class="gantt-chart">
+    <div class="gantt-main">
+        <div class="gantt-left">
+            <div class="gantt-left-controls" style="height:@(_leftHeaderHeightPx)px">
+                <button class="gantt-btn @(_scale == TimelineScale.Days ? "gantt-btn-active" : "")"
+                        @onclick="() => SetScale(TimelineScale.Days)">День</button>
+                <button class="gantt-btn @(_scale == TimelineScale.Weeks ? "gantt-btn-active" : "")"
+                        @onclick="() => SetScale(TimelineScale.Weeks)">Неделя</button>
+                <button class="gantt-btn @(_scale == TimelineScale.Months ? "gantt-btn-active" : "")"
+                        @onclick="() => SetScale(TimelineScale.Months)">Месяц</button>
+                <button class="gantt-btn @(_scale == TimelineScale.Quarters ? "gantt-btn-active" : "")"
+                        @onclick="() => SetScale(TimelineScale.Quarters)">Квартал</button>
+                <button class="gantt-btn @(_scale == TimelineScale.Years ? "gantt-btn-active" : "")"
+                        @onclick="() => SetScale(TimelineScale.Years)">Год</button>
+                <button class="gantt-btn" @onclick="OpenSettings">Настройка</button>
+                <button class="gantt-btn gantt-btn-today" @onclick="ScrollToToday">Сегодня</button>
+            </div>
+            @if (_showSettings)
+            {
+                <div class="gantt-modal-overlay" @onclick="CancelSettings">
+                    <div class="gantt-modal" @onclick:stopPropagation="true">
+                        <div class="gantt-modal-title">Настройка отображения</div>
+                        <label class="gantt-chk"><input type="checkbox" @bind="_tmpQuarters" /> Показывать кварталы</label>
+                        <label class="gantt-chk"><input type="checkbox" @bind="_tmpWeeks" /> Показывать недели</label>
+                        <label class="gantt-chk"><input type="checkbox" @bind="_tmpDecades" /> Показывать декады</label>
+                        <label class="gantt-chk"><input type="checkbox" @bind="_tmpDayNames" /> Показывать дни недели</label>
+                        <div class="gantt-modal-actions">
+                            <button class="gantt-btn" @onclick="CancelSettings">Отмена</button>
+                            <button class="gantt-btn gantt-btn-active" @onclick="ApplySettings">Применить</button>
+                        </div>
+                    </div>
+                </div>
+            }
+            <div class="gantt-left-body" @ref="_leftScrollRef">
+                @foreach (var row in _visibleRows)
+                {
+                    var node = row.Node;
+                    var indent = row.Depth * 20 + 8;
+                    var isGroup = node.NodeType is GanttNodeType.Project or GanttNodeType.Stage;
+                    <div class="gantt-row @(isGroup ? "gantt-row-group" : "") @(node.NodeType == GanttNodeType.Project ? "gantt-row-project" : "") @(!isGroup ? "gantt-row-clickable" : "")"
+                         style="padding-left:@(indent)px; height:@(RowHeight)px"
+                         @onclick="() => { if (!isGroup) ScrollToRow(node); }">
+                        @if (isGroup)
+                        {
+                            <span class="gantt-expand" @onclick="() => ToggleExpand(node)" @onclick:stopPropagation="true">
+                                @(node.Expanded ? "▼" : "▶")
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="gantt-expand gantt-expand-empty"></span>
+                        }
+                        @if (node.NodeType == GanttNodeType.Milestone)
+                        {
+                            <span class="gantt-milestone-icon">◆</span>
+                        }
+                        <span class="gantt-name" title="@node.Name">@node.Name</span>
+                    </div>
+                }
+                <div style="height:@(BottomPaddingPx)px"></div>
+            </div>
+        </div>
+
+        <div class="gantt-right">
+            @if (_timelineInput != null)
+            {
+                <div class="gantt-right-header" @ref="_timelineHeaderRef">
+                    <GanttTimeline Data="@_timelineInput" DayCellWidth="@_dayCellWidth"
+                                   ShowQuarters="@(_scale == TimelineScale.Quarters ? true : _scale == TimelineScale.Years ? false : _chkQuarters)"
+                                   ShowMonths="@(_scale is not TimelineScale.Quarters and not TimelineScale.Years)"
+                                   ShowDecades="@(_scale == TimelineScale.Days && _chkDecades)"
+                                   ShowWeeks="@(_scale == TimelineScale.Weeks ? true : _scale >= TimelineScale.Months ? false : _chkWeeks)"
+                                   ShowDayNames="@(_scale == TimelineScale.Days && _chkDayNames)"
+                                   ShowDayNumbers="@(_scale == TimelineScale.Days)" />
+                </div>
+            }
+            <div class="gantt-right-scroll" @ref="_rightScrollRef">
+                <div class="gantt-bars" style="width:@(_totalWidthPx)px; height:@(_totalHeightPx)px">
+                    <!-- Сегодня -->
+                    @if (Data?.Today != default)
+                    {
+                        var todayDN = Data.Today.DayNumber;
+                        var startDN = Data.CalendarDays[0].Date.DayNumber;
+                        var todayPos = (int)((todayDN - startDN) * _dayCellWidth + _dayCellWidth / 2.0);
+                        <div class="gantt-today-line" style="left:@(todayPos)px; height:@(_totalHeightPx)px"></div>
+                    }
+
+                    <!-- Полосы зебры — после баров (visual priority) -->
+                    @if (Data?.CalendarDays is { Count: > 0 })
+                    {
+                        var startDN = Data.CalendarDays[0].Date.DayNumber;
+                        foreach (var day in Data.CalendarDays)
+                        {
+                            if (!day.IsHoliday && !day.IsWeekend) continue;
+                            var leftPx = (day.Date.DayNumber - startDN) * _dayCellWidth;
+                            var bgClass = day.IsHoliday ? "gantt-col-holiday-stripe" : "gantt-col-weekend-stripe";
+                            <div class="gantt-col-stripe zebra @bgClass"
+                                 style="left:@(leftPx)px; width:@(_dayCellWidth)px; height:@(_totalHeightPx)px; z-index:5; pointer-events:none;"></div>
+                        }
+                    }
+
+                    <!-- Бары задач/этапов/проектов -->
+                    @foreach (var bar in _barInfos)
+                    {
+                        var node = _visibleRows[bar.RowIndex].Node;
+                        var onStrip = _barStripeRows.Contains(bar.RowIndex);
+
+                        if (bar.IsMilestone)
+                        {
+                            <div class="gantt-bar-milestone @(onStrip ? "milestone-on-strip" : "")"
+                                 style="left:@(bar.LeftPx)px; top:@(bar.RowIndex * RowHeight + (RowHeight - 14) / 2)px; color:@MilestoneColor"
+                                 @onmouseover="() => OnBarMouseOver(node, bar)"
+                                 @onmouseout="OnBarMouseOut">◆</div>
+                        }
+                        else
+                        {
+                            var isGroupBar = bar.NodeType is GanttNodeType.Project or GanttNodeType.Stage;
+                            var barColor = isGroupBar ? StageColor
+                                : node.EndDate.HasValue && node.EndDate.Value < Data!.Today && node.Progress < 1.0
+                                    ? OverdueColor : TaskColor;
+
+                            if (isGroupBar)
+                            {
+                                <div class="gantt-bar-bracket @(onStrip ? "bracket-on-zebra zebra-crossed" : "")"
+                                     style="left:@(bar.LeftPx)px; top:@(bar.RowIndex * RowHeight)px; width:@(bar.WidthPx)px"
+                                     @onmouseover="() => OnBarMouseOver(node, bar)"
+                                     @onmouseout="OnBarMouseOut"
+                                     @ondblclick="() => ToggleExpand(node)"
+                                     @ondblclick:preventDefault="true">
+                                    <div class="gantt-bar-bracket-line" style="background:@StageColor"></div>
+                                    <div class="gantt-bar-bracket-leg gantt-bar-bracket-leg-left" style="background:@StageColor"></div>
+                                    <div class="gantt-bar-bracket-leg gantt-bar-bracket-leg-right" style="background:@StageColor"></div>
+                                    <div class="gantt-bar-progress" style="width:@((int)(bar.Progress * 100))%; background:@ProgressColor"></div>
+                                </div>
+                            }
+                            else
+                            {
+                                var inset = 3;
+                                <div class="gantt-bar-task-wrap @(onStrip ? "task-on-zebra striped" : "")"
+                                     style="position:absolute; left:@(bar.LeftPx)px; top:@(bar.RowIndex * RowHeight)px;
+                                            width:@(bar.WidthPx)px; height:@(RowHeight)px; display:flex; align-items:center;">
+                                    <div class="gantt-bar gantt-bar-task task-solid"
+                                         style="position:relative; margin-left:@(inset)px;margin-right:@(inset)px;
+                                                flex-grow:1; flex-shrink:1; height:@(RowHeight - 8)px; border-radius:3px;"
+                                         @onmouseover="() => OnBarMouseOver(node, bar)"
+                                         @onmouseout="OnBarMouseOut"
+                                         @ondblclick="() => OnNodeDoubleClick.InvokeAsync(node)">
+                                        <div class="gantt-bar-progress task-progress" style="background:@ProgressColor"></div>
+                                        @if (bar.WidthPx > 40)
+                                        {
+                                            <span class="gantt-bar-label task-label">@node.Name</span>
+                                        }
+                                    </div>
+                                </div>
+                            }
+                        }
+                    }
+
+                    <!-- Тултип -->
+                    @if (_hoveredNode != null && TooltipTemplate != null)
+                    {
+                        <div class="gantt-tooltip tooltip-ztop" style="left:@(_tooltipLeftPx)px; top:@(_tooltipTopPx)px">
+                            @TooltipTemplate(_hoveredNode)
+                        </div>
+                    }
+
+                    <!-- Зависимости — поверх всего в z-index -->
+                    @if (_depLines.Count > 0)
+                    {
+                        <svg class="gantt-dep-svg dep-overall" style="position:absolute;inset:0;pointer-events:none;z-index:10"
+                              width="@(_totalWidthPx)" height="@(_totalHeightPx)">
+                            @foreach (var line in _depLines)
+                            {
+                                var d = $"M{line.X1},{line.Y1} L{line.X2},{line.Y1} L{line.X2},{line.Y2}";
+                                <path d="@d" stroke="@line.Color" stroke-width="@line.Thickness"
+                                      fill="none" stroke-dasharray="@(line.Style == "dashed" ? "6,4" : "none")" />
+                            }
+                        </svg>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

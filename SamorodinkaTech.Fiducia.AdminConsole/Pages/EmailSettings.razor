@@ -1,0 +1,206 @@
+@page "/email-settings"
+@using Microsoft.EntityFrameworkCore
+@using SamorodinkaTech.Fiducia.Domain.Entities
+@using Markdig
+@inject IDbContextFactory<SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext> DbFactory
+@inject ILogger<EmailSettings> Logger
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "SYS_ADMIN")]
+
+<h3>Оформление email-писем (header / footer)</h3>
+
+@if (_legalEntity is null)
+{
+    <div class="alert alert-warning">Юридическое лицо не выбрано. Перейдите на страницу <a href="/legal-entities">ЮЛ</a> и выберите организацию.</div>
+}
+else
+{
+    <div class="mb-3">
+        <strong>@_legalEntity.Name</strong> (@_legalEntity.Inn)
+    </div>
+
+    <div class="card mb-3">
+        <div class="card-body">
+            <div class="form-check form-switch mb-3">
+                <input class="form-check-input" type="checkbox" id="header-enabled" @bind="_headerEnabled">
+                <label class="form-check-label" for="header-enabled">Добавлять header перед телом письма</label>
+            </div>
+
+            @if (_headerEnabled)
+            {
+                <div class="mb-3">
+                    <label class="form-label">Header (Markdown)</label>
+                    <textarea class="form-control font-monospace" rows="6" @bind="_headerMarkdown"></textarea>
+                    <div class="form-text">Поддерживается Markdown. При отправке будет преобразован в HTML.</div>
+                </div>
+            }
+
+            <hr>
+
+            <div class="form-check form-switch mb-3">
+                <input class="form-check-input" type="checkbox" id="footer-enabled" @bind="_footerEnabled">
+                <label class="form-check-label" for="footer-enabled">Добавлять footer после тела письма</label>
+            </div>
+
+            @if (_footerEnabled)
+            {
+                <div class="mb-3">
+                    <label class="form-label">Footer (Markdown)</label>
+                    <textarea class="form-control font-monospace" rows="6" @bind="_footerMarkdown"></textarea>
+                    <div class="form-text">Поддерживается Markdown. При отправке будет преобразован в HTML.</div>
+                </div>
+            }
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(_previewError))
+    {
+        <div class="alert alert-danger">@_previewError</div>
+    }
+
+    @if (!string.IsNullOrEmpty(_previewHtml))
+    {
+        <div class="card mb-3 border-info">
+            <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+                <span>Предпросмотр</span>
+                <button class="btn btn-sm btn-outline-light" @onclick="() => _previewHtml = null">✕</button>
+            </div>
+            <div class="card-body">
+                <div class="border p-3 bg-white" style="min-height:100px;">
+                    @((MarkupString)_previewHtml)
+                </div>
+            </div>
+        </div>
+    }
+
+    <div class="d-flex gap-2">
+        <button class="btn btn-primary" @onclick="Save">
+            <span class="oi oi-check me-1"></span>Сохранить
+        </button>
+        <button class="btn btn-outline-secondary" @onclick="Preview">
+            <span class="oi oi-eye me-1"></span>Предпросмотр
+        </button>
+    </div>
+
+    @if (!string.IsNullOrEmpty(saveError))
+    {
+        <div class="alert alert-danger mt-3">@saveError</div>
+    }
+    @if (!string.IsNullOrEmpty(saveSuccess))
+    {
+        <div class="alert alert-success mt-3">@saveSuccess</div>
+    }
+}
+
+@code {
+    private Domain.Entities.LegalEntity? _legalEntity;
+    private Guid? _settingsId;
+
+    private bool _headerEnabled;
+    private string _headerMarkdown = string.Empty;
+    private bool _footerEnabled;
+    private string _footerMarkdown = string.Empty;
+
+    private string? saveError;
+    private string? saveSuccess;
+
+    private string? _previewHtml;
+    private string? _previewError;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await using var ctx = await DbFactory.CreateDbContextAsync();
+        var workplace = await ctx.CurrentWorkplaces.FirstOrDefaultAsync();
+        var targetId = workplace?.LastSelectedLegalEntityId;
+
+        if (targetId is null || targetId == Guid.Empty)
+            return;
+
+        _legalEntity = await ctx.LegalEntities
+            .Where(x => x.Id == targetId.Value)
+            .Select(x => new Domain.Entities.LegalEntity { Id = x.Id, Name = x.Name, Inn = x.Inn })
+            .FirstOrDefaultAsync();
+
+        if (_legalEntity is null)
+            return;
+
+        var settings = await ctx.LegalEntityEmailSettings
+            .FirstOrDefaultAsync(x => x.LegalEntityId == _legalEntity.Id);
+
+        if (settings is not null)
+        {
+            _settingsId = settings.Id;
+            _headerEnabled = settings.HeaderEnabled;
+            _headerMarkdown = settings.HeaderMarkdown;
+            _footerEnabled = settings.FooterEnabled;
+            _footerMarkdown = settings.FooterMarkdown;
+        }
+    }
+
+    private async Task Save()
+    {
+        if (_legalEntity is null) return;
+        saveError = null;
+        saveSuccess = null;
+
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+
+            var settings = await ctx.LegalEntityEmailSettings
+                .FirstOrDefaultAsync(x => x.LegalEntityId == _legalEntity.Id);
+
+            if (settings is null)
+            {
+                settings = new LegalEntityEmailSettings
+                {
+                    Id = Guid.NewGuid(),
+                    LegalEntityId = _legalEntity.Id
+                };
+                ctx.LegalEntityEmailSettings.Add(settings);
+            }
+
+            settings.HeaderEnabled = _headerEnabled;
+            settings.HeaderMarkdown = _headerMarkdown;
+            settings.FooterEnabled = _footerEnabled;
+            settings.FooterMarkdown = _footerMarkdown;
+            settings.UpdatedAt = DateTime.UtcNow;
+
+            await ctx.SaveChangesAsync();
+            _settingsId = settings.Id;
+            saveSuccess = "Настройки сохранены.";
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Ошибка сохранения email-настроек для ЮЛ {LegalEntityId}", _legalEntity.Id);
+            saveError = SamorodinkaTech.Fiducia.Infrastructure.Common.Exceptions.ExceptionFlattener.Unwrap(ex);
+        }
+    }
+
+    private void Preview()
+    {
+        _previewError = null;
+        _previewHtml = null;
+
+        try
+        {
+            var pipeline = new MarkdownPipelineBuilder()
+                .UseAdvancedExtensions()
+                .Build();
+
+            var html = "";
+            if (_headerEnabled && !string.IsNullOrWhiteSpace(_headerMarkdown))
+                html += Markdown.ToHtml(_headerMarkdown, pipeline);
+            
+            html += """<p style="color:#6c757d;font-style:italic;margin:1em 0;">[ тело письма ]</p>""";
+
+            if (_footerEnabled && !string.IsNullOrWhiteSpace(_footerMarkdown))
+                html += Markdown.ToHtml(_footerMarkdown, pipeline);
+
+            _previewHtml = html;
+        }
+        catch (Exception ex)
+        {
+            _previewError = $"Ошибка рендеринга Markdown: {ex.Message}";
+        }
+    }
+}
