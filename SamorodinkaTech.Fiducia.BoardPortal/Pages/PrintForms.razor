@@ -1,0 +1,114 @@
+@page "/print/{MeetingId:int}"
+
+<PageTitle>Fiducia — Печатные формы</PageTitle>
+
+<div class="container-fluid">
+    <h3 class="mb-4">ГОСТ-шаблоны печатных форм</h3>
+
+    <div class="row mb-4">
+        <div class="col-md-4 mb-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Протокол заседания</h5>
+                    <p class="card-text text-muted">Автоматическое заполнение по данным повестки и результатам голосования</p>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-sm btn-primary">PDF</button>
+                        <button class="btn btn-sm btn-outline-secondary">DOCX</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Уведомление о созыве</h5>
+                    <p class="card-text text-muted">Формируется при создании уведомления</p>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-sm btn-primary">PDF</button>
+                        <button class="btn btn-sm btn-outline-secondary">DOCX</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Бюллетень голосования</h5>
+                    <p class="card-text text-muted">Индивидуальный бюллетень для каждого участника</p>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-sm btn-primary">PDF</button>
+                        <button class="btn btn-sm btn-outline-secondary">DOCX</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Требование о созыве</h5>
+                    <p class="card-text text-muted">Шаблон для инициатора (акционера)</p>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-sm btn-primary">PDF</button>
+                        <button class="btn btn-sm btn-outline-secondary">DOCX</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Отчёт внешнего директора</h5>
+                    <p class="card-text text-muted">Форма для независимых директоров</p>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-sm btn-primary">PDF</button>
+                        <button class="btn btn-sm btn-outline-secondary">DOCX</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Заключение комитета</h5>
+                    <p class="card-text text-muted">Для комитетов типа CONTROL и STRATEGIC</p>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-sm btn-primary">PDF</button>
+                        <button class="btn btn-sm btn-outline-secondary">DOCX</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">Параметры ГОСТ-шаблонов</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <h6>Форматирование</h6>
+                    <ul class="list-unstyled text-muted">
+                        <li>· Левое поле: 30 мм</li>
+                        <li>· Правое поле: 15 мм</li>
+                        <li>· Верхнее поле: 20 мм</li>
+                        <li>· Нижнее поле: 20 мм</li>
+                        <li>· Шрифт: Times New Roman, 14 пт</li>
+                        <li>· Межстрочный интервал: 1.5</li>
+                    </ul>
+                </div>
+                <div class="col-md-6">
+                    <h6>Автозаполнение</h6>
+                    <ul class="list-unstyled text-muted">
+                        <li>· Дата — склоняется автоматически</li>
+                        <li>· Номер директивы — из карточки</li>
+                        <li>· ФИО — по лингвистическому словарю</li>
+                        <li>· Вопросы — жирным шрифтом</li>
+                        <li>· ЭЦП — графический штамп (п. 5.23)</li>
+                        <li>· Водяной знак — при просмотре</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

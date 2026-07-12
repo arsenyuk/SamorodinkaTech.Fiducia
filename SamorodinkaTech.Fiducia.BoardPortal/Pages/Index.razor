@@ -1,0 +1,127 @@
+@page "/"
+@using SamorodinkaTech.Fiducia.Domain.Entities
+@using SamorodinkaTech.Fiducia.Domain.Interfaces
+@inject IApplicationDbContext DbContext
+
+<PageTitle>Fiducia — Главная</PageTitle>
+
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h2>Добро пожаловать, Иван Иванович!</h2>
+                    <p class="mb-0">Председатель Совета директоров</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h5 class="card-title text-muted">Активных заседаний</h5>
+                    <h2 class="text-primary">@_activeMeetings</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h5 class="card-title text-muted">Ожидают подписания</h5>
+                    <h2 class="text-warning">@_pendingSignatures</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h5 class="card-title text-muted">Поручения комитетам</h5>
+                    <h2 class="text-success">@_activeTasks</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Ближайшие заседания</h5>
+                    <a href="/meetings" class="btn btn-sm btn-outline-primary">Все заседания</a>
+                </div>
+                <div class="card-body">
+                    @if (_meetings.Any())
+                    {
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Номер</th>
+                                    <th>Форма</th>
+                                    <th>Статус</th>
+                                    <th>Дедлайн</th>
+                                    <th>Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var meeting in _meetings)
+                                {
+                                    <tr>
+                                        <td><strong>@meeting.MeetingNumber</strong></td>
+                                        <td>
+                                            @if (meeting.MeetingForm == SamorodinkaTech.Fiducia.Domain.Enums.MeetingForm.OCHN)
+                                            {
+                                                <span class="badge bg-info">Очная</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-secondary">Заочная</span>
+                                            }
+                                        </td>
+                                        <td><span class="badge bg-warning">@meeting.Status</span></td>
+                                        <td>@meeting.VotingEndAt?.ToString("dd.MM.yyyy")</td>
+                                        <td>
+                                            <a href="/voting/@meeting.Id" class="btn btn-sm btn-primary">Голосовать</a>
+                                            <a href="/documents/@meeting.Id" class="btn btn-sm btn-outline-secondary">Документы</a>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    }
+                    else
+                    {
+                        <p class="text-muted">Нет активных заседаний</p>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private int _activeMeetings;
+    private int _pendingSignatures;
+    private int _activeTasks;
+    private List<Meeting> _meetings = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _activeMeetings = await DbContext.Meetings
+            .CountAsync(m => m.Status == SamorodinkaTech.Fiducia.Domain.Enums.MeetingStatus.VOTING
+                          || m.Status == SamorodinkaTech.Fiducia.Domain.Enums.MeetingStatus.NOTIFIED);
+
+        _pendingSignatures = 3; // TODO: implement real query
+
+        _activeTasks = await DbContext.CommitteeTasks
+            .CountAsync(t => t.Status == SamorodinkaTech.Fiducia.Domain.Enums.CommitteeTaskStatus.IN_WORK);
+
+        _meetings = await DbContext.Meetings
+            .Where(m => m.Status == SamorodinkaTech.Fiducia.Domain.Enums.MeetingStatus.VOTING
+                     || m.Status == SamorodinkaTech.Fiducia.Domain.Enums.MeetingStatus.NOTIFIED)
+            .OrderByDescending(m => m.VotingEndAt)
+            .Take(5)
+            .ToListAsync();
+    }
+}

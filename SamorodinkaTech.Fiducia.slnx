@@ -1,0 +1,15 @@
+<Solution>
+  <Folder Name="/src/" />
+  <Folder Name="/src/Domain/">
+    <Project Path="src/Domain/SamorodinkaTech.Fiducia.Domain.csproj" />
+  </Folder>
+  <Folder Name="/src/Infrastructure/">
+    <Project Path="src/Infrastructure/SamorodinkaTech.Fiducia.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/SamorodinkaTech.Fiducia.Tests.Functional/SamorodinkaTech.Fiducia.Tests.Functional.csproj" />
+    <Project Path="tests/SamorodinkaTech.Fiducia.Tests.Integration/SamorodinkaTech.Fiducia.Tests.Integration.csproj" />
+  </Folder>
+  <Project Path="SamorodinkaTech.Fiducia.AdminConsole/SamorodinkaTech.Fiducia.AdminConsole.csproj" />
+  <Project Path="SamorodinkaTech.Fiducia.BoardPortal/SamorodinkaTech.Fiducia.BoardPortal.csproj" />
+</Solution>

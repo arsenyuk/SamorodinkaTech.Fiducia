@@ -1,0 +1,85 @@
+@page "/committees"
+@using SamorodinkaTech.Fiducia.Domain.Entities
+@using SamorodinkaTech.Fiducia.Domain.Interfaces
+@using SamorodinkaTech.Fiducia.Domain.Enums
+@inject IApplicationDbContext DbContext
+
+<PageTitle>Fiducia — Мои комитеты</PageTitle>
+
+<div class="container-fluid">
+    <h3 class="mb-4">Мои комитеты</h3>
+
+    @if (_committees.Any())
+    {
+        @foreach (var committee in _committees)
+        {
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <div>
+                        <span class="badge bg-info me-2">@committee.Code</span>
+                        <h5 class="d-inline mb-0">@committee.Name</h5>
+                    </div>
+                    <span class="badge @(committee.BehaviorType == BehaviorType.CONTROL ? "bg-success" : "bg-warning")">
+                        @(committee.BehaviorType == BehaviorType.CONTROL ? "CONTROL" : "STRATEGIC")
+                    </span>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted mb-3">
+                        <strong>Тип:</strong> @(committee.BehaviorType == BehaviorType.CONTROL
+                            ? "Защитный / Контролирующий контур"
+                            : "Развивающий / Стратегический контур")
+                    </p>
+
+                    @if (committee.Chair != null)
+                    {
+                        <p class="text-muted mb-3">
+                            <strong>Председатель:</strong> @committee.Chair.LastName @committee.Chair.FirstName @committee.Chair.MiddleName
+                        </p>
+                    }
+
+                    @{
+                        var tasks = _taskCounts.GetValueOrDefault(committee.Id, 0);
+                    }
+                    <p class="text-muted mb-3">
+                        <strong>Активные поручения:</strong> @tasks
+                    </p>
+
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-sm btn-outline-primary">Заключение</button>
+                        <button class="btn btn-sm btn-outline-primary">Поручения</button>
+                        <button class="btn btn-sm btn-outline-primary">Письменные мнения</button>
+                    </div>
+                </div>
+            </div>
+        }
+    }
+    else
+    {
+        <div class="card">
+            <div class="card-body text-center py-5">
+                <h5 class="text-muted">Вы не состоите ни в одном комитете</h5>
+                <p class="text-muted">Обратитесь к системному администратору для назначения</p>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private List<Committee> _committees = new();
+    private Dictionary<Guid, int> _taskCounts = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _committees = await DbContext.Committees
+            .Include(c => c.Chair)
+            .Where(c => c.IsActive)
+            .ToListAsync();
+
+        foreach (var committee in _committees)
+        {
+            var tasks = await DbContext.CommitteeTasks
+                .CountAsync(t => t.CommitteeId == committee.Id && t.Status == CommitteeTaskStatus.IN_WORK);
+            _taskCounts[committee.Id] = tasks;
+        }
+    }
+}

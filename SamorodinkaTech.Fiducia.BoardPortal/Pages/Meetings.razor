@@ -1,0 +1,308 @@
+@page "/meetings"
+@using SamorodinkaTech.Fiducia.Domain.Entities
+@using SamorodinkaTech.Fiducia.Domain.Interfaces
+@using SamorodinkaTech.Fiducia.Domain.Enums
+@inject IApplicationDbContext DbContext
+
+<PageTitle>Fiducia — Созывы</PageTitle>
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3>Созывы заседаний</h3>
+        <button class="btn btn-primary" @onclick="ShowCreateModal">+ Создать уведомление</button>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            @if (_meetings.Any())
+            {
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Номер</th>
+                            <th>Форма</th>
+                            <th>Статус</th>
+                            <th>Кворум</th>
+                            <th>Дедлайн</th>
+                            <th>Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var meeting in _meetings)
+                        {
+                            <tr>
+                                <td><strong>@meeting.MeetingNumber</strong></td>
+                                <td>
+                                    @if (meeting.MeetingForm == MeetingForm.OCHN)
+                                    {
+                                        <span class="badge bg-info">Очная</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary">Заочная</span>
+                                    }
+                                </td>
+                                <td>
+                                    @switch (meeting.Status)
+                                    {
+                                        case MeetingStatus.DRAFT:
+                                            <span class="badge bg-secondary">Черновик</span>
+                                            break;
+                                        case MeetingStatus.NOTIFIED:
+                                            <span class="badge bg-info">Уведомление</span>
+                                            break;
+                                        case MeetingStatus.VOTING:
+                                            <span class="badge bg-warning">Голосование</span>
+                                            break;
+                                        case MeetingStatus.PROTOCOL:
+                                            <span class="badge bg-success">Протокол</span>
+                                            break;
+                                        case MeetingStatus.ARCHIVE:
+                                            <span class="badge bg-dark">Архив</span>
+                                            break;
+                                    }
+                                </td>
+                                <td>
+                                    @{
+                                        var voted = _voteCounts.GetValueOrDefault(meeting.Id, 0);
+                                        var total = 7;
+                                    }
+                                    <span>@voted/@total</span>
+                                    <div class="progress" style="height: 8px; width: 60px;">
+                                        <div class="progress-bar @(voted * 100 / total >= 50 ? "bg-success" : "bg-danger")"
+                                             style="width: @(voted * 100 / total)%"></div>
+                                    </div>
+                                </td>
+                                <td>@meeting.VotingEndAt?.ToString("dd.MM.yyyy HH:mm")</td>
+                                <td>
+                                    <a href="/voting/@meeting.Id" class="btn btn-sm btn-primary">Голосовать</a>
+                                    <a href="/documents/@meeting.Id" class="btn btn-sm btn-outline-secondary">Документы</a>
+                                    <a href="/print/@meeting.Id" class="btn btn-sm btn-outline-secondary">ГОСТ</a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+            else
+            {
+                <div class="text-center py-5">
+                    <h5 class="text-muted">Нет уведомлений о созыве</h5>
+                    <p class="text-muted">Создайте первое уведомление для заседания совета директоров</p>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@if (_showModal)
+{
+    <div class="modal show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Создать уведомление о созыве</h5>
+                    <button type="button" class="btn-close" @onclick="CloseModal"></button>
+                </div>
+                <div class="modal-body">
+                    @if (!string.IsNullOrEmpty(_errorMessage))
+                    {
+                        <div class="alert alert-danger">@_errorMessage</div>
+                    }
+
+                    <div class="mb-3">
+                        <label class="form-label">Номер заседания *</label>
+                        <input type="text" class="form-control" @bind="_newMeetingNumber" placeholder="СД-2026-003">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Форма проведения *</label>
+                        <select class="form-select" @bind="_newMeetingForm">
+                            <option value="OCHN">Очная (OCHN)</option>
+                            <option value="ZAOCHN">Заочная (ZAOCHN)</option>
+                        </select>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Дата начала голосования *</label>
+                            <input type="datetime-local" class="form-control" @bind="_newVotingStart">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Дедлайн голосования *</label>
+                            <input type="datetime-local" class="form-control" @bind="_newVotingEnd">
+                            <small class="text-muted">Не менее 3 дней (ст. 68 ФЗ-208)</small>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Участники *</label>
+                        <div class="border rounded p-2" style="max-height: 150px; overflow-y: auto;">
+                            @foreach (var user in _availableUsers)
+                            {
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox"
+                                           checked="@_selectedUserIds.Contains(user.Id)"
+                                           @onchange="() => ToggleUser(user.Id)">
+                                    <label class="form-check-label">
+                                        @user.LastName @user.FirstName @user.MiddleName
+                                    </label>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseModal">Отмена</button>
+                    <button type="button" class="btn btn-primary" @onclick="CreateMeeting"
+                            disabled="@(_isSaving || string.IsNullOrWhiteSpace(_newMeetingNumber))">
+                        @if (_isSaving)
+                        {
+                            <span class="spinner-border spinner-border-sm me-1"></span>
+                        }
+                        Создать
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<Meeting> _meetings = new();
+    private Dictionary<Guid, int> _voteCounts = new();
+
+    private bool _showModal;
+    private bool _isSaving;
+    private string? _errorMessage;
+
+    private string _newMeetingNumber = string.Empty;
+    private string _newMeetingForm = "OCHN";
+    private DateTime _newVotingStart = DateTime.UtcNow.AddDays(1);
+    private DateTime _newVotingEnd = DateTime.UtcNow.AddDays(4);
+    private List<User> _availableUsers = new();
+    private HashSet<Guid> _selectedUserIds = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            await LoadMeetings();
+            _availableUsers = await DbContext.Users.ToListAsync();
+        }
+        catch
+        {
+            _meetings = new List<Meeting>();
+            _availableUsers = new List<User>();
+        }
+    }
+
+    private async Task LoadMeetings()
+    {
+        try
+        {
+            _meetings = await DbContext.Meetings
+                .OrderByDescending(m => m.CreatedAt)
+                .ToListAsync();
+        }
+        catch
+        {
+            _meetings = new List<Meeting>();
+        }
+
+        foreach (var meeting in _meetings)
+        {
+            int voted = 0;
+            try
+            {
+                voted = await DbContext.Bulletins
+                    .CountAsync(b => b.AgendaQuestion.MeetingId == meeting.Id && !b.IsCancelled);
+            }
+            catch { voted = 0; }
+            _voteCounts[meeting.Id] = voted;
+        }
+    }
+
+    private void ShowCreateModal()
+    {
+        _showModal = true;
+        _errorMessage = null;
+        _newMeetingNumber = $"СД-{DateTime.UtcNow.Year}-{(_meetings.Count + 1):D3}";
+        _newVotingStart = DateTime.UtcNow.AddDays(1);
+        _newVotingEnd = DateTime.UtcNow.AddDays(4);
+        _selectedUserIds.Clear();
+    }
+
+    private void CloseModal()
+    {
+        _showModal = false;
+        _errorMessage = null;
+    }
+
+    private void ToggleUser(Guid userId)
+    {
+        if (_selectedUserIds.Contains(userId))
+            _selectedUserIds.Remove(userId);
+        else
+            _selectedUserIds.Add(userId);
+    }
+
+    private async Task CreateMeeting()
+    {
+        _errorMessage = null;
+
+        if (string.IsNullOrWhiteSpace(_newMeetingNumber))
+        {
+            _errorMessage = "Введите номер заседания";
+            return;
+        }
+
+        if (_newVotingEnd <= _newVotingStart)
+        {
+            _errorMessage = "Дедлайн должен быть позже даты начала";
+            return;
+        }
+
+        if ((_newVotingEnd - _newVotingStart).TotalDays < 3)
+        {
+            _errorMessage = "Минимальный срок голосования — 3 календарных дня (ст. 68 ФЗ-208)";
+            return;
+        }
+
+        if (!_selectedUserIds.Any())
+        {
+            _errorMessage = "Выберите хотя бы одного участника";
+            return;
+        }
+
+        _isSaving = true;
+
+        try
+        {
+            var meeting = new Meeting
+            {
+                MeetingNumber = _newMeetingNumber,
+                MeetingForm = _newMeetingForm == "OCHN" ? MeetingForm.OCHN : MeetingForm.ZAOCHN,
+                Status = MeetingStatus.DRAFT,
+                VotingStartAt = _newVotingStart,
+                VotingEndAt = _newVotingEnd,
+                CreatedBy = Guid.Empty, // TODO: current user
+                CreatedAt = DateTime.UtcNow
+            };
+
+            DbContext.Meetings.Add(meeting);
+            await DbContext.SaveChangesAsync();
+
+            _showModal = false;
+            await LoadMeetings();
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Ошибка: {ex.Message}";
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+}

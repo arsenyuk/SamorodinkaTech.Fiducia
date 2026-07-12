@@ -1,0 +1,99 @@
+@page "/notifications"
+@using SamorodinkaTech.Fiducia.Domain.Entities
+@using SamorodinkaTech.Fiducia.Domain.Interfaces
+@inject IApplicationDbContext DbContext
+
+<PageTitle>Fiducia — Оповещения</PageTitle>
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3>Оповещения</h3>
+        <button class="btn btn-sm btn-outline-secondary" @onclick="MarkAllAsRead">Отметить все как прочитанные</button>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            @if (_notifications.Count == 0)
+            {
+                <div class="text-center text-muted py-5">
+                    <p class="mb-0">Нет новых уведомлений</p>
+                </div>
+            }
+            else
+            {
+                @foreach (var notification in _notifications)
+                {
+                    var borderColor = notification.NotificationType switch
+                    {
+                        "MEETING_SUMMONS" => "border-primary",
+                        "VOTE_REMINDER" => "border-info",
+                        "PROTOCOL_SIGNED" => "border-success",
+                        "COMMITTEE_PROTOCOL_SIGNED" => "border-warning",
+                        "VOTE_DEADLINE" => "border-secondary",
+                        _ => "border-secondary"
+                    };
+
+                    var bgColor = notification.NotificationType switch
+                    {
+                        "MEETING_SUMMONS" => "bg-light",
+                        "VOTE_REMINDER" => "bg-info bg-opacity-10",
+                        "PROTOCOL_SIGNED" => "bg-success bg-opacity-10",
+                        "COMMITTEE_PROTOCOL_SIGNED" => "bg-warning bg-opacity-10",
+                        "VOTE_DEADLINE" => "bg-light",
+                        _ => "bg-light"
+                    };
+
+                    <div class="border-start @borderColor border-3 @bgColor p-3 mb-3 rounded-end @(!notification.IsRead ? "fw-bold" : "")">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <strong>@notification.Title</strong>
+                                <p class="text-muted small mb-0 mt-1">@notification.Body</p>
+                            </div>
+                            <small class="text-muted">@GetRelativeTime(notification.CreatedAt)</small>
+                        </div>
+                    </div>
+                }
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<Notification> _notifications = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadNotifications();
+    }
+
+    private async Task LoadNotifications()
+    {
+        _notifications = await DbContext.Notifications
+            .Include(n => n.User)
+            .Include(n => n.Committee)
+            .OrderByDescending(n => n.CreatedAt)
+            .Take(50)
+            .ToListAsync();
+    }
+
+    private async Task MarkAllAsRead()
+    {
+        var unreadNotifications = _notifications.Where(n => !n.IsRead).ToList();
+        foreach (var notification in unreadNotifications)
+        {
+            notification.IsRead = true;
+        }
+        await DbContext.SaveChangesAsync();
+        await LoadNotifications();
+    }
+
+    private string GetRelativeTime(DateTime createdAt)
+    {
+        var timeSpan = DateTime.UtcNow - createdAt;
+        if (timeSpan.TotalMinutes < 1) return "только что";
+        if (timeSpan.TotalMinutes < 60) return $"{(int)timeSpan.TotalMinutes} мин назад";
+        if (timeSpan.TotalHours < 24) return $"{(int)timeSpan.TotalHours} час назад";
+        if (timeSpan.TotalDays < 7) return $"{(int)timeSpan.TotalDays} дн назад";
+        return createdAt.ToString("dd.MM.yyyy");
+    }
+}

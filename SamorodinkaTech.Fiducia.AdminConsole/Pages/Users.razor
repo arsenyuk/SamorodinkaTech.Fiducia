@@ -1,0 +1,341 @@
+@page "/users"
+@using SamorodinkaTech.Fiducia.Domain.Entities
+@using SamorodinkaTech.Fiducia.Domain.Interfaces
+@inject IApplicationDbContext DbContext
+
+<PageTitle>Fiducia — Пользователи</PageTitle>
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3>Пользователи</h3>
+        <div>
+            <button class="btn btn-outline-primary me-2" @onclick="ShowInviteModal">
+                Пригласить внешнего директора
+            </button>
+            <button class="btn btn-primary" @onclick="ShowCreateModal">+ Добавить</button>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header d-flex justify-content-between">
+            <ul class="nav nav-tabs card-header-tabs">
+                <li class="nav-item">
+                    <button class="nav-link @(_filter == "all" ? "active" : "")" @onclick='() => SetFilter("all")'>Все</button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link @(_filter == "internal" ? "active" : "")" @onclick='() => SetFilter("internal")'>Внутренние</button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link @(_filter == "external" ? "active" : "")" @onclick='() => SetFilter("external")'>Внешние</button>
+                </li>
+            </ul>
+        </div>
+        <div class="card-body">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>ФИО</th>
+                        <th>Email</th>
+                        <th>Телефон</th>
+                        <th>Тип</th>
+                        <th>Статус</th>
+                        <th>Действия</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var user in _filteredUsers)
+                    {
+                        <tr>
+                            <td>@user.Id</td>
+                            <td><strong>@user.LastName @user.FirstName @user.MiddleName</strong></td>
+                            <td>@user.Email</td>
+                            <td>@user.Phone</td>
+                            <td>
+                                @if (user.IsExternal)
+                                {
+                                    <span class="badge bg-warning">Внешний</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary">Внутренний</span>
+                                }
+                            </td>
+                            <td>
+                                @if (user.IsExternal)
+                                {
+                                    @if (user.PepAgreementSigned)
+                                    {
+                                        <span class="badge bg-success">ПЭП подписан</span>
+                                    }
+                                    else if (user.DeclarationCompleted)
+                                    {
+                                        <span class="badge bg-info">Анкета заполнена</span>
+                                    }
+                                    else if (!string.IsNullOrEmpty(user.InvitationToken))
+                                    {
+                                        <span class="badge bg-warning">Ожидает регистрации</span>
+                                    }
+                                }
+                                else
+                                {
+                                    <span class="badge bg-success">Активен</span>
+                                }
+                            </td>
+                            <td>
+                                @if (user.IsExternal && !user.PepAgreementSigned)
+                                {
+                                    <button class="btn btn-sm btn-outline-primary"
+                                            @onclick="() => CopyInviteLink(user)">Ссылка</button>
+                                }
+                                <button class="btn btn-sm btn-outline-primary">Ред.</button>
+                                <button class="btn btn-sm btn-outline-danger">Уд.</button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно создания пользователя -->
+@if (_showCreateModal)
+{
+    <div class="modal show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Добавить пользователя</h5>
+                    <button type="button" class="btn-close" @onclick="CloseModals"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Фамилия *</label>
+                        <input type="text" class="form-control" @bind="_newLastName">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Имя *</label>
+                        <input type="text" class="form-control" @bind="_newFirstName">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Отчество</label>
+                        <input type="text" class="form-control" @bind="_newMiddleName">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Email *</label>
+                        <input type="email" class="form-control" @bind="_newEmail">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Телефон *</label>
+                        <input type="tel" class="form-control" @bind="_newPhone">
+                    </div>
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" @bind="_newIsExternal">
+                        <label class="form-check-label">Внешний директор</label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseModals">Отмена</button>
+                    <button type="button" class="btn btn-primary" @onclick="CreateUser">Создать</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Модальное окно инвайта -->
+@if (_showInviteModal)
+{
+    <div class="modal show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Пригласить внешнего директора</h5>
+                    <button type="button" class="btn-close" @onclick="CloseModals"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Email *</label>
+                        <input type="email" class="form-control" @bind="_inviteEmail">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Фамилия *</label>
+                        <input type="text" class="form-control" @bind="_inviteLastName">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Имя *</label>
+                        <input type="text" class="form-control" @bind="_inviteFirstName">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Телефон *</label>
+                        <input type="tel" class="form-control" @bind="_invitePhone">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Срок действия (дней)</label>
+                        <input type="number" class="form-control" @bind="_inviteExpiryDays" min="1" max="30">
+                    </div>
+
+                    @if (!string.IsNullOrEmpty(_inviteLink))
+                    {
+                        <div class="alert alert-success">
+                            <strong>Инвайт-ссылка создана:</strong>
+                            <div class="input-group mt-2">
+                                <input type="text" class="form-control" value="@_inviteLink" readonly>
+                                <button class="btn btn-outline-secondary" @onclick="CopyToClipboard">Копировать</button>
+                            </div>
+                        </div>
+                    }
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseModals">Закрыть</button>
+                    <button type="button" class="btn btn-primary" @onclick="GenerateInvite"
+                            disabled="@(_isGenerating || string.IsNullOrWhiteSpace(_inviteEmail))">
+                        @if (_isGenerating)
+                        {
+                            <span class="spinner-border spinner-border-sm me-1"></span>
+                        }
+                        Создать ссылку
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<User> _users = new();
+    private List<User> _filteredUsers = new();
+    private string _filter = "all";
+
+    // Создание пользователя
+    private bool _showCreateModal;
+    private string _newLastName = string.Empty;
+    private string _newFirstName = string.Empty;
+    private string _newMiddleName = string.Empty;
+    private string _newEmail = string.Empty;
+    private string _newPhone = string.Empty;
+    private bool _newIsExternal;
+
+    // Инвайт
+    private bool _showInviteModal;
+    private bool _isGenerating;
+    private string _inviteEmail = string.Empty;
+    private string _inviteLastName = string.Empty;
+    private string _inviteFirstName = string.Empty;
+    private string _invitePhone = string.Empty;
+    private int _inviteExpiryDays = 7;
+    private string _inviteLink = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _users = await DbContext.Users.ToListAsync();
+        ApplyFilter();
+    }
+
+    private void SetFilter(string filter)
+    {
+        _filter = filter;
+        ApplyFilter();
+    }
+
+    private void ApplyFilter()
+    {
+        _filteredUsers = _filter switch
+        {
+            "internal" => _users.Where(u => !u.IsExternal).ToList(),
+            "external" => _users.Where(u => u.IsExternal).ToList(),
+            _ => _users.ToList()
+        };
+    }
+
+    private void ShowCreateModal()
+    {
+        _showCreateModal = true;
+        _showInviteModal = false;
+    }
+
+    private void ShowInviteModal()
+    {
+        _showInviteModal = true;
+        _showCreateModal = false;
+        _inviteLink = string.Empty;
+    }
+
+    private void CloseModals()
+    {
+        _showCreateModal = false;
+        _showInviteModal = false;
+    }
+
+    private async Task CreateUser()
+    {
+        var user = new User
+        {
+            LastName = _newLastName,
+            FirstName = _newFirstName,
+            MiddleName = _newMiddleName,
+            Email = _newEmail,
+            Phone = _newPhone,
+            IsExternal = _newIsExternal,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        DbContext.Users.Add(user);
+        await DbContext.SaveChangesAsync();
+
+        _users.Add(user);
+        ApplyFilter();
+        CloseModals();
+    }
+
+    private async Task GenerateInvite()
+    {
+        _isGenerating = true;
+
+        try
+        {
+            var token = Guid.NewGuid().ToString("N");
+            var expiresAt = DateTime.UtcNow.AddDays(_inviteExpiryDays);
+
+            var user = new User
+            {
+                LastName = _inviteLastName,
+                FirstName = _inviteFirstName,
+                Email = _inviteEmail,
+                Phone = _invitePhone,
+                IsExternal = true,
+                InvitationToken = token,
+                InvitationExpiresAt = expiresAt,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            DbContext.Users.Add(user);
+            await DbContext.SaveChangesAsync();
+
+            _users.Add(user);
+            ApplyFilter();
+
+            _inviteLink = $"http://localhost:5000/onboarding/{token}";
+        }
+        finally
+        {
+            _isGenerating = false;
+        }
+    }
+
+    private void CopyInviteLink(User user)
+    {
+        if (!string.IsNullOrEmpty(user.InvitationToken))
+        {
+            _inviteLink = $"http://localhost:5000/onboarding/{user.InvitationToken}";
+            _showInviteModal = true;
+        }
+    }
+
+    private async Task CopyToClipboard()
+    {
+        // JS interop would be needed here
+        await Task.CompletedTask;
+    }
+}

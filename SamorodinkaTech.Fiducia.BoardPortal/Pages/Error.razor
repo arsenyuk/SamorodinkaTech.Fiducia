@@ -1,0 +1,40 @@
+@page "/Error"
+@using System.Diagnostics
+
+<PageTitle>Ошибка — Fiducia Board Portal</PageTitle>
+
+<div class="container mt-5">
+    <div class="alert alert-danger">
+        <h3>Произошла ошибка</h3>
+        <p>При обработке запроса возникла непредвиденная ошибка. Пожалуйста, повторите попытку позже или обратитесь к администратору системы.</p>
+        @if (ShowRequestId)
+        {
+            <p><strong>Request Id:</strong> <code>@RequestId</code></p>
+        }
+        @if (_details?.Any() == true)
+        {
+            <hr />
+            <h5>Детали</h5>
+            <ul>
+                @foreach (var d in _details!)
+                {
+                    <li><code>@d.Type</code>: @d.Message</li>
+                }
+            </ul>
+        }
+        <a href="/" class="btn btn-primary">На главную</a>
+    </div>
+</div>
+
+@code {
+    private string? RequestId { get; set; }
+    private bool ShowRequestId => !string.IsNullOrEmpty(RequestId);
+    private List<SamorodinkaTech.Fiducia.Infrastructure.Common.Exceptions.ExceptionFlattener.ExceptionInfo>? _details;
+
+    protected override void OnInitialized()
+    {
+        RequestId = Activity.Current?.Id;
+        // Попытка получить сериализованные детали из TempData/консоли не реализуется в Blazor Server по умолчанию.
+        // Для простоты — оставляем визуальный список пустым; логи содержат полный стек.
+    }
+}

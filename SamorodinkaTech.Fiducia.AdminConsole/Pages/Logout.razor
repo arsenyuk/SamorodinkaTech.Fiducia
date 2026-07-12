@@ -1,0 +1,123 @@
+@page "/logout"
+@layout AuthLayout
+@using SamorodinkaTech.Fiducia.Domain.Interfaces
+@inject IJSRuntime JS
+@inject NavigationManager NavigationManager
+@inject ISecurityAuditService SecurityAuditService
+
+<PageTitle>Fiducia — Выход</PageTitle>
+
+<div class="container">
+    <div class="row justify-content-center mt-5">
+        <div class="col-md-6 col-lg-4">
+            <div class="card shadow">
+                <div class="card-body p-4 text-center">
+                    <div class="mb-4">
+                        <h3>Fiducia</h3>
+                        <p class="text-muted">Admin Console</p>
+                    </div>
+
+                    @if (_isLoggingOut)
+                    {
+                        <div class="mb-4">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Выход...</span>
+                            </div>
+                            <p class="mt-3">Выполняется выход...</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="mb-4">
+                            <h5>Вы уверены?</h5>
+                            <p class="text-muted">Вы хотите выйти из системы?</p>
+                        </div>
+
+                        <div class="d-flex gap-2 justify-content-center">
+                            <button class="btn btn-outline-secondary" @onclick="Cancel">Отмена</button>
+                            <button class="btn btn-danger" @onclick="ConfirmLogout">Выйти</button>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private bool _isLoggingOut;
+    private bool _isInitialized;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !_isInitialized)
+        {
+            _isInitialized = true;
+            var userId = await JS.InvokeAsync<string>("localStorage.getItem", "currentUserId");
+            if (string.IsNullOrEmpty(userId))
+            {
+                NavigationManager.NavigateTo("/login");
+            }
+        }
+    }
+
+    private void Cancel()
+    {
+        NavigationManager.NavigateTo("/");
+    }
+
+    private async Task ConfirmLogout()
+    {
+        _isLoggingOut = true;
+        StateHasChanged();
+
+        // Получение данных пользователя для аудита (без падений при отсутствии данных)
+        var userIdRaw = await JS.InvokeAsync<string>("localStorage.getItem", "currentUserId");
+        var userName = await JS.InvokeAsync<string>("localStorage.getItem", "currentUserName");
+        var userIp = await GetUserIp();
+        if (!string.IsNullOrWhiteSpace(userIdRaw))
+        {
+            if (Guid.TryParse(userIdRaw, out var parsedUserId))
+            {
+                await SecurityAuditService.LogEventAsync("LOGOUT", userIp,
+                    $"Выход пользователя: {userName}",
+                    userId: parsedUserId, entityName: "User", cancellationToken: default);
+            }
+            // если userIdRaw не int — пропускаем аудит, но не роняем выход
+        }
+
+        // УПД.15: вызов endpoint выхода (всегда возвращает 200 OK)
+        try
+        {
+            await JS.InvokeVoidAsync("fetch", "/api/session/logout",
+                new { method = "POST" });
+        }
+        catch { /* endpoint обязуется возвращать 200, но на случай ошибки продолжаем очистку */ }
+
+        // Очистка cookie (включая SessionToken)
+        await JS.InvokeVoidAsync("eval",
+            "document.cookie.split(';').forEach(function(c) { " +
+            "var name = c.trim().split('=')[0]; " +
+            "document.cookie = name + '=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;SameSite=Strict'; });" +
+            "document.cookie = 'SessionToken=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;SameSite=Strict';");
+
+        // Очистка localStorage
+        await JS.InvokeVoidAsync("localStorage.removeItem", "currentUserId");
+        await JS.InvokeVoidAsync("localStorage.removeItem", "currentUserName");
+        await JS.InvokeVoidAsync("localStorage.removeItem", "currentUserRole");
+
+        NavigationManager.NavigateTo("/login");
+    }
+
+    private async Task<string> GetUserIp()
+    {
+        try
+        {
+            return await JS.InvokeAsync<string>("eval", "window.remoteAddress || ''");
+        }
+        catch
+        {
+            return "unknown";
+        }
+    }
+}

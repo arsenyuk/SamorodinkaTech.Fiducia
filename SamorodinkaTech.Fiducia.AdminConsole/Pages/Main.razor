@@ -1,0 +1,103 @@
+@page "/main"
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "SYS_ADMIN")]
+@using SamorodinkaTech.Fiducia.Domain.Entities
+@using SamorodinkaTech.Fiducia.Domain.Interfaces
+@inject IApplicationDbContext DbContext
+
+<PageTitle>Fiducia — Admin Console</PageTitle>
+
+<div class="container-fluid">
+    <h3 class="mb-4">Дашборд</h3>
+
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h5 class="card-title text-muted">Пользователей</h5>
+                    <h2 class="text-primary">@_userCount</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h5 class="card-title text-muted">Комитетов</h5>
+                    <h2 class="text-success">@_committeeCount</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h5 class="card-title text-muted">Заседаний</h5>
+                    <h2 class="text-info">@_meetingCount</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h5 class="card-title text-muted">Аудит-событий</h5>
+                    <h2 class="text-warning">@_auditCount</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">Последние события аудита</h5>
+        </div>
+        <div class="card-body">
+            @if (_auditLogs.Any())
+            {
+                @foreach (var log in _auditLogs)
+                {
+                    <div class="d-flex gap-3 align-items-start border-bottom py-2">
+                        <small class="text-muted">@log.LogTimestamp.ToString("HH:mm:ss")</small>
+                        <span class="badge @GetBadgeClass(log.ActionCode)">@log.ActionCode</span>
+                        <span>@log.Description</span>
+                    </div>
+                }
+            }
+            else
+            {
+                <p class="text-muted">Нет событий</p>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private int _userCount;
+    private int _committeeCount;
+    private int _meetingCount;
+    private int _auditCount;
+    private List<SecurityAuditLog> _auditLogs = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _userCount = await DbContext.Users.CountAsync();
+        _committeeCount = await DbContext.Committees.CountAsync(c => c.IsActive);
+        _meetingCount = await DbContext.Meetings.CountAsync();
+        _auditCount = await DbContext.SecurityAuditLogs.CountAsync();
+
+        _auditLogs = await DbContext.SecurityAuditLogs
+            .OrderByDescending(l => l.LogTimestamp)
+            .Take(10)
+            .ToListAsync();
+    }
+
+    private string GetBadgeClass(string actionCode)
+    {
+        return actionCode switch
+        {
+            "LOGIN_SUCCESS" => "bg-success",
+            "LOGIN_FAILED" => "bg-danger",
+            "VOTE_SUBMIT" => "bg-warning",
+            "DOCUMENT_VIEW" => "bg-info",
+            "ACCESS_DENIED" => "bg-danger",
+            _ => "bg-secondary"
+        };
+    }
+}

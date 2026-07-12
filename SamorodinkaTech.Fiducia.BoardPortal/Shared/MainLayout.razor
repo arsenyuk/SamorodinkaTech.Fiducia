@@ -1,0 +1,91 @@
+@inherits LayoutComponentBase
+@inject IJSRuntime JS
+@inject HttpClient Http
+@using SamorodinkaTech.Fiducia.BoardPortal.Pages
+
+<PageTitle>Fiducia — Board Portal</PageTitle>
+
+<div class="page">
+    <div class="sidebar">
+        <NavMenu />
+    </div>
+
+    <main>
+        <div class="top-row px-4 d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Fiducia Board Portal</h5>
+            <div class="d-flex align-items-center gap-3">
+                <span>@_userName</span>
+                <a href="/logout" class="btn btn-sm btn-outline-secondary">Выход</a>
+            </div>
+        </div>
+
+        <article class="content px-4">
+            @if (NavigationManager.Uri.EndsWith("/login", StringComparison.OrdinalIgnoreCase))
+            {
+                <Login />
+            }
+            else
+            {
+                <ErrorBoundary @ref="_errorBoundary">
+                    <ChildContent>
+                        @Body
+                    </ChildContent>
+                    <ErrorContent Context="exception">
+                        <div class="alert alert-danger m-3">
+                            <h4>Произошла ошибка</h4>
+                            <p>При отображении страницы возникла непредвиденная ошибка. Попробуйте обновить страницу или обратитесь к администратору.</p>
+                            <button class="btn btn-outline-danger btn-sm" @onclick="RecoverFromError">Повторить попытку</button>
+                        </div>
+                    </ErrorContent>
+                </ErrorBoundary>
+            }
+        </article>
+    </main>
+</div>
+
+@code {
+    private string _userName = "Гость";
+    private bool _isInitialized;
+    private ErrorBoundary? _errorBoundary;
+    [Inject] private NavigationManager NavigationManager { get; set; } = default!;
+
+    protected override void OnParametersSet()
+    {
+        // Сбрасываем ErrorBoundary при переходе на новую страницу,
+        // чтобы ошибка на одной странице не блокировала другие.
+        _errorBoundary?.Recover();
+    }
+
+    private void RecoverFromError()
+    {
+        _errorBoundary?.Recover();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !_isInitialized)
+        {
+            _isInitialized = true;
+            _userName = await JS.InvokeAsync<string>("localStorage.getItem", "currentUserName") ?? "Гость";
+
+            // УПД.15: запуск idle-таймера
+            try
+            {
+                var config = await Http.GetFromJsonAsync<SessionConfig>("/api/session/config");
+                if (config?.IdleTimeoutMinutes > 0)
+                {
+                    await JS.InvokeVoidAsync("idleTimer.start", config.IdleTimeoutMinutes);
+                }
+            }
+            catch
+            {
+                // Fallback: таймер по умолчанию 5 минут
+                await JS.InvokeVoidAsync("idleTimer.start", 5);
+            }
+
+            StateHasChanged();
+        }
+    }
+
+    private record SessionConfig(int IdleTimeoutMinutes);
+}

@@ -1,0 +1,659 @@
+@page "/admin/legal-entities"
+@using Microsoft.EntityFrameworkCore
+@inject IDbContextFactory<SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext> DbFactory
+@inject SamorodinkaTech.Fiducia.Domain.Interfaces.ILegalEntityGosaIntervalService GosaSvc
+@inject ILogger<LegalEntities> Logger
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "SYS_ADMIN")]
+
+<h3>Юридическое лицо</h3>
+
+@if (selectedEntity is null)
+{
+    <div class="mb-3">
+        <label class="form-label">Поиск ЮЛ</label>
+        <input class="form-control" value="@search" @oninput="OnSearchInput" placeholder="Наименование / ИНН / ОГРН" />
+        @if (searchResults?.Any() == true)
+        {
+            <div class="dropdown-menu show w-100 mt-1" style="display:block; position:relative;">
+                <table class="table table-sm mb-0">
+                    <thead>
+                        <tr>
+                            <th>Наименование</th>
+                            <th>Краткое</th>
+                            <th>ИНН</th>
+                            <th>ОГРН</th>
+                            <th>ОКОПФ</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var le in searchResults!)
+                    {
+                        <tr class="table-row-hover" style="cursor:pointer" @onclick="async () => await SelectEntity(le)">
+                            <td>@le.Name</td>
+                            <td>@le.ShortName</td>
+                            <td>@le.Inn</td>
+                            <td>@le.Ogrn</td>
+                            <td>@(le.Okopf is null ? string.Empty : $"{le.Okopf.Code} · {le.Okopf.Name}")</td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+                <div class="px-2 py-1 text-muted small">Показано до @limit записей</div>
+            </div>
+        }
+    </div>
+}
+
+@if (selectedEntity is not null)
+{
+    <div class="card">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="mb-0">@selectedEntity.Name (@selectedEntity.Inn)</h5>
+                <button class="btn btn-sm btn-outline-primary" @onclick="ShowSearch">Поиск</button>
+            </div>
+
+            <div class="mb-3">
+                <span class="badge bg-info fs-6">@EntityTypeLabel</span>
+            </div>
+
+            <fieldset class="border rounded p-3 mb-3">
+                <legend class="float-none w-auto px-2 mb-0">Руководитель</legend>
+                <div class="row g-2">
+                    <div class="col-12 col-md-6">
+                        <label class="form-label">Должность</label>
+                        <input class="form-control" @bind="editPosition" />
+                    </div>
+                    <div class="col-12 col-md-6">
+                        <label class="form-label">ФИО Генерального директора</label>
+                        <input class="form-control" @bind="editFullName" />
+                    </div>
+                </div>
+            </fieldset>
+
+            <div class="mb-3">
+                <div class="row g-3 align-items-end">
+                    <div class="col-auto">
+                        <label class="form-label">Начало ОСА</label>
+                        <div class="d-flex gap-1">
+                            <select class="form-select" style="width:80px" @bind="gosaStartDay" disabled="@(!gosaIsPao)">
+                                @for (int d = 1; d <= 31; d++)
+                                {
+                                    <option value="@d">@d</option>
+                                }
+                            </select>
+                            <select class="form-select" style="width:100px" @bind="gosaStartMonth" disabled="@(!gosaIsPao)">
+                                <option value="3">Март</option>
+                                <option value="4">Апрель</option>
+                                <option value="5">Май</option>
+                                <option value="6">Июнь</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <label class="form-label">Завершение ОСА</label>
+                        <div class="d-flex gap-1">
+                            <select class="form-select" style="width:80px" @bind="gosaEndDay" disabled="@(!gosaIsPao)">
+                                @for (int d = 1; d <= 31; d++)
+                                {
+                                    <option value="@d">@d</option>
+                                }
+                            </select>
+                            <select class="form-select" style="width:100px" @bind="gosaEndMonth" disabled="@(!gosaIsPao)">
+                                <option value="3">Март</option>
+                                <option value="4">Апрель</option>
+                                <option value="5">Май</option>
+                                <option value="6">Июнь</option>
+                            </select>
+                        </div>
+                    </div>
+                    @if (!gosaIsPao)
+                    {
+                        <div class="col-auto align-self-center">
+                            <span class="text-muted small">30.06 (ст. 47 208-ФЗ)</span>
+                        </div>
+                    }
+                    <div class="col-auto">
+                        @if (!string.IsNullOrEmpty(gosaError))
+                        {
+                            <span class="text-danger small">@gosaError</span>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            @if (_orgType != OrgType.Unknown)
+            {
+            <div class="form-check mb-2">
+                <input class="form-check-input" type="checkbox" id="editHasBoard" @bind="editHasBoardOfDirectors" disabled="@editBoardMandatory" />
+                <label class="form-check-label" for="editHasBoard">
+                    Совет директоров
+                    @if (editBoardMandatory)
+                    {
+                        <span class="badge bg-warning text-dark ms-1">Обязателен для @OrgTypeLabel</span>
+                    }
+                </label>
+            </div>
+
+            @if (editHasBoardOfDirectors)
+            {
+                <div class="row g-3 align-items-center mb-3">
+                    <div class="col-12 col-md-4 col-lg-3 text-md-end text-muted">
+                        <label class="form-label mb-0">Количество акционеров</label>
+                    </div>
+                    <div class="col-12 col-md-4 col-lg-4 d-flex justify-content-md-center">
+                        <input class="form-control" style="max-width:110px" type="number" min="0" step="1" value="@editShareholdersCount" @oninput="OnShareholdersCountInput" />
+                    </div>
+                    <div class="col-12 col-md-4 col-lg-5">
+                        <div class="text-danger small">
+                            @if (editShareholdersCount.HasValue && editShareholdersCount.Value < 0)
+                            {
+                                <span>Значение не может быть отрицательным</span>
+                            }
+                            else if (!editShareholdersCount.HasValue || editShareholdersCount.Value == 0)
+                            {
+                                <span>Укажите количество акционеров</span>
+                            }
+                            else if (_orgType != OrgType.PAO && editShareholdersCount.Value > 50)
+                            {
+                                <span>Максимум 50 акционеров для @OrgTypeLabel</span>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                @if (_orgType != OrgType.PAO && editShareholdersCount.HasValue && editShareholdersCount.Value > 50)
+                {
+                    <div class="alert alert-danger py-2">
+                        Для @OrgTypeLabel максимальное количество акционеров — 50.
+                        При превышении лимита общество обязано в течение года преобразоваться в ПАО или производственный кооператив.
+                    </div>
+                }
+
+                @if (_orgType == OrgType.NAO_AO && editShareholdersCount.HasValue && editShareholdersCount.Value < 50)
+                {
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" id="editGmsFunctions" @bind="editGmsFunctions" />
+                        <label class="form-check-label" for="editGmsFunctions">Функции СД выполняет ОСА (по уставу)</label>
+                    </div>
+                    @if (editGmsFunctions)
+                    {
+                        <div class="alert alert-info py-2">СД не создаётся; функции ОСА (п. 1 ст. 64 Закона об АО)</div>
+                    }
+                }
+
+                <div class="row g-3 align-items-center mb-2">
+                    <div class="col-12 col-md-4 col-lg-3 text-md-end text-muted">
+                        <label class="form-label mb-0">Минимальное количество участников СД</label>
+                    </div>
+                    <div class="col-12 col-md-4 col-lg-4 d-flex justify-content-md-center">
+                        <input class="form-control" style="max-width:110px" type="number" @bind-value="editBoardMinNumber" @bind-value:event="oninput" readonly />
+                    </div>
+                    <div class="col-12 col-md-4 col-lg-5">
+                        <div class="text-muted small">Автоматически рассчитано</div>
+                    </div>
+                </div>
+                <div class="row g-3 align-items-center mb-2">
+                    <div class="col-12 col-md-4 col-lg-3 text-md-end text-muted">
+                        <label class="form-label mb-0">Количество участников СД</label>
+                    </div>
+                    <div class="col-12 col-md-4 col-lg-4 d-flex justify-content-md-center">
+                        <input class="form-control" style="max-width:110px" type="number" min="0" value="@editBoardMemberNumber" @oninput="OnBoardMemberNumberInput" />
+                    </div>
+                    <div class="col-12 col-md-4 col-lg-5">
+                        <div class="small">
+                            @if (editBoardMemberNumber.HasValue && editBoardMinNumber.HasValue && editBoardMemberNumber!.Value < editBoardMinNumber!.Value)
+                            {
+                                <span class="text-danger">Не меньше минимума (@editBoardMinNumber)</span>
+                            }
+                            else if (editBoardMemberNumber.HasValue && editBoardMemberNumber!.Value > 0 && editBoardMemberNumber!.Value % 2 == 0)
+                            {
+                                <span class="text-warning">Рекомендуется нечетное значение</span>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                @if (editBoardMemberNumber.HasValue && editBoardMinNumber.HasValue && editBoardMemberNumber!.Value < editBoardMinNumber!.Value)
+                {
+                    <div class="alert alert-danger py-2">Число участников СД не может быть меньше минимального (@editBoardMinNumber).</div>
+                }
+                else if (editBoardMemberNumber.HasValue && editBoardMemberNumber!.Value > 0 && editBoardMemberNumber!.Value % 2 == 0)
+                {
+                    <div class="alert alert-warning py-2">Рекомендуется нечетное число участников СД. Вы выбрали четное (@editBoardMemberNumber).</div>
+                }
+            }
+
+            @if (!string.IsNullOrEmpty(saveError))
+            {
+                <div class="alert alert-danger">@saveError</div>
+            }
+            @if (editHasBoardOfDirectors && (!editShareholdersCount.HasValue || editShareholdersCount.Value <= 0))
+            {
+                <div class="alert alert-warning py-2">Для сохранения необходимо указать количество акционеров.</div>
+            }
+            }
+            @if (!string.IsNullOrEmpty(saveSuccess))
+            {
+                <div class="alert alert-success">@saveSuccess</div>
+            }
+
+            <div class="d-flex gap-2">
+                <button class="btn btn-primary" @onclick="Save" disabled="@(!CanSave)">Сохранить</button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private string search = string.Empty;
+    private int limit = 15;
+    private List<LegalEntityVm>? searchResults;
+
+    private LegalEntityVm? selectedEntity;
+    private string editPosition = "Генеральный директор";
+    private string editFullName = string.Empty;
+    private bool editHasBoardOfDirectors;
+    private bool editBoardMandatory;
+    private int? editShareholdersCount;
+    private int? editBoardMinNumber;
+    private int? editBoardMemberNumber;
+    private OrgType _orgType = OrgType.Unknown;
+    private bool editGmsFunctions;
+
+    private int gosaStartMonth = 3;
+    private int gosaStartDay = 1;
+    private int gosaEndMonth = 6;
+    private int gosaEndDay = 30;
+    private bool gosaIsPao;
+
+    private DateOnly GosaStart => new DateOnly(DateTime.UtcNow.Year, gosaStartMonth, gosaStartDay);
+    private DateOnly GosaEnd => new DateOnly(DateTime.UtcNow.Year, gosaEndMonth, gosaEndDay);
+    private string? gosaError;
+    private string? saveError;
+    private string? saveSuccess;
+
+    private Guid? _influentialPersonId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Авто-загрузка первого ЮЛ при открытии страницы
+        await using var ctx = await DbFactory.CreateDbContextAsync();
+        var id = await ctx.LegalEntities.OrderBy(x => x.Name).Select(x => x.Id).FirstOrDefaultAsync();
+        if (id != Guid.Empty)
+        {
+            var le = await ctx.LegalEntities
+                .Where(x => x.Id == id)
+                .Select(x => new LegalEntityVm
+                {
+                    Id = x.Id,
+                    Name = x.Name,
+                    ShortName = x.ShortName,
+                    Inn = x.Inn,
+                    Ogrn = x.Ogrn,
+                    Okopf = x.Okopf != null ? new OkopfVm { Code = x.Okopf.Code, Name = x.Okopf.Name } : null
+                })
+                .FirstOrDefaultAsync();
+
+            if (le != null)
+                await SelectEntity(le);
+        }
+    }
+
+    private void ShowSearch()
+    {
+        selectedEntity = null;
+        search = string.Empty;
+        searchResults = null;
+        saveError = null;
+        saveSuccess = null;
+    }
+
+    private async Task OnSearchInput(ChangeEventArgs e)
+    {
+        search = e.Value?.ToString() ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(search) || search.Trim().Length < 2)
+        {
+            searchResults = null;
+            return;
+        }
+
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+            var q = search.Trim();
+            searchResults = await ctx.LegalEntities
+                .Where(le =>
+                    (le.Name != null && EF.Functions.ILike(le.Name, $"%{q}%")) ||
+                    (le.ShortName != null && EF.Functions.ILike(le.ShortName, $"%{q}%")) ||
+                    (le.Inn != null && EF.Functions.ILike(le.Inn, $"%{q}%")) ||
+                    (le.Ogrn != null && EF.Functions.ILike(le.Ogrn, $"%{q}%")))
+                .OrderBy(le => le.Name)
+                .Take(limit)
+                .Select(le => new LegalEntityVm
+                {
+                    Id = le.Id,
+                    Name = le.Name,
+                    ShortName = le.ShortName,
+                    Inn = le.Inn,
+                    Ogrn = le.Ogrn,
+                    Okopf = le.Okopf != null ? new OkopfVm { Code = le.Okopf.Code, Name = le.Okopf.Name } : null
+                })
+                .ToListAsync();
+        }
+        catch
+        {
+            searchResults = null;
+        }
+    }
+
+    private async Task SelectEntity(LegalEntityVm le)
+    {
+        selectedEntity = le;
+        searchResults = null;
+
+        await using var ctx = await DbFactory.CreateDbContextAsync();
+
+        // Загружаем руководителя (CurrentWorkplace) для выбранного ЮЛ
+        var ip = await ctx.CurrentWorkplaces.FirstOrDefaultAsync();
+        if (ip != null)
+        {
+            _influentialPersonId = ip.Id;
+            editPosition = ip.Position ?? "Генеральный директор";
+            editFullName = ip.FullName ?? string.Empty;
+        }
+        else
+        {
+            _influentialPersonId = null;
+            editPosition = "Генеральный директор";
+            editFullName = string.Empty;
+        }
+
+        // Загружаем глобальные настройки СД (singleton, BDR‑007)
+        var settings = await ctx.LegalEntityBoardSettings.FirstOrDefaultAsync();
+        var dbLe = await ctx.LegalEntities.FirstOrDefaultAsync(x => x.Id == le.Id);
+        editShareholdersCount = dbLe?.ShareholdersCount ?? 1;
+        editHasBoardOfDirectors = settings is not null && _orgType != OrgType.Unknown;
+        editBoardMinNumber = await DeriveBoardMinimumAsync(le.Id);
+        editBoardMemberNumber = settings?.MemberNumber ?? editBoardMinNumber;
+
+        // Для ГУП/МУП/ФГУП СД не применим — обнуляем поля
+        if (_orgType == OrgType.Unknown)
+        {
+            editShareholdersCount = null;
+            editBoardMemberNumber = null;
+            editBoardMinNumber = null;
+        }
+
+        // Обязательность СД: ПАО всегда, НАО/АО при >= 50 акционеров
+        editBoardMandatory = _orgType == OrgType.PAO
+            || (_orgType == OrgType.NAO_AO && (editShareholdersCount ?? 1) >= 50);
+        if (editBoardMandatory && !editHasBoardOfDirectors)
+            editHasBoardOfDirectors = true;
+
+        // Загружаем ГОСА
+        await LoadGosaWindowAsync(le.Id);
+
+        saveError = null;
+        saveSuccess = null;
+
+        StateHasChanged();
+    }
+
+    private bool CanSave
+        => selectedEntity is not null
+           && string.IsNullOrEmpty(gosaError)
+           && (!editHasBoardOfDirectors
+               || ((editShareholdersCount.HasValue && editShareholdersCount.Value > 0)
+                   && (_orgType == OrgType.PAO || editShareholdersCount.Value <= 50)
+                   && (!editBoardMinNumber.HasValue
+                       || (editBoardMemberNumber.HasValue && editBoardMemberNumber.Value >= editBoardMinNumber.Value))));
+
+    private string OrgTypeLabel => _orgType switch
+    {
+        OrgType.LLC => "ООО",
+        OrgType.NAO_AO => "непубличного АО",
+        OrgType.PAO => "ПАО",
+        _ => "данного типа общества"
+    };
+
+    private string EntityTypeLabel => selectedEntity?.Okopf is null
+        ? "ОКОПФ не указан"
+        : $"{selectedEntity.Okopf.Code} — {selectedEntity.Okopf.Name}";
+
+    private async Task Save()
+    {
+        if (selectedEntity is null) return;
+        saveError = null;
+        saveSuccess = null;
+
+        // Серверная валидация (BDR‑008) — вызывается первой, до любых операций с БД
+        Logger.LogDebug("Серверная валидация ЮЛ {LegalEntityId} ({LegalEntityName})",
+            selectedEntity.Id, selectedEntity.Name);
+
+        var validationModel = new SamorodinkaTech.Fiducia.Domain.Validation.LegalEntitySaveValidationModel
+        {
+            ShareholdersCount = editShareholdersCount,
+            OkopfCode = selectedEntity.Okopf?.Code,
+            HasBoardOfDirectors = editHasBoardOfDirectors,
+            BoardMinNumber = editBoardMinNumber,
+            BoardMemberNumber = editBoardMemberNumber,
+            GosaWindowStart = GosaStart,
+            GosaWindowEnd = GosaEnd,
+            Position = editPosition,
+            FullName = editFullName
+        };
+        var validation = SamorodinkaTech.Fiducia.Domain.Validation.LegalEntityValidator.Validate(validationModel);
+        if (!validation.IsValid)
+        {
+            Logger.LogWarning("Валидация не пройдена для ЮЛ {LegalEntityId} ({LegalEntityName}): {Errors}",
+                selectedEntity.Id, selectedEntity.Name, string.Join("; ", validation.Errors));
+            saveError = string.Join(" ", validation.Errors);
+            return;
+        }
+
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+
+            // Сохраняем руководителя
+            if (_influentialPersonId.HasValue)
+            {
+                var ip = await ctx.CurrentWorkplaces.FirstOrDefaultAsync(x => x.Id == _influentialPersonId.Value);
+                if (ip != null)
+                {
+                    ip.FullName = string.IsNullOrWhiteSpace(editFullName) ? string.Empty : editFullName.Trim();
+                    ip.Position = string.IsNullOrWhiteSpace(editPosition) ? null : editPosition.Trim();
+                }
+            }
+            else
+            {
+                // Создаём запись руководителя, если её ещё нет
+                var ip = new SamorodinkaTech.Fiducia.Domain.Entities.CurrentWorkplace
+                {
+                    Id = Guid.NewGuid(),
+                    FullName = string.IsNullOrWhiteSpace(editFullName) ? string.Empty : editFullName.Trim(),
+                    Position = string.IsNullOrWhiteSpace(editPosition) ? null : editPosition.Trim()
+                };
+                ctx.CurrentWorkplaces.Add(ip);
+                _influentialPersonId = ip.Id;
+            }
+
+            // Сохраняем количество акционеров
+            var le = await ctx.LegalEntities.FirstOrDefaultAsync(x => x.Id == selectedEntity.Id);
+            if (le != null)
+                le.ShareholdersCount = editShareholdersCount;
+
+            // Сохраняем настройки СД
+            if (editHasBoardOfDirectors)
+            {
+                var settings = await ctx.LegalEntityBoardSettings.FirstOrDefaultAsync();
+                if (settings is null)
+                {
+                    settings = new SamorodinkaTech.Fiducia.Domain.Entities.LegalEntityBoardSettings
+                    {
+                        Id = Guid.NewGuid(),
+                        MinimumMemberNumber = editBoardMinNumber ?? 3,
+                        MemberNumber = Math.Max(editBoardMemberNumber ?? (editBoardMinNumber ?? 3), editBoardMinNumber ?? 3)
+                    };
+                    ctx.LegalEntityBoardSettings.Add(settings);
+                }
+                else
+                {
+                    settings.MinimumMemberNumber = editBoardMinNumber ?? settings.MinimumMemberNumber;
+                    settings.MemberNumber = Math.Max(editBoardMemberNumber ?? settings.MemberNumber, settings.MinimumMemberNumber);
+                }
+
+                // ГОСА
+                var leForGosa = await ctx.LegalEntities.Include(x => x.Okopf).FirstOrDefaultAsync(x => x.Id == selectedEntity.Id);
+                if (leForGosa != null)
+                {
+                    var isPao = GosaSvc.IsPao(leForGosa.Okopf?.Code);
+                    if (isPao)
+                    {
+                        if (!GosaSvc.ValidateForOkopf(leForGosa.Okopf?.Code, GosaStart, GosaEnd))
+                        {
+                            saveError = "Недопустимый интервал ГОСА для данной ОПФ";
+                            return;
+                        }
+                        settings.GosaWindowStart = GosaStart;
+                        settings.GosaWindowEnd = GosaEnd;
+                    }
+                    else
+                    {
+                        var (defStart, defEnd) = GosaSvc.GetDefaultWindow();
+                        settings.GosaWindowStart = defStart;
+                        settings.GosaWindowEnd = defEnd;
+                    }
+                }
+            }
+            else
+            {
+                // СД выключен — удаляем настройки, если были
+                var oldSettings = await ctx.LegalEntityBoardSettings.FirstOrDefaultAsync();
+                if (oldSettings != null)
+                    ctx.LegalEntityBoardSettings.Remove(oldSettings);
+            }
+
+            await ctx.SaveChangesAsync();
+            saveSuccess = "Изменения сохранены.";
+        }
+        catch (Exception ex)
+        {
+            saveError = ex.Message;
+        }
+    }
+
+    private async Task<int?> DeriveBoardMinimumAsync(Guid legalEntityId)
+    {
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+            var le = await ctx.LegalEntities.Include(x => x.Okopf).FirstOrDefaultAsync(x => x.Id == legalEntityId);
+            var codeRaw = le?.Okopf?.Code ?? string.Empty;
+            var normalized = new string(codeRaw.Where(char.IsDigit).ToArray());
+            _orgType = normalized switch
+            {
+                "12247" => OrgType.PAO,
+                "12267" => OrgType.NAO_AO,
+                "12260" => OrgType.NAO_AO,
+                "12300" => OrgType.LLC,
+                _ => OrgType.Unknown
+            };
+
+            int baseMin = _orgType switch
+            {
+                OrgType.PAO => 5,
+                OrgType.NAO_AO => 3,
+                OrgType.LLC => editHasBoardOfDirectors ? 2 : 0,
+                _ => editHasBoardOfDirectors ? 3 : 0
+            };
+
+            if ((_orgType == OrgType.PAO || _orgType == OrgType.NAO_AO) && editHasBoardOfDirectors)
+            {
+                var sc = editShareholdersCount ?? le?.ShareholdersCount;
+                if (sc.HasValue)
+                {
+                    if (sc.Value > 10000) baseMin = Math.Max(baseMin, 9);
+                    else if (sc.Value > 1000) baseMin = Math.Max(baseMin, 7);
+                }
+            }
+
+            return baseMin == 0 ? (int?)null : baseMin;
+        }
+        catch
+        {
+            return 3;
+        }
+    }
+
+    private void OnBoardMemberNumberInput(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out var v))
+            editBoardMemberNumber = v;
+        else
+            editBoardMemberNumber = null;
+    }
+
+    private void OnShareholdersCountInput(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out var v))
+            editShareholdersCount = v;
+        else
+            editShareholdersCount = null;
+        RecalculateMinimum();
+    }
+
+    private async void RecalculateMinimum()
+    {
+        if (selectedEntity is not null)
+            editBoardMinNumber = await DeriveBoardMinimumAsync(selectedEntity.Id);
+        StateHasChanged();
+    }
+
+    private async Task LoadGosaWindowAsync(Guid legalEntityId)
+    {
+        try
+        {
+            gosaError = null;
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+            var le = await ctx.LegalEntities.Include(x => x.Okopf).FirstOrDefaultAsync(x => x.Id == legalEntityId);
+            if (le is null) { gosaError = "ЮЛ не найдено"; return; }
+            var settings = await ctx.LegalEntityBoardSettings.FirstOrDefaultAsync();
+            var (defStart, defEnd) = GosaSvc.GetDefaultWindow();
+            var s = settings?.GosaWindowStart ?? defStart;
+            var e = settings?.GosaWindowEnd ?? defEnd;
+            gosaStartMonth = s.Month;
+            gosaStartDay = s.Day;
+            gosaEndMonth = e.Month;
+            gosaEndDay = e.Day;
+            gosaIsPao = GosaSvc.IsPao(le.Okopf?.Code);
+        }
+        catch (Exception ex)
+        {
+            gosaError = ex.Message;
+        }
+    }
+
+    private void OnGosaDateChanged()
+    {
+        var isPao = gosaIsPao;
+        if (!isPao) { gosaError = null; return; }
+        gosaError = GosaSvc.ValidateForOkopf(null, GosaStart, GosaEnd)
+            ? null
+            : "Недопустимый интервал ГОСА для данной ОПФ";
+    }
+
+    private class LegalEntityVm
+    {
+        public Guid Id { get; set; }
+        public string? Name { get; set; }
+        public string? ShortName { get; set; }
+        public string? Inn { get; set; }
+        public string? Ogrn { get; set; }
+        public OkopfVm? Okopf { get; set; }
+    }
+    private class OkopfVm { public string? Code { get; set; } public string? Name { get; set; } }
+
+    private enum OrgType { Unknown, LLC, PAO, NAO_AO }
+}

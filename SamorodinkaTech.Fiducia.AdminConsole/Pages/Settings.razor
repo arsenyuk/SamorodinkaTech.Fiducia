@@ -1,0 +1,407 @@
+@page "/settings"
+
+<PageTitle>Fiducia — Системные настройки</PageTitle>
+
+<div class="container-fluid">
+    <!-- Системные настройки -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Системные настройки</h5>
+        </div>
+        <div class="card-body">
+            <div class="mb-3">
+                <label class="form-label">Название организации</label>
+                <input type="text" class="form-control" @bind="_orgName">
+            </div>
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label class="form-label">Часовой пояс сервера</label>
+                    <select class="form-select" @bind="_timezone">
+                        <option value="UTC">UTC</option>
+                        <option value="Europe/Moscow">Europe/Moscow (UTC+3)</option>
+                    </select>
+                    <small class="text-muted">Все временные метки хранятся в UTC</small>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Минимальный кворум (%)</label>
+                    <input type="number" class="form-control" @bind="_quorumPercent" min="1" max="100">
+                    <small class="text-muted">Согласно ст. 68 ФЗ-208</small>
+                </div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label class="form-label">Дедлайн протокола (дней)</label>
+                    <input type="number" class="form-control" @bind="_protocolDeadline" min="1" max="30">
+                    <small class="text-muted">Согласно ст. 68 п. 4 ФЗ-208</small>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Срок действия инвайта (дней)</label>
+                    <input type="number" class="form-control" @bind="_inviteExpiry" min="1" max="30">
+                </div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">TSP-сервер (RFC 3161)</label>
+                <input type="text" class="form-control" @bind="_tspServer">
+                <small class="text-muted">Сервер точного времени для фиксации UTC-меток подписей</small>
+            </div>
+            <button class="btn btn-primary">Сохранить настройки</button>
+        </div>
+    </div>
+
+    <!-- Метод авторизации -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Метод авторизации</h5>
+        </div>
+        <div class="card-body">
+            <div class="mb-3">
+                <label class="form-label">Режим авторизации</label>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="authMethod" value="Basic"
+                           checked="@(_authMethod == "Basic")"
+                           @onchange="SetAuthMethod">
+                    <label class="form-check-label">
+                        <strong>Basic</strong> — выбор пользователя из списка
+                    </label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="authMethod" value="ActiveDirectory"
+                           checked="@(_authMethod == "ActiveDirectory")"
+                           @onchange="SetAuthMethod">
+                    <label class="form-check-label">
+                        <strong>Active Directory</strong> — аутентификация по логину/паролю через LDAP
+                    </label>
+                </div>
+            </div>
+
+            @if (_authMethod == "ActiveDirectory")
+            {
+                <div class="border rounded p-3 bg-light">
+                    <h6>Настройки Active Directory</h6>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">LDAP Server</label>
+                            <input type="text" class="form-control" @bind="_ldapServer" placeholder="ldap://dc.company.local">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Domain</label>
+                            <input type="text" class="form-control" @bind="_ldapDomain" placeholder="company.local">
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Base DN</label>
+                            <input type="text" class="form-control" @bind="_ldapBaseDn" placeholder="DC=company,DC=local">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">SSL</label>
+                            <div class="form-check form-switch mt-2">
+                                <input class="form-check-input" type="checkbox" checked="@_ldapUseSsl"
+                                       @onchange="() => _ldapUseSsl = !_ldapUseSsl">
+                                <label class="form-check-label">Использовать LDAPS (636)</label>
+                            </div>
+                        </div>
+                    </div>
+                    <button class="btn btn-sm btn-outline-primary">Тест подключения</button>
+                </div>
+            }
+
+            <div class="mt-3">
+                <small class="text-muted">
+                    @if (_authMethod == "Basic")
+                    {
+                        <span>Пользователи выбирают своё ФИО из выпадающего списка. Подходит для небольших организаций.</span>
+                    }
+                    else
+                    {
+                        <span>Аутентификация через корпоративный каталог Active Directory. Пользователи вводят логин и пароль.</span>
+                    }
+                </small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Настройки печати (ГОСТ) -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Настройки печати (ГОСТ Р 7.0.97-2025)</h5>
+        </div>
+        <div class="card-body">
+            <div class="row mb-3">
+                <div class="col-md-3">
+                    <label class="form-label">Левое поле (мм)</label>
+                    <input type="number" class="form-control" @bind="_marginLeft" min="10" max="50">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Правое поле (мм)</label>
+                    <input type="number" class="form-control" @bind="_marginRight" min="10" max="50">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Верхнее поле (мм)</label>
+                    <input type="number" class="form-control" @bind="_marginTop" min="10" max="50">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Нижнее поле (мм)</label>
+                    <input type="number" class="form-control" @bind="_marginBottom" min="10" max="50">
+                </div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    <label class="form-label">Шрифт заголовков</label>
+                    <select class="form-select" @bind="_headerFont">
+                        <option value="Times New Roman">Times New Roman</option>
+                        <option value="Arial">Arial</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Размер (пт)</label>
+                    <input type="number" class="form-control" @bind="_headerFontSize" min="10" max="20">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Шрифт текста</label>
+                    <select class="form-select" @bind="_bodyFont">
+                        <option value="Times New Roman">Times New Roman</option>
+                        <option value="Arial">Arial</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Размер (пт)</label>
+                    <input type="number" class="form-control" @bind="_bodyFontSize" min="10" max="16">
+                </div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-md-3">
+                    <label class="form-label">Межстрочный интервал</label>
+                    <select class="form-select" @bind="_lineSpacing">
+                        <option value="1">1.0</option>
+                        <option value="1.15">1.15</option>
+                        <option value="1.5">1.5</option>
+                        <option value="2">2.0</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Отступ абзаца (см)</label>
+                    <input type="number" class="form-control" @bind="_paragraphIndent" min="0.5" max="3" step="0.1">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Ориентация</label>
+                    <select class="form-select" @bind="_pageOrientation">
+                        <option value="portrait">Книжная</option>
+                        <option value="landscape">Альбомная</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Формат бумаги</label>
+                    <select class="form-select" @bind="_paperSize">
+                        <option value="A4">А4 (210×297)</option>
+                        <option value="A3">А3 (297×420)</option>
+                        <option value="Letter">Letter</option>
+                    </select>
+                </div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    <label class="form-label">Нумерация страниц</label>
+                    <select class="form-select" @bind="_pageNumbering">
+                        <option value="bottom-center">Снизу по центру</option>
+                        <option value="bottom-right">Снизу справа</option>
+                        <option value="top-right">Сверху справа</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Шапка документа</label>
+                    <input type="text" class="form-control" @bind="_headerText" placeholder="АО «Ромашка»">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Подвал документа</label>
+                    <input type="text" class="form-control" @bind="_footerText" placeholder="Г. Москва">
+                </div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" checked="@_showWatermark"
+                               @onchange="() => _showWatermark = !_showWatermark">
+                        <label class="form-check-label">Водяной знак при просмотре</label>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" checked="@_showStamp"
+                               @onchange="() => _showStamp = !_showStamp">
+                        <label class="form-check-label">Штамп ЭЦП (п. 5.23 ГОСТа)</label>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" checked="@_autoDeclineDates"
+                               @onchange="() => _autoDeclineDates = !_autoDeclineDates">
+                        <label class="form-check-label">Автосклонение дат</label>
+                    </div>
+                </div>
+            </div>
+            <button class="btn btn-primary">Сохранить настройки печати</button>
+        </div>
+    </div>
+
+    <!-- Интеграции -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">Интеграции</h5>
+        </div>
+        <div class="card-body">
+            <div class="mb-3">
+                <label class="form-label">КриптоПро CSP</label>
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" checked="@_cryptoproEnabled"
+                           @onchange="() => _cryptoproEnabled = !_cryptoproEnabled">
+                    <span class="ms-2 @(_cryptoproEnabled ? "text-success" : "text-muted")">
+                        @(_cryptoproEnabled ? "Подключено" : "Не настроено")
+                    </span>
+                </div>
+                <small class="text-muted">Для подписания УКЭП Председателем и Секретарём СД</small>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">SMTP-сервер (Email)</label>
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" checked="@_smtpEnabled"
+                           @onchange="() => _smtpEnabled = !_smtpEnabled">
+                    <span class="ms-2 @(_smtpEnabled ? "text-success" : "text-muted")">
+                        @(_smtpEnabled ? "Подключено" : "Не настроено")
+                    </span>
+                </div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">SMS-провайдер (ПЭП)</label>
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" checked="@_smsEnabled"
+                           @onchange="() => _smsEnabled = !_smsEnabled">
+                    <span class="ms-2 @(_smsEnabled ? "text-success" : "text-muted")">
+                        @(_smsEnabled ? "Подключено" : "Не настроено")
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Настройки аудита безопасности (РСБ.2 + РСБ.3) -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Настройки аудита безопасности (РСБ.2 + РСБ.3)</h5>
+        </div>
+        <div class="card-body">
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" checked="@_auditEnabled"
+                               @onchange="() => _auditEnabled = !_auditEnabled">
+                        <label class="form-check-label">Аудит безопасности включён</label>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" checked="@_auditWriteToDb"
+                               @onchange="() => _auditWriteToDb = !_auditWriteToDb">
+                        <label class="form-check-label">Запись в PostgreSQL</label>
+                    </div>
+                </div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" checked="@_auditWriteToFile"
+                               @onchange="() => _auditWriteToFile = !_auditWriteToFile">
+                        <label class="form-check-label">Запись в файл</label>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Срок хранения (дней)</label>
+                    <input type="number" class="form-control" @bind="_auditRetentionDays" min="30" max="3650">
+                </div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label class="form-label">Директория хранения файлов аудита</label>
+                    <input type="text" class="form-control" @bind="_auditStoragePath" placeholder="/var/log/fiducia/audit">
+                    <small class="text-muted">Обособленное хранилище, физически отделённое от ИСПДн</small>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Формат имени файла</label>
+                    <input type="text" class="form-control" @bind="_auditFileNameFormat" placeholder="audit-{yyyy-MM}.log">
+                    <small class="text-muted">Плейсхолдеры: {yyyy}, {MM}, {dd}, {HH}</small>
+                </div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label class="form-label">Периодичность открытия нового файла</label>
+                    <select class="form-select" @bind="_auditRotationPeriod">
+                        <option value="Daily">Ежедневно</option>
+                        <option value="Weekly">Еженедельно</option>
+                        <option value="Monthly">Ежемесячно</option>
+                    </select>
+                </div>
+                <div class="col-md-6"></div>
+            </div>
+            <button class="btn btn-primary">Сохранить настройки аудита</button>
+        </div>
+    </div>
+
+</div>
+
+@code {
+    // Системные настройки
+    private string _orgName = "АО «Ромашка»";
+    private string _timezone = "UTC";
+    private int _quorumPercent = 50;
+    private int _protocolDeadline = 3;
+    private int _inviteExpiry = 7;
+    private string _tspServer = "http://timestamp.ru/timestamp";
+
+    // Авторизация
+    private string _authMethod = "Basic";
+    private string _ldapServer = "ldap://dc.company.local";
+    private string _ldapDomain = "company.local";
+    private string _ldapBaseDn = "DC=company,DC=local";
+    private bool _ldapUseSsl = true;
+
+    // Печать (ГОСТ)
+    private int _marginLeft = 30;
+    private int _marginRight = 15;
+    private int _marginTop = 20;
+    private int _marginBottom = 20;
+    private string _headerFont = "Times New Roman";
+    private int _headerFontSize = 14;
+    private string _bodyFont = "Times New Roman";
+    private int _bodyFontSize = 14;
+    private string _lineSpacing = "1.5";
+    private double _paragraphIndent = 1.25;
+    private string _pageOrientation = "portrait";
+    private string _paperSize = "A4";
+    private string _pageNumbering = "bottom-center";
+    private string _headerText = string.Empty;
+    private string _footerText = string.Empty;
+    private bool _showWatermark = true;
+    private bool _showStamp = true;
+    private bool _autoDeclineDates = true;
+
+    // Интеграции
+    private bool _cryptoproEnabled = true;
+    private bool _smtpEnabled = true;
+    private bool _smsEnabled = false;
+
+    // Аудит безопасности (РСБ.2 + РСБ.3)
+    private bool _auditEnabled = true;
+    private bool _auditWriteToDb = true;
+    private bool _auditWriteToFile = true;
+    private int _auditRetentionDays = 365;
+    private string _auditStoragePath = "/var/log/fiducia/audit";
+    private string _auditFileNameFormat = "audit-{yyyy-MM}.log";
+    private string _auditRotationPeriod = "Monthly";
+
+    // Удалено: настройки логирования приложений перешли в appsettings.* (см. AGENTS.md — Конфигурация логирования)
+
+    private void SetAuthMethod(ChangeEventArgs e)
+    {
+        _authMethod = e.Value?.ToString() ?? "Basic";
+    }
+}

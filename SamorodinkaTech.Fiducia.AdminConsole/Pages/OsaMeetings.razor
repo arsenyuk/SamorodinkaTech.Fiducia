@@ -1,0 +1,1522 @@
+@page "/admin/osa-meetings"
+@implements IDisposable
+@using Microsoft.EntityFrameworkCore
+@using SamorodinkaTech.Fiducia.Domain.Entities
+@inject IDbContextFactory<SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext> DbFactory
+@inject SamorodinkaTech.Fiducia.Domain.Interfaces.ILegalEntityGosaIntervalService GosaSvc
+@inject SamorodinkaTech.Fiducia.Domain.Interfaces.IFileStorage FileStorage
+@inject ILogger<OsaMeetings> Logger
+@inject NavigationManager Nav
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "SYS_ADMIN")]
+
+<h3>Общие собрания акционеров</h3>
+
+@* === Режим редактирования === *@
+@if (editingMeetingId.HasValue)
+{
+    <div class="card mb-3">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="mb-0">
+                    Редактирование ОСА —
+                    @osaForms.FirstOrDefault(f => f.Id == editingFormId)?.Name
+                </h5>
+                <button class="btn btn-sm btn-outline-secondary" @onclick="BackToList">← К списку</button>
+            </div>
+
+            <ul class="nav nav-tabs mb-3">
+                @{
+                    // Вычисляем цепочку достижимости: вкладка idx достижима, если все предыдущие прошли валидацию
+                    var stepReachable = new bool[wizardSteps.Length];
+                    stepReachable[0] = true;
+                    for (int i = 1; i < wizardSteps.Length; i++)
+                        stepReachable[i] = stepReachable[i - 1] && IsStepValid(i - 1);
+                }
+                @foreach (var step in wizardSteps)
+                {
+                    var idx = Array.IndexOf(wizardSteps, step);
+                    var active = idx == currentStep;
+                    var done = idx < currentStep;
+                    var reachable = stepReachable[idx];
+                    var tabClass = active
+                        ? (CanAdvance ? "active fw-bold text-success" : "active fw-bold border-warning")
+                        : (done || reachable) ? "text-success"
+                        : "text-muted";
+                    var tabClickable = reachable && idx != currentStep && !isFinalized;
+                    var tabDisabled = isFinalized || (!tabClickable && idx != currentStep);
+                    <li class="nav-item">
+                        <button type="button"
+                                class="nav-link @tabClass"
+                                style="cursor:@(tabClickable ? "pointer" : "default")"
+                                disabled="@tabDisabled"
+                                @onclick="() => GoToStep(idx)">
+                            @if (idx < currentStep) { <span class="text-success me-1">✓</span> }
+                            else if (reachable && idx > currentStep) { <span class="text-success me-1">→</span> }
+                            @step
+                        </button>
+                    </li>
+                }
+            </ul>
+
+            @if (currentStep == 0)
+            {
+            @if (editIsGosa && !editAbsenteeVoting)
+            {
+                <div class="mb-3">
+                    <div class="row g-3 align-items-end">
+                        <div class="col-auto">
+                            <label class="form-label">Начало ОСА</label>
+                            <InputDate @bind-Value="editGosaStart" class="form-control" />
+                        </div>
+                        <div class="col-auto">
+                            <label class="form-label">Завершение ОСА</label>
+                            <InputDate @bind-Value="editGosaEnd" class="form-control" />
+                        </div>
+                        <div class="col-auto">
+                            @if (!string.IsNullOrEmpty(gosaError))
+                            {
+                                <span class="text-danger small">@gosaError</span>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+
+            @if (!editIsGosa)
+            {
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="checkbox" id="editAbsentee" @bind="editAbsenteeVoting" />
+                    <label class="form-check-label" for="editAbsentee">Заочное голосование</label>
+                    @if (editAbsenteeVoting)
+                    {
+                        <span class="ms-3">
+                            <label class="form-label small mb-0">Дата окончания приема бюллетеней</label>
+                            <InputDate @bind-Value="editBallotDeadline" class="form-control form-control-sm d-inline-block ms-2" style="width:180px" />
+                        </span>
+                    }
+                </div>
+            }
+            }
+
+            @if (currentStep == 1)
+            {
+            @if (editHasBoard)
+            {
+            <div class="mb-3">
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="checkbox" id="editShareholdersList" @bind="editShareholdersListReceived" />
+                    <label class="form-check-label" for="editShareholdersList">Список акционеров получен</label>
+                </div>
+                <div class="row g-3 align-items-end mb-2">
+                    <div class="col-12 col-md-4 col-lg-3 text-md-end text-muted">
+                        <label class="form-label mb-0">Количество акционеров</label>
+                    </div>
+                    <div class="col-12 col-md-4 col-lg-4 d-flex justify-content-md-center">
+                        <input class="form-control" style="max-width:110px" type="number" min="0" step="1" @bind="editShareholdersCount" disabled="@(!editShareholdersListReceived)" />
+                    </div>
+                    <div class="col-12 col-md-4 col-lg-5">
+                        <div class="text-danger small">
+                            @if (editShareholdersCount.HasValue && editShareholdersCount.Value <= 0)
+                            {
+                                <span>Укажите количество акционеров</span>
+                            }
+                            else if (!editIsPao && editShareholdersCount.HasValue && editShareholdersCount.Value > 50)
+                            {
+                                <span>Максимум 50 акционеров</span>
+                            }
+                        </div>
+                    </div>
+                </div>
+                <div class="row g-3 align-items-end mb-2">
+                    <div class="col-12 col-md-4 col-lg-3 text-md-end text-muted">
+                        <label class="form-label mb-0">Количество участников СД</label>
+                    </div>
+                    <div class="col-12 col-md-4 col-lg-4 d-flex justify-content-md-center">
+                        <input class="form-control" style="max-width:110px" type="number" min="0" value="@editBoardMemberNumber" @oninput="OnBoardMemberNumberInput" disabled="@(!editShareholdersListReceived)" />
+                    </div>
+                    <div class="col-12 col-md-4 col-lg-5">
+                        <div class="small">
+                            @if (editBoardMemberNumber.HasValue && editBoardMinNumber.HasValue && editBoardMemberNumber.Value < editBoardMinNumber.Value)
+                            {
+                                <span class="text-danger">Минимум: @editBoardMinNumber</span>
+                            }
+                            else if (editBoardMinNumber.HasValue)
+                            {
+                                <span class="text-muted">Минимум: @editBoardMinNumber</span>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+            }
+            }
+
+            @if (currentStep == 2)
+            {
+            <div class="form-check mb-2">
+                <input class="form-check-input" type="checkbox" id="editOsaHeld" @bind="editOsaHeld" @bind:after="OnOsaHeldChanged" />
+                <label class="form-check-label" for="editOsaHeld">ОСА проведено</label>
+            </div>
+            <div class="form-check mb-2">
+                <input class="form-check-input" type="checkbox" id="editProtocolSigned" @bind="editProtocolSigned" disabled="@(!editOsaHeld)" />
+                <label class="form-check-label" for="editProtocolSigned">Протокол подписан</label>
+                @if (editProtocolSigned)
+                {
+                    <span class="ms-3">
+                        <label class="form-label small mb-0">Дата подписания протокола</label>
+                        <InputDate @bind-Value="editProtocolSignedAt" class="form-control form-control-sm d-inline-block ms-2" style="width:180px" />
+                    </span>
+                }
+            </div>
+            }
+
+            @if (currentStep == 3)
+            {
+            <div class="mb-3">
+                @if (editHasBoard && editProtocolSigned)
+                {
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="checkbox" id="editBoardComposition" @bind="editBoardCompositionApproved" disabled="@editBoardMandatory" @bind:after="OnBoardCompositionChanged" />
+                    <label class="form-check-label" for="editBoardComposition">
+                        Состав СД утверждён
+                        @if (editBoardMandatory)
+                        {
+                            <span class="badge bg-warning text-dark ms-1">Обязателен</span>
+                        }
+                    </label>
+                </div>
+                }
+                @if (editBoardCompositionApproved)
+                {
+                <div class="fw-bold mb-1">Штатный состав СД</div>
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="checkbox" id="editDeputyChair" @bind="editDeputyChairProvided" />
+                    <label class="form-check-label" for="editDeputyChair">Предусмотрен заместитель председателя</label>
+                </div>
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="checkbox" id="editSecretary" @bind="editSecretaryProvided" @bind:after="OnSecretaryChanged" />
+                    <label class="form-check-label" for="editSecretary">Предусмотрен секретарь СД</label>
+                </div>
+                @if (editSecretaryProvided)
+                {
+                    <div class="form-check mb-2 ms-4">
+                        <input class="form-check-input" type="checkbox" id="editSecretarySigns" @bind="editSecretarySignsProtocols" />
+                        <label class="form-check-label" for="editSecretarySigns">Секретарь СД подписывает протоколы</label>
+                    </div>
+                }
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="checkbox" id="editTempChair" @bind="editTemporaryChairProvided" @bind:after="OnTempChairChanged" />
+                    <label class="form-check-label" for="editTempChair">Предусмотрен временный председательствующий</label>
+                </div>
+                @if (editTemporaryChairProvided)
+                {
+                    <div class="ms-4 mb-2">
+                        <label class="form-label small mb-0">Способ выбора</label>
+                        <select class="form-select form-select-sm" style="max-width:350px" @bind="editTemporaryChairSelection">
+                            <option value="CHARTER_SENIOR">По уставу — старший по возрасту</option>
+                            <option value="GMS_DECISION">По решению ОСА</option>
+                            <option value="BOARD_ELECTION">По решению СД</option>
+                        </select>
+                    </div>
+                }
+                }
+            </div>
+
+            @if (editBoardCompositionApproved)
+            {
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="fw-bold">Состав СД</span>
+                    </div>
+                    <table class="table table-sm align-middle">
+                        <thead>
+                            <tr>
+                                <th style="width:28%">ФИО</th>
+                                <th style="width:22%">Должность</th>
+                                <th style="width:20%">Тип участника</th>
+                                <th style="width:20%">Роль в СД</th>
+                                <th style="width:10%">С</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @for (int i = 0; i < boardMemberRows.Count; i++)
+                            {
+                                <tr>
+                                    <td><input class="form-control form-control-sm" @bind="boardMemberRows[i].Name" /></td>
+                                    <td><input class="form-control form-control-sm" @bind="boardMemberRows[i].Position" /></td>
+                                    <td>
+                                        <select class="form-select form-select-sm"
+                                                value="@(boardMemberRows[i].MemberTypeId?.ToString())"
+                                                @onchange="e => OnMemberTypeChanged(i, e)">
+                                            <option value="">—</option>
+                                            @foreach (var t in memberTypes)
+                                            {
+                                                <option value="@t.Id">@t.Name</option>
+                                            }
+                                        </select>
+                                    </td>
+                                    <td>
+                                        <select class="form-select form-select-sm"
+                                                value="@(boardMemberRows[i].RoleId?.ToString())"
+                                                @onchange="e => OnRoleChanged(i, e)">
+                                            <option value="">—</option>
+                                            @foreach (var r in boardRoles)
+                                            {
+                                                <option value="@r.Id">@r.Name</option>
+                                            }
+                                        </select>
+                                    </td>
+                                    <td>
+                                        <input class="form-control form-control-sm" @bind="boardMemberRows[i].StartedAt" placeholder="дд.мм.гггг" />
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            }
+
+            @if (currentStep == 4)
+            {
+            @* Файлы *@
+            <fieldset class="border rounded p-3 mb-3">
+                <legend class="float-none w-auto px-2 mb-0">Файлы</legend>
+                @if (editIsGosa && !editHasBoard)
+                {
+                    <div class="alert alert-info py-2 mb-2 small">
+                        СД отсутствует (функции СД выполняет ОСА по уставу, п. 1 ст. 64 Закона об АО) —
+                        прикладывание файлов необязательно.
+                    </div>
+                }
+                else if (editIsGosa)
+                {
+                    <div class="alert alert-warning py-2 mb-2 small">
+                        Для ГОСА обязателен юридически значимый документ (ЮЗД) с информацией о составе СД.
+                    </div>
+                }
+                @if (meetingFiles.Any())
+                {
+                    <table class="table table-sm">
+                        <thead><tr><th>Тип</th><th>Наименование</th><th>Имя файла</th><th>Размер</th><th></th></tr></thead>
+                        <tbody>
+                        @foreach (var mf in meetingFiles)
+                        {
+                            <tr>
+                                <td><span class="badge @FileTypeBadge(mf.FileType)">@FileTypeLabel(mf.FileType)</span></td>
+                                <td>@(mf.DisplayName ?? "—")</td>
+                                <td>@mf.FileName</td>
+                                <td>@FormatSize(mf.SizeBytes)</td>
+                                <td><button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteFile(mf.Id)">Удалить</button></td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                }
+                else
+                {
+                    <div class="text-muted small mb-2">Файлы не прикреплены.</div>
+                }
+                <div class="d-flex gap-2 align-items-end">
+                    <div>
+                        <label class="form-label small">Тип файла</label>
+                        <select class="form-select form-select-sm" @bind="newFileType">
+                            <option value="CHARTER">Устав</option>
+                            <option value="PROTOCOL">Протокол</option>
+                            <option value="REGULATION">Положение</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="form-label small">Наименование</label>
+                        <input class="form-control form-control-sm" @bind="newFileDisplayName" placeholder="Название документа" />
+                    </div>
+                    <div>
+                        <label class="form-label small">Файл</label>
+                        <InputFile class="form-control form-control-sm" OnChange="OnFileSelected" accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg" />
+                    </div>
+                </div>
+                @if (uploadProgress > 0 && uploadProgress < 100)
+                {
+                    <div class="progress flex-grow-1 mt-1" style="max-width:200px">
+                        <div class="progress-bar" style="width:@uploadProgress%">@uploadProgress%</div>
+                    </div>
+                }
+                @if (!string.IsNullOrEmpty(fileError))
+                {
+                    <span class="text-danger small">@fileError</span>
+                }
+            </fieldset>
+            }
+
+            @if (currentStep == 5)
+            {
+                <div class="alert alert-info">
+                    <strong>Финализация ОСА.</strong> После нажатия «Завершить» редактирование будет заблокировано.
+                    Действия сотрудника основаны на юридически значимых документах (ЮЗД), переданных для ввода информации.
+                </div>
+                if (!isFinalized)
+                {
+                    <button class="btn btn-success" @onclick="Finalize">Завершить</button>
+                }
+                else
+                {
+                    <div class="alert alert-success">ОСА зафиксирована @finalizedAt?.ToString("dd.MM.yyyy HH:mm")</div>
+                }
+            }
+
+            @if (!string.IsNullOrEmpty(saveError))
+            {
+                <div class="alert alert-danger">@saveError</div>
+            }
+            @if (!string.IsNullOrEmpty(saveSuccess))
+            {
+                <div class="alert alert-success">@saveSuccess</div>
+            }
+
+            <div class="d-flex gap-2">
+                @if (!isFinalized)
+                {
+                    <button class="btn btn-outline-primary" @onclick="PrevStep" disabled="@(currentStep == 0)">← Назад</button>
+                    @if (currentStep < wizardSteps.Length - 1)
+                    {
+                        <button class="btn btn-primary" @onclick="NextStep" disabled="@(!CanAdvance)">Далее →</button>
+                    }
+                    <button class="btn btn-danger ms-auto" @onclick="Delete">Удалить</button>
+                }
+            </div>
+        </div>
+    </div>
+}
+
+@* === Режим создания === *@
+@if (showForm)
+{
+    <div class="card mb-3">
+        <div class="card-body">
+            <h5 class="card-title">Новое ОСА</h5>
+            <div class="mb-3">
+                <label class="form-label">Тип</label>
+                <select class="form-select" @onchange="OnOsaTypeChanged">
+                    <option value="" selected="@(selectedOsaFormId == Guid.Empty)">— Выберите тип —</option>
+                    @foreach (var form in osaForms)
+                    {
+                        <option value="@form.Id">@form.Name</option>
+                    }
+                </select>
+            </div>
+
+            @if (selectedFormCode == "GOSA")
+            {
+                <div class="mb-3">
+                    <div class="row g-3 align-items-end">
+                        <div class="col-auto">
+                            <label class="form-label">Начало ОСА</label>
+                            <InputDate @bind-Value="gosaStart" class="form-control" />
+                        </div>
+                        <div class="col-auto">
+                            <label class="form-label">Завершение ОСА</label>
+                            <InputDate @bind-Value="gosaEnd" class="form-control" />
+                        </div>
+                        <div class="col-auto">
+                            @if (!string.IsNullOrEmpty(gosaError))
+                            {
+                                <span class="text-danger small">@gosaError</span>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+
+            @if (selectedFormCode == "VOSA")
+            {
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="checkbox" id="createAbsentee" @bind="createAbsenteeVoting" />
+                    <label class="form-check-label" for="createAbsentee">Заочное голосование</label>
+                    @if (createAbsenteeVoting)
+                    {
+                        <span class="ms-3">
+                            <label class="form-label small mb-0">Дата окончания приема бюллетеней</label>
+                            <InputDate @bind-Value="createBallotDeadline" class="form-control form-control-sm d-inline-block ms-2" style="width:180px" />
+                        </span>
+                    }
+                </div>
+            }
+
+            <div class="d-flex gap-2">
+                <button class="btn btn-success" @onclick="Save" disabled="@(selectedOsaFormId == Guid.Empty)">Сохранить</button>
+                <button class="btn btn-secondary" @onclick="CancelForm">Отмена</button>
+            </div>
+        </div>
+    </div>
+}
+
+@* === Список === *@
+@if (!editingMeetingId.HasValue && !showForm)
+{
+    <button class="btn btn-primary mb-3" @onclick="OpenForm">Добавить</button>
+}
+
+@if (!editingMeetingId.HasValue)
+{
+    if (!string.IsNullOrEmpty(saveError))
+    {
+        <div class="alert alert-danger">@saveError</div>
+    }
+    if (!string.IsNullOrEmpty(saveSuccess))
+    {
+        <div class="alert alert-success">@saveSuccess</div>
+    }
+
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Тип ОСА</th>
+                <th>Дата закрытия заседания</th>
+                <th>Дата создания</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+        @if (!osaMeetings.Any())
+        {
+            <tr><td colspan="4" class="text-muted">Записей ОСА пока нет.</td></tr>
+        }
+        else
+        {
+            @foreach (var m in osaMeetings)
+            {
+                <tr>
+                    <td>@m.FormName</td>
+                    <td>
+                        @if (m.GosaWindowEnd.HasValue)
+                        {
+                            <span>@m.GosaWindowEnd.Value.ToString("dd.MM")</span>
+                        }
+                        else
+                        {
+                            <span class="text-muted">—</span>
+                        }
+                    </td>
+                    <td>@m.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</td>
+                    <td><button class="btn btn-sm btn-outline-primary" @onclick="() => OpenEdit(m.Id)">Редактировать</button>
+                        <button class="btn btn-sm btn-outline-danger ms-1" @onclick="() => DeleteFromList(m.Id)">Удалить</button></td>
+                </tr>
+            }
+        }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<OsaForm> osaForms = new();
+    private List<OsaMeetingVm> osaMeetings = new();
+
+    // Режим создания
+    private bool showForm;
+    private Guid selectedOsaFormId;
+    private string? selectedFormCode;
+    private DateOnly gosaStart;
+    private DateOnly gosaEnd;
+    private bool createAbsenteeVoting;
+    private DateTime createBallotDeadline = DateTime.UtcNow.AddDays(20);
+    private DateTime? editBallotDeadline;
+
+    // Режим редактирования
+    private Guid? editingMeetingId;
+    private Guid editingFormId;
+    private bool editIsGosa;
+    private DateOnly editGosaStart;
+    private DateOnly editGosaEnd;
+    private int? editShareholdersCount;
+    private int? editBoardMemberNumber;
+    private int? editBoardMinNumber;
+    private string? editOkopfCode;
+    private bool editIsPao;
+    private bool editHasBoard;
+    private bool editShareholdersListReceived;
+    private bool editAbsenteeVoting;
+    private bool editBoardMandatory;
+    private bool editBoardCompositionApproved;
+    private bool editOsaHeld;
+    private bool editProtocolSigned;
+    private DateTime? editProtocolSignedAt;
+    private bool editDeputyChairProvided;
+    private bool editSecretaryProvided = true;
+    private bool editSecretarySignsProtocols;
+    private bool editTemporaryChairProvided;
+    private string? editTemporaryChairSelection = "CHARTER_SENIOR";
+    private List<BoardMemberRow> boardMemberRows = new();
+    private List<BoardMemberType> memberTypes = new();
+    private List<BoardRole> boardRoles = new();
+    private bool isFinalized;
+    private DateTime? finalizedAt;
+
+    // Мастер
+    private int currentStep;
+    private static readonly string[] wizardSteps = { "Параметры", "Проведение", "Протокол", "Состав СД", "Файлы", "Финализация" };
+
+    private async Task GoToStep(int step)
+    {
+        Logger.LogDebug("GoToStep вызван: step={Step}, currentStep={Current}, isFinalized={Finalized}", step, currentStep, isFinalized);
+        if (isFinalized) return;
+        if (step == currentStep) return;
+
+        // Вперёд: все промежуточные шаги должны пройти валидацию
+        if (step > currentStep)
+        {
+            for (int i = currentStep; i < step; i++)
+            {
+                if (!IsStepValid(i))
+                {
+                    Logger.LogDebug("GoToStep заблокирован: шаг {Step} не прошёл валидацию", i);
+                    return;
+                }
+            }
+        }
+
+        await QuickSave();
+        currentStep = step;
+        StateHasChanged();
+        Logger.LogDebug("GoToStep переход выполнен: currentStep={Current}", currentStep);
+    }
+
+    /// <summary>Валидность контента шага (пройдена ли валидация для перехода дальше).</summary>
+    private bool IsStepValid(int step) => step switch
+    {
+        0 => true,
+        1 => !editHasBoard || (editShareholdersListReceived && editShareholdersCount.HasValue),
+        2 => editProtocolSigned && editProtocolSignedAt.HasValue,
+        3 => !editHasBoard || !editBoardMandatory || (editBoardCompositionApproved && AreBoardMemberFieldsValid()),
+        4 => !editIsGosa || !editHasBoard || meetingFiles.Any(),
+        _ => true
+    };
+
+    /// <summary>Клиентская валидация: все поля членов с ролью «Член СД» заполнены.</summary>
+    private bool AreBoardMemberFieldsValid()
+    {
+        if (!editBoardCompositionApproved || !editHasBoard) return true;
+        var roleId = memberRoleId;
+        if (roleId is null) return true;
+        var members = boardMemberRows.Where(r => r.RoleId == roleId).ToList();
+        if (!members.Any()) return true;
+        return members.All(r =>
+            !string.IsNullOrWhiteSpace(r.Name)
+            && !string.IsNullOrWhiteSpace(r.Position)
+            && r.MemberTypeId.HasValue
+            && !string.IsNullOrWhiteSpace(r.StartedAt));
+    }
+
+    private bool CanAdvance => IsStepValid(currentStep);
+
+    private async Task NextStep()
+    {
+        if (isFinalized) return;
+        if (currentStep < wizardSteps.Length - 1)
+        {
+            await QuickSave();
+            currentStep++;
+        }
+    }
+
+    private async Task PrevStep()
+    {
+        if (isFinalized) return;
+        if (currentStep > 0)
+        {
+            await QuickSave();
+            currentStep--;
+        }
+    }
+
+    private async Task Finalize()
+    {
+        if (!editingMeetingId.HasValue || isFinalized) return;
+        try
+        {
+            await QuickSave();
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+            var m = await ctx.OsaMeetings.FirstOrDefaultAsync(x => x.Id == editingMeetingId.Value);
+            if (m is null) return;
+            m.Status = "APPROVED";
+            m.FinalizedAt = DateTime.UtcNow;
+            // TODO: получить ID текущего пользователя
+            await ctx.SaveChangesAsync();
+            isFinalized = true;
+            finalizedAt = m.FinalizedAt.Value.ToLocalTime();
+            saveSuccess = "ОСА зафиксирована.";
+        }
+        catch (Exception ex)
+        {
+            saveError = ex.Message;
+        }
+    }
+
+    private async Task QuickSave()
+    {
+        if (!editingMeetingId.HasValue) return;
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+            var m = await ctx.OsaMeetings.FirstOrDefaultAsync(x => x.Id == editingMeetingId.Value);
+            if (m is null) return;
+
+            if (editIsGosa) { m.GosaWindowStart = editGosaStart; m.GosaWindowEnd = editGosaEnd; }
+            m.AbsenteeVoting = editAbsenteeVoting;
+            m.BallotDeadline = editAbsenteeVoting && editBallotDeadline.HasValue ? ((DateTime)editBallotDeadline).ToUniversalTime() : null;
+            m.ShareholdersListReceived = editShareholdersListReceived;
+            m.ShareholdersCount = editHasBoard ? editShareholdersCount : null;
+            m.BoardMemberNumber = editHasBoard ? editBoardMemberNumber : null;
+            m.OsaHeld = editOsaHeld;
+            m.ProtocolSigned = editProtocolSigned && editOsaHeld;
+            m.ProtocolSignedAt = editProtocolSigned && editProtocolSignedAt.HasValue ? ((DateTime)editProtocolSignedAt).ToUniversalTime() : null;
+            m.DeputyChairProvided = editDeputyChairProvided;
+            m.SecretaryProvided = editSecretaryProvided;
+            m.SecretarySignsProtocols = editSecretaryProvided && editSecretarySignsProtocols;
+            m.TemporaryChairProvided = editTemporaryChairProvided;
+            m.TemporaryChairSelection = editTemporaryChairProvided ? editTemporaryChairSelection : null;
+            m.BoardCompositionApproved = editBoardCompositionApproved;
+
+            await ctx.SaveChangesAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "QuickSave: ошибка сохранения ОСА {OsaMeetingId}", editingMeetingId);
+        }
+    }
+
+    // Файлы
+    private List<MeetingFileVm> meetingFiles = new();
+    private string newFileType = "CHARTER";
+    private string? newFileDisplayName;
+    private int uploadProgress;
+    private string? fileError;
+
+    // Общие
+    private string? gosaError;
+    private string? saveError;
+    private string? saveSuccess;
+
+    // ═══ Жизненный цикл ════════════════════════════════════════════════
+
+    protected override async Task OnInitializedAsync()
+    {
+        Nav.LocationChanged += OnLocationChanged;
+        await LoadData();
+    }
+
+    private async void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
+    {
+        try
+        {
+            editingMeetingId = null;
+            showForm = false;
+            saveError = null;
+            saveSuccess = null;
+            await LoadData();
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Ошибка в OnLocationChanged для OsaMeetings");
+        }
+    }
+
+    public void Dispose()
+    {
+        Nav.LocationChanged -= OnLocationChanged;
+    }
+
+    private async Task LoadData()
+    {
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+            osaForms = await ctx.OsaForms.OrderBy(f => f.Code).ToListAsync();
+            osaMeetings = await ctx.OsaMeetings
+                .Include(m => m.OsaForm)
+                .OrderByDescending(m => m.CreatedAt)
+                .Select(m => new OsaMeetingVm
+                {
+                    Id = m.Id,
+                    OsaFormId = m.OsaFormId,
+                    FormCode = m.OsaForm!.Code,
+                    FormName = m.OsaForm!.Name,
+                    GosaWindowStart = m.GosaWindowStart,
+                    GosaWindowEnd = m.GosaWindowEnd,
+                    CreatedAt = m.CreatedAt
+                })
+                .ToListAsync();
+        }
+        catch (Exception ex)
+        {
+            saveError = ex.Message;
+        }
+    }
+
+    // ═══ Создание ═══════════════════════════════════════════════════════
+
+    private void OpenForm()
+    {
+        showForm = true;
+        selectedOsaFormId = Guid.Empty;
+        selectedFormCode = null;
+        gosaStart = new DateOnly(DateTime.UtcNow.Year, 3, 1);
+        gosaEnd = new DateOnly(DateTime.UtcNow.Year, 6, 30);
+        gosaError = null;
+        saveError = null;
+        saveSuccess = null;
+    }
+
+    private void CancelForm()
+    {
+        showForm = false;
+        saveError = null;
+        saveSuccess = null;
+    }
+
+    private void OnOsaTypeChanged(ChangeEventArgs e)
+    {
+        var idStr = e.Value?.ToString();
+        if (Guid.TryParse(idStr, out var id))
+        {
+            var form = osaForms.FirstOrDefault(f => f.Id == id);
+            selectedFormCode = form?.Code;
+            selectedOsaFormId = id;
+        }
+        else
+        {
+            selectedFormCode = null;
+            selectedOsaFormId = Guid.Empty;
+        }
+        StateHasChanged();
+    }
+
+    private async Task Save()
+    {
+        saveError = null;
+        saveSuccess = null;
+        gosaError = null;
+
+        var form = osaForms.FirstOrDefault(f => f.Id == selectedOsaFormId);
+        if (form is null)
+        {
+            saveError = "Выберите тип ОСА";
+            return;
+        }
+
+        Logger.LogDebug("Серверная валидация ОСА тип {OsaFormCode}", form.Code);
+
+        if (form.Code == "GOSA")
+        {
+            var (defStart, defEnd) = GosaSvc.GetDefaultWindow();
+            if (gosaStart < defStart || gosaEnd > defEnd)
+            {
+                gosaError = $"Даты должны быть в пределах {defStart:dd.MM}–{defEnd:dd.MM}";
+                Logger.LogWarning("Валидация не пройдена для ОСА тип {OsaFormCode}: {Errors}", form.Code, gosaError);
+                return;
+            }
+            if (gosaEnd < gosaStart)
+            {
+                gosaError = "Завершение ОСА не может быть раньше начала ОСА";
+                Logger.LogWarning("Валидация не пройдена для ОСА тип {OsaFormCode}: {Errors}", form.Code, gosaError);
+                return;
+            }
+        }
+
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+            var meeting = new OsaMeeting
+            {
+                Id = Guid.NewGuid(),
+                OsaFormId = form.Id,
+                GosaWindowStart = form.Code == "GOSA" ? gosaStart : null,
+                GosaWindowEnd = form.Code == "GOSA" ? gosaEnd : null,
+                AbsenteeVoting = form.Code == "VOSA" && createAbsenteeVoting,
+                BallotDeadline = form.Code == "VOSA" && createAbsenteeVoting
+                    ? createBallotDeadline.ToUniversalTime() : null
+            };
+            ctx.OsaMeetings.Add(meeting);
+            await ctx.SaveChangesAsync();
+
+            saveSuccess = "Запись ОСА добавлена.";
+            showForm = false;
+            await LoadData();
+
+            // Переход на редактирование
+            OpenEdit(meeting.Id);
+        }
+        catch (Exception ex)
+        {
+            saveError = ex.Message;
+        }
+    }
+
+    // ═══ Редактирование ════════════════════════════════════════════════
+
+    private async Task OpenEdit(Guid meetingId)
+    {
+        await using var ctx = await DbFactory.CreateDbContextAsync();
+        var m = await ctx.OsaMeetings.FirstOrDefaultAsync(x => x.Id == meetingId);
+        if (m is null) return;
+
+        editingMeetingId = m.Id;
+        editingFormId = m.OsaFormId;
+        isFinalized = m.Status == "APPROVED";
+        finalizedAt = m.FinalizedAt?.ToLocalTime();
+        currentStep = isFinalized ? wizardSteps.Length - 1 : 0;
+        editIsGosa = m.GosaWindowStart.HasValue;
+        editGosaStart = m.GosaWindowStart ?? new DateOnly(DateTime.UtcNow.Year, 3, 1);
+        editGosaEnd = m.GosaWindowEnd ?? new DateOnly(DateTime.UtcNow.Year, 6, 30);
+        editShareholdersCount = m.ShareholdersCount;
+        editBoardMemberNumber = m.BoardMemberNumber;
+        editShareholdersListReceived = m.ShareholdersListReceived;
+        editAbsenteeVoting = m.AbsenteeVoting;
+        editBallotDeadline = m.BallotDeadline?.ToLocalTime();
+        editOsaHeld = m.OsaHeld;
+        editProtocolSigned = m.ProtocolSigned;
+        editProtocolSignedAt = m.ProtocolSignedAt?.ToLocalTime();
+        editDeputyChairProvided = m.DeputyChairProvided;
+        editSecretaryProvided = m.SecretaryProvided;
+        editSecretarySignsProtocols = m.SecretarySignsProtocols;
+        editTemporaryChairProvided = m.TemporaryChairProvided;
+        editBoardCompositionApproved = m.BoardCompositionApproved || editBoardMandatory;
+
+        // Загружаем членов СД
+        var members = await ctx.BoardMembers
+            .Where(x => x.OsaMeetingId == meetingId)
+            .OrderBy(x => x.FullName)
+            .ToListAsync();
+        var memberIds = members.Select(x => x.Id).ToList();
+        var appointments = await ctx.BoardMemberAppointments
+            .Where(x => memberIds.Contains(x.BoardMemberId) && x.Status == "ACTIVE")
+            .ToListAsync();
+
+        boardMemberRows = members.Select(x => new BoardMemberRow
+        {
+            Name = x.FullName,
+            Position = x.Position,
+            MemberTypeId = x.BoardMemberTypeId,
+            RoleId = appointments.FirstOrDefault(a => a.BoardMemberId == x.Id)?.RoleId,
+            StartedAt = appointments.FirstOrDefault(a => a.BoardMemberId == x.Id)?.StartedAt.ToString("yyyy-MM-dd")
+        }).ToList();
+
+        memberTypes = await ctx.BoardMemberTypes.OrderBy(x => x.Code).ToListAsync();
+        boardRoles = await ctx.BoardRoles.OrderBy(x => x.SortOrder).ToListAsync();
+        editTemporaryChairSelection = m.TemporaryChairSelection ?? "CHARTER_SENIOR";
+
+        // Загружаем ОКОПФ первого ЮЛ для валидации
+        var le = await ctx.LegalEntities.Include(x => x.Okopf).OrderBy(x => x.Name).FirstOrDefaultAsync();
+        editOkopfCode = le?.Okopf?.Code;
+        editIsPao = le?.Okopf?.Code == "12247";
+        editHasBoard = await ctx.LegalEntityBoardSettings.AnyAsync();
+        editBoardMandatory = editIsPao
+            || (editOkopfCode is "12267" or "12260" && (editShareholdersCount ?? 1) >= 50);
+        editBoardMinNumber = DeriveBoardMinimum(editOkopfCode, editShareholdersCount);
+
+        // Умолчания: количество акционеров — из БД (legal_entities), участники СД — из последнего ОСА
+        if (!editShareholdersCount.HasValue)
+            editShareholdersCount = le?.ShareholdersCount ?? 1;
+
+        if (!editBoardMemberNumber.HasValue)
+        {
+            var last = await ctx.OsaMeetings
+                .Where(x => x.Id != meetingId && x.BoardMemberNumber != null)
+                .OrderByDescending(x => x.CreatedAt)
+                .Select(x => (int?)x.BoardMemberNumber)
+                .FirstOrDefaultAsync();
+            editBoardMemberNumber = last ?? editBoardMinNumber;
+        }
+
+        // Пересчитываем минимум с учётом уточнённого количества акционеров
+        editBoardMinNumber = DeriveBoardMinimum(editOkopfCode, editShareholdersCount);
+
+        saveError = null;
+        saveSuccess = null;
+        gosaError = null;
+
+        await LoadMeetingFiles();
+    }
+
+    private void OnOsaHeldChanged()
+    {
+        if (!editOsaHeld)
+        {
+            editProtocolSigned = false;
+            editProtocolSignedAt = null;
+        }
+    }
+
+    private async void OnBoardCompositionChanged()
+    {
+        try
+        {
+            if (!editBoardCompositionApproved)
+            {
+                editDeputyChairProvided = false;
+                editSecretaryProvided = true;
+                editSecretarySignsProtocols = false;
+                editTemporaryChairProvided = false;
+                editTemporaryChairSelection = "CHARTER_SENIOR";
+                boardMemberRows.Clear();
+            }
+            else if (boardMemberRows.Count == 0)
+            {
+                // Автозаполнение состава СД
+                await using var ctx = await DbFactory.CreateDbContextAsync();
+
+                // Ищем последний состав СД (копируем если есть)
+                var lastOsaWithMembers = await ctx.OsaMeetings
+                    .Where(x => x.Id != editingMeetingId && x.BoardCompositionApproved)
+                    .OrderByDescending(x => x.CreatedAt)
+                    .FirstOrDefaultAsync();
+
+                if (lastOsaWithMembers != null)
+                {
+                    var lastMembers = await ctx.BoardMembers
+                        .Where(x => x.OsaMeetingId == lastOsaWithMembers.Id)
+                        .Include(x => x.BoardMemberType)
+                        .OrderBy(x => x.FullName)
+                        .ToListAsync();
+
+                    var lastAppointments = await ctx.BoardMemberAppointments
+                        .Where(x => lastMembers.Select(m => m.Id).Contains(x.BoardMemberId) && x.Status == "ACTIVE")
+                        .ToListAsync();
+
+                    foreach (var m in lastMembers)
+                    {
+                        var appt = lastAppointments.FirstOrDefault(a => a.BoardMemberId == m.Id);
+                        boardMemberRows.Add(new BoardMemberRow
+                        {
+                            Name = m.FullName,
+                            Position = m.Position,
+                            MemberTypeId = m.BoardMemberTypeId,
+                            RoleId = appt?.RoleId ?? memberRoleId,
+                            StartedAt = appt?.StartedAt.ToString("yyyy-MM-dd") ?? DateTime.Today.ToString("yyyy-MM-dd")
+                        });
+                    }
+                }
+                else
+                {
+                    // Новый состав: строки по количеству участников СД
+                    var memberCount = editBoardMemberNumber ?? (editBoardMinNumber ?? 3);
+                    var secRoleId = boardRoles.FirstOrDefault(r => r.Code == "SECRETARY")?.Id;
+                    var membRoleId = memberRoleId;
+
+                    for (int i = 0; i < memberCount; i++)
+                    {
+                        var roleId = (i == 0 && editSecretaryProvided) ? secRoleId : membRoleId;
+                        boardMemberRows.Add(new BoardMemberRow
+                        {
+                            Name = "",
+                            RoleId = roleId ?? membRoleId,
+                            StartedAt = DateTime.Today.ToString("yyyy-MM-dd")
+                        });
+                    }
+                }
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Ошибка в OnBoardCompositionChanged для ОСА {OsaMeetingId}", editingMeetingId);
+        }
+    }
+
+    private Guid? memberRoleId => boardRoles.FirstOrDefault(r => r.Code == "MEMBER")?.Id;
+
+    private void OnSecretaryChanged()
+    {
+        if (!editSecretaryProvided)
+        {
+            editSecretarySignsProtocols = false;
+            var secId = boardRoles.FirstOrDefault(r => r.Code == "SECRETARY")?.Id;
+            boardMemberRows.RemoveAll(r => r.RoleId == secId);
+        }
+        else
+        {
+            var secId = boardRoles.FirstOrDefault(r => r.Code == "SECRETARY")?.Id;
+            if (secId.HasValue && !boardMemberRows.Any(r => r.RoleId == secId))
+            {
+                boardMemberRows.Insert(0, new BoardMemberRow
+                {
+                    Name = "",
+                    RoleId = secId.Value,
+                    StartedAt = DateTime.Today.ToString("yyyy-MM-dd")
+                });
+            }
+        }
+    }
+
+    private void OnTempChairChanged()
+    {
+        if (!editTemporaryChairProvided)
+            editTemporaryChairSelection = "CHARTER_SENIOR";
+    }
+
+    private void BackToList()
+    {
+        editingMeetingId = null;
+        saveError = null;
+        saveSuccess = null;
+    }
+
+    private async Task DeleteFromList(Guid meetingId)
+    {
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+            var m = await ctx.OsaMeetings.FirstOrDefaultAsync(x => x.Id == meetingId);
+            if (m is null) return;
+
+            ctx.OsaMeetings.Remove(m);
+            await ctx.SaveChangesAsync();
+            await LoadData();
+        }
+        catch (Exception ex)
+        {
+            saveError = ex.Message;
+        }
+    }
+
+    private async Task Delete()
+    {
+        if (!editingMeetingId.HasValue) return;
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+            var m = await ctx.OsaMeetings.FirstOrDefaultAsync(x => x.Id == editingMeetingId.Value);
+            if (m is null) return;
+
+            ctx.OsaMeetings.Remove(m);
+            await ctx.SaveChangesAsync();
+
+            editingMeetingId = null;
+            await LoadData();
+        }
+        catch (Exception ex)
+        {
+            saveError = ex.Message;
+        }
+    }
+
+    private async Task SaveEdit()
+    {
+        if (!editingMeetingId.HasValue) return;
+        saveError = null;
+        saveSuccess = null;
+        gosaError = null;
+
+        Logger.LogDebug("Серверная валидация ОСА редактирование {OsaMeetingId}", editingMeetingId.Value);
+
+        // Серверная валидация ОСА (BDR‑008) — только если СД существует
+        if (editHasBoard)
+        {
+            var validationModel = new SamorodinkaTech.Fiducia.Domain.Validation.OsaMeetingValidationModel
+            {
+                ShareholdersCount = editShareholdersCount,
+                OkopfCode = editOkopfCode,
+                BoardMinNumber = editBoardMinNumber,
+                BoardMemberNumber = editBoardMemberNumber,
+                HasGosaInterval = editIsGosa && !editAbsenteeVoting,
+                IsAbsentee = editAbsenteeVoting
+            };
+            var validation = SamorodinkaTech.Fiducia.Domain.Validation.OsaMeetingValidator.Validate(validationModel);
+            if (!validation.IsValid)
+            {
+                Logger.LogWarning("Валидация не пройдена для ОСА {OsaMeetingId}: {Errors}",
+                    editingMeetingId.Value, string.Join("; ", validation.Errors));
+                saveError = string.Join(" ", validation.Errors);
+                return;
+            }
+        }
+
+        if (editIsGosa)
+        {
+            var (defStart, defEnd) = GosaSvc.GetDefaultWindow();
+            if (editGosaStart < defStart || editGosaEnd > defEnd)
+            {
+                gosaError = $"Даты должны быть в пределах {defStart:dd.MM}–{defEnd:dd.MM}";
+                Logger.LogWarning("Валидация не пройдена для ОСА {OsaMeetingId}: {Errors}", editingMeetingId.Value, gosaError);
+                return;
+            }
+            if (editGosaEnd < editGosaStart)
+            {
+                gosaError = "Завершение ОСА не может быть раньше начала ОСА";
+                Logger.LogWarning("Валидация не пройдена для ОСА {OsaMeetingId}: {Errors}", editingMeetingId.Value, gosaError);
+                return;
+            }
+        }
+
+        if (editProtocolSigned && editProtocolSignedAt.HasValue && editProtocolSignedAt > DateTime.Now)
+        {
+            saveError = "Дата подписания протокола не может быть в будущем";
+            return;
+        }
+
+        if (editProtocolSigned && editProtocolSignedAt.HasValue)
+        {
+            var referenceDate = editAbsenteeVoting && editBallotDeadline.HasValue
+                ? editBallotDeadline.Value
+                : (editIsGosa ? editGosaEnd.ToDateTime(TimeOnly.MinValue) : DateTime.MinValue);
+
+            if (referenceDate != DateTime.MinValue)
+            {
+                var signedAt = (DateTime)editProtocolSignedAt;
+                var deadline = referenceDate.AddDays(3);
+                if (signedAt < referenceDate)
+                {
+                    saveError = "Дата подписания протокола не может быть раньше даты завершения ОСА";
+                    return;
+                }
+                if (signedAt > deadline)
+                {
+                    saveError = $"Дата подписания протокола не может быть позднее {deadline:dd.MM.yyyy} (3 дня после завершения ОСА)";
+                    return;
+                }
+            }
+        }
+
+        if (editBoardMandatory && !editBoardCompositionApproved)
+        {
+            saveError = "Для данного типа ЮЛ состав СД должен быть утверждён";
+            return;
+        }
+
+        // Серверная валидация полей членов СД с ролью «Член СД»
+        if (editBoardCompositionApproved && editHasBoard)
+        {
+            var roleId = memberRoleId;
+            if (roleId.HasValue)
+            {
+                var members = boardMemberRows.Where(r => r.RoleId == roleId.Value).ToList();
+                foreach (var row in members)
+                {
+                    if (string.IsNullOrWhiteSpace(row.Name)
+                        || string.IsNullOrWhiteSpace(row.Position)
+                        || !row.MemberTypeId.HasValue
+                        || string.IsNullOrWhiteSpace(row.StartedAt))
+                    {
+                        saveError = "Для членов СД должны быть заполнены все поля (ФИО, должность, тип участника, роль, дата начала полномочий)";
+                        Logger.LogWarning("Валидация не пройдена для состава СД {OsaMeetingId}: незаполненные поля у члена {Name}",
+                            editingMeetingId, row.Name);
+                        return;
+                    }
+                }
+            }
+        }
+
+        if (editIsGosa && !meetingFiles.Any())
+        {
+            saveError = "Для ГОСА необходимо прикрепить хотя бы один юридически значимый документ (ЮЗД) с информацией о составе СД";
+            return;
+        }
+
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+            var m = await ctx.OsaMeetings.FirstOrDefaultAsync(x => x.Id == editingMeetingId.Value);
+            if (m is null) return;
+
+            if (editIsGosa)
+            {
+                m.GosaWindowStart = editGosaStart;
+                m.GosaWindowEnd = editGosaEnd;
+            }
+
+            m.ShareholdersCount = editHasBoard ? editShareholdersCount : null;
+            m.BoardMemberNumber = editHasBoard ? editBoardMemberNumber : null;
+            m.ShareholdersListReceived = editShareholdersListReceived;
+            m.AbsenteeVoting = editAbsenteeVoting;
+            m.BallotDeadline = editAbsenteeVoting && editBallotDeadline.HasValue
+                ? ((DateTime)editBallotDeadline).ToUniversalTime() : null;
+            m.OsaHeld = editOsaHeld;
+            m.ProtocolSigned = editProtocolSigned && editOsaHeld;
+            m.DeputyChairProvided = editDeputyChairProvided;
+            m.SecretaryProvided = editSecretaryProvided;
+            m.SecretarySignsProtocols = editSecretaryProvided && editSecretarySignsProtocols;
+            m.TemporaryChairProvided = editTemporaryChairProvided;
+            m.TemporaryChairSelection = editTemporaryChairProvided ? editTemporaryChairSelection : null;
+            m.BoardCompositionApproved = editBoardCompositionApproved;
+            m.ProtocolSignedAt = editProtocolSigned && editProtocolSignedAt.HasValue
+                ? ((DateTime)editProtocolSignedAt).ToUniversalTime() : null;
+
+            // Обновляем состав СД: удаляем старых, создаём новых
+            var oldMembers = await ctx.BoardMembers.Where(x => x.OsaMeetingId == editingMeetingId.Value).ToListAsync();
+            var oldMemberIds = oldMembers.Select(x => x.Id).ToList();
+            var oldAppointments = await ctx.BoardMemberAppointments.Where(x => oldMemberIds.Contains(x.BoardMemberId)).ToListAsync();
+            ctx.BoardMemberAppointments.RemoveRange(oldAppointments);
+            ctx.BoardMembers.RemoveRange(oldMembers);
+            foreach (var row in boardMemberRows.Where(x => !string.IsNullOrWhiteSpace(x.Name)))
+            {
+                var member = new BoardMember
+                {
+                    Id = Guid.NewGuid(),
+                    OsaMeetingId = editingMeetingId.Value,
+                    FullName = row.Name.Trim(),
+                    Position = string.IsNullOrWhiteSpace(row.Position) ? null : row.Position.Trim(),
+                    BoardMemberTypeId = row.MemberTypeId
+                };
+                ctx.BoardMembers.Add(member);
+
+                if (row.RoleId.HasValue && row.StartedAt is not null && DateOnly.TryParse(row.StartedAt, out var startedAt))
+                {
+                    ctx.BoardMemberAppointments.Add(new BoardMemberAppointment
+                    {
+                        Id = Guid.NewGuid(),
+                        BoardMemberId = member.Id,
+                        RoleId = row.RoleId.Value,
+                        StartedAt = startedAt,
+                        Status = "ACTIVE"
+                    });
+                }
+            }
+
+            await ctx.SaveChangesAsync();
+            saveSuccess = "Изменения сохранены.";
+            await LoadData();
+        }
+        catch (Exception ex)
+        {
+            saveError = ex.Message;
+        }
+    }
+
+    // ═══ Файлы ══════════════════════════════════════════════════════════
+
+    private async Task LoadMeetingFiles()
+    {
+        if (!editingMeetingId.HasValue) return;
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+            meetingFiles = await ctx.Set<OsaMeetingFile>()
+                .Where(x => x.OsaMeetingId == editingMeetingId.Value)
+                .Include(x => x.File)
+                .Select(x => new MeetingFileVm
+                {
+                    Id = x.Id,
+                    FileType = x.FileType,
+                    DisplayName = x.DisplayName,
+                    FileName = x.File!.OriginalName,
+                    SizeBytes = x.File.SizeBytes
+                })
+                .ToListAsync();
+        }
+        catch
+        {
+            meetingFiles = new();
+        }
+    }
+
+    private async Task OnFileSelected(InputFileChangeEventArgs e)
+    {
+        fileError = null;
+        uploadProgress = 0;
+
+        var browserFile = e.File;
+        if (browserFile.Size > 50_000_000)
+        {
+            fileError = "Файл слишком большой (макс. 50 МБ)";
+            return;
+        }
+
+        try
+        {
+            // Читаем чанками по 512 КБ
+            const int chunkSize = 512 * 1024;
+            await using var stream = browserFile.OpenReadStream(maxAllowedSize: 50_000_000);
+            await using var ms = new MemoryStream();
+            var buffer = new byte[chunkSize];
+            int bytesRead;
+
+            while ((bytesRead = await stream.ReadAsync(buffer)) > 0)
+            {
+                await ms.WriteAsync(buffer.AsMemory(0, bytesRead));
+                uploadProgress = (int)((double)ms.Length / browserFile.Size * 100);
+                StateHasChanged();
+            }
+
+            ms.Position = 0;
+            var storageKey = await FileStorage.SaveAsync(ms, browserFile.Name, browserFile.ContentType, CancellationToken.None);
+
+            // Сохраняем метаданные и связь с ОСА
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+            var fileEntry = new FileEntry
+            {
+                Id = Guid.NewGuid(),
+                OriginalName = browserFile.Name,
+                ContentType = browserFile.ContentType,
+                SizeBytes = browserFile.Size,
+                StorageProvider = "LOCAL",
+                StorageKeyOrPath = storageKey
+            };
+            ctx.Files.Add(fileEntry);
+
+            var meetingFile = new OsaMeetingFile
+            {
+                Id = Guid.NewGuid(),
+                OsaMeetingId = editingMeetingId!.Value,
+                FileId = fileEntry.Id,
+                FileType = newFileType,
+                DisplayName = string.IsNullOrWhiteSpace(newFileDisplayName) ? null : newFileDisplayName.Trim()
+            };
+            ctx.Set<OsaMeetingFile>().Add(meetingFile);
+
+            await ctx.SaveChangesAsync();
+
+            uploadProgress = 100;
+            fileError = null;
+            await LoadMeetingFiles();
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            fileError = ex.Message;
+        }
+    }
+
+    private async Task DeleteFile(Guid meetingFileId)
+    {
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+            var mf = await ctx.Set<OsaMeetingFile>()
+                .Include(x => x.File)
+                .FirstOrDefaultAsync(x => x.Id == meetingFileId);
+            if (mf is null) return;
+
+            // Удаляем из хранилища
+            await FileStorage.DeleteAsync(mf.File!.StorageKeyOrPath, CancellationToken.None);
+
+            ctx.Set<OsaMeetingFile>().Remove(mf);
+            ctx.Files.Remove(mf.File);
+            await ctx.SaveChangesAsync();
+
+            await LoadMeetingFiles();
+        }
+        catch (Exception ex)
+        {
+            fileError = ex.Message;
+        }
+    }
+
+    // ═══ Helpers ════════════════════════════════════════════════════════
+
+    private void OnBoardMemberNumberInput(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out var v))
+            editBoardMemberNumber = v;
+        else
+            editBoardMemberNumber = null;
+    }
+
+    private bool CanSaveEdit
+        => !editHasBoard
+           || ((!editShareholdersCount.HasValue || editShareholdersCount.Value > 0)
+               && (!editIsPao || !editShareholdersCount.HasValue || editShareholdersCount.Value <= 50
+                   || (editShareholdersCount.HasValue && editShareholdersCount.Value > 50 && editIsPao))
+               && (!editBoardMinNumber.HasValue || !editBoardMemberNumber.HasValue
+                   || editBoardMemberNumber.Value >= editBoardMinNumber.Value));
+
+    private int? DeriveBoardMinimum(string? okopfCode, int? shareholdersCount)
+    {
+        if (string.IsNullOrWhiteSpace(okopfCode)) return null;
+        var normalized = new string(okopfCode.Where(char.IsDigit).ToArray());
+
+        int baseMin = normalized switch
+        {
+            "12247" => 5,
+            "12267" or "12260" => 3,
+            "12300" => 2,
+            _ => 3
+        };
+
+        if (normalized is "12247" or "12267" or "12260")
+        {
+            if (shareholdersCount > 10000) baseMin = Math.Max(baseMin, 9);
+            else if (shareholdersCount > 1000) baseMin = Math.Max(baseMin, 7);
+        }
+
+        return baseMin;
+    }
+
+    private static string FileTypeLabel(string type) => type switch
+    {
+        "CHARTER" => "Устав",
+        "PROTOCOL" => "Протокол",
+        "REGULATION" => "Положение",
+        _ => type
+    };
+
+    private static string FileTypeBadge(string type) => type switch
+    {
+        "CHARTER" => "bg-primary",
+        "PROTOCOL" => "bg-success",
+        "REGULATION" => "bg-info",
+        _ => "bg-secondary"
+    };
+
+    private static string FormatSize(long bytes) => bytes switch
+    {
+        < 1024 => $"{bytes} Б",
+        < 1024 * 1024 => $"{bytes / 1024.0:F1} КБ",
+        _ => $"{bytes / (1024.0 * 1024):F1} МБ"
+    };
+
+    // ═══ Состав СД ══════════════════════════════════════════════════════
+
+    private void AddBoardMemberRow()
+    {
+        boardMemberRows.Add(new BoardMemberRow());
+    }
+
+    private void RemoveBoardMemberRow(int index)
+    {
+        if (index >= 0 && index < boardMemberRows.Count)
+            boardMemberRows.RemoveAt(index);
+    }
+
+    private void OnMemberTypeChanged(int index, ChangeEventArgs e)
+    {
+        if (index >= 0 && index < boardMemberRows.Count)
+            boardMemberRows[index].MemberTypeId = Guid.TryParse(e.Value?.ToString(), out var id) ? id : null;
+    }
+
+    private void OnRoleChanged(int index, ChangeEventArgs e)
+    {
+        if (index >= 0 && index < boardMemberRows.Count)
+            boardMemberRows[index].RoleId = Guid.TryParse(e.Value?.ToString(), out var id) ? id : null;
+    }
+
+    // ═══ ViewModels ══════════════════════════════════════════════════════
+
+    private class OsaMeetingVm
+    {
+        public Guid Id { get; set; }
+        public Guid OsaFormId { get; set; }
+        public string FormCode { get; set; } = default!;
+        public string FormName { get; set; } = default!;
+        public DateOnly? GosaWindowStart { get; set; }
+        public DateOnly? GosaWindowEnd { get; set; }
+        public DateTime CreatedAt { get; set; }
+    }
+
+    private class MeetingFileVm
+    {
+        public Guid Id { get; set; }
+        public string FileType { get; set; } = default!;
+        public string? DisplayName { get; set; }
+        public string FileName { get; set; } = default!;
+        public long SizeBytes { get; set; }
+    }
+
+    private class BoardMemberRow
+    {
+        public string Name { get; set; } = string.Empty;
+        public string? Position { get; set; }
+        public Guid? MemberTypeId { get; set; }
+        public Guid? RoleId { get; set; }
+        public string? StartedAt { get; set; }
+    }
+}

@@ -1,0 +1,122 @@
+@inherits LayoutComponentBase
+@implements IDisposable
+@inject IJSRuntime JS
+@inject HttpClient Http
+@inject NavigationManager Navigation
+@inject IWebHostEnvironment Env
+
+<PageTitle>Fiducia — Admin Console</PageTitle>
+
+<div class="page">
+    <div class="sidebar">
+        <NavMenu />
+    </div>
+
+    <main>
+        <div class="top-row px-4 d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Fiducia Admin Console</h5>
+            <div class="d-flex align-items-center gap-3">
+                <span>@_userName</span>
+                <a href="/logout" class="btn btn-sm btn-outline-secondary">Выход</a>
+            </div>
+        </div>
+
+        <article class="content px-4">
+            <ErrorBoundary @ref="_errorBoundary">
+                <ChildContent>
+                    @Body
+                </ChildContent>
+                <ErrorContent Context="exception">
+                    <div class="alert alert-danger m-3">
+                        <h4>Произошла ошибка</h4>
+                        @if (Env.IsDevelopment())
+                        {
+                            <p><strong>@exception.GetType().Name</strong>: @exception.Message</p>
+                            @if (exception.InnerException != null)
+                            {
+                                <p><strong>Внутренняя ошибка</strong>: @exception.InnerException.Message</p>
+                            }
+                            <pre class="text-muted small" style="max-height: 300px; overflow: auto;"><code>@exception.StackTrace</code></pre>
+                        }
+                        else
+                        {
+                            <p>При отображении страницы возникла непредвиденная ошибка. Попробуйте обновить страницу или обратитесь к администратору.</p>
+                        }
+                        <button class="btn btn-outline-danger btn-sm" @onclick="RecoverFromError">Повторить попытку</button>
+                    </div>
+                </ErrorContent>
+            </ErrorBoundary>
+        </article>
+    </main>
+</div>
+
+@code {
+    private string _userName = "Гость";
+    private bool _isInitialized;
+    private ErrorBoundary? _errorBoundary;
+
+    protected override void OnInitialized()
+    {
+        Navigation.LocationChanged += OnLocationChanged;
+    }
+
+    private void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
+    {
+        // Сбрасываем ErrorBoundary при навигации, чтобы ошибка на предыдущей странице
+        // не блокировала отображение новой.
+        _errorBoundary?.Recover();
+        StateHasChanged();
+    }
+
+    private void RecoverFromError()
+    {
+        _errorBoundary?.Recover();
+    }
+
+    public void Dispose()
+    {
+        Navigation.LocationChanged -= OnLocationChanged;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !_isInitialized)
+        {
+            _isInitialized = true;
+            _userName = await JS.InvokeAsync<string>("localStorage.getItem", "currentUserName") ?? "Гость";
+
+            // Гард: при отсутствии авторизации не даём оставаться на защищённых маршрутах
+            try
+            {
+                var userId = await JS.InvokeAsync<string>("localStorage.getItem", "currentUserId");
+                var relative = Navigation.ToBaseRelativePath(Navigation.Uri).Trim('/');
+                var isAuthRoute = relative == "login" || relative == "logout";
+                if (string.IsNullOrEmpty(userId) && !isAuthRoute)
+                {
+                    Navigation.NavigateTo("/login", true);
+                    return;
+                }
+            }
+            catch { }
+
+            // УПД.15: запуск idle-таймера
+            try
+            {
+                var config = await Http.GetFromJsonAsync<SessionConfig>("/api/session/config");
+                if (config?.IdleTimeoutMinutes > 0)
+                {
+                    await JS.InvokeVoidAsync("idleTimer.start", config.IdleTimeoutMinutes);
+                }
+            }
+            catch
+            {
+                // Fallback: таймер по умолчанию 5 минут
+                await JS.InvokeVoidAsync("idleTimer.start", 5);
+            }
+
+            StateHasChanged();
+        }
+    }
+
+    private record SessionConfig(int IdleTimeoutMinutes);
+}

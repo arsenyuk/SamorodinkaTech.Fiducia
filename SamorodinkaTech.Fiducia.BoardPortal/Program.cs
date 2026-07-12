@@ -1,0 +1,179 @@
+using System.Text;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Web;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using SamorodinkaTech.Fiducia.BoardPortal.Data;
+using SamorodinkaTech.Fiducia.Domain.Interfaces;
+using SamorodinkaTech.Fiducia.Infrastructure.Auditing;
+using SamorodinkaTech.Fiducia.Infrastructure.Authentication;
+using SamorodinkaTech.Fiducia.Infrastructure.Notifications;
+using SamorodinkaTech.Fiducia.Infrastructure.Persistence;
+using SamorodinkaTech.Fiducia.Infrastructure.Common.Exceptions;
+using SamorodinkaTech.Fiducia.Infrastructure.Middleware;
+using SamorodinkaTech.Fiducia.Domain.Entities;
+using Microsoft.AspNetCore.Http;
+using SamorodinkaTech.Fiducia.Infrastructure.FileStorage;
+using Serilog;
+
+var builder = WebApplication.CreateBuilder(args);
+
+// Serilog: заменяет встроенный Microsoft.Extensions.Logging (ADR-021)
+builder.Host.UseSerilog((ctx, cfg) =>
+    cfg.ReadFrom.Configuration(ctx.Configuration));
+
+// Add services to the container.
+builder.Services.AddRazorPages();
+builder.Services.AddServerSideBlazor();
+builder.Services.AddSingleton<WeatherForecastService>();
+builder.Services.AddHttpClient();
+builder.Services.AddHttpContextAccessor();
+// HttpClient with BaseAddress for relative API calls
+builder.Services.AddScoped(sp =>
+{
+    var nav = sp.GetRequiredService<NavigationManager>();
+    return new HttpClient { BaseAddress = new Uri(nav.BaseUri) };
+});
+
+// Database
+builder.Services.AddDbContext<IApplicationDbContext, FiduciaDbContext>(options =>
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+// Authentication Provider
+var authMethod = builder.Configuration["Auth:Method"] ?? "Basic";
+if (authMethod == "ActiveDirectory")
+{
+    builder.Services.AddScoped<IAuthProvider, ActiveDirectoryProvider>();
+}
+else
+{
+    builder.Services.AddScoped<IAuthProvider, BasicProvider>();
+}
+
+// Session Service (УПД.15)
+builder.Services.AddSingleton<ISessionService, SessionService>();
+
+// Security Audit Service (РСБ.2 + РСБ.3)
+// Файловая запись аудита — через Serilog sub-logger (фильтр по SourceContext)
+builder.Services.AddScoped<ISecurityAuditService, SecurityAuditService>();
+
+// Notification Service (US-009)
+builder.Services.AddScoped<INotificationService, NotificationService>();
+
+// File Storage (ADR-020)
+builder.Services.Configure<FileStorageOptions>(builder.Configuration.GetSection("FileStorage"));
+builder.Services.AddSingleton<IFileStorage, LocalFileStorage>();
+
+// JWT Authentication
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        var secretKey = builder.Configuration["Session:JwtSecret"]
+            ?? throw new InvalidOperationException("Session:JwtSecret is not configured");
+
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = "Fiducia",
+            ValidAudience = "Fiducia",
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey)),
+            ClockSkew = TimeSpan.Zero
+        };
+
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = ctx =>
+            {
+                var token = ctx.Request.Cookies["SessionToken"];
+                if (!string.IsNullOrEmpty(token))
+                    ctx.Token = token;
+                return Task.CompletedTask;
+            },
+            OnTokenValidated = ctx =>
+            {
+                Log.Debug("[JWT] Token validated for {Path}", ctx.Request.Path);
+                return Task.CompletedTask;
+            },
+            OnAuthenticationFailed = ctx =>
+            {
+                Log.Debug("[JWT] Auth failed: {Error}", ctx.Exception.Message);
+                return Task.CompletedTask;
+            }
+        };
+    });
+builder.Services.AddAuthorization();
+
+var app = builder.Build();
+
+// Configure the HTTP request pipeline.
+if (!app.Environment.IsDevelopment())
+{
+    app.UseExceptionHandler("/Error");
+    app.UseHsts();
+}
+
+app.UseHttpsRedirection();
+app.UseStaticFiles();
+
+// Serilog request logging (заменяет ручной ApplicationLogWriter для HTTP-запросов)
+app.UseSerilogRequestLogging(options =>
+{
+    options.MessageTemplate = "HTTP {RequestMethod} {RequestPath} responded {StatusCode} in {Elapsed:0.000} ms";
+});
+
+app.UseRouting();
+
+app.UseAuthentication();
+app.UseAuthorization();
+
+app.UseMiddleware<ExceptionLoggingMiddleware>();
+
+// Логирование 404 + Referer
+app.UseMiddleware<NotFoundLoggingMiddleware>();
+
+Log.Information("BoardPortal starting ({Environment})", app.Environment.EnvironmentName);
+
+app.Lifetime.ApplicationStopping.Register(() =>
+{
+    Log.Information("BoardPortal stopping ({Environment})", app.Environment.EnvironmentName);
+    Log.CloseAndFlush();
+});
+
+// Session API (УПД.15)
+app.MapGet("/api/session/config", (ISessionService svc) =>
+    Results.Ok(new { idleTimeoutMinutes = svc.GetIdleTimeoutMinutes() }));
+
+app.MapPost("/api/session/logout", () =>
+    Results.Ok(new { message = "Logged out" }));
+
+// Установка cookie с JWT на стороне сервера (HttpOnly)
+app.MapPost("/api/session/login", (HttpContext http, ISessionService sessionService, LoginCookieRequest req) =>
+{
+    if (string.IsNullOrWhiteSpace(req.Token))
+        return Results.BadRequest(new { error = "Token is required" });
+
+    var expires = DateTimeOffset.UtcNow.AddMinutes(sessionService.GetIdleTimeoutMinutes());
+    var cookieOptions = new CookieOptions
+    {
+        HttpOnly = true,
+        Secure = !http.Request.Host.Host.Equals("localhost", StringComparison.OrdinalIgnoreCase) &&
+                 !http.Request.Host.Host.Equals("127.0.0.1"),
+        SameSite = SameSiteMode.Strict,
+        Expires = expires,
+        Path = "/"
+    };
+
+    http.Response.Cookies.Append("SessionToken", req.Token, cookieOptions);
+    return Results.Ok(new { message = "Login cookie set", expires });
+});
+
+app.MapBlazorHub();
+app.MapFallbackToPage("/_Host");
+
+app.Run();
+
+public record LoginCookieRequest(string Token);

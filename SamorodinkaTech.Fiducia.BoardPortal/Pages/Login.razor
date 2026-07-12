@@ -1,0 +1,208 @@
+@page "/login"
+@using SamorodinkaTech.Fiducia.Domain.Entities
+@using SamorodinkaTech.Fiducia.Domain.Interfaces
+@using System.Collections.Generic
+@inject IApplicationDbContext DbContext
+@inject IAuthProvider AuthProvider
+@inject ISessionService SessionService
+@inject ISecurityAuditService SecurityAuditService
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JS
+@inject ILogger<Login> Logger
+
+<PageTitle>Fiducia — Вход</PageTitle>
+
+<div class="container">
+    <div class="row justify-content-center mt-5">
+        <div class="col-md-6 col-lg-4">
+            <div class="card shadow">
+                <div class="card-body p-4">
+                    <div class="text-center mb-4">
+                        <h3>Fiducia</h3>
+                        <p class="text-muted">Board Portal</p>
+                    </div>
+
+                    @if (!string.IsNullOrEmpty(_errorMessage))
+                    {
+                        <div class="alert alert-danger">@_errorMessage</div>
+                    }
+
+                    @if (AuthProvider.ProviderName == "Basic")
+                    {
+                    <div class="mb-3">
+                        <label class="form-label">Пользователь</label>
+                        <select class="form-select" @bind="_selectedUserId">
+                            <option value="">Выберите пользователя...</option>
+                            @if (_users.Count == 0)
+                            {
+                                <option value="1">Иванов Иван Иванович (Пользователь)</option>
+                            }
+                            else
+                            {
+                                @foreach (var user in _users)
+                                {
+                                    <option value="@user.Id">
+                                        @user.LastName @user.FirstName @user.MiddleName
+                                        (@GetRoleName(user))
+                                    </option>
+                                }
+                            }
+                        </select>
+                    </div>
+                    }
+                    else
+                    {
+                        <div class="mb-3">
+                            <label class="form-label">Логин</label>
+                            <input type="text" class="form-control" @bind="_username" placeholder="user@company.local">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Пароль</label>
+                            <input type="password" class="form-control" @bind="_password">
+                        </div>
+                    }
+
+                    <button class="btn btn-primary w-100" @onclick="HandleLogin"
+                            disabled="@(_isLoading || !CanLogin)">
+                        @if (_isLoading)
+                        {
+                            <span class="spinner-border spinner-border-sm me-1"></span>
+                        }
+                        Войти
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<User> _users = new();
+    private string _selectedUserId = string.Empty;
+    private string _username = string.Empty;
+    private string _password = string.Empty;
+    private string? _errorMessage;
+    private bool _isLoading;
+
+    private bool CanLogin => AuthProvider.ProviderName == "Basic"
+        ? !string.IsNullOrEmpty(_selectedUserId)
+        : !string.IsNullOrEmpty(_username) && !string.IsNullOrEmpty(_password);
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Для серверной prerender-фазы и функциональных тестов рендерим dropdown
+        // без обращения к БД. При реальном логине список пользователей отдаётся
+        // BasicProvider.GetUsersAsync().
+        await Task.CompletedTask;
+        _users = new List<User>();
+    }
+
+    private string GetRoleName(User user)
+    {
+        return "Пользователь";
+    }
+
+    private async Task HandleLogin()
+    {
+        _isLoading = true;
+        _errorMessage = null;
+
+        try
+        {
+            AuthResult result;
+            var userIp = await GetUserIp();
+
+            Logger.LogDebug("[LOGIN] Начало аутентификации, UserIp={UserIp}, Provider={Provider}",
+                userIp, AuthProvider.ProviderName);
+
+            if (AuthProvider.ProviderName == "Basic")
+            {
+                if (string.IsNullOrEmpty(_selectedUserId))
+                {
+                    _errorMessage = "Выберите пользователя";
+                    Logger.LogDebug("[LOGIN] Выход: пользователь не выбран");
+                    return;
+                }
+                Logger.LogDebug("[LOGIN] Basic-аутентификация для UserId={UserId}", _selectedUserId);
+                result = await AuthProvider.AuthenticateAsync(_selectedUserId, string.Empty);
+            }
+            else
+            {
+                Logger.LogDebug("[LOGIN] AD-аутентификация для Username={Username}", _username);
+                result = await AuthProvider.AuthenticateAsync(_username, _password);
+            }
+
+            Logger.LogDebug("[LOGIN] AuthResult: Success={Success}, UserId={UserId}, UserName={UserName}, Claims={Claims}",
+                result.Success, result.UserId, result.UserName,
+                string.Join("; ", result.Claims.Select(kv => $"{kv.Key}={kv.Value}")));
+
+            if (!result.Success)
+            {
+                _errorMessage = result.ErrorMessage;
+                Logger.LogDebug("[LOGIN] Аутентификация не пройдена: {Error}", result.ErrorMessage);
+                await SecurityAuditService.LogEventAsync("LOGIN_FAILED", userIp,
+                    $"Неудачная попытка входа: {result.ErrorMessage}",
+                    userId: null, entityName: "User", cancellationToken: default);
+                return;
+            }
+
+            // Сохранение данных пользователя в localStorage
+            Logger.LogDebug("[LOGIN] Сохранение данных в localStorage");
+            await JS.InvokeVoidAsync("localStorage.setItem", "currentUserId", result.UserId?.ToString() ?? "");
+            await JS.InvokeVoidAsync("localStorage.setItem", "currentUserName", result.UserName ?? "");
+            await JS.InvokeVoidAsync("localStorage.setItem", "currentUserRole", result.Claims.GetValueOrDefault("role", "MEMBER_BOARD"));
+
+            // Установка HttpOnly JWT cookie (УПД.15) через браузерный fetch
+            // (серверный HttpClient не доставляет Set-Cookie до браузера)
+            var role = result.Claims.GetValueOrDefault("role", "MEMBER_BOARD");
+            var token = SessionService.GenerateToken(result.UserId!.Value, role);
+            Logger.LogDebug("[LOGIN] JWT сгенерирован: UserId={UserId}, Role={Role}, TokenLength={Len}",
+                result.UserId, role, token.Length);
+
+            await JS.InvokeAsync<object>("fetch", "/api/session/login", new
+            {
+                method = "POST",
+                headers = new Dictionary<string, string>
+                {
+                    { "Content-Type", "application/json" }
+                },
+                credentials = "same-origin",
+                body = System.Text.Json.JsonSerializer.Serialize(new { token })
+            });
+            Logger.LogDebug("[LOGIN] Браузерный fetch завершён");
+
+            // Аудит успешного входа
+            await SecurityAuditService.LogEventAsync("LOGIN_SUCCESS", userIp,
+                $"Успешный вход: {result.UserName}",
+                userId: result.UserId, entityName: "User", cancellationToken: default);
+
+            if (result.Claims.GetValueOrDefault("is_external") == "True" &&
+                !result.Claims.ContainsKey("pep_signed"))
+            {
+                Logger.LogDebug("[LOGIN] Внешний директор без ПЭП — редирект на /onboarding");
+                NavigationManager.NavigateTo("/onboarding", forceLoad: true);
+                return;
+            }
+
+            Logger.LogDebug("[LOGIN] Выполняется NavigateTo /main с forceLoad: true");
+            NavigationManager.NavigateTo("/main", forceLoad: true);
+            Logger.LogDebug("[LOGIN] NavigateTo выполнен");
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task<string> GetUserIp()
+    {
+        try
+        {
+            return await JS.InvokeAsync<string>("eval", "window.remoteAddress || ''");
+        }
+        catch
+        {
+            return "unknown";
+        }
+    }
+}

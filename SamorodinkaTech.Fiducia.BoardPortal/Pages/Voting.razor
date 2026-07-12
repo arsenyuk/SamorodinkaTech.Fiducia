@@ -1,0 +1,138 @@
+@page "/voting/{MeetingId:guid}"
+@using SamorodinkaTech.Fiducia.Domain.Entities
+@using SamorodinkaTech.Fiducia.Domain.Interfaces
+@using SamorodinkaTech.Fiducia.Domain.Enums
+@inject IApplicationDbContext DbContext
+
+<PageTitle>Fiducia — Голосование</PageTitle>
+
+<div class="container-fluid">
+    @if (_meeting == null)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Загрузка...</span>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h3>Голосование — @(_meeting.MeetingNumber)</h3>
+            <span class="badge bg-warning fs-6">Идёт голосование</span>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-body">
+                <div class="d-flex justify-content-between mb-2">
+                    <span>Кворум</span>
+                    <span><strong>@_votedCount/@_totalMembers (@((_votedCount * 100 / _totalMembers))%)</strong></span>
+                </div>
+                <div class="progress" style="height: 8px;">
+                    <div class="progress-bar @(_votedCount * 100 / _totalMembers >= 50 ? "bg-success" : "bg-danger")"
+                         style="width: @(_votedCount * 100 / _totalMembers)%"></div>
+                </div>
+            </div>
+        </div>
+
+        @foreach (var question in _questions)
+        {
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Вопрос @question.SequenceNumber. @question.QuestionText</h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted mb-4">Проект решения: <em>@question.ProposedResolution</em></p>
+
+                    @if (question.Status == QuestionStatus.VOTED)
+                    {
+                        <div class="alert alert-success">
+                            <strong>Проголосовано</strong>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="row mb-4">
+                            <div class="col-md-4">
+                                <button class="btn btn-outline-success btn-lg w-100 p-4 @(_selectedVote == VoteValue.ZA ? "btn-success text-white" : "")"
+                                        @onclick="() => SelectVote(VoteValue.ZA)">
+                                    <div class="fs-4 fw-bold">За</div>
+                                    <small>Поддерживаю решение</small>
+                                </button>
+                            </div>
+                            <div class="col-md-4">
+                                <button class="btn btn-outline-danger btn-lg w-100 p-4 @(_selectedVote == VoteValue.PROTIV ? "btn-danger text-white" : "")"
+                                        @onclick="() => SelectVote(VoteValue.PROTIV)">
+                                    <div class="fs-4 fw-bold">Против</div>
+                                    <small>Не поддерживаю</small>
+                                </button>
+                            </div>
+                            <div class="col-md-4">
+                                <button class="btn btn-outline-warning btn-lg w-100 p-4 @(_selectedVote == VoteValue.VOZDERZHALSYA ? "btn-warning text-white" : "")"
+                                        @onclick="() => SelectVote(VoteValue.VOZDERZHALSYA)">
+                                    <div class="fs-4 fw-bold">Воздержался</div>
+                                    <small>Не голосую</small>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label">Особое мнение (необязательно)</label>
+                            <textarea class="form-control" rows="3" @bind="_specialOpinion"
+                                      placeholder="Введите особое мнение, если необходимо зафиксировать..."></textarea>
+                        </div>
+
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <h6>Подписание голоса</h6>
+                                <p class="text-muted small mb-3">
+                                    Голос будет подписан электронной подписью (ПЭП/УКЭП) и зафиксирован с UTC-меткой сервера точного времени (TSP).
+                                </p>
+                                <button class="btn btn-primary me-2" @onclick="() => SubmitVote(SignatureType.PEP)">
+                                    Подписать ПЭП (СМС)
+                                </button>
+                                <button class="btn btn-danger" @onclick="() => SubmitVote(SignatureType.UKEP)">
+                                    Подписать УКЭП (КриптоПро)
+                                </button>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+    }
+</div>
+
+@code {
+    [Parameter] public Guid MeetingId { get; set; }
+
+    private Meeting? _meeting;
+    private List<AgendaQuestion> _questions = new();
+    private int _votedCount;
+    private int _totalMembers = 7;
+    private VoteValue? _selectedVote;
+    private string? _specialOpinion;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _meeting = await DbContext.Meetings.FindAsync(MeetingId);
+        if (_meeting != null)
+        {
+            _questions = await DbContext.AgendaQuestions
+                .Where(q => q.MeetingId == MeetingId)
+                .OrderBy(q => q.SequenceNumber)
+                .ToListAsync();
+        }
+    }
+
+    private void SelectVote(VoteValue vote)
+    {
+        _selectedVote = vote;
+    }
+
+    private async Task SubmitVote(SignatureType signatureType)
+    {
+        // TODO: implement vote submission with signature
+        await Task.CompletedTask;
+    }
+}
