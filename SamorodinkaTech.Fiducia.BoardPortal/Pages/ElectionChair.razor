@@ -1,0 +1,235 @@
+@page "/election/chair/{ProposalId:guid}"
+@using Microsoft.EntityFrameworkCore
+@inject IDbContextFactory<SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext> DbFactory
+@inject ILogger<ElectionChair> Logger
+@inject IJSRuntime JS
+
+<PageTitle>Fiducia — Предложения на должность Председателя СД</PageTitle>
+
+@if (_error is not null)
+{
+    <div class="alert alert-danger">@_error</div>
+}
+
+@if (_confirmed)
+{
+    <div class="container py-4" style="max-width: 600px;">
+        <div class="card">
+            <div class="card-body text-center py-5">
+                <h4 class="text-success mb-3">✓ Ваше предложение принято</h4>
+                <p class="text-muted">Подтверждённые кандидатуры зафиксированы. Дата подтверждения: @DateTime.Now.ToString("dd.MM.yyyy HH:mm")</p>
+                <p class="small text-muted">Подтверждение равнозначно собственноручной подписи в соответствии с 63-ФЗ</p>
+                <a href="/election/chair/@ProposalId" class="btn btn-outline-primary mt-3">Вернуться к списку</a>
+            </div>
+        </div>
+    </div>
+    return;
+}
+
+<div class="container py-4" style="max-width: 700px;">
+    <h4 class="mb-1">Предложения на должность Председателя СД</h4>
+    <p class="text-muted mb-4">@_boardName</p>
+
+    @if (_loading)
+    {
+        <div class="text-center py-4">
+            <div class="spinner-border text-primary" role="status"></div>
+        </div>
+    }
+    else
+    {
+        <div class="card mb-3">
+            <div class="card-header">
+                <strong>Кандидаты</strong>
+                <span class="text-muted ms-2">отметьте предлагаемые кандидатуры</span>
+            </div>
+            <div class="card-body">
+                @foreach (var candidate in _candidates)
+                {
+                    var isChecked = _selectedCandidateIds.Contains(candidate.CandidacyId);
+                    <div class="form-check mb-2 border-bottom pb-2">
+                        <input class="form-check-input" type="checkbox"
+                               checked="@isChecked"
+                               id="cand_@candidate.CandidacyId"
+                               @onchange="() => ToggleCandidate(candidate.CandidacyId)">
+                        <label class="form-check-label" for="cand_@candidate.CandidacyId">
+                            <strong>@candidate.FullName</strong>
+                        </label>
+                        @if (candidate.ConfirmedByName is not null)
+                        {
+                            <span class="text-success small ms-2">✓ подтверждён @candidate.ConfirmedByName, @candidate.ConfirmedAt?.ToString("dd.MM.yyyy HH:mm")</span>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+
+        <div class="card mb-3">
+            <div class="card-body">
+                <p class="mb-2">Вы предлагаете <strong class="text-primary">@_selectedCandidateIds.Count</strong> из @_candidates.Count кандидатов.</p>
+                <p class="text-muted small mb-3">Подтверждая выбор, вы выражаете своё волеизъявление. Подтверждение равнозначно собственноручной подписи (63-ФЗ).</p>
+                <button class="btn btn-primary btn-lg w-100" @onclick="ConfirmSelection" disabled="@(_submitting || _selectedCandidateIds.Count == 0)">
+                    @if (_submitting)
+                    {
+                        <span class="spinner-border spinner-border-sm me-1"></span>
+                    }
+                    Подтвердить выбор
+                </button>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public Guid ProposalId { get; set; }
+
+    private string? _boardName;
+    private string? _error;
+    private bool _loading = true;
+    private bool _submitting;
+    private bool _confirmed;
+    private List<CandidateViewModel> _candidates = new();
+    private HashSet<Guid> _selectedCandidateIds = new();
+    private Guid _currentBoardMemberId;
+    private string _currentUserName = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var userIdStr = await JS.InvokeAsync<string>("localStorage.getItem", "currentUserId") ?? "";
+            _currentUserName = await JS.InvokeAsync<string>("localStorage.getItem", "currentUserName") ?? "Гость";
+
+            await LoadAsync(userIdStr);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Ошибка загрузки выборов председателя");
+            _error = "Ошибка загрузки данных";
+        }
+        finally { _loading = false; }
+    }
+
+    private async Task LoadAsync(string userIdStr)
+    {
+        await using var ctx = await DbFactory.CreateDbContextAsync();
+
+        var proposal = await ctx.ElectionProposals
+            .FirstOrDefaultAsync(p => p.Id == ProposalId);
+
+        if (proposal is null)
+        {
+            _error = "Предложение не найдено";
+            return;
+        }
+
+        // Find current user's board member for this board
+        if (Guid.TryParse(userIdStr, out var userId))
+        {
+            var boardMember = await ctx.BoardMembers
+                .FirstOrDefaultAsync(bm => bm.BoardOfDirectorsId == proposal.BoardOfDirectorsId 
+                    && bm.UserId == userId);
+            _currentBoardMemberId = boardMember?.Id ?? Guid.Empty;
+        }
+
+        var board = await ctx.BoardsOfDirectors
+            .FirstOrDefaultAsync(b => b.Id == proposal.BoardOfDirectorsId);
+        _boardName = board is not null ? $"Состав СД" + (board.GosaYear.HasValue ? $" за {board.GosaYear.Value} год" : "") : "";
+
+        var members = await ctx.BoardMembers
+            .Where(m => m.BoardOfDirectorsId == proposal.BoardOfDirectorsId)
+            .OrderBy(m => m.FullName)
+            .ToListAsync();
+
+        var existingCandidacies = await ctx.ElectionCandidacies
+            .Where(c => c.ProposalId == ProposalId)
+            .ToListAsync();
+
+        // Ensure a candidacy record exists for each board member
+        foreach (var member in members)
+        {
+            var existing = existingCandidacies.FirstOrDefault(c => c.CandidateMemberId == member.Id);
+            if (existing is null)
+            {
+                existing = new SamorodinkaTech.Fiducia.Domain.Entities.ElectionCandidacy
+                {
+                    Id = Guid.NewGuid(),
+                    ProposalId = ProposalId,
+                    CandidateMemberId = member.Id
+                };
+                ctx.ElectionCandidacies.Add(existing);
+            }
+        }
+        await ctx.SaveChangesAsync();
+
+        // Reload candidacies
+        existingCandidacies = await ctx.ElectionCandidacies
+            .Where(c => c.ProposalId == ProposalId)
+            .ToListAsync();
+
+        _candidates = existingCandidacies.Select(c =>
+        {
+            var member = members.FirstOrDefault(m => m.Id == c.CandidateMemberId);
+            string? confirmedByName = null;
+            if (c.ConfirmedByMemberId.HasValue)
+            {
+                var confMember = members.FirstOrDefault(m => m.Id == c.ConfirmedByMemberId.Value);
+                confirmedByName = confMember?.FullName;
+            }
+            return new CandidateViewModel
+            {
+                CandidacyId = c.Id,
+                MemberId = c.CandidateMemberId,
+                FullName = member?.FullName ?? "Неизвестный член СД",
+                ConfirmedByName = confirmedByName,
+                ConfirmedAt = c.ConfirmedAt
+            };
+        }).ToList();
+    }
+
+    private void ToggleCandidate(Guid candidacyId)
+    {
+        if (_selectedCandidateIds.Contains(candidacyId))
+            _selectedCandidateIds.Remove(candidacyId);
+        else
+            _selectedCandidateIds.Add(candidacyId);
+    }
+
+    private async Task ConfirmSelection()
+    {
+        _submitting = true;
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+            var now = DateTime.UtcNow;
+
+            var candidacies = await ctx.ElectionCandidacies
+                .Where(c => c.ProposalId == ProposalId && _selectedCandidateIds.Contains(c.Id))
+                .ToListAsync();
+
+            foreach (var c in candidacies)
+            {
+                c.ConfirmedByMemberId = _currentBoardMemberId;
+                c.ConfirmedAt = now;
+            }
+
+            await ctx.SaveChangesAsync();
+            _confirmed = true;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Ошибка подтверждения кандидатур");
+            _error = "Ошибка сохранения. Попробуйте позже.";
+        }
+        finally { _submitting = false; }
+    }
+
+    private class CandidateViewModel
+    {
+        public Guid CandidacyId { get; init; }
+        public Guid MemberId { get; init; }
+        public string FullName { get; init; } = "";
+        public string? ConfirmedByName { get; init; }
+        public DateTime? ConfirmedAt { get; init; }
+    }
+}

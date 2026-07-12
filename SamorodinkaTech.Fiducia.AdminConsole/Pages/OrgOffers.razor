@@ -1,0 +1,224 @@
+@page "/org-templates/stages/{StageId:guid}/offers"
+@using Microsoft.EntityFrameworkCore
+@using System.Collections.Generic
+@inject IDbContextFactory<SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext> DbFactory
+@inject ILogger<OrgTemplates> Logger
+@inject NavigationManager Nav
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "SYS_ADMIN")]
+
+<h3>
+    <a href="/org-templates" class="text-decoration-none">Шаблоны</a> →
+    @if (_intentId.HasValue)
+    {
+        <a href="/org-templates/intents/@_intentId/stages" class="text-decoration-none">@(_intentName ?? "Этапы")</a>
+    }
+    <span>→ @(_stageName ?? "Оферы")</span>
+</h3>
+
+@if (!string.IsNullOrEmpty(_error))
+{
+    <div class="alert alert-danger">@_error</div>
+}
+@if (!string.IsNullOrEmpty(_success))
+{
+    <div class="alert alert-success">@_success</div>
+}
+
+<button class="btn btn-primary btn-sm mb-2" @onclick="() => _showForm = true">Добавить офер</button>
+
+@if (_showForm)
+{
+    <div class="card mb-3">
+        <div class="card-body">
+            <div class="row g-2 align-items-end">
+                <div class="col-md-3">
+                    <label class="form-label">Название</label>
+                    <input class="form-control" @bind="_editName" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Описание</label>
+                    <input class="form-control" @bind="_editDesc" />
+                </div>
+                <div class="col-md-1">
+                    <label class="form-label">Смещение</label>
+                    <input class="form-control" type="number" @bind="_editOffset" />
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Дедлайн</label>
+                    <select class="form-select" @bind="_editDeadlineRule">
+                        <option value="">— нет —</option>
+                        <option value="FIXED_DAYS">Через N дней</option>
+                        <option value="AFTER_START">После начала</option>
+                    </select>
+                </div>
+                <div class="col-md-1">
+                    <label class="form-label">Дни</label>
+                    <input class="form-control" type="number" @bind="_editDeadlineDays" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label mb-1">Канд. роли</label>
+                    <div style="max-height:120px; overflow-y:auto; border:1px solid #dee2e6; border-radius:4px; padding:4px 8px;">
+                        @foreach (var r in _roles)
+                        {
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="checkbox"
+                                       id="role_@r.Id"
+                                       checked="@_editRoleIds.Contains(r.Id)"
+                                       @onchange="e => ToggleRole(r.Id, (bool)(e.Value ?? false))" />
+                                <label class="form-check-label small" for="role_@r.Id">@r.Name</label>
+                            </div>
+                        }
+                    </div>
+                </div>
+                <div class="col-md-1">
+                    <label class="form-label">Порядок</label>
+                    <input class="form-control" type="number" @bind="_editSort" />
+                </div>
+                <div class="col-md-1 d-flex gap-1">
+                    <button class="btn btn-success btn-sm" @onclick="Save">✓</button>
+                    <button class="btn btn-outline-secondary btn-sm" @onclick="CancelForm">✕</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<table class="table table-sm table-hover">
+    <thead>
+        <tr><th>Название</th><th>Смещение</th><th>Дедлайн</th><th style="width:80px">Порядок</th><th style="width:100px">Действия</th></tr>
+    </thead>
+    <tbody>
+    @foreach (var s in _items)
+    {
+        var deadlineLabel = s.DeadlineRule switch
+        {
+            "FIXED_DAYS" => $"+{s.DeadlineDays} дн.",
+            "AFTER_START" => $"после нач. +{s.DeadlineDays} дн.",
+            _ => "—"
+        };
+        var roleNames = _offerRoleNames.GetValueOrDefault(s.Id, new());
+        <tr>
+            <td>
+                <a href="/org-templates/offers/@s.Id/tasks" class="text-decoration-none">@s.Name</a>
+            </td>
+            <td>@(s.StartOffsetDays?.ToString() ?? "—")</td>
+            <td>@deadlineLabel</td>
+            <td class="text-muted small">@string.Join(", ", roleNames)</td>
+            <td>@s.SortOrder</td>
+            <td>
+                <button class="btn btn-outline-secondary btn-sm me-1" @onclick="async () => await Edit(s)">✏️</button>
+                <button class="btn btn-outline-danger btn-sm" @onclick="() => Delete(s)">🗑️</button>
+            </td>
+        </tr>
+    }
+    </tbody>
+</table>
+
+@code {
+    [Parameter] public Guid StageId { get; set; }
+
+    private List<TplOrgOffer> _items = new();
+    private List<SamorodinkaTech.Fiducia.Domain.Entities.Role> _roles = new();
+    private Dictionary<Guid, List<string>> _offerRoleNames = new();
+    private string? _stageName;
+    private string? _intentName;
+    private Guid? _intentId;
+    private string? _error;
+    private string? _success;
+    private bool _showForm;
+    private string _editName = "";
+    private string _editDesc = "";
+    private HashSet<Guid> _editRoleIds = new();
+    private int? _editOffset;
+    private string _editDeadlineRule = "";
+    private int? _editDeadlineDays;
+    private int _editSort;
+    private Guid? _editingId;
+
+    protected override async Task OnInitializedAsync() { await LoadAsync(); }
+
+    private async Task LoadAsync()
+    {
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+            var stage = await ctx.TplOrgStages.Include(x => x.Intent).FirstOrDefaultAsync(x => x.Id == StageId);
+            if (stage != null)
+            {
+                _stageName = stage.Name;
+                _intentId = stage.IntentId;
+                _intentName = stage.Intent?.Name;
+            }
+            _roles = await ctx.Roles.OrderBy(x => x.Name).ToListAsync();
+            _items = await ctx.TplOrgOffers.Where(x => x.StageId == StageId).OrderBy(x => x.SortOrder).ThenBy(x => x.Name).ToListAsync();
+            var links = await ctx.TplOrgOfferRoles.Where(x => _items.Select(o => o.Id).Contains(x.TplOfferId)).ToListAsync();
+            _offerRoleNames = links.GroupBy(x => x.TplOfferId).ToDictionary(
+                g => g.Key,
+                g => g.Select(l => _roles.FirstOrDefault(r => r.Id == l.RoleId)?.Name ?? "?").Where(n => n != "?").ToList()
+            );
+        }
+        catch (Exception ex) { Logger.LogWarning(ex, "Ошибка загрузки оферов"); _error = ExceptionFlattener.Unwrap(ex); }
+    }
+
+    private async Task Edit(TplOrgOffer o)
+    {
+        _editingId = o.Id; _editName = o.Name; _editDesc = o.Description ?? "";
+        _editOffset = o.StartOffsetDays; _editDeadlineRule = o.DeadlineRule ?? ""; _editDeadlineDays = o.DeadlineDays;
+        _editSort = o.SortOrder;
+        _editRoleIds.Clear();
+        await using var ctx = await DbFactory.CreateDbContextAsync();
+        var links = await ctx.TplOrgOfferRoles.Where(x => x.TplOfferId == o.Id).Select(x => x.RoleId).ToListAsync();
+        foreach (var rid in links) _editRoleIds.Add(rid);
+        _showForm = true;
+    }
+
+    private void ToggleRole(Guid roleId, bool add)
+    {
+        if (add) _editRoleIds.Add(roleId);
+        else _editRoleIds.Remove(roleId);
+    }
+
+    private void CancelForm() { _showForm = false; _editingId = null; _editRoleIds.Clear(); }
+
+    private async Task Save()
+    {
+        if (string.IsNullOrWhiteSpace(_editName)) return;
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+            if (_editingId.HasValue)
+            {
+                var e = await ctx.TplOrgOffers.FirstOrDefaultAsync(x => x.Id == _editingId.Value);
+                if (e != null)
+                {
+                    e.Name = _editName.Trim(); e.Description = (string.IsNullOrWhiteSpace(_editDesc) ? null : _editDesc.Trim()); e.StartOffsetDays = _editOffset;
+                    e.DeadlineRule = (string.IsNullOrWhiteSpace(_editDeadlineRule) ? null : _editDeadlineRule.Trim()); e.DeadlineDays = _editDeadlineDays; e.SortOrder = _editSort;
+                }
+            }
+            else
+            {
+                var newOffer = new TplOrgOffer { Id = Guid.NewGuid(), Name = _editName.Trim(), Description = (string.IsNullOrWhiteSpace(_editDesc) ? null : _editDesc.Trim()), StageId = StageId,
+                    StartOffsetDays = _editOffset, DeadlineRule = (string.IsNullOrWhiteSpace(_editDeadlineRule) ? null : _editDeadlineRule.Trim()), DeadlineDays = _editDeadlineDays,
+                    SortOrder = _editSort };
+                ctx.TplOrgOffers.Add(newOffer);
+                foreach (var rid in _editRoleIds)
+                    ctx.TplOrgOfferRoles.Add(new TplOrgOfferRole { Id = Guid.NewGuid(), TplOfferId = newOffer.Id, RoleId = rid });
+            }
+            await ctx.SaveChangesAsync();
+            CancelForm(); await LoadAsync();
+            _success = _editingId.HasValue ? "Офер обновлён." : "Офер создан.";
+        }
+        catch (Exception ex) { Logger.LogWarning(ex, "Ошибка сохранения"); _error = ExceptionFlattener.Unwrap(ex); }
+    }
+
+    private async Task Delete(TplOrgOffer o)
+    {
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+            var e = await ctx.TplOrgOffers.FirstOrDefaultAsync(x => x.Id == o.Id);
+            if (e != null) { ctx.TplOrgOffers.Remove(e); await ctx.SaveChangesAsync(); await LoadAsync(); _success = "Офер удалён."; }
+        }
+        catch (Exception ex) { Logger.LogWarning(ex, "Ошибка удаления"); _error = ExceptionFlattener.Unwrap(ex); }
+    }
+}

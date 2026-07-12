@@ -1,0 +1,92 @@
+@page "/proposal"
+@layout AuthLayout
+@using SamorodinkaTech.Fiducia.Domain.Entities
+@using SamorodinkaTech.Fiducia.Domain.Interfaces
+@inject IApplicationDbContext DbContext
+@inject ILogger<Proposal> Logger
+@inject NavigationManager Nav
+
+<PageTitle>Fiducia — Предложение к повестке</PageTitle>
+
+<div class="container py-4" style="max-width: 600px;">
+    <h3 class="mb-3">Предложение по добавлению вопроса в повестку Совета директоров</h3>
+
+    @if (!string.IsNullOrEmpty(_error))
+    {
+        <div class="alert alert-danger">@_error</div>
+    }
+    @if (_submitted)
+    {
+        <div class="alert alert-success">
+            <strong>Предложение отправлено.</strong> Спасибо! Ваше предложение будет рассмотрено.
+        </div>
+        <a href="/proposal" class="btn btn-outline-primary">Подать ещё одно предложение</a>
+        return;
+    }
+
+    <div class="card">
+        <div class="card-body">
+            <div class="mb-3">
+                <label class="form-label">ФИО <span class="text-danger">*</span></label>
+                <input class="form-control" @bind="_name" placeholder="Иванов Иван Иванович" />
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Email</label>
+                <input type="email" class="form-control" @bind="_email" placeholder="ivanov@example.com" />
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Суть вопроса <span class="text-danger">*</span></label>
+                <textarea class="form-control" rows="4" @bind="_text" placeholder="Опишите вопрос, который предлагаете включить в повестку"></textarea>
+            </div>
+            <button class="btn btn-primary" @onclick="Submit" disabled="@_saving">
+                @if (_saving) { <span class="spinner-border spinner-border-sm me-1"></span> }
+                Отправить предложение
+            </button>
+        </div>
+    </div>
+</div>
+
+@code {
+    private string _name = "";
+    private string _email = "";
+    private string _text = "";
+    private bool _submitted;
+    private bool _saving;
+    private string? _error;
+
+    private async Task Submit()
+    {
+        _error = null;
+
+        if (string.IsNullOrWhiteSpace(_name))
+        {
+            _error = "Укажите ФИО.";
+            return;
+        }
+        if (string.IsNullOrWhiteSpace(_text))
+        {
+            _error = "Опишите суть вопроса.";
+            return;
+        }
+
+        _saving = true;
+        try
+        {
+            DbContext.AgendaProposals.Add(new AgendaProposal
+            {
+                Id = Guid.NewGuid(),
+                SubmitterName = _name.Trim(),
+                SubmitterEmail = string.IsNullOrWhiteSpace(_email) ? null : _email.Trim(),
+                ProposalText = _text.Trim()
+            });
+            await DbContext.SaveChangesAsync();
+            _submitted = true;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Ошибка сохранения предложения к повестке");
+            _error = $"Ошибка отправки. Попробуйте позже.";
+        }
+        finally { _saving = false; }
+    }
+}

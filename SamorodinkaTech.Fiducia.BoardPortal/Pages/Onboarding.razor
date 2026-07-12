@@ -1,0 +1,311 @@
+@page "/onboarding/{Token}"
+@using SamorodinkaTech.Fiducia.Domain.Entities
+@using SamorodinkaTech.Fiducia.Domain.Interfaces
+@inject IApplicationDbContext DbContext
+@inject NavigationManager NavigationManager
+
+<PageTitle>Fiducia — Онбординг</PageTitle>
+
+<div class="container mt-4">
+    @if (_user == null)
+    {
+        <div class="alert alert-danger">
+            <h5>Приглашение не найдено</h5>
+            <p>Ссылка недействительна или срок её действия истёк.</p>
+        </div>
+    }
+    else if (_isCompleted)
+    {
+        <div class="alert alert-success">
+            <h5>Регистрация завершена!</h5>
+            <p>Вы можете войти в систему с помощью электронной почты и пароля.</p>
+            <a href="/" class="btn btn-primary">Перейти на главную</a>
+        </div>
+    }
+    else
+    {
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0">Приглашение в Совет директоров</h4>
+            </div>
+            <div class="card-body">
+                <!-- Прогресс-бар -->
+                <div class="progress mb-4" style="height: 8px;">
+                    <div class="progress-bar" style="width: @((_currentStep * 100 / 4))%"></div>
+                </div>
+                <p class="text-muted mb-4">Шаг @_currentStep из 4</p>
+
+                @if (_currentStep == 1)
+                {
+                    <!-- Шаг 1: Просмотр приглашения -->
+                    <h5>Приглашение</h5>
+                    <p>Вы приглашены в качестве <strong>Независимого директора</strong> в совет директоров.</p>
+                    <div class="bg-light p-3 rounded mb-4">
+                        <p><strong>Email:</strong> @_user.Email</p>
+                        <p><strong>Телефон:</strong> @_user.Phone</p>
+                        <p><strong>Срок действия:</strong> @_user.InvitationExpiresAt?.ToString("dd.MM.yyyy")</p>
+                    </div>
+                    <button class="btn btn-primary" @onclick="NextStep">Принять приглашение</button>
+                }
+                else if (_currentStep == 2)
+                {
+                    <!-- Шаг 2: Анкета соответствия -->
+                    <h5>Анкета соответствия критериям независимости</h5>
+                    <p class="text-muted">Заполните обязательные поля для участия в заседаниях совета директоров.</p>
+
+                    <div class="mb-3">
+                        <label class="form-label">Скрытые доли в акционерных капиталах других организаций</label>
+                        <textarea class="form-control" rows="2" @bind="_hiddenShares"
+                                  placeholder="Укажите организации и размер долей (или «нет»)"></textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Родственные связи с топ-менеджментом компании</label>
+                        <textarea class="form-control" rows="2" @bind="_familyConnections"
+                                  placeholder="Укажите ФИО и степень родства (или «нет»)"></textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Участие в других советах директоров</label>
+                        <textarea class="form-control" rows="2" @bind="_otherBoards"
+                                  placeholder="Укажите организации (или «нет»)"></textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Наличие конфликта интересов</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="conflict" value="no" checked>
+                            <label class="form-check-label">Нет конфликта интересов</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="conflict" value="yes">
+                            <label class="form-check-label">Есть конфликт интересов (опишите)</label>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Судимость (отсутствие)</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" @bind="_noCriminalRecord">
+                            <label class="form-check-label">Подтверждаю отсутствие судимости</label>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Банкротство (отсутствие)</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" @bind="_noBankruptcy">
+                            <label class="form-check-label">Подтверждаю отсутствие фактов банкротства</label>
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-outline-secondary" @onclick="PrevStep">Назад</button>
+                        <button class="btn btn-primary" @onclick="SaveDeclaration"
+                                disabled="@(!_noCriminalRecord || !_noBankruptcy)">Далее</button>
+                    </div>
+                }
+                else if (_currentStep == 3)
+                {
+                    <!-- Шаг 3: Согласие на обработку ПДн -->
+                    <h5>Согласие на обработку персональных данных</h5>
+
+                    <div class="bg-light p-4 rounded mb-4" style="max-height: 300px; overflow-y: auto; font-size: 0.9rem;">
+                        <p><strong>СОГЛАСИЕ</strong></p>
+                        <p>на обработку персональных данных</p>
+
+                        <p>Я, _________________________ (Ф.И.О.), даю согласие АО «Ромашка» (далее — Оператор)
+                        на обработку моих персональных данных в соответствии с Федеральным законом от 27.07.2006
+                        № 152-ФЗ «О персональных данных».</p>
+
+                        <p><strong>Цель обработки:</strong></p>
+                        <ul>
+                            <li>Участие в заседаниях совета директоров</li>
+                            <li>Электронное голосование и подписание документов</li>
+                            <li>Формирование протоколов и отчётности</li>
+                            <li>Взаимодействие с корпоративным секретарём</li>
+                        </ul>
+
+                        <p><strong>Перечень обрабатываемых персональных данных:</strong></p>
+                        <ul>
+                            <li>Фамилия, имя, отчество</li>
+                            <li>Дата рождения</li>
+                            <li>Адрес электронной почты</li>
+                            <li>Номер телефона</li>
+                            <li>Паспортные данные (для верификации)</li>
+                            <li>Должность и место работы</li>
+                        </ul>
+
+                        <p><strong>Способы обработки:</strong> сбор, запись, систематизация, накопление, хранение,
+                        уточнение, извлечение, использование, блокирование, удаление, уничтожение.</p>
+
+                        <p><strong>Срок обработки:</strong> до отзыва данного согласия.</p>
+
+                        <p><strong>Права субъекта персональных данных:</strong></p>
+                        <ul>
+                            <li>Право на доступ к своим персональным данным</li>
+                            <li>Право на уточнение, исправление</li>
+                            <li>Право на удаление (право на забвение)</li>
+                            <li>Право на отзыв согласия</li>
+                        </ul>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" @bind="_pdnConsentGiven">
+                            <label class="form-check-label">
+                                Я ознакомлен(а) с текстом согласия и даю своё согласие
+                                на обработку моих персональных данных
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-outline-secondary" @onclick="PrevStep">Назад</button>
+                        <button class="btn btn-primary" @onclick="NextStep"
+                                disabled="@(!_pdnConsentGiven)">Далее</button>
+                    </div>
+                }
+                else if (_currentStep == 4)
+                {
+                    <!-- Шаг 4: Подписание Соглашения о ПЭП -->
+                    <h5>Подписание Соглашения о ПЭП</h5>
+                    <p class="text-muted">Для участия в электронном голосовании необходимо подписать
+                    Соглашение о признании простой электронной подписи (ПЭП) аналогом собственноручной подписи.</p>
+
+                    @if (!_otpSent)
+                    {
+                        <div class="bg-light p-3 rounded mb-4">
+                            <p><strong>Номер телефона:</strong> @_user?.Phone</p>
+                            <p class="text-muted small">На этот номер будет отправлен код подтверждения</p>
+                        </div>
+                        <button class="btn btn-primary" @onclick="SendOtp">Отправить SMS-код</button>
+                    }
+                    else
+                    {
+                        <div class="mb-3">
+                            <label class="form-label">Введите код из SMS</label>
+                            <input type="text" class="form-control" @bind="_otpCode"
+                                   placeholder="123456" maxlength="6" style="max-width: 200px;">
+                        </div>
+
+                        @if (!string.IsNullOrEmpty(_otpError))
+                        {
+                            <div class="alert alert-danger">@_otpError</div>
+                        }
+
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-outline-secondary" @onclick="PrevStep">Назад</button>
+                            <button class="btn btn-primary" @onclick="VerifyOtp"
+                                    disabled="@(_otpCode.Length != 6)">Подтвердить</button>
+                            <button class="btn btn-outline-secondary" @onclick="SendOtp">Отправить повторно</button>
+                        </div>
+                    }
+                }
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public string Token { get; set; } = string.Empty;
+
+    private User? _user;
+    private int _currentStep = 1;
+    private bool _isCompleted;
+
+    // Анкета
+    private string _hiddenShares = string.Empty;
+    private string _familyConnections = string.Empty;
+    private string _otherBoards = string.Empty;
+    private bool _noCriminalRecord;
+    private bool _noBankruptcy;
+
+    // ПДн
+    private bool _pdnConsentGiven;
+
+    // ПЭП
+    private bool _otpSent;
+    private string _otpCode = string.Empty;
+    private string _otpError = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _user = await DbContext.Users
+            .FirstOrDefaultAsync(u => u.InvitationToken == Token && u.IsExternal);
+
+        if (_user != null)
+        {
+            // Проверка срока действия
+            if (_user.InvitationExpiresAt.HasValue && _user.InvitationExpiresAt < DateTime.UtcNow)
+            {
+                _user = null;
+            }
+
+            // Если уже завершил онбординг
+            if (_user?.DeclarationCompleted == true && _user?.PepAgreementSigned == true)
+            {
+                _isCompleted = true;
+            }
+        }
+    }
+
+    private void NextStep()
+    {
+        if (_currentStep < 4) _currentStep++;
+    }
+
+    private void PrevStep()
+    {
+        if (_currentStep > 1) _currentStep--;
+    }
+
+    private async Task SaveDeclaration()
+    {
+        if (_user == null) return;
+
+        var declaration = new
+        {
+            HiddenShares = _hiddenShares,
+            FamilyConnections = _familyConnections,
+            OtherBoards = _otherBoards,
+            NoCriminalRecord = _noCriminalRecord,
+            NoBankruptcy = _noBankruptcy
+        };
+
+        _user.DeclarationData = System.Text.Json.JsonSerializer.Serialize(declaration);
+        _user.DeclarationCompleted = true;
+
+        await DbContext.SaveChangesAsync();
+        _currentStep = 3;
+    }
+
+    private async Task SendOtp()
+    {
+        // TODO: интеграция с SMS Gate
+        _otpSent = true;
+        _otpError = string.Empty;
+        await Task.CompletedTask;
+    }
+
+    private async Task VerifyOtp()
+    {
+        // TODO: интеграция с SMS Gate
+        if (_otpCode == "123456") // Тестовый код
+        {
+            if (_user != null)
+            {
+                _user.PepAgreementSigned = true;
+                _user.PepSignedAt = DateTime.UtcNow;
+                _user.PdnConsentGiven = _pdnConsentGiven;
+                _user.PdnConsentAt = DateTime.UtcNow;
+                await DbContext.SaveChangesAsync();
+                _isCompleted = true;
+            }
+        }
+        else
+        {
+            _otpError = "Неверный код. Попробуйте ещё раз.";
+        }
+    }
+}

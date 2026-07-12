@@ -1,0 +1,210 @@
+@page "/org-plan"
+@using Microsoft.EntityFrameworkCore
+@inject IDbContextFactory<SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext> DbFactory
+@inject ILogger<OrgPlan> Logger
+
+<h3>План организационных мероприятий</h3>
+
+@if (_intents.Count == 0)
+{
+    <div class="text-muted">План мероприятий не создан. Завершите первое заседание СД для формирования плана.</div>
+}
+else
+{
+    @foreach (var intent in _intents.OrderBy(x => x.SortOrder))
+    {
+        var isExpanded = _expandedIntents.Contains(intent.Id);
+        var statusClass = intent.Status switch
+        {
+            "COMPLETED" => "bg-success",
+            "IN_PROGRESS" => "bg-warning text-dark",
+            "CANCELLED" => "bg-danger",
+            _ => "bg-secondary"
+        };
+
+        <div class="mb-3">
+            @* Интент *@
+            <div class="d-flex align-items-center gap-2 p-2 bg-light rounded"
+                 style="cursor:pointer" @onclick="() => ToggleIntent(intent.Id)">
+                <span class="fw-bold fs-5" style="min-width:20px">@(isExpanded ? "▾" : "▸")</span>
+                <span class="fw-bold">@intent.Name</span>
+                @if (!string.IsNullOrEmpty(intent.Description))
+                {
+                    <span class="text-muted small">— @intent.Description</span>
+                }
+                <div class="ms-auto d-flex gap-2 align-items-center">
+                    <span class="badge @statusClass">@GetStatusLabel(intent.Status)</span>
+                    <span class="badge bg-light text-dark">@_stageCounts.GetValueOrDefault(intent.Id, 0) этапов</span>
+                </div>
+            </div>
+
+            @if (isExpanded)
+            {
+                var stages = _stagesByIntent.GetValueOrDefault(intent.Id, new());
+                foreach (var stage in stages.OrderBy(x => x.SortOrder))
+                {
+                    var stageExpanded = _expandedStages.Contains(stage.Id);
+                    var stageStatusClass = stage.Status switch
+                    {
+                        "COMPLETED" => "bg-success",
+                        "IN_PROGRESS" => "bg-primary",
+                        "CANCELLED" => "bg-danger",
+                        _ => "bg-light text-dark"
+                    };
+                    var daysLabel = FormatDays(stage.ActualStart, stage.ActualEnd);
+
+                    <div class="ms-4 mb-2">
+                        <div class="d-flex align-items-center gap-2 p-1"
+                             style="cursor:pointer" @onclick="() => ToggleStage(stage.Id)">
+                            <span style="min-width:16px">@(stageExpanded ? "▾" : "▸")</span>
+                            <span class="fw-semibold">@stage.Name</span>
+                            <div class="flex-grow-1 ms-3 me-3">
+                                <div class="progress" style="height:16px; background:#e9ecef">
+                                    <div class="progress-bar @stageStatusClass" role="progressbar"
+                                         style="width:@(GetProgress(stage.Status))%; min-width:80px"
+                                         title="@daysLabel">
+                                        <small>@daysLabel</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <span class="badge @stageStatusClass">@GetStatusLabel(stage.Status)</span>
+                        </div>
+
+                        @if (stageExpanded)
+                        {
+                            var offers = _offersByStage.GetValueOrDefault(stage.Id, new());
+                            foreach (var offer in offers.OrderBy(x => x.SortOrder))
+                            {
+                                var offStatusClass = offer.Status switch
+                                {
+                                    "COMPLETED" => "bg-success",
+                                    "IN_PROGRESS" => "bg-info",
+                                    "CANCELLED" => "bg-danger",
+                                    _ => ""
+                                };
+                                var offDaysLabel = FormatDays(offer.ActualStart, offer.ActualEnd);
+                                var tasks = _tasksByOffer.GetValueOrDefault(offer.Id, new());
+                                var completedTasks = tasks.Count(t => t.Status == "COMPLETED");
+                                var taskLabel = tasks.Count > 0 ? $"{completedTasks}/{tasks.Count} задач" : "";
+
+                                <div class="ms-5 mb-1">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="text-muted">•</span>
+                                        <span>@offer.Name</span>
+                                        @if (!string.IsNullOrWhiteSpace(taskLabel))
+                                        {
+                                            <span class="text-muted small">(@taskLabel)</span>
+                                        }
+                                        <div class="flex-grow-1 ms-3 me-3">
+                                            <div class="progress" style="height:12px; background:#e9ecef">
+                                                <div class="progress-bar @offStatusClass" role="progressbar"
+                                                     style="width:@(GetProgress(offer.Status))%; min-width:60px"
+                                                     title="@offDaysLabel">
+                                                    <small>@offDaysLabel</small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    @if (tasks.Count > 0)
+                                    {
+                                        @foreach (var task in tasks.OrderBy(x => x.SortOrder))
+                                        {
+                                            var taskStatusClass = task.Status switch
+                                            {
+                                                "COMPLETED" => "text-success text-decoration-line-through",
+                                                "IN_PROGRESS" => "text-primary",
+                                                "CANCELLED" => "text-danger",
+                                                _ => "text-muted"
+                                            };
+                                            var roleName = _boardRoles.GetValueOrDefault(task.AssignedBoardRoleId ?? Guid.Empty);
+                                            <div class="ms-5 mb-1 d-flex align-items-center gap-2 @taskStatusClass small">
+                                                <span>− @task.Name</span>
+                                                @if (!string.IsNullOrEmpty(roleName))
+                                                {
+                                                    <span class="text-muted">(@roleName)</span>
+                                                }
+                                            </div>
+                                        }
+                                    }
+                                </div>
+                            }
+                        }
+                    </div>
+                }
+            }
+        </div>
+    }
+}
+
+@code {
+    private List<OrgIntent> _intents = new();
+    private Dictionary<Guid, List<OrgStage>> _stagesByIntent = new();
+    private Dictionary<Guid, List<OrgOffer>> _offersByStage = new();
+    private Dictionary<Guid, List<OrgTask>> _tasksByOffer = new();
+    private Dictionary<Guid, int> _stageCounts = new();
+    private Dictionary<Guid, string> _boardRoles = new();
+    private HashSet<Guid> _expandedIntents = new();
+    private HashSet<Guid> _expandedStages = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+            _intents = await ctx.OrgIntents.OrderBy(x => x.SortOrder).ThenBy(x => x.Name).ToListAsync();
+            var stages = await ctx.OrgStages.OrderBy(x => x.SortOrder).ThenBy(x => x.Name).ToListAsync();
+            var offers = await ctx.OrgOffers.OrderBy(x => x.SortOrder).ThenBy(x => x.Name).ToListAsync();
+            var tasks = await ctx.OrgTasks.OrderBy(x => x.SortOrder).ThenBy(x => x.Name).ToListAsync();
+            var boardRoles = await ctx.BoardRoles.ToListAsync();
+
+            _stagesByIntent = stages.GroupBy(s => s.IntentId).ToDictionary(g => g.Key, g => g.ToList());
+            _offersByStage = offers.GroupBy(o => o.StageId).ToDictionary(g => g.Key, g => g.ToList());
+            _tasksByOffer = tasks.GroupBy(t => t.OfferId).ToDictionary(g => g.Key, g => g.ToList());
+            _stageCounts = stages.GroupBy(s => s.IntentId).ToDictionary(g => g.Key, g => g.Count());
+            _boardRoles = boardRoles.ToDictionary(r => r.Id, r => r.Name);
+
+            if (_intents.Count > 0)
+                _expandedIntents.Add(_intents[0].Id);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Ошибка загрузки плана");
+        }
+    }
+
+    private void ToggleIntent(Guid id)
+    {
+        if (_expandedIntents.Contains(id)) _expandedIntents.Remove(id);
+        else _expandedIntents.Add(id);
+    }
+
+    private void ToggleStage(Guid id)
+    {
+        if (_expandedStages.Contains(id)) _expandedStages.Remove(id);
+        else _expandedStages.Add(id);
+    }
+
+    private static string GetStatusLabel(string? status) => status switch
+    {
+        "PLANNED" => "Запланировано",
+        "IN_PROGRESS" => "В работе",
+        "COMPLETED" => "Завершено",
+        "CANCELLED" => "Отменено",
+        _ => status ?? "—"
+    };
+
+    private static int GetProgress(string? status) => status switch
+    {
+        "COMPLETED" => 100,
+        "IN_PROGRESS" => 50,
+        "CANCELLED" => 100,
+        _ => 10
+    };
+
+    private static string FormatDays(DateOnly? start, DateOnly? end)
+    {
+        if (!start.HasValue) return "—";
+        if (!end.HasValue) return start.Value.ToString("dd.MM");
+        return $"{start.Value:dd.MM} – {end.Value:dd.MM}";
+    }
+}

@@ -1,0 +1,423 @@
+@page "/board-of-directors/{BoardId:guid}/resign/{MemberId:guid}"
+@using Microsoft.EntityFrameworkCore
+@inject IDbContextFactory<SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext> DbFactory
+@inject ILogger<BoardMemberResign> Logger
+@inject NavigationManager Navigation
+@inject SamorodinkaTech.Fiducia.Domain.Interfaces.IFileStorage FileStorage
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "SYS_ADMIN")]
+@using SamorodinkaTech.Fiducia.Domain.Entities
+
+@if (_member is null)
+{
+    <p><em>Загрузка...</em></p>
+}
+else if (_step == 1)
+{
+    <h3>Сложение полномочий</h3>
+    <p class="text-muted">Совет директоров @_gosaYear — @_member.FullName (@_member.RoleName)</p>
+
+    <div class="row">
+        <div class="col-md-6">
+
+            <div class="mb-3">
+                <label class="form-label">Основание</label>
+                <select class="form-select" @bind="_reasonId">
+                    <option value="">— выберите основание —</option>
+                    @foreach (var r in _reasons)
+                    {
+                        <option value="@r.Id">@r.Name</option>
+                    }
+                </select>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Дата прекращения полномочий</label>
+                <input type="date" class="form-control" @bind="_resignDate" />
+            </div>
+
+            @if (_selectedReasonCode == "LEGAL")
+            {
+                <div class="mb-3">
+                    <label class="form-label">Основание (статья, закон) <span class="text-danger">*</span></label>
+                    <input class="form-control" @bind="_legalBasis"
+                           placeholder="п. 2 ст. 10 115-ФЗ (ликвидация эмитента)" />
+                </div>
+            }
+
+            @if (_selectedReasonCode == "DISQUALIFICATION")
+            {
+                <div class="mb-3">
+                    <label class="form-label">Выписка из РДЛ (обязательно)</label>
+                    <InputFile class="form-control form-control-sm" OnChange="OnRdlFileSelected"
+                               accept=".pdf,.png,.jpg,.jpeg" />
+                    @if (_rdlFile is not null)
+                    {
+                        <span class="text-success small">✓ @_rdlFile.Name</span>
+                    }
+                </div>
+            }
+
+            <div class="mt-4">
+                @if (!string.IsNullOrEmpty(_error))
+                {
+                    <div class="alert alert-danger py-2">@_error</div>
+                }
+                <button class="btn btn-primary" @onclick="GoToFinalize"
+                        disabled="@(string.IsNullOrEmpty(_reasonId) || _saving)">
+                    Далее: финализация
+                </button>
+                <a href="/board-of-directors/@BoardId" class="btn btn-secondary ms-2">Отмена</a>
+            </div>
+
+        </div>
+    </div>
+}
+else if (_step == 2)
+{
+    <h3>Финализация сложения полномочий</h3>
+    <p class="text-muted">Проверьте изменения и следующие шаги перед подтверждением.</p>
+
+    <div class="card mb-3">
+        <div class="card-header">Изменения</div>
+        <div class="card-body">
+            <ul class="mb-0">
+                <li><strong>@_member.FullName</strong> (@_member.RoleName) — полномочия прекращены</li>
+                <li>Основание: <strong>@_selectedReasonName</strong></li>
+                <li>Дата прекращения: <strong>@_resignDate?.ToString("dd.MM.yyyy")</strong></li>
+                <li>Статус назначения: Активный → <strong>Сложение полномочий</strong></li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="card mb-3">
+        <div class="card-header">Состав СД после выбытия</div>
+        <div class="card-body">
+            <p>Членов СД: <strong>@_totalMembers</strong> → <strong>@_remainingMembers</strong> после выбытия</p>
+            <p>Кворум (@_quorumPercent%): <strong>@_quorumThreshold</strong> чел.
+                @if (!_quorumMet)
+                {
+                    <span class="text-danger fw-bold">— кворум потерян!</span>
+                }
+                else
+                {
+                    <span class="text-success">— кворум сохранён</span>
+                }
+            </p>
+        </div>
+    </div>
+
+    @if (_agendaItems.Count > 0)
+    {
+        <div class="card mb-3 border-warning">
+            <div class="card-header bg-warning bg-opacity-10">Следующие шаги — автоматически созданные повестки</div>
+            <div class="card-body">
+                <table class="table table-sm mb-0">
+                    <thead>
+                        <tr>
+                            <th>Цель</th>
+                            <th>Повестка</th>
+                            <th>Причина</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in _agendaItems)
+                        {
+                            <tr>
+                                <td>@(item.TargetType == "BOARD_MEETING" ? "Заседание СД" : "ОСА / ВОСА")</td>
+                                <td>@item.Title</td>
+                                <td>@item.Reason</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-info py-2">Дополнительные повестки не требуются.</div>
+    }
+
+    <div class="mt-4">
+        @if (!string.IsNullOrEmpty(_error))
+        {
+            <div class="alert alert-danger py-2">@_error</div>
+        }
+        <button class="btn btn-danger" @onclick="ConfirmResignation" disabled="@_saving">
+            @(_saving ? "Сохранение..." : "Подтвердить сложение полномочий")
+        </button>
+        <button class="btn btn-secondary ms-2" @onclick="() => _step = 1">← Назад</button>
+    </div>
+}
+
+@code {
+    [Parameter] public Guid BoardId { get; set; }
+    [Parameter] public Guid MemberId { get; set; }
+
+    private record MemberInfo
+    {
+        public string FullName { get; init; } = default!;
+        public string? RoleName { get; init; }
+        public string? RoleCode { get; init; }
+        public Guid AppointmentId { get; init; }
+        public Guid? UserId { get; init; }
+    }
+
+    private record AgendaPreview
+    {
+        public string Title { get; init; } = default!;
+        public string TargetType { get; init; } = default!;
+        public string Reason { get; init; } = default!;
+    }
+
+    private MemberInfo? _member;
+    private List<ResignationReason> _reasons = new();
+    private int? _gosaYear;
+    private int _step = 1;
+
+    private string? _reasonId;
+    private DateOnly? _resignDate = DateOnly.FromDateTime(DateTime.Today);
+    private string? _legalBasis;
+    private IBrowserFile? _rdlFile;
+    private bool _saving;
+    private string? _error;
+
+    // Финализация
+    private string? _selectedReasonName => _reasons.FirstOrDefault(r => r.Id.ToString() == _reasonId)?.Name;
+    private string? _selectedReasonCode => _reasons.FirstOrDefault(r => r.Id.ToString() == _reasonId)?.Code;
+    private int _totalMembers;
+    private int _remainingMembers;
+    private int _quorumPercent = 50;
+    private int _quorumThreshold;
+    private bool _quorumMet;
+    private List<AgendaPreview> _agendaItems = new();
+    private string _chairRoleCode = "CHAIR";
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+
+            var board = await ctx.BoardsOfDirectors
+                .FirstOrDefaultAsync(b => b.Id == BoardId);
+            if (board is null) { _error = "Совет директоров не найден."; return; }
+            _gosaYear = board.GosaYear;
+
+            _reasons = await ctx.Set<ResignationReason>().OrderBy(r => r.Code).ToListAsync();
+
+            var member = await ctx.BoardMembers
+                .Where(m => m.Id == MemberId && m.BoardOfDirectorsId == BoardId)
+                .Select(m => new
+                {
+                    m.FullName,
+                    m.UserId,
+                    Appointment = ctx.BoardMemberAppointments
+                        .Where(a => a.BoardMemberId == m.Id)
+                        .OrderByDescending(a => a.StartedAt)
+                        .Select(a => new { a.Id, a.RoleCode, RoleName = a.Role!.Name })
+                        .FirstOrDefault()
+                })
+                .FirstOrDefaultAsync();
+
+            if (member is null || member.Appointment is null)
+            { _error = "Член СД или его назначение не найдены."; return; }
+
+            _member = new MemberInfo
+            {
+                FullName = member.FullName,
+                RoleName = member.Appointment.RoleName,
+                RoleCode = member.Appointment.RoleCode,
+                AppointmentId = member.Appointment.Id,
+                UserId = member.UserId
+            };
+
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Ошибка загрузки данных для сложения полномочий");
+            _error = "Ошибка загрузки данных.";
+        }
+    }
+
+    private void OnRdlFileSelected(InputFileChangeEventArgs e)
+    {
+        _rdlFile = e.File;
+    }
+
+    /// <summary>Шаг 2: собираем данные для финализации.</summary>
+    private async Task GoToFinalize()
+    {
+        _error = null;
+
+        if (_selectedReasonCode == "DISQUALIFICATION" && _rdlFile is null)
+        {
+            _error = "Для основания «Дисквалификация» необходимо приложить выписку из РДЛ.";
+            return;
+        }
+        if (_selectedReasonCode == "LEGAL" && string.IsNullOrWhiteSpace(_legalBasis))
+        {
+            _error = "Для основания «Иные основания по ФЗ» необходимо указать статью и закон.";
+            return;
+        }
+
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+
+            // Считаем текущих активных членов СД (не RESIGNED)
+            var activeMembers = await ctx.BoardMembers
+                .Where(m => m.BoardOfDirectorsId == BoardId)
+                .Select(m => new
+                {
+                    m.Id,
+                    Appointment = ctx.BoardMemberAppointments
+                        .Where(a => a.BoardMemberId == m.Id)
+                        .OrderByDescending(a => a.StartedAt)
+                        .Select(a => new { a.RoleCode, StatusCode = a.Status!.Code })
+                        .FirstOrDefault()
+                })
+                .Where(m => m.Appointment != null && m.Appointment.StatusCode != "RESIGNED")
+                .ToListAsync();
+
+            _totalMembers = activeMembers.Count;
+            _remainingMembers = _totalMembers - 1;
+
+            // Порог кворума: 50% согласно п. 2 ст. 68 208-ФЗ
+            _quorumPercent = 50;
+
+            // Кворум = ceil(количество × порог / 100)
+            _quorumThreshold = (int)Math.Ceiling((double)_totalMembers * _quorumPercent / 100);
+            _quorumMet = _remainingMembers >= _quorumThreshold;
+
+            _agendaItems.Clear();
+
+            // Проверяем: выбывший — председатель?
+            var isChair = _member!.RoleCode == "CHAIR";
+            if (isChair)
+            {
+                _agendaItems.Add(new AgendaPreview
+                {
+                    Title = "Выборы председателя СД",
+                    TargetType = "BOARD_MEETING",
+                    Reason = "Выбытие председателя СД в связи со сложением полномочий"
+                });
+            }
+
+            // Проверяем: потерян ли кворум?
+            if (!_quorumMet)
+            {
+                _agendaItems.Add(new AgendaPreview
+                {
+                    Title = "Выбор Совета директоров",
+                    TargetType = "OSA",
+                    Reason = $"Потеря кворума: после выбытия осталось {_remainingMembers} из {_totalMembers} членов (порог {_quorumPercent}% = {_quorumThreshold} чел.)"
+                });
+            }
+
+            _step = 2;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Ошибка подготовки финализации");
+            _error = "Ошибка подготовки данных.";
+        }
+    }
+
+    /// <summary>Выполняет сложение полномочий и создаёт повестки.</summary>
+    private async Task ConfirmResignation()
+    {
+        if (_member is null || _reasonId is null || !_resignDate.HasValue) return;
+        _saving = true;
+        _error = null;
+
+        try
+        {
+            var reasonId = Guid.Parse(_reasonId);
+            var resignedDate = _resignDate.Value;
+
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+
+            var appointment = await ctx.BoardMemberAppointments
+                .FirstOrDefaultAsync(a => a.Id == _member.AppointmentId);
+            if (appointment is null) { _error = "Запись назначения не найдена."; _saving = false; return; }
+
+            var resignedStatusId = await ctx.Set<BoardMemberAppointmentStatus>()
+                .Where(s => s.Code == "RESIGNED")
+                .Select(s => s.Id)
+                .FirstOrDefaultAsync();
+            if (resignedStatusId == Guid.Empty) { _error = "Статус RESIGNED не найден."; _saving = false; return; }
+
+            appointment.StatusId = resignedStatusId;
+            appointment.EndedAt = resignedDate;
+            appointment.ResignedAt = resignedDate.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+            appointment.ResignationReasonId = reasonId;
+            appointment.LegalBasis = _selectedReasonCode == "LEGAL" ? _legalBasis?.Trim() : null;
+
+            Guid? rdlFileId = null;
+            if (_rdlFile is not null)
+            {
+                await using var stream = _rdlFile.OpenReadStream(maxAllowedSize: 50_000_000);
+                var storageKey = await FileStorage.SaveAsync(stream, _rdlFile.Name, _rdlFile.ContentType, CancellationToken.None);
+                var fileEntry = new FileEntry
+                {
+                    Id = Guid.NewGuid(),
+                    OriginalName = _rdlFile.Name,
+                    ContentType = _rdlFile.ContentType,
+                    SizeBytes = _rdlFile.Size,
+                    StorageProvider = "LOCAL",
+                    StorageKeyOrPath = storageKey
+                };
+                ctx.Files.Add(fileEntry);
+                rdlFileId = fileEntry.Id;
+            }
+
+            if (_member.UserId.HasValue && _member.UserId.Value != Guid.Empty)
+            {
+                ctx.Set<UserBoardMemberResignation>().Add(new UserBoardMemberResignation
+                {
+                    Id = Guid.NewGuid(),
+                    UserId = _member.UserId.Value,
+                    BoardMemberAppointmentId = appointment.Id,
+                    ResignedAt = appointment.ResignedAt!.Value,
+                    ResignationReasonId = reasonId,
+                    RdlExtractFileId = rdlFileId
+                });
+            }
+
+            // Создаём повестки
+            foreach (var item in _agendaItems)
+            {
+                ctx.AgendaItems.Add(new AgendaItem
+                {
+                    Id = Guid.NewGuid(),
+                    BoardOfDirectorsId = BoardId,
+                    LegalEntityId = null,
+                    Title = item.Title,
+                    TargetType = item.TargetType,
+                    Reason = item.Reason,
+                    Status = "PENDING"
+                });
+
+                Logger.LogInformation("Повестка создана: [{TargetType}] {Title} — {Reason}",
+                    item.TargetType, item.Title, item.Reason);
+            }
+
+            await ctx.SaveChangesAsync();
+
+            Logger.LogInformation("Сложение полномочий выполнено: {Name}, причина {Reason}, дата {Date}",
+                _member.FullName, _selectedReasonCode, resignedDate);
+
+            Navigation.NavigateTo("/board-of-directors/" + BoardId);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Ошибка при сложении полномочий");
+            _error = $"Ошибка: {ex.Message}";
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+}

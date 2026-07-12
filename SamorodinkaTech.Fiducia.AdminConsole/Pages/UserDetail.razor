@@ -1,0 +1,217 @@
+@page "/users/{UserId:guid}"
+@using Microsoft.EntityFrameworkCore
+@using SamorodinkaTech.Fiducia.Domain.Entities
+@using SamorodinkaTech.Fiducia.Domain.Interfaces
+@inject IApplicationDbContext DbContext
+@inject NavigationManager Navigation
+
+<PageTitle>Fiducia — Пользователь</PageTitle>
+
+<div class="container-fluid">
+    <div class="mb-3">
+        <a class="btn btn-sm btn-outline-secondary" @onclick="GoBack" @onclick:preventDefault>
+            ← Назад к пользователям
+        </a>
+    </div>
+
+    <h3>@_fullName</h3>
+
+    @if (_user == null && !_loaded)
+    {
+        <p>Загрузка...</p>
+    }
+    else if (_user == null)
+    {
+        <div class="alert alert-warning">Пользователь не найден.</div>
+    }
+    else
+    {
+        <div class="card mt-3">
+            <div class="card-header">
+                <ul class="nav nav-tabs card-header-tabs">
+                    <li class="nav-item">
+                        <button class="nav-link @(_tab == "info" ? "active" : "")"
+                                @onclick='() => SwitchTab("info")'>Основное</button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link @(_tab == "roles" ? "active" : "")"
+                                @onclick='() => SwitchTab("roles")'>Роли в СД</button>
+                    </li>
+                </ul>
+            </div>
+            <div class="card-body">
+                @if (_tab == "info")
+                {
+                    <dl class="row mb-0">
+                        <dt class="col-sm-3">Фамилия</dt>
+                        <dd class="col-sm-9">@_user.LastName</dd>
+
+                        <dt class="col-sm-3">Имя</dt>
+                        <dd class="col-sm-9">@_user.FirstName</dd>
+
+                        @if (!string.IsNullOrWhiteSpace(_user.MiddleName))
+                        {
+                            <dt class="col-sm-3">Отчество</dt>
+                            <dd class="col-sm-9">@_user.MiddleName</dd>
+                        }
+
+                        <dt class="col-sm-3">Email</dt>
+                        <dd class="col-sm-9">@_user.Email</dd>
+
+                        <dt class="col-sm-3">Телефон</dt>
+                        <dd class="col-sm-9">@_user.Phone</dd>
+
+                        <dt class="col-sm-3">Тип</dt>
+                        <dd class="col-sm-9">
+                            @if (_user.IsExternal)
+                            {
+                                <span class="badge bg-warning">Внешний</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary">Внутренний</span>
+                            }
+                        </dd>
+
+                        <dt class="col-sm-3">Статус LDAP</dt>
+                        <dd class="col-sm-9">
+                            @if (!_user.IsActive)
+                            {
+                                <span class="badge bg-danger">Заблокирован</span>
+                            }
+                            else if (_user.AccountExpiresAt.HasValue && _user.AccountExpiresAt.Value < DateTime.UtcNow)
+                            {
+                                <span class="badge bg-warning">Истёк</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-success">Активен</span>
+                            }
+                        </dd>
+
+                        @if (_user.AccountExpiresAt.HasValue)
+                        {
+                            <dt class="col-sm-3">Действует до</dt>
+                            <dd class="col-sm-9">@_user.AccountExpiresAt.Value.ToString("dd.MM.yyyy")</dd>
+                        }
+
+                        <dt class="col-sm-3">Статус</dt>
+                        <dd class="col-sm-9">
+                            @if (_user.IsExternal)
+                            {
+                                if (_user.PepAgreementSigned)
+                                {
+                                    <span class="badge bg-success">ПЭП подписан</span>
+                                }
+                                else if (_user.DeclarationCompleted)
+                                {
+                                    <span class="badge bg-info">Анкета заполнена</span>
+                                }
+                                else if (!string.IsNullOrEmpty(_user.InvitationToken))
+                                {
+                                    <span class="badge bg-warning">Ожидает регистрации</span>
+                                }
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary">Внутренний</span>
+                            }
+                        </dd>
+                    </dl>
+                }
+                else if (_tab == "roles")
+                {
+                    @if (_appointments.Count == 0)
+                    {
+                        <p class="text-muted">Нет записей о назначениях в Совет директоров.</p>
+                    }
+                    else
+                    {
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Должность</th>
+                                    <th>Начало</th>
+                                    <th>Окончание</th>
+                                    <th>Статус</th>
+                                    <th>Причина выбытия</th>
+                                    <th>Дата выбытия</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var appt in _appointments)
+                                {
+                                    <tr>
+                                        <td>@(appt.Role?.Name ?? appt.RoleCode)</td>
+                                        <td>@appt.StartedAt.ToString("dd.MM.yyyy")</td>
+                                        <td>@(appt.EndedAt?.ToString("dd.MM.yyyy") ?? "—")</td>
+                                        <td>@(appt.Status?.Name ?? "—")</td>
+                                        <td>@(appt.ResignationReason?.Name ?? "—")</td>
+                                        <td>@(appt.ResignedAt?.ToString("dd.MM.yyyy") ?? "—")</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    }
+                }
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public Guid UserId { get; set; }
+
+    private User? _user;
+    private string _fullName = string.Empty;
+    private string _tab = "info";
+    private bool _loaded;
+    private List<BoardMemberAppointment> _appointments = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        _user = await DbContext.Users
+            .AsNoTracking()
+            .FirstOrDefaultAsync(u => u.Id == UserId);
+
+        if (_user != null)
+        {
+            _fullName = string.Join(" ",
+                new[] { _user.LastName, _user.FirstName, _user.MiddleName }
+                .Where(s => !string.IsNullOrWhiteSpace(s)));
+
+            _appointments = await DbContext.BoardMemberAppointments
+                .AsNoTracking()
+                .Include(a => a.BoardMember)
+                .Include(a => a.Role)
+                .Include(a => a.Status)
+                .Include(a => a.ResignationReason)
+                .Where(a => a.BoardMember!.UserId == UserId)
+                .OrderByDescending(a => a.StartedAt)
+                .ToListAsync();
+        }
+
+        _loaded = true;
+    }
+
+    private void SwitchTab(string tab)
+    {
+        _tab = tab;
+    }
+
+    private void GoBack()
+    {
+        Navigation.NavigateTo("/users");
+    }
+}

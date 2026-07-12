@@ -1,0 +1,63 @@
+@page "/main"
+@using SamorodinkaTech.Fiducia.Domain.Entities
+@using SamorodinkaTech.Fiducia.Domain.Interfaces
+@inject IApplicationDbContext DbContext
+
+<PageTitle>Fiducia — Главная</PageTitle>
+
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h2>Добро пожаловать!</h2>
+                    <p class="mb-0">Личный кабинет члена СД</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h5 class="card-title text-muted">Активных заседаний</h5>
+                    <h2 class="text-primary">@_activeMeetings</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h5 class="card-title text-muted">Ожидают подписания</h5>
+                    <h2 class="text-warning">@_pendingSignatures</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h5 class="card-title text-muted">Поручения комитетам</h5>
+                    <h2 class="text-success">@_activeTasks</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private int _activeMeetings;
+    private int _pendingSignatures;
+    private int _activeTasks;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _activeMeetings = await DbContext.Meetings
+            .CountAsync(m => m.Status == SamorodinkaTech.Fiducia.Domain.Enums.MeetingStatus.VOTING
+                          || m.Status == SamorodinkaTech.Fiducia.Domain.Enums.MeetingStatus.NOTIFIED);
+
+        _pendingSignatures = 3; // TODO
+        _activeTasks = await DbContext.CommitteeTasks
+            .CountAsync(t => t.Status == SamorodinkaTech.Fiducia.Domain.Enums.CommitteeTaskStatus.IN_WORK);
+    }
+}
