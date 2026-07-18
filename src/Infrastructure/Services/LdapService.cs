@@ -120,8 +120,116 @@ public class LdapService : ILdapService
     {
         _logger.LogDebug("Получение членов группы LDAP: {GroupDn}", groupDn);
 
-        var filter = $"(&(objectClass=user)(memberOf={EscapeLdapFilter(groupDn)}))";
-        return await SearchAsync(filter, 0, cancellationToken);
+        // Читаем объект группы и получаем список member-DN
+        var memberDns = await GetGroupMemberDnsAsync(groupDn, cancellationToken);
+
+        if (memberDns.Count == 0)
+            return Array.Empty<LdapUser>();
+
+        // Для каждого DN участника ищем пользователя
+        var users = new List<LdapUser>(memberDns.Count);
+        foreach (var dn in memberDns)
+        {
+            var user = await ResolveUserByDnAsync(dn, cancellationToken);
+            if (user != null)
+                users.Add(user);
+        }
+
+        _logger.LogInformation("Из группы LDAP получено {Count} пользователей", users.Count);
+        return users;
+    }
+
+    private async Task<IReadOnlyList<string>> GetGroupMemberDnsAsync(
+        string groupDn,
+        CancellationToken ct)
+    {
+        try
+        {
+            var identifier = new LdapDirectoryIdentifier(_server, _port);
+            using var connection = new LdapConnection(identifier)
+            {
+                AuthType = AuthType.Basic
+            };
+            connection.SessionOptions.ProtocolVersion = 3;
+
+            if (!string.IsNullOrEmpty(_bindUser))
+                connection.Credential = new NetworkCredential(_bindUser, _bindPassword);
+
+            connection.Bind();
+
+            // Ищем саму группу по её DN и запрашиваем атрибут member
+            var request = new SearchRequest(
+                groupDn,
+                "(objectClass=*)",
+                SearchScope.Base,
+                "member")
+            {
+                SizeLimit = 1
+            };
+
+            var response = (SearchResponse)await Task.Run(
+                () => connection.SendRequest(request), ct);
+
+            if (response.Entries.Count == 0)
+                return Array.Empty<string>();
+
+            var entry = response.Entries[0];
+            return GetMultiStringAttr(entry, "member");
+        }
+        catch (LdapException ex)
+        {
+            _logger.LogWarning(ex, "Ошибка чтения группы LDAP: {GroupDn}", groupDn);
+            return Array.Empty<string>();
+        }
+    }
+
+    private async Task<LdapUser?> ResolveUserByDnAsync(
+        string userDn,
+        CancellationToken ct)
+    {
+        try
+        {
+            var identifier = new LdapDirectoryIdentifier(_server, _port);
+            using var connection = new LdapConnection(identifier)
+            {
+                AuthType = AuthType.Basic
+            };
+            connection.SessionOptions.ProtocolVersion = 3;
+
+            if (!string.IsNullOrEmpty(_bindUser))
+                connection.Credential = new NetworkCredential(_bindUser, _bindPassword);
+
+            connection.Bind();
+
+            var request = new SearchRequest(
+                userDn,
+                "(objectClass=*)",
+                SearchScope.Base,
+                "distinguishedName",
+                "sAMAccountName",
+                "uid",
+                "displayName",
+                "cn",
+                "mail",
+                "title",
+                "department",
+                "telephoneNumber")
+            {
+                SizeLimit = 1
+            };
+
+            var response = (SearchResponse)await Task.Run(
+                () => connection.SendRequest(request), ct);
+
+            return response.Entries.Count > 0
+                ? MapToUser(response.Entries[0])
+                : null;
+        }
+        catch (LdapException ex)
+        {
+            _logger.LogWarning(ex, "Ошибка чтения пользователя LDAP: {UserDn}", userDn);
+            return null;
+        }
     }
 
     private async Task<IReadOnlyList<LdapUser>> SearchAsync(

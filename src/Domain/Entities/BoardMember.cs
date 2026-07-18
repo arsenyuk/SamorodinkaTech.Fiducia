@@ -24,6 +24,10 @@ public class BoardMember
     /// <summary>Email (email).</summary>
     public string? Email { get; set; }
 
+    /// <summary>Ссылка на пользователя системы (user_id). Заполняется при выборе из LDAP.</summary>
+    public Guid? UserId { get; set; }
+
     public OsaMeeting? OsaMeeting { get; set; }
     public BoardMemberType? BoardMemberType { get; set; }
+    public User? User { get; set; }
 }

@@ -190,6 +190,7 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.Property(x => x.BoardMemberTypeId).HasColumnName("board_member_type_id");
             b.Property(x => x.Account).HasColumnName("account").HasMaxLength(100);
             b.Property(x => x.Email).HasColumnName("email").HasMaxLength(200);
+            b.Property(x => x.UserId).HasColumnName("user_id");
             b.HasOne(x => x.BoardMemberType)
              .WithMany()
              .HasForeignKey(x => x.BoardMemberTypeId);
@@ -197,6 +198,9 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
              .WithMany()
              .HasForeignKey(x => x.OsaMeetingId)
              .OnDelete(DeleteBehavior.Cascade);
+            b.HasOne(x => x.User)
+             .WithMany()
+             .HasForeignKey(x => x.UserId);
         });
 
         modelBuilder.Entity<BoardMemberType>(b =>

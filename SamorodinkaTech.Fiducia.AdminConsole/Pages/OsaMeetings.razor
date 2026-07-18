@@ -2,12 +2,15 @@
 @implements IDisposable
 @using Microsoft.EntityFrameworkCore
 @using SamorodinkaTech.Fiducia.Domain.Entities
+@using SamorodinkaTech.Fiducia.Domain.Interfaces
+@using SamorodinkaTech.Fiducia.Domain.Models.Ldap
 @inject IDbContextFactory<SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext> DbFactory
 @inject SamorodinkaTech.Fiducia.Domain.Interfaces.ILegalEntityGosaIntervalService GosaSvc
 @inject SamorodinkaTech.Fiducia.Domain.Interfaces.IFileStorage FileStorage
 @inject ILogger<OsaMeetings> Logger
 @inject NavigationManager Nav
 @inject IConfiguration Config
+@inject IServiceProvider ServiceProvider
 @attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "SYS_ADMIN")]
 
 <h3>Общие собрания акционеров</h3>
@@ -236,7 +239,7 @@
                 <div class="fw-bold mb-2">Штатный состав СД</div>
 
                 <div class="row">
-                    <div class="col-md-6 pe-3 border-end">
+                    <div class="col-md-5 pe-3 border-end">
 
                 <div class="mb-2 d-flex align-items-center gap-2">
                     <input class="form-check-input" type="checkbox" id="editExecDirectors"
@@ -267,7 +270,7 @@
                 </div>
 
                     </div>
-                    <div class="col-md-6 ps-3">
+                    <div class="col-md-7 ps-3">
 
                 <div class="form-check mb-2">
                     <input class="form-check-input" type="checkbox" id="editDeputyChair" @bind="editDeputyChairProvided" disabled="@isFinalized" />
@@ -342,10 +345,29 @@
                                 var isMember = memberRoleId.HasValue && row.RoleId == memberRoleId;
                                 var nameEmpty = !isSecretary && string.IsNullOrWhiteSpace(row.Name);
                                 var typeEmpty = !isSecretary && !isMember && !row.MemberTypeId.HasValue;
-                                var nameClass = "form-control form-control-sm" + (nameEmpty ? " border-danger" : "");
+                                var nameClass = (ldapEnabled && !isSecretary && !isFinalized
+                                    ? "form-select form-select-sm"
+                                    : "form-control form-control-sm") + (nameEmpty ? " border-danger" : "");
                                 var typeClass = "form-select form-select-sm" + (typeEmpty ? " border-danger" : "");
                                 <tr>
-                                    <td><input class="@nameClass" @bind="row.Name" disabled="@(isSecretary || isFinalized)" /></td>
+                                    @if (ldapEnabled && ldapSvc != null && !isSecretary && !isFinalized)
+                                    {
+                                        <td>
+                                            <select class="@nameClass"
+                                                    value="@row.LdapLogin"
+                                                    @onchange="e => OnLdapCandidateSelected(row, e)">
+                                                <option value="">—</option>
+                                                @foreach (var c in ldapCandidates)
+                                                {
+                                                    <option value="@c.Login">@c.FullName</option>
+                                                }
+                                            </select>
+                                        </td>
+                                    }
+                                    else
+                                    {
+                                        <td><input class="@nameClass" @bind="row.Name" disabled="@(isSecretary || isFinalized)" /></td>
+                                    }
                                     <td>
                                         <select class="@typeClass"
                                                 value="@(row.MemberTypeId?.ToString())"
@@ -369,8 +391,8 @@
                                             }
                                         </select>
                                     </td>
-                                    <td><input class="form-control form-control-sm" @bind="row.Account" disabled="@(isSecretary || isFinalized)" /></td>
-                                    <td><input class="form-control form-control-sm" @bind="row.Email" disabled="@(isSecretary || isFinalized)" /></td>
+                                    <td><input class="form-control form-control-sm" @bind="row.Account" disabled="@(isSecretary || isFinalized || (ldapEnabled && !string.IsNullOrWhiteSpace(row.LdapLogin)))" /></td>
+                                    <td><input class="form-control form-control-sm" @bind="row.Email" disabled="@(isSecretary || isFinalized || (ldapEnabled && !string.IsNullOrWhiteSpace(row.LdapLogin)))" /></td>
                                 </tr>
                             }
                         </tbody>
@@ -755,6 +777,10 @@
     private bool editSecretarySignsProtocols;
     private bool editTemporaryChairProvided;
     private string? editTemporaryChairSelection = "CHARTER_SENIOR";
+    private bool ldapEnabled;
+    private IBoardMemberLdapService? ldapSvc;
+    private List<BoardMemberCandidate> ldapCandidates = new();
+    private Dictionary<string, Guid> ldapEmailToUserId = new(StringComparer.OrdinalIgnoreCase);
     private List<BoardMemberRow> boardMemberRows = new();
     private List<BoardMemberType> memberTypes = new();
     private List<BoardRole> boardRoles = new();
@@ -1017,7 +1043,8 @@
                         FullName = row.Name.Trim(),
                         BoardMemberTypeId = row.MemberTypeId,
                         Account = string.IsNullOrWhiteSpace(row.Account) ? null : row.Account.Trim(),
-                        Email = string.IsNullOrWhiteSpace(row.Email) ? null : row.Email.Trim()
+                        Email = string.IsNullOrWhiteSpace(row.Email) ? null : row.Email.Trim(),
+                        UserId = row.UserId
                     };
                     ctx.BoardMembers.Add(member);
                     if (row.RoleId.HasValue && row.StartedAt is not null && DateOnly.TryParse(row.StartedAt, out var startedAt))
@@ -1079,6 +1106,33 @@
     {
         Nav.LocationChanged += OnLocationChanged;
         await LoadData();
+
+        ldapEnabled = Config.GetValue<bool>("Ldap:Enabled");
+        if (ldapEnabled)
+        {
+            try
+            {
+                ldapSvc = ServiceProvider.GetRequiredService<IBoardMemberLdapService>();
+                ldapCandidates = (await ldapSvc.GetCandidatesAsync()).ToList();
+
+                // Строим маппинг email → UserId для привязки кандидатов к справочнику пользователей
+                await using var ctx = await DbFactory.CreateDbContextAsync();
+                var candidateEmails = ldapCandidates
+                    .Where(c => !string.IsNullOrEmpty(c.Email))
+                    .Select(c => c.Email!)
+                    .ToList();
+                var users = await ctx.Users
+                    .Where(u => candidateEmails.Contains(u.Email))
+                    .Select(u => new { u.Id, u.Email })
+                    .ToListAsync();
+                ldapEmailToUserId = users.ToDictionary(u => u.Email, u => u.Id, StringComparer.OrdinalIgnoreCase);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogWarning(ex, "Не удалось загрузить кандидатов из LDAP");
+                ldapCandidates = new();
+            }
+        }
     }
 
     private async void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
@@ -1311,7 +1365,8 @@
             RoleId = appointments.FirstOrDefault(a => a.BoardMemberId == x.Id)?.RoleId,
             StartedAt = appointments.FirstOrDefault(a => a.BoardMemberId == x.Id)?.StartedAt.ToString("yyyy-MM-dd"),
             Account = x.Account,
-            Email = x.Email
+            Email = x.Email,
+            UserId = x.UserId
         }).ToList();
 
         memberTypes = await ctx.BoardMemberTypes.OrderBy(x => x.Code).ToListAsync();
@@ -1514,7 +1569,8 @@
                 RoleId = appointments.FirstOrDefault(a => a.BoardMemberId == x.Id)?.RoleId,
                 StartedAt = appointments.FirstOrDefault(a => a.BoardMemberId == x.Id)?.StartedAt.ToString("yyyy-MM-dd"),
                 Account = x.Account,
-                Email = x.Email
+                Email = x.Email,
+                UserId = x.UserId
             }).ToList();
 
             EnsureBoardMemberCount();
@@ -1945,7 +2001,8 @@
                     FullName = row.Name.Trim(),
                     BoardMemberTypeId = row.MemberTypeId,
                     Account = string.IsNullOrWhiteSpace(row.Account) ? null : row.Account.Trim(),
-                    Email = string.IsNullOrWhiteSpace(row.Email) ? null : row.Email.Trim()
+                    Email = string.IsNullOrWhiteSpace(row.Email) ? null : row.Email.Trim(),
+                    UserId = row.UserId
                 };
                 ctx.BoardMembers.Add(member);
 
@@ -2175,6 +2232,35 @@
         row.MemberTypeId = Guid.TryParse(e.Value?.ToString(), out var id) ? id : null;
     }
 
+    private void OnLdapCandidateSelected(BoardMemberRow row, ChangeEventArgs e)
+    {
+        var login = e.Value?.ToString();
+        row.LdapLogin = login;
+
+        if (string.IsNullOrEmpty(login))
+        {
+            row.UserId = null;
+            StateHasChanged();
+            return;
+        }
+
+        var candidate = ldapCandidates.FirstOrDefault(c => c.Login == login);
+        if (candidate != null)
+        {
+            row.Name = candidate.FullName;
+            row.Account = candidate.Login;
+            row.Email = candidate.Email ?? string.Empty;
+
+            // Привязка к справочнику пользователей по email
+            if (!string.IsNullOrEmpty(candidate.Email) && ldapEmailToUserId.TryGetValue(candidate.Email, out var userId))
+                row.UserId = userId;
+            else
+                row.UserId = null;
+        }
+
+        StateHasChanged();
+    }
+
     private void OnRoleChanged(int index, ChangeEventArgs e)
     {
         if (index >= 0 && index < boardMemberRows.Count)
@@ -2214,5 +2300,7 @@
         public string? StartedAt { get; set; }
         public string? Account { get; set; }
         public string? Email { get; set; }
+        public string? LdapLogin { get; set; }
+        public Guid? UserId { get; set; }
     }
 }
