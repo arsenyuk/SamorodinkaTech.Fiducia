@@ -576,6 +576,28 @@
                         </div>
                     </div>
                 </div>
+                @if (editBoardCompositionApproved && boardMemberRows.Any(r => r.RoleId != boardRoles.FirstOrDefault(x => x.Code == "SECRETARY")?.Id))
+                {
+                    var secRoleId = boardRoles.FirstOrDefault(x => x.Code == "SECRETARY")?.Id;
+                    <div class="mt-2">
+                        <strong>Состав СД:</strong>
+                        <table class="table table-sm table-borderless small mb-0 mt-1">
+                            <thead>
+                                <tr><th>ФИО</th><th>Роль</th><th>Тип участника</th></tr>
+                            </thead>
+                            <tbody>
+                            @foreach (var row in boardMemberRows.Where(r => r.RoleId != secRoleId))
+                            {
+                                <tr>
+                                    <td>@(string.IsNullOrWhiteSpace(row.Name) ? "—" : row.Name)</td>
+                                    <td>@(boardRoles.FirstOrDefault(r => r.Id == row.RoleId)?.Name ?? "—")</td>
+                                    <td>@(memberTypes.FirstOrDefault(t => t.Id == row.MemberTypeId)?.Name ?? "—")</td>
+                                </tr>
+                            }
+                            </tbody>
+                        </table>
+                    </div>
+                }
                 @if (isFinalized)
                 {
                     <div class="alert alert-success py-2">
