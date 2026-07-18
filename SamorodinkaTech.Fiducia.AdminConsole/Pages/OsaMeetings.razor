@@ -87,15 +87,12 @@
 
             @if (editIsGosa)
             {
-                <div class="mb-3">
-                    <label class="form-label">Год проведения ГОСА</label>
-                    <input class="form-control" style="max-width:120px" type="number" min="2000" max="2099"
-                           @bind="editGosaYear" disabled="@isFinalized" />
-                    @if (editGosaYear.HasValue && editGosaYear.Value < DateTime.Now.Year - 1)
-                    {
-                        <div class="text-warning small mt-1">Год в прошлом</div>
-                    }
-                </div>
+                @* Год проведения ГОСА — скрытое поле, вычисляется из даты начала *@
+                <input type="hidden" @bind="editGosaYear" />
+                @if (editGosaYear.HasValue && editGosaYear.Value < DateTime.Now.Year - 1)
+                {
+                    <div class="text-warning small mt-1">Год в прошлом</div>
+                }
             }
 
             @if (editIsGosa && !editAbsenteeVoting)
@@ -104,7 +101,8 @@
                     <div class="row g-3 align-items-end">
                         <div class="col-auto">
                             <label class="form-label">Начало ОСА</label>
-                            <InputDate @bind-Value="editGosaStart" class="form-control" disabled="@isFinalized" />
+                            <InputDate @bind-Value="editGosaStart" class="form-control" disabled="@isFinalized"
+                                       @bind-Value:after="() => { if (editIsGosa) editGosaYear = editGosaStart.Year; }" />
                         </div>
                         <div class="col-auto">
                             <label class="form-label">Завершение ОСА</label>
@@ -712,16 +710,16 @@
                     <div class="row g-3 align-items-end">
                         <div class="col-auto">
                             <label class="form-label">Начало ОСА</label>
-                            <InputDate @bind-Value="gosaStart" class="form-control" />
+                            <InputDate @bind-Value="gosaStart" class="form-control"
+                                       @bind-Value:after="() => gosaYear = gosaStart.Year" />
                         </div>
                         <div class="col-auto">
                             <label class="form-label">Завершение ОСА</label>
                             <InputDate @bind-Value="gosaEnd" class="form-control" />
                         </div>
                         <div class="col-auto">
-                            <label class="form-label">Год проведения ГОСА</label>
-                            <input class="form-control" style="max-width:100px" type="number" min="2000" max="2099"
-                                   @bind="gosaYear" />
+                            @* Год ГОСА — скрытое поле, вычисляется из даты начала *@
+                            <input type="hidden" @bind="gosaYear" />
                         </div>
                         <div class="col-auto">
                             @if (!string.IsNullOrEmpty(gosaError))
@@ -1358,6 +1356,7 @@
             {
                 if (gosaStart.Year <= 1)
                     gosaStart = new DateOnly(DateTime.UtcNow.Year, 3, 1);
+                gosaYear = gosaStart.Year;
                 createTitle = BuildGosaTitle(gosaStart);
             }
         }
