@@ -279,30 +279,24 @@
                 <div class="d-flex align-items-center gap-2 mb-2">
                     <input class="form-check-input" type="checkbox" id="editTempChair" @bind="editTemporaryChairProvided" @bind:after="OnTempChairChanged" disabled="@isFinalized" />
                     <label class="form-check-label" for="editTempChair">Предусмотрен временный председательствующий</label>
-                    @if (editTemporaryChairProvided)
-                    {
-                        <select class="form-select form-select-sm" style="width:280px"
-                                value="@editTemporaryChairSelection"
-                                @onchange="HandleTempChairSelection"
-                                disabled="@isFinalized">
-                            <option value="GMS_DECISION">По решению ОСА</option>
-                            <option value="CHARTER_SENIOR">По уставу — старший по возрасту</option>
-                            <option value="BOARD_ELECTION">По решению СД</option>
-                        </select>
-                    }
+                    <select class="form-select form-select-sm @(editTemporaryChairProvided ? "" : "invisible")" style="width:280px"
+                            value="@editTemporaryChairSelection"
+                            @onchange="HandleTempChairSelection"
+                            disabled="@isFinalized">
+                        <option value="GMS_DECISION">По решению ОСА</option>
+                        <option value="CHARTER_SENIOR">По уставу — старший по возрасту</option>
+                        <option value="BOARD_ELECTION">По решению СД</option>
+                    </select>
                 </div>
                 <div class="d-flex align-items-center gap-3 mb-2">
                     <div class="form-check mb-0">
                         <input class="form-check-input" type="checkbox" id="editSecretary" @bind="editSecretaryProvided" @bind:after="OnSecretaryChanged" disabled="@isFinalized" />
                         <label class="form-check-label" for="editSecretary">Предусмотрен секретарь СД</label>
                     </div>
-                    @if (editSecretaryProvided)
-                    {
-                        <div class="form-check mb-0">
-                            <input class="form-check-input" type="checkbox" id="editSecretarySigns" @bind="editSecretarySignsProtocols" disabled="@isFinalized" />
-                            <label class="form-check-label" for="editSecretarySigns">Секретарь СД подписывает протоколы</label>
-                        </div>
-                    }
+                    <div class="form-check mb-0 @(editSecretaryProvided ? "" : "invisible")">
+                        <input class="form-check-input" type="checkbox" id="editSecretarySigns" @bind="editSecretarySignsProtocols" disabled="@isFinalized" />
+                        <label class="form-check-label" for="editSecretarySigns">Секретарь СД подписывает протоколы</label>
+                    </div>
                 </div>
 
                     </div>
@@ -315,7 +309,7 @@
                 @if (editIsPao && (!editIndepDirectors || (editIndepDirectorsCount ?? 0) == 0))
                 {
                     <div class="alert alert-warning py-2 mb-2 small">
-                        Для ПАО обязателен комитет по аудиту (п. 3 ст. 64 208-ФЗ). В составе СД отсутствуют независимые директора.
+                        ⚠️ Для ПАО обязателен комитет по аудиту (п. 3 ст. 64 208-ФЗ). В составе СД отсутствуют независимые директора.
                     </div>
                 }
 
@@ -324,6 +318,10 @@
                         <span class="fw-bold">Готовимся к первому заседанию</span>
                     </div>
                     <div class="text-muted small mb-2">Заполните все разрешённые поля для каждого члена СД (ФИО, тип участника, учётная запись, эл. почта).</div>
+                    @if (!string.IsNullOrEmpty(ldapDuplicateWarning))
+                    {
+                        <div class="alert alert-warning py-2 mb-2 small">⚠️ @ldapDuplicateWarning</div>
+                    }
                     <table class="table table-sm align-middle">
                         <thead>
                             <tr>
@@ -391,8 +389,36 @@
                                             }
                                         </select>
                                     </td>
-                                    <td><input class="form-control form-control-sm" @bind="row.Account" disabled="@(isSecretary || isFinalized || (ldapEnabled && !string.IsNullOrWhiteSpace(row.LdapLogin)))" /></td>
-                                    <td><input class="form-control form-control-sm" @bind="row.Email" disabled="@(isSecretary || isFinalized || (ldapEnabled && !string.IsNullOrWhiteSpace(row.LdapLogin)))" /></td>
+                                    @if (ldapEnabled && ldapSvc != null && !isSecretary && !isFinalized)
+                                    {
+                                        <td>
+                                            <select class="form-select form-select-sm"
+                                                    value="@row.LdapLogin"
+                                                    @onchange="e => OnLdapCandidateSelected(row, e)">
+                                                <option value="">—</option>
+                                                @foreach (var c in ldapCandidates)
+                                                {
+                                                    <option value="@c.Login">@c.Login</option>
+                                                }
+                                            </select>
+                                        </td>
+                                        <td>
+                                            <select class="form-select form-select-sm"
+                                                    value="@row.LdapLogin"
+                                                    @onchange="e => OnLdapCandidateSelected(row, e)">
+                                                <option value="">—</option>
+                                                @foreach (var c in ldapCandidates)
+                                                {
+                                                    <option value="@c.Login">@c.Email</option>
+                                                }
+                                            </select>
+                                        </td>
+                                    }
+                                    else
+                                    {
+                                        <td><input class="form-control form-control-sm" @bind="row.Account" disabled="@(isSecretary || isFinalized)" /></td>
+                                        <td><input class="form-control form-control-sm" @bind="row.Email" disabled="@(isSecretary || isFinalized)" /></td>
+                                    }
                                 </tr>
                             }
                         </tbody>
@@ -409,14 +435,14 @@
                 @if (editIsGosa && !editHasBoard)
                 {
                     <div class="alert alert-info py-2 mb-2 small">
-                        СД отсутствует (функции СД выполняет ОСА по уставу, п. 1 ст. 64 Закона об АО) —
+                        ℹ️ СД отсутствует (функции СД выполняет ОСА по уставу, п. 1 ст. 64 Закона об АО) —
                         прикладывание файлов необязательно.
                     </div>
                 }
                 else if (editIsGosa)
                 {
                     <div class="alert alert-warning py-2 mb-2 small">
-                        Для ГОСА обязателен юридически значимый документ (ЮЗД) с информацией о составе СД.
+                        ⚠️ Для ГОСА обязателен юридически значимый документ (ЮЗД) с информацией о составе СД.
                     </div>
                 }
                 @if (meetingFiles.Any())
@@ -475,7 +501,7 @@
             @if (currentStep == 5)
             {
                 <div class="alert alert-info mb-3">
-                    <strong>Финализация ОСА.</strong> После нажатия «Завершить» редактирование будет заблокировано.
+                    ℹ️ <strong>Финализация ОСА.</strong> После нажатия «Завершить» редактирование будет заблокировано.
                     Действия сотрудника основаны на юридически значимых документах (ЮЗД), переданных для ввода информации.
                 </div>
                 <div class="card bg-light mb-3">
@@ -532,7 +558,7 @@
                 @if (isFinalized)
                 {
                     <div class="alert alert-success py-2">
-                        <div><strong>ОСА зафиксирована</strong></div>
+                        <div>✅ <strong>ОСА зафиксирована</strong></div>
                         <div class="small mt-1">Дата: @finalizedAt?.ToString("dd.MM.yyyy HH:mm") | Кем: Администратор</div>
                     </div>
                 }
@@ -540,11 +566,11 @@
 
             @if (!string.IsNullOrEmpty(saveError))
             {
-                <div class="alert alert-danger">@saveError</div>
+                <div class="alert alert-danger">❌ @saveError</div>
             }
             @if (!string.IsNullOrEmpty(saveSuccess))
             {
-                <div class="alert alert-success">@saveSuccess</div>
+                <div class="alert alert-success">✅ @saveSuccess</div>
             }
 
             <div class="d-flex gap-2">
@@ -664,11 +690,11 @@
 {
     if (!string.IsNullOrEmpty(saveError))
     {
-        <div class="alert alert-danger">@saveError</div>
+        <div class="alert alert-danger">❌ @saveError</div>
     }
     if (!string.IsNullOrEmpty(saveSuccess))
     {
-        <div class="alert alert-success">@saveSuccess</div>
+        <div class="alert alert-success">✅ @saveSuccess</div>
     }
 
     <table class="table table-striped">
@@ -781,6 +807,7 @@
     private IBoardMemberLdapService? ldapSvc;
     private List<BoardMemberCandidate> ldapCandidates = new();
     private Dictionary<string, Guid> ldapEmailToUserId = new(StringComparer.OrdinalIgnoreCase);
+    private string? ldapDuplicateWarning;
     private List<BoardMemberRow> boardMemberRows = new();
     private List<BoardMemberType> memberTypes = new();
     private List<BoardRole> boardRoles = new();
@@ -2257,6 +2284,16 @@
             else
                 row.UserId = null;
         }
+
+        // Проверка дубликатов
+        var dupLogins = boardMemberRows
+            .GroupBy(r => r.LdapLogin)
+            .Where(g => !string.IsNullOrEmpty(g.Key) && g.Count() > 1)
+            .Select(g => g.First().Name)
+            .ToList();
+        ldapDuplicateWarning = dupLogins.Count > 0
+            ? $"Сотрудник{(dupLogins.Count > 1 ? "и" : "")} «{string.Join("», «", dupLogins)}» уже добавлен{(dupLogins.Count > 1 ? "ы" : "")} в состав. Дублирование учётных записей недопустимо."
+            : null;
 
         StateHasChanged();
     }
