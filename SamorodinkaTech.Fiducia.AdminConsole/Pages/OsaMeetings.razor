@@ -598,6 +598,28 @@
                         </table>
                     </div>
                 }
+                @if (meetingFiles.Any())
+                {
+                    <div class="mt-2">
+                        <strong>Файлы:</strong>
+                        <table class="table table-sm table-borderless small mb-0 mt-1">
+                            <thead>
+                                <tr><th>Тип</th><th>Наименование</th><th>Имя файла</th><th>Размер</th></tr>
+                            </thead>
+                            <tbody>
+                            @foreach (var mf in meetingFiles)
+                            {
+                                <tr>
+                                    <td><span class="badge @FileTypeBadge(mf.FileType)">@FileTypeLabel(mf.FileType)</span></td>
+                                    <td>@(mf.DisplayName ?? "—")</td>
+                                    <td>@mf.FileName</td>
+                                    <td>@FormatSize(mf.SizeBytes)</td>
+                                </tr>
+                            }
+                            </tbody>
+                        </table>
+                    </div>
+                }
                 @if (isFinalized)
                 {
                     <div class="alert alert-success py-2">
