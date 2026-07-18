@@ -1957,11 +1957,9 @@
         // Серверная валидация полей членов СД с ролью «Член СД»
         if (editBoardCompositionApproved && editHasBoard)
         {
-            // Количество строк (без секретаря) должно совпадать с заявленным и быть не меньше минимума
+            // Количество строк (без секретаря и временного председательствующего) должно совпадать с заявленным и быть не меньше минимума
             var secRoleId = boardRoles.FirstOrDefault(r => r.Code == "SECRETARY")?.Id;
-            var nonSecretaryCount = secRoleId is null
-                ? boardMemberRows.Count
-                : boardMemberRows.Count(r => r.RoleId != secRoleId);
+            var nonSecretaryCount = boardMemberRows.Count(r => r.RoleId != secRoleId && r.RoleId != tempChairRoleId);
             if (editBoardMemberNumber.HasValue && nonSecretaryCount != editBoardMemberNumber.Value)
             {
                 saveError = $"Количество членов СД в списке ({nonSecretaryCount}) не совпадает с заявленным ({editBoardMemberNumber})";
@@ -2122,7 +2120,8 @@
             ctx.BoardMemberAppointments.RemoveRange(oldAppointments);
             ctx.BoardMembers.RemoveRange(oldMembers);
             var _secRoleId = boardRoles.FirstOrDefault(r => r.Code == "SECRETARY")?.Id;
-            foreach (var row in boardMemberRows.Where(x => !string.IsNullOrWhiteSpace(x.Name) || x.RoleId == _secRoleId))
+            var _tcRoleId = tempChairRoleId;
+            foreach (var row in boardMemberRows.Where(x => !string.IsNullOrWhiteSpace(x.Name) || x.RoleId == _secRoleId || x.RoleId == _tcRoleId))
             {
                 var member = new BoardMember
                 {
