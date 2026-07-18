@@ -2,6 +2,7 @@
 @attribute [Authorize(Roles = "SYS_ADMIN")]
 @using Microsoft.EntityFrameworkCore
 @inject IServiceProvider ServiceProvider
+@inject ILogger<BoardOfDirectors> Logger
 @using SamorodinkaTech.Fiducia.Domain.Interfaces
 @using SamorodinkaTech.Fiducia.Domain.Entities
 
@@ -166,7 +167,8 @@
         }
         catch (Exception ex)
         {
-            _status = $"Ошибка сохранения: {ex.Message}";
+            Logger.LogWarning(ex, "Ошибка сохранения настроек СД");
+            _status = $"Ошибка сохранения: {ExceptionFlattener.Unwrap(ex)}";
             _statusCss = "text-danger";
         }
     }

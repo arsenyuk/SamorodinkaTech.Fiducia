@@ -2,7 +2,8 @@ namespace SamorodinkaTech.Fiducia.Domain.Entities;
 
 public class Notification
 {
-    public int Id { get; set; }
+    /// <summary>Уникальный идентификатор (id).</summary>
+    public Guid Id { get; set; }
     public Guid? UserId { get; set; }
     public User? User { get; set; }
     public Guid? CommitteeId { get; set; }

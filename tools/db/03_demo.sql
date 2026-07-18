@@ -7,17 +7,8 @@ VALUES ('99999999-9999-9999-9999-999999999999','Смирнов','Дмитрий'
 ON CONFLICT (id) DO NOTHING;
 
 -- Роль SYS_ADMIN → см. tools/db/02_seed.sql: '11111111-1111-1111-1111-111111111111'
-INSERT INTO user_roles(user_id, role_id)
-VALUES ('99999999-9999-9999-9999-999999999999','11111111-1111-1111-1111-111111111111')
-ON CONFLICT DO NOTHING;
-
--- Пример комитета STRAT (секретарь — demo admin)
-INSERT INTO committees (id, code, name, behavior_type, is_active, chair_id, secretary_id)
-VALUES ('aaaaaaaa-1111-1111-1111-aaaaaaaaaaa1','STRAT','Стратегический комитет','STRATEGIC', TRUE, NULL, '99999999-9999-9999-9999-999999999999')
-ON CONFLICT (code) DO NOTHING;
-
-INSERT INTO committee_members(committee_id, user_id)
-VALUES ('aaaaaaaa-1111-1111-1111-aaaaaaaaaaa1','99999999-9999-9999-9999-999999999999')
+INSERT INTO user_roles(id, user_id, role_id)
+VALUES ('dddddddd-dddd-dddd-dddd-ddddddddddd0','99999999-9999-9999-9999-999999999999','11111111-1111-1111-1111-111111111111')
 ON CONFLICT DO NOTHING;
 
 -- Демо-пользователи для Board Portal (Basic) — чтобы Login отрисовывал dropdown

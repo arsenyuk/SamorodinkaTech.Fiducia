@@ -20,7 +20,7 @@ public interface INotificationService
     /// <param name="meetingId">Идентификатор заседания (если уведомление связано с заседанием).</param>
     /// <param name="cancellationToken">Токен отмены.</param>
     /// <returns>Идентификатор созданной записи уведомления.</returns>
-    Task<int> SendAsync(
+    Task<Guid> SendAsync(
         NotificationType notificationType,
         string title,
         string body,
@@ -40,7 +40,7 @@ public interface INotificationService
     /// <param name="meetingId">Идентификатор заседания (если уведомление связано с заседанием).</param>
     /// <param name="cancellationToken">Токен отмены.</param>
     /// <returns>Список идентификаторов созданных записей уведомлений.</returns>
-    Task<IReadOnlyList<int>> SendToManyAsync(
+    Task<IReadOnlyList<Guid>> SendToManyAsync(
         NotificationType notificationType,
         string title,
         string body,

@@ -14,6 +14,9 @@ public class BoardMemberAppointment
     /// <summary>Ссылка на должность (role_id).</summary>
     public Guid RoleId { get; set; }
 
+    /// <summary>Код должности (role_code).</summary>
+    public string RoleCode { get; set; } = default!;
+
     /// <summary>Дата начала полномочий (started_at).</summary>
     public DateOnly StartedAt { get; set; }
 

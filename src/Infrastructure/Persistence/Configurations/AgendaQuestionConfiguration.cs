@@ -18,7 +18,8 @@ public class AgendaQuestionConfiguration : IEntityTypeConfiguration<AgendaQuesti
         builder.Property(aq => aq.SequenceNumber).HasColumnName("sequence_number").IsRequired();
         builder.Property(aq => aq.QuestionText).HasColumnName("question_text").IsRequired();
         builder.Property(aq => aq.ProposedResolution).HasColumnName("proposed_resolution").IsRequired();
-        builder.Property(aq => aq.Status).HasColumnName("status").HasMaxLength(50).HasDefaultValue(QuestionStatus.PENDING);
+        builder.Property(aq => aq.Status).HasColumnName("status").HasMaxLength(50)
+            .HasConversion<string>().HasDefaultValue(QuestionStatus.PENDING);
 
         builder.HasIndex(aq => aq.MeetingId);
         builder.HasIndex(aq => aq.Status);

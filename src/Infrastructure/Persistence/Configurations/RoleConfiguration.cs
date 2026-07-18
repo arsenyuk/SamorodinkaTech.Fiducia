@@ -13,9 +13,9 @@ public class RoleConfiguration : IEntityTypeConfiguration<Role>
         builder.HasKey(r => r.Id);
         builder.Property(r => r.Id).HasColumnName("id");
 
-        builder.Property(r => r.RoleCode).HasColumnName("role_code").HasMaxLength(50).IsRequired();
-        builder.Property(r => r.RoleName).HasColumnName("role_name").HasMaxLength(100).IsRequired();
+        builder.Property(r => r.Code).HasColumnName("code").HasMaxLength(50).IsRequired();
+        builder.Property(r => r.Name).HasColumnName("name").HasMaxLength(100).IsRequired();
 
-        builder.HasIndex(r => r.RoleCode).IsUnique();
+        builder.HasIndex(r => r.Code).IsUnique();
     }
 }

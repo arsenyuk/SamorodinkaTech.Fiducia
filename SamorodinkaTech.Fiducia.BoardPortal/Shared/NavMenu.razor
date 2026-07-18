@@ -1,6 +1,8 @@
+@inject NavigationManager Navigation
+
 <div class="top-row ps-3 navbar navbar-dark">
     <div class="container-fluid">
-        <a class="navbar-brand" href="/main">Fiducia</a>
+        <a class="navbar-brand" href="" @onclick="GoHome" @onclick:preventDefault><span class="oi oi-home" aria-hidden="true"></span> Fiducia</a>
         <button title="Navigation menu" class="navbar-toggler" @onclick="ToggleNavMenu">
             <span class="navbar-toggler-icon"></span>
         </button>
@@ -10,18 +12,13 @@
 <div class="@NavMenuCssClass nav-scrollable" @onclick="ToggleNavMenu">
     <nav class="flex-column">
         <div class="nav-item px-3">
-            <NavLink class="nav-link" href="/main" Match="NavLinkMatch.All">
-                <span class="oi oi-home" aria-hidden="true"></span> Главная
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
             <NavLink class="nav-link" href="meetings">
-                <span class="oi oi-people" aria-hidden="true"></span> Созывы
+                <span class="oi oi-people" aria-hidden="true"></span> Созывы СД
             </NavLink>
         </div>
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="committees">
-                <span class="oi oi-browser" aria-hidden="true"></span> Мои комитеты
+                <span class="oi oi-browser" aria-hidden="true"></span> Комитеты
             </NavLink>
         </div>
         <div class="nav-item px-3">
@@ -40,5 +37,10 @@
     private void ToggleNavMenu()
     {
         collapseNavMenu = !collapseNavMenu;
+    }
+
+    private void GoHome()
+    {
+        Navigation.NavigateTo("/main");
     }
 }

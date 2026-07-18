@@ -540,7 +540,8 @@
         }
         catch (Exception ex)
         {
-            saveError = ex.Message;
+            Logger.LogWarning(ex, "Ошибка сохранения ЮЛ");
+            saveError = ExceptionFlattener.Unwrap(ex);
         }
     }
 
@@ -631,7 +632,8 @@
         }
         catch (Exception ex)
         {
-            gosaError = ex.Message;
+            Logger.LogWarning(ex, "Ошибка загрузки интервала ГОСА");
+            gosaError = ExceptionFlattener.Unwrap(ex);
         }
     }
 

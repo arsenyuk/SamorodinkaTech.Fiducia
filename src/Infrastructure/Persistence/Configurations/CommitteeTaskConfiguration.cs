@@ -18,7 +18,8 @@ public class CommitteeTaskConfiguration : IEntityTypeConfiguration<CommitteeTask
         builder.Property(ct => ct.AgendaQuestionId).HasColumnName("agenda_question_id");
         builder.Property(ct => ct.TaskDescription).HasColumnName("task_description").IsRequired();
         builder.Property(ct => ct.DeadlineAt).HasColumnName("deadline_at").IsRequired();
-        builder.Property(ct => ct.Status).HasColumnName("status").HasMaxLength(50).HasDefaultValue(CommitteeTaskStatus.IN_WORK);
+        builder.Property(ct => ct.Status).HasColumnName("status").HasMaxLength(50)
+            .HasConversion<string>().HasDefaultValue(CommitteeTaskStatus.IN_WORK);
         builder.Property(ct => ct.CreatedBy).HasColumnName("created_by");
         builder.Property(ct => ct.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("CURRENT_TIMESTAMP");
 

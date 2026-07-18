@@ -11,11 +11,17 @@ public class OsaMeeting
     /// <summary>Форма проведения ОСА (osa_form_id).</summary>
     public Guid OsaFormId { get; set; }
 
+    /// <summary>Название собрания (title).</summary>
+    public string? Title { get; set; }
+
     /// <summary>Дата начала окна ГОСА (gosa_window_start).</summary>
     public DateOnly? GosaWindowStart { get; set; }
 
     /// <summary>Дата окончания окна ГОСА (gosa_window_end).</summary>
     public DateOnly? GosaWindowEnd { get; set; }
+
+    /// <summary>Год проведения ГОСА (gosa_year).</summary>
+    public int? GosaYear { get; set; }
 
     /// <summary>Количество акционеров (shareholders_count).</summary>
     public int? ShareholdersCount { get; set; }
@@ -25,6 +31,24 @@ public class OsaMeeting
 
     /// <summary>Фактическое количество участников СД (board_member_number).</summary>
     public int? BoardMemberNumber { get; set; }
+
+    /// <summary>Исполнительные директора участвуют в СД (executive_directors_participate).</summary>
+    public bool ExecutiveDirectorsParticipate { get; set; }
+
+    /// <summary>Количество исполнительных директоров (executive_directors_count).</summary>
+    public int? ExecutiveDirectorsCount { get; set; }
+
+    /// <summary>Внешние директора участвуют в СД (non_executive_directors_participate).</summary>
+    public bool NonExecutiveDirectorsParticipate { get; set; }
+
+    /// <summary>Количество внешних директоров (non_executive_directors_count).</summary>
+    public int? NonExecutiveDirectorsCount { get; set; }
+
+    /// <summary>Независимые директора участвуют в СД (independent_directors_participate).</summary>
+    public bool IndependentDirectorsParticipate { get; set; }
+
+    /// <summary>Количество независимых директоров (independent_directors_count).</summary>
+    public int? IndependentDirectorsCount { get; set; }
 
     /// <summary>Список акционеров получен (shareholders_list_received).</summary>
     public bool ShareholdersListReceived { get; set; }

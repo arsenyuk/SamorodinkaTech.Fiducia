@@ -10,6 +10,6 @@
     <Project Path="tests/SamorodinkaTech.Fiducia.Tests.Functional/SamorodinkaTech.Fiducia.Tests.Functional.csproj" />
     <Project Path="tests/SamorodinkaTech.Fiducia.Tests.Integration/SamorodinkaTech.Fiducia.Tests.Integration.csproj" />
   </Folder>
-  <Project Path="SamorodinkaTech.Fiducia.AdminConsole/SamorodinkaTech.Fiducia.AdminConsole.csproj" />
   <Project Path="SamorodinkaTech.Fiducia.BoardPortal/SamorodinkaTech.Fiducia.BoardPortal.csproj" />
+  <Project Path="SamorodinkaTech.Fiducia.AdminConsole/SamorodinkaTech.Fiducia.AdminConsole.csproj" />
 </Solution>

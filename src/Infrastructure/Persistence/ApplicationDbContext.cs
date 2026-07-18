@@ -115,6 +115,7 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.Property(x => x.Id).HasColumnName("id");
             b.Property(x => x.Code).HasColumnName("code").HasMaxLength(10).IsRequired();
             b.Property(x => x.Name).HasColumnName("name").HasMaxLength(200).IsRequired();
+            b.Property(x => x.ShortName).HasColumnName("short_name").HasMaxLength(50);
             b.HasIndex(x => x.Code).IsUnique().HasDatabaseName("ux_ref_osa_form_code");
         });
 
@@ -124,11 +125,19 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.HasKey(x => x.Id);
             b.Property(x => x.Id).HasColumnName("id");
             b.Property(x => x.OsaFormId).HasColumnName("osa_form_id").IsRequired();
+            b.Property(x => x.Title).HasColumnName("title").HasMaxLength(500);
             b.Property(x => x.GosaWindowStart).HasColumnName("gosa_window_start").HasColumnType("date");
             b.Property(x => x.GosaWindowEnd).HasColumnName("gosa_window_end").HasColumnType("date");
+            b.Property(x => x.GosaYear).HasColumnName("gosa_year");
             b.Property(x => x.ShareholdersCount).HasColumnName("shareholders_count");
             b.Property(x => x.BoardMinNumber).HasColumnName("board_min_number");
             b.Property(x => x.BoardMemberNumber).HasColumnName("board_member_number");
+            b.Property(x => x.ExecutiveDirectorsParticipate).HasColumnName("executive_directors_participate").HasDefaultValue(false);
+            b.Property(x => x.ExecutiveDirectorsCount).HasColumnName("executive_directors_count");
+            b.Property(x => x.NonExecutiveDirectorsParticipate).HasColumnName("non_executive_directors_participate").HasDefaultValue(false);
+            b.Property(x => x.NonExecutiveDirectorsCount).HasColumnName("non_executive_directors_count");
+            b.Property(x => x.IndependentDirectorsParticipate).HasColumnName("independent_directors_participate").HasDefaultValue(false);
+            b.Property(x => x.IndependentDirectorsCount).HasColumnName("independent_directors_count");
             b.Property(x => x.ShareholdersListReceived).HasColumnName("shareholders_list_received").HasDefaultValue(false);
             b.Property(x => x.AbsenteeVoting).HasColumnName("absentee_voting").HasDefaultValue(false);
             b.Property(x => x.OsaHeld).HasColumnName("osa_held").HasDefaultValue(false);
@@ -178,8 +187,9 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.Property(x => x.Id).HasColumnName("id");
             b.Property(x => x.OsaMeetingId).HasColumnName("osa_meeting_id").IsRequired();
             b.Property(x => x.FullName).HasColumnName("full_name").HasMaxLength(300).IsRequired();
-            b.Property(x => x.Position).HasColumnName("position").HasMaxLength(200);
             b.Property(x => x.BoardMemberTypeId).HasColumnName("board_member_type_id");
+            b.Property(x => x.Account).HasColumnName("account").HasMaxLength(100);
+            b.Property(x => x.Email).HasColumnName("email").HasMaxLength(200);
             b.HasOne(x => x.BoardMemberType)
              .WithMany()
              .HasForeignKey(x => x.BoardMemberTypeId);
@@ -217,6 +227,7 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.Property(x => x.Id).HasColumnName("id");
             b.Property(x => x.BoardMemberId).HasColumnName("board_member_id").IsRequired();
             b.Property(x => x.RoleId).HasColumnName("role_id").IsRequired();
+            b.Property(x => x.RoleCode).HasColumnName("role_code").HasMaxLength(20).IsRequired();
             b.Property(x => x.StartedAt).HasColumnName("started_at");
             b.Property(x => x.EndedAt).HasColumnName("ended_at");
             b.Property(x => x.Status).HasColumnName("status").HasMaxLength(20).HasDefaultValue("ACTIVE");

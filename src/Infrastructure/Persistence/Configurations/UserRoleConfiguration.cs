@@ -10,11 +10,13 @@ public class UserRoleConfiguration : IEntityTypeConfiguration<UserRole>
     {
         builder.ToTable("user_roles");
 
-        builder.HasKey(ur => new { ur.UserId, ur.RoleId });
+        builder.HasKey(ur => ur.Id);
+        builder.Property(ur => ur.Id).HasColumnName("id").ValueGeneratedOnAdd();
 
-        // Соответствие snake_case колонкам в БД
         builder.Property(ur => ur.UserId).HasColumnName("user_id");
         builder.Property(ur => ur.RoleId).HasColumnName("role_id");
+
+        builder.HasIndex(ur => new { ur.UserId, ur.RoleId }).IsUnique();
 
         builder.HasOne(ur => ur.User)
             .WithMany(u => u.UserRoles)

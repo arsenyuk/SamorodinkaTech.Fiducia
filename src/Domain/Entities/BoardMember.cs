@@ -15,11 +15,14 @@ public class BoardMember
     /// <summary>ФИО члена СД (full_name).</summary>
     public string FullName { get; set; } = default!;
 
-    /// <summary>Должность в организации (position).</summary>
-    public string? Position { get; set; }
-
     /// <summary>Тип участника СД (board_member_type_id).</summary>
     public Guid? BoardMemberTypeId { get; set; }
+
+    /// <summary>Учётная запись (account).</summary>
+    public string? Account { get; set; }
+
+    /// <summary>Email (email).</summary>
+    public string? Email { get; set; }
 
     public OsaMeeting? OsaMeeting { get; set; }
     public BoardMemberType? BoardMemberType { get; set; }

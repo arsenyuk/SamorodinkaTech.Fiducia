@@ -44,9 +44,9 @@ public class BasicProvider : IAuthProvider
 
         // Определяем роль: если есть SYS_ADMIN — даём доступ администратора
         var roleName = user.UserRoles
-            .Select(ur => ur.Role?.RoleCode)
+            .Select(ur => ur.Role?.Code)
             .FirstOrDefault(rc => rc == "SYS_ADMIN")
-            ?? user.UserRoles.Select(ur => ur.Role?.RoleCode).FirstOrDefault()
+            ?? user.UserRoles.Select(ur => ur.Role?.Code).FirstOrDefault()
             ?? "MEMBER_BOARD";
 
         return new AuthResult
@@ -75,7 +75,7 @@ public class BasicProvider : IAuthProvider
                 DisplayName = $"{u.LastName} {u.FirstName} {u.MiddleName}",
                 Username = u.Id.ToString(),
                 Email = u.Email,
-                Role = u.UserRoles.Select(ur => ur.Role!.RoleCode).FirstOrDefault() ?? "MEMBER_BOARD"
+                Role = u.UserRoles.Select(ur => ur.Role!.Code).FirstOrDefault() ?? "MEMBER_BOARD"
             })
             .ToListAsync();
     }

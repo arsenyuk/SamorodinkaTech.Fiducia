@@ -10,10 +10,13 @@ public class CommitteeMemberConfiguration : IEntityTypeConfiguration<CommitteeMe
     {
         builder.ToTable("committee_members");
 
-        builder.HasKey(cm => new { cm.CommitteeId, cm.UserId });
+        builder.HasKey(cm => cm.Id);
+        builder.Property(cm => cm.Id).HasColumnName("id").ValueGeneratedOnAdd();
 
         builder.Property(cm => cm.CommitteeId).HasColumnName("committee_id");
         builder.Property(cm => cm.UserId).HasColumnName("user_id");
+
+        builder.HasIndex(cm => new { cm.CommitteeId, cm.UserId }).IsUnique();
 
         builder.HasOne(cm => cm.Committee)
             .WithMany(c => c.Members)

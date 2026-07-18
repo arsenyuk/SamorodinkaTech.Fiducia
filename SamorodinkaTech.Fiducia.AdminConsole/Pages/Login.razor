@@ -48,7 +48,7 @@
                     }
                     else
                     {
-                        <!-- Active Directory: логин/пароль -->
+                        <!-- AD/LDAP: логин/пароль -->
                         <div class="mb-3">
                             <label class="form-label">Логин</label>
                             <input type="text" class="form-control" @bind="_username" placeholder="admin@company.local">
@@ -100,7 +100,7 @@
     private string GetRoleName(User user)
     {
         var role = user.UserRoles.FirstOrDefault()?.Role;
-        return role?.RoleName ?? "Без роли";
+        return role?.Name ?? "Без роли";
     }
 
     private async Task HandleLogin()
@@ -129,7 +129,7 @@
             }
             else
             {
-                Logger.LogDebug("[LOGIN] AD-аутентификация для Username={Username}", _username);
+                Logger.LogDebug("[LOGIN] LDAP/AD-аутентификация для Username={Username}", _username);
                 result = await AuthProvider.AuthenticateAsync(_username, _password);
             }
 

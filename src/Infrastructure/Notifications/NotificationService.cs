@@ -29,7 +29,7 @@ public class NotificationService : INotificationService
     }
 
     /// <inheritdoc />
-    public async Task<int> SendAsync(
+    public async Task<Guid> SendAsync(
         NotificationType notificationType,
         string title,
         string body,
@@ -61,7 +61,7 @@ public class NotificationService : INotificationService
     }
 
     /// <inheritdoc />
-    public async Task<IReadOnlyList<int>> SendToManyAsync(
+    public async Task<IReadOnlyList<Guid>> SendToManyAsync(
         NotificationType notificationType,
         string title,
         string body,
@@ -85,7 +85,7 @@ public class NotificationService : INotificationService
 
         if (notifications.Count == 0)
         {
-            return Array.Empty<int>();
+            return Array.Empty<Guid>();
         }
 
         foreach (var notification in notifications)

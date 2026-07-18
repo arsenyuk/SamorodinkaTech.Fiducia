@@ -11,7 +11,7 @@ public class NotificationConfiguration : IEntityTypeConfiguration<Notification>
         builder.ToTable("notifications");
 
         builder.HasKey(n => n.Id);
-        builder.Property(n => n.Id).HasColumnName("id").UseIdentityAlwaysColumn();
+        builder.Property(n => n.Id).HasColumnName("id");
 
         builder.Property(n => n.UserId).HasColumnName("user_id");
         builder.Property(n => n.CommitteeId).HasColumnName("committee_id");

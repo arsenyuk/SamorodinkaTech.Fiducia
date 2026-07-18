@@ -15,9 +15,11 @@ public class BulletinConfiguration : IEntityTypeConfiguration<Bulletin>
 
         builder.Property(b => b.AgendaQuestionId).HasColumnName("agenda_question_id").IsRequired();
         builder.Property(b => b.UserId).HasColumnName("user_id").IsRequired();
-        builder.Property(b => b.VoteValue).HasColumnName("vote_value").HasMaxLength(15).IsRequired();
+        builder.Property(b => b.VoteValue).HasColumnName("vote_value").HasMaxLength(15).IsRequired()
+            .HasConversion<string>();
         builder.Property(b => b.SpecialOpinion).HasColumnName("special_opinion");
-        builder.Property(b => b.SignatureType).HasColumnName("signature_type").HasMaxLength(10).IsRequired();
+        builder.Property(b => b.SignatureType).HasColumnName("signature_type").HasMaxLength(10).IsRequired()
+            .HasConversion<string>();
         builder.Property(b => b.SignatureValue).HasColumnName("signature_value").IsRequired();
         builder.Property(b => b.SignedAt).HasColumnName("signed_at").IsRequired();
         builder.Property(b => b.IsCancelled).HasColumnName("is_cancelled").HasDefaultValue(false);

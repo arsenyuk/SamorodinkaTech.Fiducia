@@ -49,4 +49,12 @@ public static class ExceptionFlattener
             logger.LogError("{Type}: {Message}\n{Stack}", i.Type, i.Message, i.StackTrace);
         }
     }
+
+    /// <summary>Извлекает сообщение самого глубокого исключения в цепочке.</summary>
+    public static string Unwrap(Exception ex)
+    {
+        while (ex.InnerException != null)
+            ex = ex.InnerException;
+        return ex.Message;
+    }
 }

@@ -18,6 +18,8 @@ public static class OsaMeetingValidator
         ValidateShareholdersCount(model, orgType, result);
         ValidateBoardMembers(model, orgType, result);
         ValidateBoardMandatory(model, orgType, result);
+        ValidateGosaYear(model, result);
+        ValidateDirectorTypes(model, result);
 
         return result;
     }
@@ -76,6 +78,38 @@ public static class OsaMeetingValidator
             result.AddError(
                 $"Количество участников СД ({model.BoardMemberNumber.Value}) " +
                 $"не может быть меньше минимального ({model.BoardMinNumber.Value}).");
+        }
+    }
+
+    private static void ValidateGosaYear(
+        OsaMeetingValidationModel model,
+        LegalEntitySaveValidationResult result)
+    {
+        if (!model.GosaYear.HasValue || model.GosaYear.Value <= 0)
+            return;
+
+        // Проверка: год должен быть разумным (не раньше основания АО и не в далёком будущем)
+        if (model.GosaYear.Value < 1990 || model.GosaYear.Value > DateTime.UtcNow.Year + 5)
+            result.AddError(
+                $"Год проведения ГОСА ({model.GosaYear.Value}) вне допустимого диапазона.");
+    }
+
+    private static void ValidateDirectorTypes(
+        OsaMeetingValidationModel model,
+        LegalEntitySaveValidationResult result)
+    {
+        var exec = model.ExecutiveDirectorsParticipate ? (model.ExecutiveDirectorsCount ?? 0) : 0;
+        var nonExec = model.NonExecutiveDirectorsParticipate ? (model.NonExecutiveDirectorsCount ?? 0) : 0;
+        var indep = model.IndependentDirectorsParticipate ? (model.IndependentDirectorsCount ?? 0) : 0;
+
+        var total = exec + nonExec + indep;
+
+        if (total > 0 && model.BoardMemberNumber.HasValue)
+        {
+            if (total > model.BoardMemberNumber.Value)
+                result.AddError(
+                    $"Общее количество директоров по типам ({total}) " +
+                    $"не может превышать количество участников СД ({model.BoardMemberNumber.Value}).");
         }
     }
 }

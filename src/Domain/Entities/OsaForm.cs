@@ -13,4 +13,7 @@ public class OsaForm
 
     /// <summary>Наименование (name).</summary>
     public string Name { get; set; } = default!;
+
+    /// <summary>Сокращённое наименование для отображения в списках (short_name).</summary>
+    public string? ShortName { get; set; }
 }

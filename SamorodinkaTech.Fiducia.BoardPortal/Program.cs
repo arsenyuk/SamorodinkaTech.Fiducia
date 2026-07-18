@@ -15,6 +15,7 @@ using SamorodinkaTech.Fiducia.Infrastructure.Middleware;
 using SamorodinkaTech.Fiducia.Domain.Entities;
 using Microsoft.AspNetCore.Http;
 using SamorodinkaTech.Fiducia.Infrastructure.FileStorage;
+using SamorodinkaTech.Fiducia.Infrastructure.Services;
 using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -46,6 +47,23 @@ if (authMethod == "ActiveDirectory")
 {
     builder.Services.AddScoped<IAuthProvider, ActiveDirectoryProvider>();
 }
+else if (authMethod == "LDAP")
+{
+    if (!builder.Configuration.GetValue<bool>("Ldap:Enabled"))
+        throw new InvalidOperationException(
+            "Auth:Method = LDAP, но Ldap:Enabled = false. Включите LDAP в конфигурации.");
+
+    builder.Services.AddScoped<IAuthProvider>(sp =>
+    {
+        var ldap = sp.GetRequiredService<ILdapService>();
+        var logger = sp.GetRequiredService<ILogger<LdapAuthProvider>>();
+        var sysAdminGroupDn = builder.Configuration["Ldap:SysAdminGroupDn"]
+                             ?? "cn=SysAdmins,ou=Groups,dc=bryansk-arsenal,dc=local";
+        var boardGroupDn = builder.Configuration["Ldap:BoardGroupDn"]
+                          ?? "cn=BoardOfDirectors,ou=Groups,dc=bryansk-arsenal,dc=local";
+        return new LdapAuthProvider(ldap, logger, sysAdminGroupDn, boardGroupDn);
+    });
+}
 else
 {
     builder.Services.AddScoped<IAuthProvider, BasicProvider>();
@@ -64,6 +82,32 @@ builder.Services.AddScoped<INotificationService, NotificationService>();
 // File Storage (ADR-020)
 builder.Services.Configure<FileStorageOptions>(builder.Configuration.GetSection("FileStorage"));
 builder.Services.AddSingleton<IFileStorage, LocalFileStorage>();
+
+// LDAP — корпоративный каталог для синхронизации состава СД (опционально)
+if (builder.Configuration.GetValue<bool>("Ldap:Enabled"))
+{
+    builder.Services.AddSingleton<ILdapService>(sp =>
+    {
+        var cfg = builder.Configuration.GetSection("Ldap");
+        var logger = sp.GetRequiredService<ILogger<LdapService>>();
+        return new LdapService(
+            cfg["Server"] ?? "localhost",
+            int.Parse(cfg["Port"] ?? "389"),
+            cfg["BaseDn"] ?? "dc=bryansk-arsenal,dc=local",
+            cfg["BindUser"],
+            cfg["BindPassword"],
+            logger);
+    });
+
+    builder.Services.AddSingleton<IBoardMemberLdapService>(sp =>
+    {
+        var ldap = sp.GetRequiredService<ILdapService>();
+        var logger = sp.GetRequiredService<ILogger<BoardMemberLdapService>>();
+        var boardGroupDn = builder.Configuration["Ldap:BoardGroupDn"]
+                           ?? "cn=BoardOfDirectors,ou=Groups,dc=bryansk-arsenal,dc=local";
+        return new BoardMemberLdapService(ldap, logger, boardGroupDn);
+    });
+}
 
 // JWT Authentication
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -114,9 +158,8 @@ if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error");
     app.UseHsts();
+    app.UseHttpsRedirection();
 }
-
-app.UseHttpsRedirection();
 app.UseStaticFiles();
 
 // Serilog request logging (заменяет ручной ApplicationLogWriter для HTTP-запросов)

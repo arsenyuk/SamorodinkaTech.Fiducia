@@ -6,8 +6,8 @@
 -- Справочник: ref_roles (роли системы)
 CREATE TABLE IF NOT EXISTS ref_roles (
     id uuid PRIMARY KEY,
-    role_code varchar(50) UNIQUE NOT NULL,
-    role_name varchar(100) NOT NULL
+    code varchar(50) UNIQUE NOT NULL,
+    name varchar(100) NOT NULL
 );
 
 -- Таблица: users
@@ -35,9 +35,10 @@ CREATE TABLE IF NOT EXISTS users (
 CREATE INDEX IF NOT EXISTS idx_users_is_external ON users(is_external);
 
 CREATE TABLE IF NOT EXISTS user_roles (
+    id uuid PRIMARY KEY,
     user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     role_id uuid NOT NULL REFERENCES ref_roles(id) ON DELETE CASCADE,
-    PRIMARY KEY (user_id, role_id)
+    UNIQUE (user_id, role_id)
 );
 
 -- Таблица: committees
@@ -45,7 +46,9 @@ CREATE TABLE IF NOT EXISTS committees (
     id uuid PRIMARY KEY,
     code varchar(20) UNIQUE NOT NULL,
     name varchar(255) NOT NULL,
+    description text,
     behavior_type varchar(50) NOT NULL CHECK (behavior_type IN ('CONTROL','STRATEGIC')),
+    is_mandatory_for_public boolean DEFAULT FALSE NOT NULL,
     is_active boolean DEFAULT TRUE NOT NULL,
     chair_id uuid REFERENCES users(id) ON DELETE SET NULL,
     secretary_id uuid REFERENCES users(id) ON DELETE SET NULL,
@@ -58,9 +61,10 @@ CREATE INDEX IF NOT EXISTS idx_committees_behavior_type ON committees(behavior_t
 
 -- Связка: committee_members
 CREATE TABLE IF NOT EXISTS committee_members (
+    id uuid PRIMARY KEY,
     committee_id uuid NOT NULL REFERENCES committees(id) ON DELETE CASCADE,
     user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    PRIMARY KEY (committee_id, user_id)
+    UNIQUE (committee_id, user_id)
 );
 
 -- Таблица: meetings
@@ -169,9 +173,16 @@ CREATE TABLE IF NOT EXISTS osa_meetings (
     osa_form_id uuid NOT NULL REFERENCES ref_osa_form(id) ON DELETE RESTRICT,
     gosa_window_start date,
     gosa_window_end date,
+    gosa_year int,
     shareholders_count int,
     board_min_number int,
     board_member_number int,
+    executive_directors_participate boolean NOT NULL DEFAULT false,
+    executive_directors_count int,
+    non_executive_directors_participate boolean NOT NULL DEFAULT false,
+    non_executive_directors_count int,
+    independent_directors_participate boolean NOT NULL DEFAULT false,
+    independent_directors_count int,
     shareholders_list_received boolean NOT NULL DEFAULT false,
     absentee_voting boolean NOT NULL DEFAULT false,
     status varchar(20) NOT NULL DEFAULT 'DRAFT',
@@ -268,7 +279,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS ux_current_workplace_singleton ON current_work
 
 -- Таблица: notifications (уведомления)
 CREATE TABLE IF NOT EXISTS notifications (
-    id int GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    id uuid PRIMARY KEY,
     user_id uuid REFERENCES users(id) ON DELETE SET NULL,
     committee_id uuid REFERENCES committees(id) ON DELETE SET NULL,
     meeting_id uuid REFERENCES meetings(id) ON DELETE SET NULL,

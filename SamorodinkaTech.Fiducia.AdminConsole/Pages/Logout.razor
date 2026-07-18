@@ -3,6 +3,7 @@
 @using SamorodinkaTech.Fiducia.Domain.Interfaces
 @inject IJSRuntime JS
 @inject NavigationManager NavigationManager
+@inject ILogger<Logout> Logger
 @inject ISecurityAuditService SecurityAuditService
 
 <PageTitle>Fiducia — Выход</PageTitle>
@@ -92,7 +93,7 @@
             await JS.InvokeVoidAsync("fetch", "/api/session/logout",
                 new { method = "POST" });
         }
-        catch { /* endpoint обязуется возвращать 200, но на случай ошибки продолжаем очистку */ }
+        catch (Exception ex) { Logger.LogWarning(ex, "Ошибка вызова API /api/session/logout — продолжаем очистку"); }
 
         // Очистка cookie (включая SessionToken)
         await JS.InvokeVoidAsync("eval",

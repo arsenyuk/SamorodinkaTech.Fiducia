@@ -3,12 +3,13 @@
 @using SamorodinkaTech.Fiducia.Domain.Interfaces
 @using SamorodinkaTech.Fiducia.Domain.Enums
 @inject IApplicationDbContext DbContext
+@inject ILogger<Meetings> Logger
 
-<PageTitle>Fiducia — Созывы</PageTitle>
+<PageTitle>Fiducia — Созывы заседаний СД</PageTitle>
 
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h3>Созывы заседаний</h3>
+        <h3>Созывы заседаний СД</h3>
         <button class="btn btn-primary" @onclick="ShowCreateModal">+ Создать уведомление</button>
     </div>
 
@@ -218,7 +219,7 @@
                 voted = await DbContext.Bulletins
                     .CountAsync(b => b.AgendaQuestion.MeetingId == meeting.Id && !b.IsCancelled);
             }
-            catch { voted = 0; }
+            catch (Exception ex) { Logger.LogWarning(ex, "Ошибка подсчёта голосов для созыва {MeetingId}", meeting.Id); voted = 0; }
             _voteCounts[meeting.Id] = voted;
         }
     }
@@ -298,6 +299,7 @@
         }
         catch (Exception ex)
         {
+            Logger.LogWarning(ex, "Ошибка создания уведомления о созыве");
             _errorMessage = $"Ошибка: {ex.Message}";
         }
         finally

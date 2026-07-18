@@ -318,4 +318,305 @@ public class OsaMeetingValidatorTests
 
         result.IsValid.Should().BeTrue();
     }
+
+    // ── GosaYear ────────────────────────────────────────────────────────
+
+    [Fact]
+    public void GosaYear_ValidCurrentYear_ShouldPass()
+    {
+        var model = new OsaMeetingValidationModel
+        {
+            OkopfCode = "12247",
+            ShareholdersCount = 100,
+            BoardMinNumber = 5,
+            BoardMemberNumber = 7,
+            GosaYear = DateTime.UtcNow.Year
+        };
+
+        var result = OsaMeetingValidator.Validate(model);
+
+        result.IsValid.Should().BeTrue();
+    }
+
+    [Fact]
+    public void GosaYear_NextYear_ShouldPass()
+    {
+        var model = new OsaMeetingValidationModel
+        {
+            OkopfCode = "12247",
+            ShareholdersCount = 100,
+            BoardMinNumber = 5,
+            BoardMemberNumber = 7,
+            GosaYear = DateTime.UtcNow.Year + 1
+        };
+
+        var result = OsaMeetingValidator.Validate(model);
+
+        result.IsValid.Should().BeTrue();
+    }
+
+    [Fact]
+    public void GosaYear_TwoYearsAhead_ShouldPass()
+    {
+        var model = new OsaMeetingValidationModel
+        {
+            OkopfCode = "12247",
+            ShareholdersCount = 100,
+            BoardMinNumber = 5,
+            BoardMemberNumber = 7,
+            GosaYear = DateTime.UtcNow.Year + 2
+        };
+
+        var result = OsaMeetingValidator.Validate(model);
+
+        result.IsValid.Should().BeTrue();
+    }
+
+    [Fact]
+    public void GosaYear_Below1990_ShouldFail()
+    {
+        var model = new OsaMeetingValidationModel
+        {
+            OkopfCode = "12247",
+            ShareholdersCount = 100,
+            BoardMinNumber = 5,
+            BoardMemberNumber = 7,
+            GosaYear = 1989
+        };
+
+        var result = OsaMeetingValidator.Validate(model);
+
+        result.IsValid.Should().BeFalse();
+        result.Errors.Should().Contain(e => e.Contains("вне допустимого диапазона"));
+    }
+
+    [Fact]
+    public void GosaYear_FarFuture_ShouldFail()
+    {
+        var model = new OsaMeetingValidationModel
+        {
+            OkopfCode = "12247",
+            ShareholdersCount = 100,
+            BoardMinNumber = 5,
+            BoardMemberNumber = 7,
+            GosaYear = DateTime.UtcNow.Year + 10
+        };
+
+        var result = OsaMeetingValidator.Validate(model);
+
+        result.IsValid.Should().BeFalse();
+    }
+
+    [Fact]
+    public void GosaYear_Null_ShouldSkipCheck()
+    {
+        var model = new OsaMeetingValidationModel
+        {
+            OkopfCode = "12247",
+            ShareholdersCount = 100,
+            BoardMinNumber = 5,
+            BoardMemberNumber = 7,
+            GosaYear = null
+        };
+
+        var result = OsaMeetingValidator.Validate(model);
+
+        result.IsValid.Should().BeTrue();
+    }
+
+    [Fact]
+    public void GosaYear_Zero_ShouldSkipCheck()
+    {
+        var model = new OsaMeetingValidationModel
+        {
+            OkopfCode = "12247",
+            ShareholdersCount = 100,
+            BoardMinNumber = 5,
+            BoardMemberNumber = 7,
+            GosaYear = 0
+        };
+
+        var result = OsaMeetingValidator.Validate(model);
+
+        result.IsValid.Should().BeTrue();
+    }
+
+    [Fact]
+    public void GosaYear_BoundaryPlus5_ShouldPass()
+    {
+        var model = new OsaMeetingValidationModel
+        {
+            OkopfCode = "12247",
+            ShareholdersCount = 100,
+            BoardMinNumber = 5,
+            BoardMemberNumber = 7,
+            GosaYear = DateTime.UtcNow.Year + 5
+        };
+
+        var result = OsaMeetingValidator.Validate(model);
+
+        result.IsValid.Should().BeTrue();
+    }
+
+    [Fact]
+    public void GosaYear_BoundaryPlus6_ShouldFail()
+    {
+        var model = new OsaMeetingValidationModel
+        {
+            OkopfCode = "12247",
+            ShareholdersCount = 100,
+            BoardMinNumber = 5,
+            BoardMemberNumber = 7,
+            GosaYear = DateTime.UtcNow.Year + 6
+        };
+
+        var result = OsaMeetingValidator.Validate(model);
+
+        result.IsValid.Should().BeFalse();
+        result.Errors.Should().HaveCount(1);
+        result.Errors[0].Should().Contain("вне допустимого диапазона");
+    }
+
+    [Fact]
+    public void GosaYear_PastYear_ShouldPass()
+    {
+        var model = new OsaMeetingValidationModel
+        {
+            OkopfCode = "12247",
+            ShareholdersCount = 100,
+            BoardMinNumber = 5,
+            BoardMemberNumber = 7,
+            GosaYear = DateTime.UtcNow.Year - 1
+        };
+
+        var result = OsaMeetingValidator.Validate(model);
+
+        result.IsValid.Should().BeTrue();
+    }
+    [Fact]
+    public void AbsenteeNeither_ShouldPass()
+    {
+        var model = new OsaMeetingValidationModel
+        {
+            OkopfCode = "12247",
+            ShareholdersCount = 100,
+            BoardMinNumber = 5,
+            BoardMemberNumber = 7,
+            HasGosaInterval = false,
+            IsAbsentee = false
+        };
+
+        var result = OsaMeetingValidator.Validate(model);
+
+        result.IsValid.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Combined_GosaYearPlusBoardMembers_ShouldReportAllErrors()
+    {
+        var model = new OsaMeetingValidationModel
+        {
+            OkopfCode = "12247",
+            ShareholdersCount = 100,
+            BoardMinNumber = 5,
+            BoardMemberNumber = 2,
+            GosaYear = DateTime.UtcNow.Year + 10
+        };
+
+        var result = OsaMeetingValidator.Validate(model);
+
+        result.IsValid.Should().BeFalse();
+        result.Errors.Should().HaveCount(2);
+        result.Errors.Should().Contain(e => e.Contains("вне допустимого диапазона"));
+        result.Errors.Should().Contain(e => e.Contains("меньше минимального"));
+    }
+
+    // ── Director Types ──────────────────────────────────────────────────
+
+    [Fact]
+    public void DirectorTypes_TotalWithinLimit_ShouldPass()
+    {
+        var model = new OsaMeetingValidationModel
+        {
+            OkopfCode = "12247",
+            ShareholdersCount = 100,
+            BoardMinNumber = 5,
+            BoardMemberNumber = 7,
+            ExecutiveDirectorsParticipate = true,
+            ExecutiveDirectorsCount = 2,
+            NonExecutiveDirectorsParticipate = true,
+            NonExecutiveDirectorsCount = 2,
+            IndependentDirectorsParticipate = true,
+            IndependentDirectorsCount = 3
+        };
+
+        var result = OsaMeetingValidator.Validate(model);
+
+        // 2+2+3 = 7 ≤ 7 → ок
+        result.IsValid.Should().BeTrue();
+    }
+
+    [Fact]
+    public void DirectorTypes_TotalExceedsBoardMembers_ShouldFail()
+    {
+        var model = new OsaMeetingValidationModel
+        {
+            OkopfCode = "12247",
+            ShareholdersCount = 100,
+            BoardMinNumber = 5,
+            BoardMemberNumber = 5,
+            ExecutiveDirectorsParticipate = true,
+            ExecutiveDirectorsCount = 2,
+            NonExecutiveDirectorsParticipate = true,
+            NonExecutiveDirectorsCount = 3,
+            IndependentDirectorsParticipate = true,
+            IndependentDirectorsCount = 2
+        };
+
+        var result = OsaMeetingValidator.Validate(model);
+
+        // 2+3+2 = 7 > 5 → ошибка
+        result.IsValid.Should().BeFalse();
+        result.Errors.Should().Contain(e => e.Contains("не может превышать количество участников СД"));
+    }
+
+    [Fact]
+    public void DirectorTypes_NoneSelected_ShouldPass()
+    {
+        var model = new OsaMeetingValidationModel
+        {
+            OkopfCode = "12247",
+            ShareholdersCount = 100,
+            BoardMinNumber = 5,
+            BoardMemberNumber = 5,
+            ExecutiveDirectorsParticipate = false,
+            NonExecutiveDirectorsParticipate = false,
+            IndependentDirectorsParticipate = false
+        };
+
+        var result = OsaMeetingValidator.Validate(model);
+
+        result.IsValid.Should().BeTrue();
+    }
+
+    [Fact]
+    public void DirectorTypes_OnlyOneType_ShouldPass()
+    {
+        var model = new OsaMeetingValidationModel
+        {
+            OkopfCode = "12247",
+            ShareholdersCount = 100,
+            BoardMinNumber = 3,
+            BoardMemberNumber = 3,
+            ExecutiveDirectorsParticipate = true,
+            ExecutiveDirectorsCount = 3,
+            NonExecutiveDirectorsParticipate = false,
+            IndependentDirectorsParticipate = false
+        };
+
+        var result = OsaMeetingValidator.Validate(model);
+
+        // 3 ≤ 3 → ок
+        result.IsValid.Should().BeTrue();
+    }
 }
