@@ -298,6 +298,13 @@
 
             @if (editBoardCompositionApproved)
             {
+                @if (editIsPao && (!editIndepDirectors || (editIndepDirectorsCount ?? 0) == 0))
+                {
+                    <div class="alert alert-warning py-2 mb-2 small">
+                        Для ПАО обязателен комитет по аудиту (п. 3 ст. 64 208-ФЗ). В составе СД отсутствуют независимые директора.
+                    </div>
+                }
+
                 <div class="mb-3">
                     <div class="d-flex justify-content-between align-items-center mb-1">
                         <span class="fw-bold">Готовимся к первому заседанию</span>
