@@ -317,11 +317,32 @@
                     <div class="d-flex justify-content-between align-items-center mb-1">
                         <span class="fw-bold">Готовимся к первому заседанию</span>
                     </div>
-                    <div class="text-muted small mb-2">Заполните все разрешённые поля для каждого члена СД (ФИО, тип участника, учётная запись, эл. почта).</div>
+                    <div class="text-muted small mb-2">Заполните все разрешённые поля для каждого члена СД (ФИО, учётная запись, эл. почта).</div>
                     @if (!string.IsNullOrEmpty(ldapDuplicateWarning))
                     {
                         <div class="alert alert-warning py-2 mb-2 small">⚠️ @ldapDuplicateWarning</div>
                     }
+                    @if (editBoardCompositionApproved && AreBoardFieldsIncomplete())
+                    {
+                        <div class="alert alert-danger py-2 mb-2 small">
+                            ⚠️ Поля членов СД не заполнены — вкладка «Файлы» недоступна
+                        </div>
+                    }
+                    @* ДИАГНОСТИКА — убрать после отладки *@
+                    <div class="text-muted small mb-1" style="font-family:monospace;font-size:11px">
+                        editHasBoard=@editHasBoard | editBoardCompositionApproved=@editBoardCompositionApproved
+                        | fieldsValid=@AreBoardMemberFieldsValid() | ldapWarning=@(ldapDuplicateWarning != null)
+                        | IsStepValid(3)=@IsStepValid(3) | boardRoles.Count=@boardRoles.Count
+                        | memberRoleId=@(memberRoleId?.ToString() ?? "null") | rows=@boardMemberRows.Count
+                        | editBoardMemberNumber=@editBoardMemberNumber | secRoleId=@(boardRoles.FirstOrDefault(r=>r.Code=="SECRETARY")?.Id.ToString()??"null")
+                        <br/>
+                        @foreach (var r in boardMemberRows)
+                        {
+                            var roleCode = boardRoles.FirstOrDefault(x => x.Id == r.RoleId)?.Code ?? "null";
+                            var nameS = string.IsNullOrWhiteSpace(r.Name) ? "(пусто)" : r.Name[..Math.Min(r.Name.Length, 15)];
+                            @: | [@roleCode] @nameS acc=@(r.Account?[..Math.Min((r.Account??"").Length,10)]??"null") ldap=@(r.LdapLogin?[..Math.Min((r.LdapLogin??"").Length,10)]??"null")
+                        }
+                    </div>
                     <table class="table table-sm align-middle">
                         <thead>
                             <tr>
@@ -862,7 +883,9 @@
         0 => true,
         1 => !editHasBoard || (editShareholdersListReceived && editShareholdersCount.HasValue),
         2 => IsProtocolStepValid(),
-        3 => !editHasBoard || (editBoardCompositionApproved && AreBoardMemberFieldsValid()),
+        3 => editBoardCompositionApproved
+            ? AreBoardMemberFieldsValid() && ldapDuplicateWarning == null
+            : !editHasBoard,
         4 => !editIsGosa || !editHasBoard || meetingFiles.Any(),
         _ => true
     };
@@ -920,7 +943,7 @@
     /// <summary>Клиентская валидация: количество членов СД совпадает с заявленным, все поля роли «Член СД» заполнены.</summary>
     private bool AreBoardMemberFieldsValid()
     {
-        if (!editBoardCompositionApproved || !editHasBoard) return true;
+        if (!editHasBoard && !editBoardCompositionApproved) return true;
 
         // Количество строк (без секретаря и временного председательствующего) должно совпадать с заявленным и быть не меньше минимума
         var secRoleId = boardRoles.FirstOrDefault(r => r.Code == "SECRETARY")?.Id;
@@ -930,17 +953,23 @@
         if (editBoardMinNumber.HasValue && nonSecretaryCount < editBoardMinNumber.Value)
             return false;
 
-        // Все поля MEMBER должны быть заполнены
-        var roleId = memberRoleId;
-        if (roleId.HasValue)
-        {
-            var members = boardMemberRows.Where(r => r.RoleId == roleId).ToList();
-            if (members.Any(r =>
-                string.IsNullOrWhiteSpace(r.Name)
-                || !r.MemberTypeId.HasValue
-                || string.IsNullOrWhiteSpace(r.StartedAt)))
-                return false;
-        }
+        // Все строки (кроме секретаря и временного председательствующего) должны быть заполнены
+        var memberRows = boardMemberRows
+            .Where(r => r.RoleId != secRoleId && r.RoleId != tempChairRoleId)
+            .ToList();
+        if (memberRows.Any(r =>
+            string.IsNullOrWhiteSpace(r.Name)
+            || !r.MemberTypeId.HasValue
+            || string.IsNullOrWhiteSpace(r.StartedAt)))
+            return false;
+
+        // Дублирование ФИО среди членов СД недопустимо
+        var dupCount = memberRows
+            .Where(r => !string.IsNullOrWhiteSpace(r.Name))
+            .GroupBy(r => r.Name.Trim())
+            .Count(g => g.Count() > 1);
+        if (dupCount > 0)
+            return false;
 
         // Секретарь обязан иметь STAFF, остальные — не могут
         if (secRoleId.HasValue && staffMemberTypeId.HasValue)
@@ -959,10 +988,37 @@
         if (tcRoleId.HasValue && boardMemberRows.Count(r => r.RoleId == tcRoleId) > 1)
             return false;
 
+        // Временный председательствующий должен быть заполнен (ФИО, тип участника)
+        if (tcRoleId.HasValue && editTemporaryChairProvided && editTemporaryChairSelection == "GMS_DECISION")
+        {
+            var tcRow = boardMemberRows.FirstOrDefault(r => r.RoleId == tcRoleId.Value);
+            if (tcRow == null
+                || string.IsNullOrWhiteSpace(tcRow.Name)
+                || !tcRow.MemberTypeId.HasValue)
+                return false;
+        }
+
         return true;
     }
 
     private bool CanAdvance => IsStepValid(currentStep);
+
+    /// <summary>Возвращает true, если поля членов СД не заполнены (для показа предупреждения).</summary>
+    private bool AreBoardFieldsIncomplete()
+    {
+        if (!editBoardCompositionApproved) return false;
+        // Поля проверяются, даже если editHasBoard == false (обязательный СД для ПАО)
+
+        var secRoleId = boardRoles.FirstOrDefault(r => r.Code == "SECRETARY")?.Id;
+        var memberRows = boardMemberRows
+            .Where(r => r.RoleId != secRoleId && r.RoleId != tempChairRoleId)
+            .ToList();
+
+        return memberRows.Any(r =>
+            string.IsNullOrWhiteSpace(r.Name)
+            || !r.MemberTypeId.HasValue
+            || string.IsNullOrWhiteSpace(r.StartedAt));
+    }
 
     private async Task NextStep()
     {
@@ -1396,6 +1452,14 @@
             UserId = x.UserId
         }).ToList();
 
+        // Восстанавливаем LdapLogin из Account, чтобы LDAP-дропдауны
+        // показывали сохранённые значения при загрузке из БД
+        foreach (var row in boardMemberRows)
+        {
+            if (!string.IsNullOrEmpty(row.Account))
+                row.LdapLogin = row.Account;
+        }
+
         memberTypes = await ctx.BoardMemberTypes.OrderBy(x => x.Code).ToListAsync();
         boardRoles = await ctx.BoardRoles.OrderBy(x => x.SortOrder).ToListAsync();
         editTemporaryChairSelection = m.TemporaryChairSelection ?? "CHARTER_SENIOR";
@@ -1600,6 +1664,14 @@
                 UserId = x.UserId
             }).ToList();
 
+            // Восстанавливаем LdapLogin из Account, чтобы LDAP-дропдауны
+            // показывали сохранённые значения при загрузке из БД
+            foreach (var row in boardMemberRows)
+            {
+                if (!string.IsNullOrEmpty(row.Account))
+                    row.LdapLogin = row.Account;
+            }
+
             EnsureBoardMemberCount();
             ApplyTempChairRole();
             UpdateGosaCountFromTypes();
@@ -1683,6 +1755,9 @@
         int indepCount = editIndepDirectors ? (editIndepDirectorsCount ?? 0) : 0;
 
         var rows = boardMemberRows.Where(r => r.RoleId != secRoleId && r.RoleId != tempChairRoleId).ToList();
+
+        // Если счётчики типов не заданы — не трогаем существующие MemberTypeId (загруженные из БД)
+        if (execCount == 0 && nonExecCount == 0 && indepCount == 0) return;
 
         // Снимаем все типы, затем распределяем заново: EXECUTIVE → NON_EXEC → INDEP
         foreach (var row in rows)
@@ -1902,22 +1977,36 @@
                 return;
             }
 
-            var roleId = memberRoleId;
-            if (roleId.HasValue)
+            // Все строки (кроме секретаря и временного председательствующего) должны быть заполнены
+            var fillRows = boardMemberRows
+                .Where(r => r.RoleId != secRoleId && r.RoleId != tempChairRoleId)
+                .ToList();
+            foreach (var row in fillRows)
             {
-                var members = boardMemberRows.Where(r => r.RoleId == roleId.Value).ToList();
-                foreach (var row in members)
+                if (string.IsNullOrWhiteSpace(row.Name)
+                    || !row.MemberTypeId.HasValue
+                    || string.IsNullOrWhiteSpace(row.StartedAt))
                 {
-                    if (string.IsNullOrWhiteSpace(row.Name)
-                        || !row.MemberTypeId.HasValue
-                        || string.IsNullOrWhiteSpace(row.StartedAt))
-                    {
-                        saveError = "Для членов СД должны быть заполнены все поля (ФИО, тип участника, дата начала полномочий)";
-                        Logger.LogWarning("Валидация не пройдена для состава СД {OsaMeetingId}: незаполненные поля у члена {Name}",
-                            editingMeetingId, row.Name);
-                        return;
-                    }
+                    saveError = "Для членов СД должны быть заполнены все поля (ФИО, тип участника, дата начала полномочий)";
+                    Logger.LogWarning("Валидация не пройдена для состава СД {OsaMeetingId}: незаполненные поля у члена {Name}",
+                        editingMeetingId, row.Name);
+                    return;
                 }
+            }
+
+            // Дублирование ФИО среди членов СД недопустимо
+            var dupNames = fillRows
+                .Where(r => !string.IsNullOrWhiteSpace(r.Name))
+                .GroupBy(r => r.Name.Trim())
+                .Where(g => g.Count() > 1)
+                .Select(g => g.Key)
+                .ToList();
+            if (dupNames.Count > 0)
+            {
+                saveError = $"Дублирование ФИО среди членов СД: «{string.Join("», «", dupNames)}»";
+                Logger.LogWarning("Валидация не пройдена для состава СД {OsaMeetingId}: дубли ФИО: {Names}",
+                    editingMeetingId, string.Join(", ", dupNames));
+                return;
             }
 
             // Секретарь обязан иметь тип «Штатный сотрудник», остальные — не могут
@@ -1952,6 +2041,20 @@
                     saveError = "Временный председательствующий может быть только один";
                     Logger.LogWarning("Валидация не пройдена: TEMP_CHAIR = {Count} в ОСА {OsaMeetingId}", tcCount, editingMeetingId);
                     return;
+                }
+
+                // Временный председательствующий должен быть заполнен (ФИО, тип участника)
+                if (editTemporaryChairProvided && editTemporaryChairSelection == "GMS_DECISION")
+                {
+                    var tcRow = boardMemberRows.FirstOrDefault(r => r.RoleId == tcRoleId.Value);
+                    if (tcRow == null
+                        || string.IsNullOrWhiteSpace(tcRow.Name)
+                        || !tcRow.MemberTypeId.HasValue)
+                    {
+                        saveError = "Временный председательствующий не заполнен (ФИО, тип участника)";
+                        Logger.LogWarning("Валидация не пройдена: TEMP_CHAIR не заполнен в ОСА {OsaMeetingId}", editingMeetingId);
+                        return;
+                    }
                 }
             }
         }
