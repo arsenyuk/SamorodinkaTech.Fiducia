@@ -2369,6 +2369,9 @@
 
         if (string.IsNullOrEmpty(login))
         {
+            row.Name = string.Empty;
+            row.Account = null;
+            row.Email = null;
             row.UserId = null;
             StateHasChanged();
             return;
