@@ -233,9 +233,12 @@
 
                 @if (editBoardCompositionApproved)
                 {
-                <div class="fw-bold mb-1">Штатный состав СД</div>
+                <div class="fw-bold mb-2">Штатный состав СД</div>
 
-                <div class="mb-2 d-flex align-items-center gap-2" style="max-width:400px">
+                <div class="row">
+                    <div class="col-md-6 pe-3 border-end">
+
+                <div class="mb-2 d-flex align-items-center gap-2">
                     <input class="form-check-input" type="checkbox" id="editExecDirectors"
                            @bind="editExecDirectors"
                            @bind:after="() => { if (editExecDirectors && !editExecDirectorsCount.HasValue) editExecDirectorsCount = 1; if (!editExecDirectors) editExecDirectorsCount = null; ComputeBoardMemberNumber(); EnsureBoardMemberCount(); UpdateGosaCountFromTypes(); }"
@@ -244,7 +247,7 @@
                     <input class="form-control form-control-sm @(editExecDirectors ? "" : "invisible")" style="width:80px"
                            type="number" min="1" @bind="editExecDirectorsCount" @bind:after="() => { ComputeBoardMemberNumber(); EnsureBoardMemberCount(); UpdateGosaCountFromTypes(); }" disabled="@isFinalized" />
                 </div>
-                <div class="mb-2 d-flex align-items-center gap-2" style="max-width:400px">
+                <div class="mb-2 d-flex align-items-center gap-2">
                     <input class="form-check-input" type="checkbox" id="editNonExecDirectors"
                            @bind="editNonExecDirectors"
                            @bind:after="() => { if (editNonExecDirectors && !editNonExecDirectorsCount.HasValue) editNonExecDirectorsCount = 1; if (!editNonExecDirectors) editNonExecDirectorsCount = null; ComputeBoardMemberNumber(); EnsureBoardMemberCount(); UpdateGosaCountFromTypes(); }"
@@ -253,7 +256,7 @@
                     <input class="form-control form-control-sm @(editNonExecDirectors ? "" : "invisible")" style="width:80px"
                            type="number" min="1" @bind="editNonExecDirectorsCount" @bind:after="() => { ComputeBoardMemberNumber(); EnsureBoardMemberCount(); UpdateGosaCountFromTypes(); }" disabled="@isFinalized" />
                 </div>
-                <div class="mb-3 d-flex align-items-center gap-2" style="max-width:400px">
+                <div class="d-flex align-items-center gap-2">
                     <input class="form-check-input" type="checkbox" id="editIndepDirectors"
                            @bind="editIndepDirectors"
                            @bind:after="() => { if (editIndepDirectors && !editIndepDirectorsCount.HasValue) editIndepDirectorsCount = 1; if (!editIndepDirectors) editIndepDirectorsCount = null; ComputeBoardMemberNumber(); EnsureBoardMemberCount(); UpdateGosaCountFromTypes(); }"
@@ -263,16 +266,19 @@
                            type="number" min="1" @bind="editIndepDirectorsCount" @bind:after="() => { ComputeBoardMemberNumber(); EnsureBoardMemberCount(); UpdateGosaCountFromTypes(); }" disabled="@isFinalized" />
                 </div>
 
+                    </div>
+                    <div class="col-md-6 ps-3">
+
                 <div class="form-check mb-2">
                     <input class="form-check-input" type="checkbox" id="editDeputyChair" @bind="editDeputyChairProvided" disabled="@isFinalized" />
                     <label class="form-check-label" for="editDeputyChair">Предусмотрен заместитель председателя</label>
                 </div>
-                <div class="form-check mb-2">
+                <div class="d-flex align-items-center gap-2 mb-2">
                     <input class="form-check-input" type="checkbox" id="editTempChair" @bind="editTemporaryChairProvided" @bind:after="OnTempChairChanged" disabled="@isFinalized" />
                     <label class="form-check-label" for="editTempChair">Предусмотрен временный председательствующий</label>
                     @if (editTemporaryChairProvided)
                     {
-                        <select class="form-select form-select-sm d-inline-block ms-3" style="width:280px"
+                        <select class="form-select form-select-sm" style="width:280px"
                                 value="@editTemporaryChairSelection"
                                 @onchange="HandleTempChairSelection"
                                 disabled="@isFinalized">
@@ -282,17 +288,22 @@
                         </select>
                     }
                 </div>
-                <div class="form-check mb-2">
-                    <input class="form-check-input" type="checkbox" id="editSecretary" @bind="editSecretaryProvided" @bind:after="OnSecretaryChanged" disabled="@isFinalized" />
-                    <label class="form-check-label" for="editSecretary">Предусмотрен секретарь СД</label>
-                </div>
-                @if (editSecretaryProvided)
-                {
-                    <div class="form-check mb-2 ms-4">
-                        <input class="form-check-input" type="checkbox" id="editSecretarySigns" @bind="editSecretarySignsProtocols" disabled="@isFinalized" />
-                        <label class="form-check-label" for="editSecretarySigns">Секретарь СД подписывает протоколы</label>
+                <div class="d-flex align-items-center gap-3 mb-2">
+                    <div class="form-check mb-0">
+                        <input class="form-check-input" type="checkbox" id="editSecretary" @bind="editSecretaryProvided" @bind:after="OnSecretaryChanged" disabled="@isFinalized" />
+                        <label class="form-check-label" for="editSecretary">Предусмотрен секретарь СД</label>
                     </div>
-                }
+                    @if (editSecretaryProvided)
+                    {
+                        <div class="form-check mb-0">
+                            <input class="form-check-input" type="checkbox" id="editSecretarySigns" @bind="editSecretarySignsProtocols" disabled="@isFinalized" />
+                            <label class="form-check-label" for="editSecretarySigns">Секретарь СД подписывает протоколы</label>
+                        </div>
+                    }
+                </div>
+
+                    </div>
+                </div>
                 }
             </div>
 
@@ -752,7 +763,7 @@
 
     // Мастер
     private int currentStep;
-    private static readonly string[] wizardSteps = { "Параметры", "Проведение", "Протокол", "Состав СД", "Файлы", "Финализация" };
+    private static readonly string[] wizardSteps = { "Параметры", "Проведение", "Протокол", "Совет директоров", "Файлы", "Финализация" };
 
     private async Task GoToStep(int step)
     {
@@ -782,7 +793,7 @@
 
         currentStep = step;
 
-        // При переходе на вкладку «Состав СД»: подгружаем актуальный состав из БД
+        // При переходе на вкладку «Совет директоров»: подгружаем актуальный состав из БД
         if (step == 3 && editBoardCompositionApproved)
         {
             await LoadBoardMembersFromDb();
@@ -1426,6 +1437,9 @@
                         });
                     }
                 }
+                ComputeBoardMemberNumber();
+                EnsureBoardMemberCount();
+                UpdateGosaCountFromTypes();
                 StateHasChanged();
             }
         }
@@ -1505,6 +1519,7 @@
 
             EnsureBoardMemberCount();
             ApplyTempChairRole();
+            UpdateGosaCountFromTypes();
         }
         catch (Exception ex)
         {
@@ -2142,7 +2157,7 @@
         _ => $"{bytes / (1024.0 * 1024):F1} МБ"
     };
 
-    // ═══ Состав СД ══════════════════════════════════════════════════════
+    // ═══ Совет директоров ═════════════════════════════════════════════════
 
     private void AddBoardMemberRow()
     {
