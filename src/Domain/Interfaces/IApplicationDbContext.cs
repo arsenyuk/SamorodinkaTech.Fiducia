@@ -28,6 +28,7 @@ public interface IApplicationDbContext
     DbSet<LegalEntity> LegalEntities { get; }
     DbSet<CurrentWorkplace> CurrentWorkplaces { get; }
     DbSet<LegalEntityBoardSettings> LegalEntityBoardSettings { get; }
+    DbSet<LegalEntityVotingRules> LegalEntityVotingRules { get; }
     DbSet<FileEntry> Files { get; }
     DbSet<ExtSparkCompany> ExtSparkCompanies { get; }
     DbSet<RefMeetingForm> MeetingForms { get; }

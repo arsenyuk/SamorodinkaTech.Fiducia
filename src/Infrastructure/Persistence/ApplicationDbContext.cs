@@ -32,6 +32,7 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
     public DbSet<LegalEntity> LegalEntities => Set<LegalEntity>();
     public DbSet<CurrentWorkplace> CurrentWorkplaces => Set<CurrentWorkplace>();
     public DbSet<LegalEntityBoardSettings> LegalEntityBoardSettings => Set<LegalEntityBoardSettings>();
+    public DbSet<LegalEntityVotingRules> LegalEntityVotingRules => Set<LegalEntityVotingRules>();
     public DbSet<FileEntry> Files => Set<FileEntry>();
     public DbSet<ExtSparkCompany> ExtSparkCompanies => Set<ExtSparkCompany>();
     public DbSet<RefMeetingForm> MeetingForms => Set<RefMeetingForm>();
@@ -109,6 +110,22 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.Property(x => x.SecretaryProvided).HasColumnName("secretary_provided").HasDefaultValue(true);
             b.Property(x => x.SecretarySignsProtocols).HasColumnName("secretary_signs_protocols").HasDefaultValue(false);
             b.Property(x => x.BoardMandatory).HasColumnName("board_mandatory").HasDefaultValue(false);
+        });
+
+        modelBuilder.Entity<LegalEntityVotingRules>(b =>
+        {
+            b.ToTable("legal_entity_voting_rules");
+            b.HasKey(x => x.Id);
+            b.Property(x => x.Id).HasColumnName("id");
+            b.Property(x => x.LegalEntityId).HasColumnName("legal_entity_id").IsRequired();
+            b.Property(x => x.QuorumPercent).HasColumnName("quorum_percent").HasDefaultValue(50);
+            b.Property(x => x.ChairTiebreaker).HasColumnName("chair_tiebreaker").HasDefaultValue(false);
+            b.Property(x => x.AbsenteeOpinions).HasColumnName("absentee_opinions").HasDefaultValue(false);
+            b.Property(x => x.QualifiedMajorityPercent).HasColumnName("qualified_majority_percent").HasDefaultValue(75);
+            b.Property(x => x.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("CURRENT_TIMESTAMP");
+            b.HasOne(x => x.LegalEntity)
+             .WithMany()
+             .HasForeignKey(x => x.LegalEntityId);
         });
 
         modelBuilder.Entity<RefMeetingForm>(b =>

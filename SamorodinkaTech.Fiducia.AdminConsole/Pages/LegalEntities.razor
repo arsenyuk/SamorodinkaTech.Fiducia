@@ -58,6 +58,21 @@
                 <span class="badge bg-info fs-6">@EntityTypeLabel</span>
             </div>
 
+            <ul class="nav nav-tabs mb-3">
+                <li class="nav-item">
+                    <button class="nav-link @(_activeTab == 0 ? "active" : "")" @onclick="() => _activeTab = 0">Основное</button>
+                </li>
+                @if (editHasBoardOfDirectors)
+                {
+                    <li class="nav-item">
+                        <button class="nav-link @(_activeTab == 1 ? "active" : "")" @onclick="() => _activeTab = 1">Правила голосования в СД</button>
+                    </li>
+                }
+            </ul>
+
+            @if (_activeTab == 0)
+            {
+
             <fieldset class="border rounded p-3 mb-3">
                 <legend class="float-none w-auto px-2 mb-0">Руководитель</legend>
                 <div class="row g-2">
@@ -248,6 +263,45 @@
                 }
             }
 
+            }  @* end of _orgType != OrgType.Unknown *@
+            }  @* end of _activeTab == 0 *@
+
+            @if (_activeTab == 1)
+            {
+                <fieldset class="border rounded p-3 mb-3">
+                    <legend class="float-none w-auto px-2 mb-0">Пороги голосования</legend>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Кворум (%)</label>
+                            <input type="number" class="form-control" @bind="_editQuorumPercent" min="1" max="100">
+                            <small class="text-muted">Не менее 50% от числа избранных членов (п. 2 ст. 68 208-ФЗ)</small>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Квалифицированное большинство (%)</label>
+                            <input type="number" class="form-control" @bind="_editQualifiedMajorityPercent" min="51" max="100">
+                            <small class="text-muted">Для приостановления полномочий ЕИО и иных особых решений (п. 3 ст. 69 208-ФЗ)</small>
+                        </div>
+                    </div>
+                </fieldset>
+
+                <fieldset class="border rounded p-3 mb-3">
+                    <legend class="float-none w-auto px-2 mb-0">Особые правила</legend>
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" id="editChairTiebreaker" @bind="_editChairTiebreaker">
+                        <label class="form-check-label" for="editChairTiebreaker">
+                            Решающий голос председателя при равенстве голосов
+                        </label>
+                    </div>
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" id="editAbsenteeOpinions" @bind="_editAbsenteeOpinions">
+                        <label class="form-check-label" for="editAbsenteeOpinions">
+                            Учёт письменных мнений отсутствующих членов СД
+                        </label>
+                        <div class="text-muted small">Если предусмотрено уставом (п. 1 ст. 68 208-ФЗ)</div>
+                    </div>
+                </fieldset>
+            }  @* end of _activeTab == 1 *@
+
             @if (!string.IsNullOrEmpty(saveError))
             {
                 <div class="alert alert-danger">@saveError</div>
@@ -255,7 +309,6 @@
             @if (editHasBoardOfDirectors && (!editShareholdersCount.HasValue || editShareholdersCount.Value <= 0))
             {
                 <div class="alert alert-warning py-2">Для сохранения необходимо указать количество акционеров.</div>
-            }
             }
             @if (!string.IsNullOrEmpty(saveSuccess))
             {
@@ -300,6 +353,14 @@
     private string? sparkError;
 
     private Guid? _influentialPersonId;
+    private int _activeTab;
+
+    // Правила голосования в СД
+    private int _editQuorumPercent = 50;
+    private int _editQualifiedMajorityPercent = 75;
+    private bool _editChairTiebreaker;
+    private bool _editAbsenteeOpinions;
+    private Guid? _votingRulesId;
 
     protected override async Task OnInitializedAsync()
     {
@@ -419,6 +480,9 @@
 
         // Загружаем ГОСА
         await LoadGosaWindowAsync(le.Id);
+
+        // Загружаем правила голосования в СД (индивидуальные для ЮЛ)
+        await LoadVotingRulesAsync(le.Id);
 
         saveError = null;
         saveSuccess = null;
@@ -551,6 +615,30 @@
                         settings.GosaWindowStart = defStart;
                         settings.GosaWindowEnd = defEnd;
                     }
+                }
+
+                // Сохраняем правила голосования в СД
+                var votingRules = await ctx.LegalEntityVotingRules
+                    .FirstOrDefaultAsync(x => x.LegalEntityId == selectedEntity.Id);
+                if (votingRules is null)
+                {
+                    votingRules = new SamorodinkaTech.Fiducia.Domain.Entities.LegalEntityVotingRules
+                    {
+                        Id = Guid.NewGuid(),
+                        LegalEntityId = selectedEntity.Id,
+                        QuorumPercent = _editQuorumPercent,
+                        ChairTiebreaker = _editChairTiebreaker,
+                        AbsenteeOpinions = _editAbsenteeOpinions,
+                        QualifiedMajorityPercent = _editQualifiedMajorityPercent
+                    };
+                    ctx.LegalEntityVotingRules.Add(votingRules);
+                }
+                else
+                {
+                    votingRules.QuorumPercent = _editQuorumPercent;
+                    votingRules.ChairTiebreaker = _editChairTiebreaker;
+                    votingRules.AbsenteeOpinions = _editAbsenteeOpinions;
+                    votingRules.QualifiedMajorityPercent = _editQualifiedMajorityPercent;
                 }
             }
             else
@@ -782,6 +870,36 @@
         gosaError = GosaSvc.ValidateForOkopf(null, GosaStart, GosaEnd)
             ? null
             : "Недопустимый интервал ГОСА для данной ОПФ";
+    }
+
+    private async Task LoadVotingRulesAsync(Guid legalEntityId)
+    {
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+            var rules = await ctx.LegalEntityVotingRules
+                .FirstOrDefaultAsync(x => x.LegalEntityId == legalEntityId);
+            if (rules is not null)
+            {
+                _votingRulesId = rules.Id;
+                _editQuorumPercent = rules.QuorumPercent;
+                _editQualifiedMajorityPercent = rules.QualifiedMajorityPercent;
+                _editChairTiebreaker = rules.ChairTiebreaker;
+                _editAbsenteeOpinions = rules.AbsenteeOpinions;
+            }
+            else
+            {
+                _votingRulesId = null;
+                _editQuorumPercent = 50;
+                _editQualifiedMajorityPercent = 75;
+                _editChairTiebreaker = false;
+                _editAbsenteeOpinions = false;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Ошибка загрузки правил голосования для ЮЛ {LegalEntityId}", legalEntityId);
+        }
     }
 
     private class LegalEntityVm

@@ -325,6 +325,18 @@ CREATE TABLE IF NOT EXISTS legal_entity_board_settings (
 -- Singleton: не более одной записи в таблице глобальных настроек СД
 CREATE UNIQUE INDEX IF NOT EXISTS ux_board_settings_singleton ON legal_entity_board_settings ((1));
 
+-- Таблица: legal_entity_voting_rules (правила голосования в СД, индивидуальные для ЮЛ)
+CREATE TABLE IF NOT EXISTS legal_entity_voting_rules (
+    id uuid PRIMARY KEY,
+    legal_entity_id uuid NOT NULL REFERENCES legal_entities(id) ON DELETE CASCADE,
+    quorum_percent int NOT NULL DEFAULT 50 CHECK (quorum_percent > 0 AND quorum_percent <= 100),
+    chair_tiebreaker boolean NOT NULL DEFAULT FALSE,
+    absentee_opinions boolean NOT NULL DEFAULT FALSE,
+    qualified_majority_percent int NOT NULL DEFAULT 75 CHECK (qualified_majority_percent > 0 AND qualified_majority_percent <= 100),
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+CREATE UNIQUE INDEX IF NOT EXISTS ux_voting_rules_entity ON legal_entity_voting_rules (legal_entity_id);
+
 -- Таблица: files (метаданные файлов для единого файлового хранилища, ADR-020)
 CREATE TABLE IF NOT EXISTS files (
     id uuid PRIMARY KEY,
