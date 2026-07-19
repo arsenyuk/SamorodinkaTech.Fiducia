@@ -225,10 +225,6 @@
                         <input class="form-check-input" type="checkbox" id="editBoardMandatory" checked="@editBoardMandatory" disabled />
                         <label class="form-check-label" for="editBoardMandatory">
                             Совет директоров обязателен
-                            @if (editBoardMandatory)
-                            {
-                                <span class="badge bg-warning text-dark ms-1">Обязателен</span>
-                            }
                         </label>
                     </div>
                     @if (!editBoardMandatory)
@@ -242,7 +238,7 @@
                     @if (editBoardMandatory || editBoardApproved)
                     {
                     <div class="form-check mb-0">
-                        <input class="form-check-input" type="checkbox" id="editBoardComposition" @bind="editBoardCompositionApproved" disabled="@isFinalized" @bind:after="OnBoardCompositionChanged" />
+                        <input class="form-check-input" type="checkbox" id="editBoardComposition" checked="@editBoardCompositionApproved" disabled />
                         <label class="form-check-label" for="editBoardComposition">Состав СД утверждён</label>
                     </div>
                     }
@@ -1529,6 +1525,8 @@
         editHasBoard = await ctx.LegalEntityBoardSettings.AnyAsync();
         editBoardMandatory = editIsPao
             || (editOkopfCode is "12267" or "12260" && (editShareholdersCount ?? 1) >= 50);
+        if (editBoardMandatory)
+            editBoardCompositionApproved = true;
         editBoardMinNumber = DeriveBoardMinimum(editOkopfCode, editShareholdersCount);
 
         // Умолчания: количество акционеров — из БД (legal_entities), участники СД — из последнего ОСА
@@ -1567,16 +1565,24 @@
 
     private async void OnBoardApprovedChanged()
     {
-        if (!editBoardApproved)
+        if (editBoardApproved)
         {
-            // Сняли «Совет директоров утверждён» → очищаем «Состав СД утверждён»
+            // СД утверждён → Состав СД утверждён автоматически
+            if (!editBoardCompositionApproved)
+            {
+                editBoardCompositionApproved = true;
+                OnBoardCompositionChanged();
+            }
+        }
+        else
+        {
+            // Сняли «Совет директоров утверждён» → очищаем состав
             if (editBoardCompositionApproved)
             {
                 editBoardCompositionApproved = false;
                 OnBoardCompositionChanged();
             }
         }
-        StateHasChanged();
     }
 
     private async void OnBoardCompositionChanged()
