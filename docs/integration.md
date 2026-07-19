@@ -855,7 +855,125 @@ WORM-семантика (невозможность удаления и пере
 - **Linux `chattr +i`** (immutable) — встроен в ext4/xfs/btrfs. Файл не может быть изменён, удалён, переименован или перелинкован. Требует `CAP_LINUX_IMMUTABLE`. Снять флаг может только root.
 - **SMB-шар с WORM** — SMB-сервер (Windows Server, Samba) может быть настроен на режим «только запись и чтение» для шар, без права удаления на уровне SMB-протокола.
 - **NFS с экспортом readonly-after-write** — NFS-сервер может экспортировать каталог с опциями, запрещающими удаление существующих файлов.
-- **S3 Object Lock** (для MinIO) — режимы governance (снимается специальной ролью) и compliance (не снимается). Требует включения object lock при создании бакета и установки retention-периода на каждый объект.
+
+#### Настройка WORM для S3-бакетов (MinIO / AWS S3)
+
+S3-совместимые хранилища поддерживают два механизма предотвращения удаления объектов:
+
+1. **S3 Object Lock** — блокировка объекта на заданный retention-период
+2. **IAM/Bucket Policy** — запрет операций удаления на уровне политик доступа
+
+##### S3 Object Lock: пошаговая настройка
+
+Object Lock **включается при создании бакета** и не может быть добавлен к существующему бакету.
+
+**Шаг 1. Включить версионирование и Object Lock при создании бакета**
+
+MinIO Console: при создании бакета включить флаги **Versioning** и **Object Locking**.
+
+MinIO Client (mc):
+```bash
+# Создание бакета с Object Lock
+mc mb --with-lock fiducia/fiducia-storage
+```
+
+AWS CLI / S3 API:
+```bash
+aws s3api create-bucket \
+    --bucket fiducia-storage \
+    --object-lock-enabled-for-bucket \
+    --endpoint-url http://localhost:9000
+```
+
+**Шаг 2. Установить default retention на бакет (опционально)**
+
+Все новые объекты автоматически получат retention-период:
+```bash
+mc retention set --default compliance 365d fiducia/fiducia-storage
+```
+
+Режимы retention:
+| Режим | Описание | Кто может снять |
+|-------|----------|-----------------|
+| `governance` | Защита от удаления, но администратор со специальной ролью `s3:BypassGovernanceRetention` может снять | Администратор с bypass-правом |
+| `compliance` | Абсолютная защита — **никто**, включая root-администратора хранилища, не может снять до истечения срока | Никто |
+
+**Рекомендация для проекта**: режим `compliance` с retention-периодом, соответствующим сроку хранения документов (например, 10 лет для протоколов СД).
+
+**Шаг 3. Устанавливать retention при загрузке объекта**
+
+```bash
+# Загрузка с retention на 10 лет
+mc put --retention "mode=compliance,retain-until-date=2036-07-19" \
+    protocol.pdf fiducia/fiducia-storage/2026/07/19/
+```
+
+В коде (`MinioFileStorage`): передача retention-параметров в `PutObjectArgs`:
+```csharp
+var putArgs = new PutObjectArgs()
+    .WithBucket(_bucketName)
+    .WithObject(storageKey)
+    .WithStreamData(content)
+    .WithObjectSize(content.Length)
+    .WithRetention(new Retention(
+        mode: RetentionMode.COMPLIANCE,
+        retainUntilDate: DateTime.UtcNow.AddYears(10)));
+```
+
+**Шаг 4. Legal Hold — дополнительная защита**
+
+Для критичных документов можно установить legal hold — объект не может быть удалён даже при истечении retention-периода:
+```bash
+mc legalhold set fiducia/fiducia-storage/protocol.pdf
+```
+
+##### IAM/Bucket Policy: запрет DeleteObject на уровне политик
+
+Альтернативный или дополнительный подход — IAM-политика, запрещающая операции удаления для сервисного пользователя приложения:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "s3:PutObject",
+        "s3:GetObject",
+        "s3:ListBucket"
+      ],
+      "Resource": [
+        "arn:aws:s3:::fiducia-storage",
+        "arn:aws:s3:::fiducia-storage/*"
+      ]
+    },
+    {
+      "Effect": "Deny",
+      "Action": [
+        "s3:DeleteObject",
+        "s3:DeleteObjectVersion",
+        "s3:PutObjectRetention",
+        "s3:BypassGovernanceRetention"
+      ],
+      "Resource": "arn:aws:s3:::fiducia-storage/*"
+    }
+  ]
+}
+```
+
+При такой политике даже без Object Lock сервисный пользователь `fiducia-app` не сможет удалить объекты из бакета.
+
+##### Сводка: комбинированная защита для production
+
+| Механизм | Что предотвращает | Настройка |
+|----------|-------------------|-----------|
+| Object Lock `compliance` | Удаление до истечения срока | При создании бакета + retention на объект |
+| Legal Hold | Удаление даже после истечения retention | На критичные документы |
+| IAM `Deny s3:DeleteObject` | Удаление через API сервисным пользователем | Политика бакета |
+| Bucket Versioning | Скрытое удаление через перезапись | Включено (обязательно для Object Lock) |
+| Отсутствие `s3:BypassGovernanceRetention` у сервисного пользователя | Обход governance-блокировки | Не выдавать право в IAM |
+
+> **Важно**: Object Lock и IAM-политики — настройки инфраструктуры. Код `MinioFileStorage` не управляет retention, legal hold и политиками бакета. WORM-семантика S3 обеспечивается исключительно конфигурацией бакета и IAM, не кодом приложения.
 
 #### Иностранные решения (ранее использовались)
 
