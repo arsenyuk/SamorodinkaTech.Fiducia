@@ -366,8 +366,6 @@ app.MapPost("/api/admin/legal-entities/{id:guid}/gosa-window", async (
         settings = new SamorodinkaTech.Fiducia.Domain.Entities.LegalEntityBoardSettings
         {
             Id = Guid.NewGuid(),
-            MinimumMemberNumber = 0,
-            MemberNumber = 0,
             GosaWindowStart = start,
             GosaWindowEnd = end
         };

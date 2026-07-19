@@ -14,4 +14,7 @@ public class CurrentWorkplace
 
     /// <summary>Должность (position).</summary>
     public string? Position { get; set; }
+
+    /// <summary>Идентификатор последнего выбранного юридического лица (last_selected_legal_entity_id).</summary>
+    public Guid? LastSelectedLegalEntityId { get; set; }
 }

@@ -51,7 +51,26 @@
         <div class="card-body">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <h5 class="mb-0">@selectedEntity.Name (@selectedEntity.Inn)</h5>
-                <button class="btn btn-sm btn-outline-primary" @onclick="ShowSearch">Поиск</button>
+                <div class="d-flex gap-2">
+                    @if (!string.IsNullOrEmpty(selectedEntity?.Inn))
+                    {
+                        <button class="btn btn-sm btn-outline-secondary"
+                                @onclick="LoadSparkData"
+                                disabled="@sparkLoading"
+                                title="Загрузить данные из СПАРК">
+                            @if (sparkLoading)
+                            {
+                                <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                                @:СПАРК...
+                            }
+                            else
+                            {
+                                @:СПАРК
+                            }
+                        </button>
+                    }
+                    <button class="btn btn-sm btn-outline-primary" @onclick="ShowSearch">Поиск</button>
+                </div>
             </div>
 
             <div class="mb-3">
@@ -60,234 +79,172 @@
 
             <ul class="nav nav-tabs mb-3">
                 <li class="nav-item">
-                    <button class="nav-link @(_activeTab == 0 ? "active" : "")" @onclick="() => _activeTab = 0">Основное</button>
+                    <button class="nav-link @(_activeTab == 0 ? "active" : "")" @onclick="() => _activeTab = 0">Карточка ЮЛ</button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link @(_activeTab == 1 ? "active" : "")" @onclick="() => _activeTab = 1">Руководитель</button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link @(_activeTab == 2 ? "active" : "")" @onclick="() => _activeTab = 2">Интервал ГОСА</button>
                 </li>
                 @if (editHasBoardOfDirectors)
                 {
                     <li class="nav-item">
-                        <button class="nav-link @(_activeTab == 1 ? "active" : "")" @onclick="() => _activeTab = 1">Правила голосования в СД</button>
+                        <button class="nav-link @(_activeTab == 3 ? "active" : "")" @onclick="() => _activeTab = 3">Правила голосования в СД</button>
                     </li>
                 }
             </ul>
 
             @if (_activeTab == 0)
             {
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <dl class="row mb-0">
+                            <dt class="col-sm-4 text-muted fw-normal">Полное наименование</dt>
+                            <dd class="col-sm-8">@(_sparkCompanyFullName ?? selectedEntity.Name)</dd>
 
-            <fieldset class="border rounded p-3 mb-3">
-                <legend class="float-none w-auto px-2 mb-0">Руководитель</legend>
-                <div class="row g-2">
-                    <div class="col-12 col-md-6">
-                        <label class="form-label">Должность</label>
-                        <input class="form-control" @bind="editPosition" />
+                            <dt class="col-sm-4 text-muted fw-normal">Краткое наименование</dt>
+                            <dd class="col-sm-8">@(_sparkCompanyShortName ?? selectedEntity.ShortName ?? "—")</dd>
+
+                            <dt class="col-sm-4 text-muted fw-normal">ИНН</dt>
+                            <dd class="col-sm-8">@selectedEntity.Inn</dd>
+
+                            <dt class="col-sm-4 text-muted fw-normal">ОГРН</dt>
+                            <dd class="col-sm-8">@(_sparkCompanyOgrn ?? selectedEntity.Ogrn ?? "—")</dd>
+
+                            <dt class="col-sm-4 text-muted fw-normal">ОКОПФ</dt>
+                            <dd class="col-sm-8">@(_sparkCompanyOkopfName ?? selectedEntity.Okopf?.Name ?? "—")</dd>
+                        </dl>
                     </div>
-                    <div class="col-12 col-md-6">
-                        <label class="form-label">ФИО Генерального директора</label>
-                        <div class="input-group">
-                            <input class="form-control" @bind="editFullName" />
-                            @if (!string.IsNullOrEmpty(selectedEntity?.Inn))
-                            {
-                                <button class="btn btn-outline-secondary"
-                                        @onclick="LoadSparkData"
-                                        disabled="@sparkLoading"
-                                        title="Загрузить данные из СПАРК">
-                                    @if (sparkLoading)
-                                    {
-                                        <span class="spinner-border spinner-border-sm me-1" role="status"></span>
-                                        @:СПАРК...
-                                    }
-                                    else
-                                    {
-                                        @:СПАРК
-                                    }
-                                </button>
-                            }
-                        </div>
-                        @if (!string.IsNullOrEmpty(sparkError))
-                        {
-                            <div class="text-danger small mt-1">@sparkError</div>
-                        }
+                    <div class="col-md-6">
+                        <dl class="row mb-0">
+                            <dt class="col-sm-4 text-muted fw-normal">Юридический адрес</dt>
+                            <dd class="col-sm-8">@(_sparkCompanyAddress ?? "—")</dd>
+
+                            <dt class="col-sm-4 text-muted fw-normal">Статус</dt>
+                            <dd class="col-sm-8">@(_sparkCompanyStatus ?? "—")</dd>
+
+                            <dt class="col-sm-4 text-muted fw-normal">Дата регистрации</dt>
+                            <dd class="col-sm-8">@(_sparkCompanyRegDate?.ToString("dd.MM.yyyy") ?? "—")</dd>
+                        </dl>
                     </div>
                 </div>
-            </fieldset>
-
-            <div class="mb-3">
-                <div class="row g-3 align-items-end">
-                    <div class="col-auto">
-                        <label class="form-label">Начало ОСА</label>
-                        <div class="d-flex gap-1">
-                            <select class="form-select" style="width:80px" @bind="gosaStartDay" disabled="@(!gosaIsPao)">
-                                @for (int d = 1; d <= 31; d++)
-                                {
-                                    <option value="@d">@d</option>
-                                }
-                            </select>
-                            <select class="form-select" style="width:100px" @bind="gosaStartMonth" disabled="@(!gosaIsPao)">
-                                <option value="3">Март</option>
-                                <option value="4">Апрель</option>
-                                <option value="5">Май</option>
-                                <option value="6">Июнь</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="col-auto">
-                        <label class="form-label">Завершение ОСА</label>
-                        <div class="d-flex gap-1">
-                            <select class="form-select" style="width:80px" @bind="gosaEndDay" disabled="@(!gosaIsPao)">
-                                @for (int d = 1; d <= 31; d++)
-                                {
-                                    <option value="@d">@d</option>
-                                }
-                            </select>
-                            <select class="form-select" style="width:100px" @bind="gosaEndMonth" disabled="@(!gosaIsPao)">
-                                <option value="3">Март</option>
-                                <option value="4">Апрель</option>
-                                <option value="5">Май</option>
-                                <option value="6">Июнь</option>
-                            </select>
-                        </div>
-                    </div>
-                    @if (!gosaIsPao)
-                    {
-                        <div class="col-auto align-self-center">
-                            <span class="text-muted small">30.06 (ст. 47 208-ФЗ)</span>
-                        </div>
-                    }
-                    <div class="col-auto">
-                        @if (!string.IsNullOrEmpty(gosaError))
-                        {
-                            <span class="text-danger small">@gosaError</span>
-                        }
-                    </div>
-                </div>
-            </div>
-
-            @if (_orgType != OrgType.Unknown)
-            {
-            <div class="form-check mb-2">
-                <input class="form-check-input" type="checkbox" id="editHasBoard" @bind="editHasBoardOfDirectors" disabled="@editBoardMandatory" />
-                <label class="form-check-label" for="editHasBoard">
-                    Совет директоров
-                    @if (editBoardMandatory)
-                    {
-                        <span class="badge bg-warning text-dark ms-1">Обязателен для @OrgTypeLabel</span>
-                    }
-                </label>
-            </div>
-
-            @if (editHasBoardOfDirectors)
-            {
-                <div class="row g-3 align-items-center mb-3">
-                    <div class="col-12 col-md-4 col-lg-3 text-md-end text-muted">
-                        <label class="form-label mb-0">Количество акционеров</label>
-                    </div>
-                    <div class="col-12 col-md-4 col-lg-4 d-flex justify-content-md-center">
-                        <input class="form-control" style="max-width:110px" type="number" min="0" step="1" value="@editShareholdersCount" @oninput="OnShareholdersCountInput" />
-                    </div>
-                    <div class="col-12 col-md-4 col-lg-5">
-                        <div class="text-danger small">
-                            @if (editShareholdersCount.HasValue && editShareholdersCount.Value < 0)
-                            {
-                                <span>Значение не может быть отрицательным</span>
-                            }
-                            else if (!editShareholdersCount.HasValue || editShareholdersCount.Value == 0)
-                            {
-                                <span>Укажите количество акционеров</span>
-                            }
-                            else if (_orgType != OrgType.PAO && editShareholdersCount.Value > 50)
-                            {
-                                <span>Максимум 50 акционеров для @OrgTypeLabel</span>
-                            }
-                        </div>
-                    </div>
-                </div>
-
-                @if (_orgType != OrgType.PAO && editShareholdersCount.HasValue && editShareholdersCount.Value > 50)
-                {
-                    <div class="alert alert-danger py-2">
-                        Для @OrgTypeLabel максимальное количество акционеров — 50.
-                        При превышении лимита общество обязано в течение года преобразоваться в ПАО или производственный кооператив.
-                    </div>
-                }
-
-                @if (_orgType == OrgType.NAO_AO && editShareholdersCount.HasValue && editShareholdersCount.Value < 50)
-                {
-                    <div class="form-check mb-2">
-                        <input class="form-check-input" type="checkbox" id="editGmsFunctions" @bind="editGmsFunctions" />
-                        <label class="form-check-label" for="editGmsFunctions">Функции СД выполняет ОСА (по уставу)</label>
-                    </div>
-                    @if (editGmsFunctions)
-                    {
-                        <div class="alert alert-info py-2">СД не создаётся; функции ОСА (п. 1 ст. 64 Закона об АО)</div>
-                    }
-                }
-
-                <div class="row g-3 align-items-center mb-2">
-                    <div class="col-12 col-md-4 col-lg-3 text-md-end text-muted">
-                        <label class="form-label mb-0">Минимальное количество участников СД</label>
-                    </div>
-                    <div class="col-12 col-md-4 col-lg-4 d-flex justify-content-md-center">
-                        <input class="form-control" style="max-width:110px" type="number" @bind-value="editBoardMinNumber" @bind-value:event="oninput" readonly />
-                    </div>
-                    <div class="col-12 col-md-4 col-lg-5">
-                        <div class="text-muted small">Автоматически рассчитано</div>
-                    </div>
-                </div>
-                <div class="row g-3 align-items-center mb-2">
-                    <div class="col-12 col-md-4 col-lg-3 text-md-end text-muted">
-                        <label class="form-label mb-0">Количество участников СД</label>
-                    </div>
-                    <div class="col-12 col-md-4 col-lg-4 d-flex justify-content-md-center">
-                        <input class="form-control" style="max-width:110px" type="number" min="0" value="@editBoardMemberNumber" @oninput="OnBoardMemberNumberInput" />
-                    </div>
-                    <div class="col-12 col-md-4 col-lg-5">
-                        <div class="small">
-                            @if (editBoardMemberNumber.HasValue && editBoardMinNumber.HasValue && editBoardMemberNumber!.Value < editBoardMinNumber!.Value)
-                            {
-                                <span class="text-danger">Не меньше минимума (@editBoardMinNumber)</span>
-                            }
-                            else if (editBoardMemberNumber.HasValue && editBoardMemberNumber!.Value > 0 && editBoardMemberNumber!.Value % 2 == 0)
-                            {
-                                <span class="text-warning">Рекомендуется нечетное значение</span>
-                            }
-                        </div>
-                    </div>
-                </div>
-
-                @if (editBoardMemberNumber.HasValue && editBoardMinNumber.HasValue && editBoardMemberNumber!.Value < editBoardMinNumber!.Value)
-                {
-                    <div class="alert alert-danger py-2">Число участников СД не может быть меньше минимального (@editBoardMinNumber).</div>
-                }
-                else if (editBoardMemberNumber.HasValue && editBoardMemberNumber!.Value > 0 && editBoardMemberNumber!.Value % 2 == 0)
-                {
-                    <div class="alert alert-warning py-2">Рекомендуется нечетное число участников СД. Вы выбрали четное (@editBoardMemberNumber).</div>
-                }
-            }
-
-            }  @* end of _orgType != OrgType.Unknown *@
             }  @* end of _activeTab == 0 *@
 
             @if (_activeTab == 1)
             {
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        @if (!string.IsNullOrEmpty(_sparkManagerName))
+                        {
+                            <dl class="row mb-0">
+                                <dt class="col-sm-4 text-muted fw-normal">ФИО</dt>
+                                <dd class="col-sm-8">@_sparkManagerName</dd>
+
+                                <dt class="col-sm-4 text-muted fw-normal">Должность</dt>
+                                <dd class="col-sm-8">@(_sparkManagerPosition ?? "—")</dd>
+
+                                <dt class="col-sm-4 text-muted fw-normal">ИНН</dt>
+                                <dd class="col-sm-8">@(_sparkManagerInn ?? "—")</dd>
+
+                                <dt class="col-sm-4 text-muted fw-normal">Назначен</dt>
+                                <dd class="col-sm-8">@(_sparkManagerStartDate?.ToString("dd.MM.yyyy") ?? "—")</dd>
+                            </dl>
+                        }
+                        else if (!string.IsNullOrEmpty(selectedEntity?.Inn))
+                        {
+                            <div class="text-muted">Нажмите «СПАРК» для загрузки данных</div>
+                        }
+                        else
+                        {
+                            <div class="text-muted">Нет данных</div>
+                        }
+                        @if (!string.IsNullOrEmpty(sparkError))
+                        {
+                            <div class="text-danger small mt-2">@sparkError</div>
+                        }
+                    </div>
+                </div>
+            }  @* end of _activeTab == 1 *@
+
+            @if (_activeTab == 2)
+            {
+                <div class="mb-3">
+                    <div class="row g-3 align-items-end">
+                        <div class="col-auto">
+                            <label class="form-label">Начало ОСА</label>
+                            <div class="d-flex gap-1">
+                                <select class="form-select" style="width:80px" @bind="gosaStartDay" disabled="@(!gosaIsPao)">
+                                    @for (int d = 1; d <= 31; d++)
+                                    {
+                                        <option value="@d">@d</option>
+                                    }
+                                </select>
+                                <select class="form-select" style="width:100px" @bind="gosaStartMonth" disabled="@(!gosaIsPao)">
+                                    <option value="3">Март</option>
+                                    <option value="4">Апрель</option>
+                                    <option value="5">Май</option>
+                                    <option value="6">Июнь</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <label class="form-label">Завершение ОСА</label>
+                            <div class="d-flex gap-1">
+                                <select class="form-select" style="width:80px" @bind="gosaEndDay" disabled="@(!gosaIsPao)">
+                                    @for (int d = 1; d <= 31; d++)
+                                    {
+                                        <option value="@d">@d</option>
+                                    }
+                                </select>
+                                <select class="form-select" style="width:100px" @bind="gosaEndMonth" disabled="@(!gosaIsPao)">
+                                    <option value="3">Март</option>
+                                    <option value="4">Апрель</option>
+                                    <option value="5">Май</option>
+                                    <option value="6">Июнь</option>
+                                </select>
+                            </div>
+                        </div>
+                        @if (!gosaIsPao)
+                        {
+                            <div class="col-auto align-self-center">
+                                <span class="text-muted small">30.06 (ст. 47 208-ФЗ)</span>
+                            </div>
+                        }
+                        <div class="col-auto">
+                            @if (!string.IsNullOrEmpty(gosaError))
+                            {
+                                <span class="text-danger small">@gosaError</span>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }  @* end of _activeTab == 2 *@
+
+            @if (_activeTab == 3)
+            {
                 <fieldset class="border rounded p-3 mb-3">
                     <legend class="float-none w-auto px-2 mb-0">Допустимые формы голосования</legend>
-                    <div class="form-check mb-2">
-                        <input class="form-check-input" type="checkbox" id="editInPersonAllowed" checked disabled>
-                        <label class="form-check-label" for="editInPersonAllowed">
-                            Очное голосование
-                        </label>
-                        <div class="text-muted small">Всегда разрешено (ст. 68 208-ФЗ)</div>
-                    </div>
-                    <div class="form-check mb-2">
-                        <input class="form-check-input" type="checkbox" id="editAbsenteeAllowed" @bind="_editAbsenteeAllowed">
-                        <label class="form-check-label" for="editAbsenteeAllowed">
-                            Заочное голосование
-                        </label>
-                    </div>
-                    <div class="form-check">
-                        <input class="form-check-input" type="checkbox" id="editMixedAllowed" @bind="_editMixedAllowed">
-                        <label class="form-check-label" for="editMixedAllowed">
-                            Смешанное голосование (очное + заочное)
-                        </label>
+                    <div class="d-flex gap-4 flex-wrap">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="editInPersonAllowed" checked disabled>
+                            <label class="form-check-label" for="editInPersonAllowed">
+                                Очное голосование
+                            </label>
+                            <div class="text-muted small">Всегда разрешено (ст. 68 208-ФЗ)</div>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="editAbsenteeAllowed" @bind="_editAbsenteeAllowed">
+                            <label class="form-check-label" for="editAbsenteeAllowed">
+                                Заочное голосование
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="editMixedAllowed" @bind="_editMixedAllowed">
+                            <label class="form-check-label" for="editMixedAllowed">
+                                Смешанное голосование
+                            </label>
+                        </div>
                     </div>
                 </fieldset>
 
@@ -323,15 +280,11 @@
                         <div class="text-muted small">Если предусмотрено уставом (п. 1 ст. 68 208-ФЗ)</div>
                     </div>
                 </fieldset>
-            }  @* end of _activeTab == 1 *@
+            }  @* end of _activeTab == 3 *@
 
             @if (!string.IsNullOrEmpty(saveError))
             {
                 <div class="alert alert-danger">@saveError</div>
-            }
-            @if (editHasBoardOfDirectors && (!editShareholdersCount.HasValue || editShareholdersCount.Value <= 0))
-            {
-                <div class="alert alert-warning py-2">Для сохранения необходимо указать количество акционеров.</div>
             }
             @if (!string.IsNullOrEmpty(saveSuccess))
             {
@@ -354,12 +307,7 @@
     private string editPosition = "Генеральный директор";
     private string editFullName = string.Empty;
     private bool editHasBoardOfDirectors;
-    private bool editBoardMandatory;
-    private int? editShareholdersCount;
-    private int? editBoardMinNumber;
-    private int? editBoardMemberNumber;
     private OrgType _orgType = OrgType.Unknown;
-    private bool editGmsFunctions;
 
     private int gosaStartMonth = 3;
     private int gosaStartDay = 1;
@@ -375,6 +323,21 @@
     private bool sparkLoading;
     private string? sparkError;
 
+    // Данные СПАРК для отображения в карточке «Руководитель»
+    private string? _sparkManagerName;
+    private string? _sparkManagerPosition;
+    private string? _sparkManagerInn;
+    private DateTime? _sparkManagerStartDate;
+
+    // Данные СПАРК для карточки ЮЛ
+    private string? _sparkCompanyFullName;
+    private string? _sparkCompanyShortName;
+    private string? _sparkCompanyOgrn;
+    private string? _sparkCompanyOkopfName;
+    private string? _sparkCompanyAddress;
+    private string? _sparkCompanyStatus;
+    private DateTime? _sparkCompanyRegDate;
+
     private Guid? _influentialPersonId;
     private int _activeTab;
 
@@ -389,13 +352,18 @@
 
     protected override async Task OnInitializedAsync()
     {
-        // Авто-загрузка первого ЮЛ при открытии страницы
+        // Авто-загрузка последнего выбранного ЮЛ при открытии страницы
         await using var ctx = await DbFactory.CreateDbContextAsync();
-        var id = await ctx.LegalEntities.OrderBy(x => x.Name).Select(x => x.Id).FirstOrDefaultAsync();
-        if (id != Guid.Empty)
+        var workplace = await ctx.CurrentWorkplaces.FirstOrDefaultAsync();
+        Guid? targetId = workplace?.LastSelectedLegalEntityId;
+
+        if (targetId is null || targetId == Guid.Empty)
+            targetId = await ctx.LegalEntities.OrderBy(x => x.Name).Select(x => x.Id).FirstOrDefaultAsync();
+
+        if (targetId is not null && targetId != Guid.Empty)
         {
             var le = await ctx.LegalEntities
-                .Where(x => x.Id == id)
+                .Where(x => x.Id == targetId.Value)
                 .Select(x => new LegalEntityVm
                 {
                     Id = x.Id,
@@ -481,33 +449,25 @@
             editFullName = string.Empty;
         }
 
-        // Загружаем глобальные настройки СД (singleton, BDR‑007)
-        var settings = await ctx.LegalEntityBoardSettings.FirstOrDefaultAsync();
-        var dbLe = await ctx.LegalEntities.FirstOrDefaultAsync(x => x.Id == le.Id);
-        editShareholdersCount = dbLe?.ShareholdersCount ?? 1;
-        editHasBoardOfDirectors = settings is not null && _orgType != OrgType.Unknown;
-        editBoardMinNumber = await DeriveBoardMinimumAsync(le.Id);
-        editBoardMemberNumber = settings?.MemberNumber ?? editBoardMinNumber;
-
-        // Для ГУП/МУП/ФГУП СД не применим — обнуляем поля
-        if (_orgType == OrgType.Unknown)
-        {
-            editShareholdersCount = null;
-            editBoardMemberNumber = null;
-            editBoardMinNumber = null;
-        }
-
-        // Обязательность СД: ПАО всегда, НАО/АО при >= 50 акционеров
-        editBoardMandatory = _orgType == OrgType.PAO
-            || (_orgType == OrgType.NAO_AO && (editShareholdersCount ?? 1) >= 50);
-        if (editBoardMandatory && !editHasBoardOfDirectors)
-            editHasBoardOfDirectors = true;
+        // Определяем тип организации
+        await ResolveOrgTypeAsync(le.Id);
+        editHasBoardOfDirectors = _orgType != OrgType.Unknown;
 
         // Загружаем ГОСА
         await LoadGosaWindowAsync(le.Id);
 
         // Загружаем правила голосования в СД (индивидуальные для ЮЛ)
         await LoadVotingRulesAsync(le.Id);
+
+        // Загружаем кэшированные данные СПАРК
+        await LoadCachedSparkAsync();
+
+        // Сохраняем последнее выбранное ЮЛ для авто-открытия
+        if (ip != null)
+        {
+            ip.LastSelectedLegalEntityId = le.Id;
+            await ctx.SaveChangesAsync();
+        }
 
         saveError = null;
         saveSuccess = null;
@@ -517,12 +477,7 @@
 
     private bool CanSave
         => selectedEntity is not null
-           && string.IsNullOrEmpty(gosaError)
-           && (!editHasBoardOfDirectors
-               || ((editShareholdersCount.HasValue && editShareholdersCount.Value > 0)
-                   && (_orgType == OrgType.PAO || editShareholdersCount.Value <= 50)
-                   && (!editBoardMinNumber.HasValue
-                       || (editBoardMemberNumber.HasValue && editBoardMemberNumber.Value >= editBoardMinNumber.Value))));
+           && string.IsNullOrEmpty(gosaError);
 
     private string OrgTypeLabel => _orgType switch
     {
@@ -548,11 +503,8 @@
 
         var validationModel = new SamorodinkaTech.Fiducia.Domain.Validation.LegalEntitySaveValidationModel
         {
-            ShareholdersCount = editShareholdersCount,
             OkopfCode = selectedEntity.Okopf?.Code,
             HasBoardOfDirectors = editHasBoardOfDirectors,
-            BoardMinNumber = editBoardMinNumber,
-            BoardMemberNumber = editBoardMemberNumber,
             GosaWindowStart = GosaStart,
             GosaWindowEnd = GosaEnd,
             Position = editPosition,
@@ -594,29 +546,14 @@
                 _influentialPersonId = ip.Id;
             }
 
-            // Сохраняем количество акционеров
-            var le = await ctx.LegalEntities.FirstOrDefaultAsync(x => x.Id == selectedEntity.Id);
-            if (le != null)
-                le.ShareholdersCount = editShareholdersCount;
-
             // Сохраняем настройки СД
             if (editHasBoardOfDirectors)
             {
                 var settings = await ctx.LegalEntityBoardSettings.FirstOrDefaultAsync();
                 if (settings is null)
                 {
-                    settings = new SamorodinkaTech.Fiducia.Domain.Entities.LegalEntityBoardSettings
-                    {
-                        Id = Guid.NewGuid(),
-                        MinimumMemberNumber = editBoardMinNumber ?? 3,
-                        MemberNumber = Math.Max(editBoardMemberNumber ?? (editBoardMinNumber ?? 3), editBoardMinNumber ?? 3)
-                    };
+                    settings = new SamorodinkaTech.Fiducia.Domain.Entities.LegalEntityBoardSettings { Id = Guid.NewGuid() };
                     ctx.LegalEntityBoardSettings.Add(settings);
-                }
-                else
-                {
-                    settings.MinimumMemberNumber = editBoardMinNumber ?? settings.MinimumMemberNumber;
-                    settings.MemberNumber = Math.Max(editBoardMemberNumber ?? settings.MemberNumber, settings.MinimumMemberNumber);
                 }
 
                 // ГОСА
@@ -670,13 +607,6 @@
                     votingRules.MixedAllowed = _editMixedAllowed;
                 }
             }
-            else
-            {
-                // СД выключен — удаляем настройки, если были
-                var oldSettings = await ctx.LegalEntityBoardSettings.FirstOrDefaultAsync();
-                if (oldSettings != null)
-                    ctx.LegalEntityBoardSettings.Remove(oldSettings);
-            }
 
             await ctx.SaveChangesAsync();
             saveSuccess = "Изменения сохранены.";
@@ -685,6 +615,39 @@
         {
             Logger.LogWarning(ex, "Ошибка сохранения ЮЛ");
             saveError = ExceptionFlattener.Unwrap(ex);
+        }
+    }
+
+    private async Task LoadCachedSparkAsync()
+    {
+        if (string.IsNullOrEmpty(selectedEntity?.Inn)) return;
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+            var cached = await ctx.ExtSparkManagers.FirstOrDefaultAsync(x => x.Inn == selectedEntity.Inn.Trim());
+            if (cached is not null)
+            {
+                _sparkManagerName = cached.FullName;
+                _sparkManagerPosition = cached.Position;
+                _sparkManagerInn = cached.PersonInn;
+                _sparkManagerStartDate = cached.StartDate;
+            }
+
+            var cachedCompany = await ctx.ExtSparkCompanies.FirstOrDefaultAsync(x => x.Inn == selectedEntity.Inn.Trim());
+            if (cachedCompany is not null)
+            {
+                _sparkCompanyFullName = cachedCompany.FullName;
+                _sparkCompanyShortName = cachedCompany.ShortName;
+                _sparkCompanyOgrn = cachedCompany.Ogrn;
+                _sparkCompanyOkopfName = cachedCompany.OkopfName;
+                _sparkCompanyAddress = cachedCompany.LegalAddress;
+                _sparkCompanyStatus = cachedCompany.Status;
+                _sparkCompanyRegDate = cachedCompany.RegistrationDate;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Ошибка загрузки кэша СПАРК для ИНН={Inn}", selectedEntity.Inn);
         }
     }
 
@@ -740,6 +703,35 @@
                     existing.EmployeesCount = company.EmployeesCount;
                     existing.FetchedAt = DateTime.UtcNow;
                 }
+                _sparkCompanyFullName = company.FullName;
+                _sparkCompanyShortName = company.ShortName;
+                _sparkCompanyOgrn = company.Ogrn;
+                _sparkCompanyOkopfName = company.OkopfName;
+                _sparkCompanyAddress = company.LegalAddress;
+                _sparkCompanyStatus = company.Status;
+                _sparkCompanyRegDate = company.RegistrationDate;
+
+                // Обновляем ОКОПФ в legal_entities, если найден в СПАРК
+                if (!string.IsNullOrEmpty(company.OkopfCode))
+                {
+                    var normalizedCode = new string(company.OkopfCode.Where(char.IsDigit).ToArray());
+                    var okopf = await ctx.Okopf.FirstOrDefaultAsync(o => o.Code == normalizedCode);
+                    if (okopf is not null)
+                    {
+                        var le = await ctx.LegalEntities.FirstOrDefaultAsync(x => x.Id == selectedEntity.Id);
+                        if (le is not null)
+                        {
+                            le.OkopfId = okopf.Id;
+                            selectedEntity.Okopf = new OkopfVm { Code = okopf.Code, Name = okopf.Name };
+                            _orgType = ResolveOrgTypeFromCode(okopf.Code);
+                            editHasBoardOfDirectors = _orgType != OrgType.Unknown;
+                        }
+                    }
+                    else
+                    {
+                        Logger.LogWarning("Код ОКОПФ из СПАРК не найден в справочнике: {OkopfCode}", company.OkopfCode);
+                    }
+                }
             }
 
             // Сохраняем руководителя в ext_spark_manager (BDR-009)
@@ -770,6 +762,10 @@
 
                 editFullName = manager.FullName;
                 editPosition = manager.Position ?? "Генеральный директор";
+                _sparkManagerName = manager.FullName;
+                _sparkManagerPosition = manager.Position;
+                _sparkManagerInn = manager.Inn;
+                _sparkManagerStartDate = manager.StartDate;
             }
             else
             {
@@ -779,6 +775,10 @@
                 {
                     editFullName = cachedManager.FullName;
                     editPosition = cachedManager.Position ?? "Генеральный директор";
+                    _sparkManagerName = cachedManager.FullName;
+                    _sparkManagerPosition = cachedManager.Position;
+                    _sparkManagerInn = cachedManager.PersonInn;
+                    _sparkManagerStartDate = cachedManager.StartDate;
                 }
                 else
                 {
@@ -800,7 +800,20 @@
         }
     }
 
-    private async Task<int?> DeriveBoardMinimumAsync(Guid legalEntityId)
+    private static OrgType ResolveOrgTypeFromCode(string? code)
+    {
+        var normalized = new string((code ?? string.Empty).Where(char.IsDigit).ToArray());
+        return normalized switch
+        {
+            "12247" => OrgType.PAO,
+            "12267" => OrgType.NAO_AO,
+            "12260" => OrgType.NAO_AO,
+            "12300" => OrgType.LLC,
+            _ => OrgType.Unknown
+        };
+    }
+
+    private async Task ResolveOrgTypeAsync(Guid legalEntityId)
     {
         try
         {
@@ -816,55 +829,11 @@
                 "12300" => OrgType.LLC,
                 _ => OrgType.Unknown
             };
-
-            int baseMin = _orgType switch
-            {
-                OrgType.PAO => 5,
-                OrgType.NAO_AO => 3,
-                OrgType.LLC => editHasBoardOfDirectors ? 2 : 0,
-                _ => editHasBoardOfDirectors ? 3 : 0
-            };
-
-            if ((_orgType == OrgType.PAO || _orgType == OrgType.NAO_AO) && editHasBoardOfDirectors)
-            {
-                var sc = editShareholdersCount ?? le?.ShareholdersCount;
-                if (sc.HasValue)
-                {
-                    if (sc.Value > 10000) baseMin = Math.Max(baseMin, 9);
-                    else if (sc.Value > 1000) baseMin = Math.Max(baseMin, 7);
-                }
-            }
-
-            return baseMin == 0 ? (int?)null : baseMin;
         }
-        catch
+        catch (Exception ex)
         {
-            return 3;
+            Logger.LogWarning(ex, "Ошибка определения типа ЮЛ {LegalEntityId}", legalEntityId);
         }
-    }
-
-    private void OnBoardMemberNumberInput(ChangeEventArgs e)
-    {
-        if (int.TryParse(e.Value?.ToString(), out var v))
-            editBoardMemberNumber = v;
-        else
-            editBoardMemberNumber = null;
-    }
-
-    private void OnShareholdersCountInput(ChangeEventArgs e)
-    {
-        if (int.TryParse(e.Value?.ToString(), out var v))
-            editShareholdersCount = v;
-        else
-            editShareholdersCount = null;
-        RecalculateMinimum();
-    }
-
-    private async void RecalculateMinimum()
-    {
-        if (selectedEntity is not null)
-            editBoardMinNumber = await DeriveBoardMinimumAsync(selectedEntity.Id);
-        StateHasChanged();
     }
 
     private async Task LoadGosaWindowAsync(Guid legalEntityId)

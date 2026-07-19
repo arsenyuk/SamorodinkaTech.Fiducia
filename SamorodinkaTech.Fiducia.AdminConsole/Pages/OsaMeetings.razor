@@ -1540,7 +1540,7 @@
 
         // Умолчания: количество акционеров — из БД (legal_entities), участники СД — из последнего ОСА
         if (!editShareholdersCount.HasValue)
-            editShareholdersCount = le?.ShareholdersCount ?? 1;
+            editShareholdersCount = 1;
 
         if (!editBoardMemberNumber.HasValue)
         {

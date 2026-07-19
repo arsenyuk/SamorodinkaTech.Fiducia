@@ -9,16 +9,6 @@ public class LegalEntityBoardSettings
     public Guid Id { get; set; }
 
     /// <summary>
-    /// Минимально допустимое количество участников СД (вычисляется из юридической информации).
-    /// </summary>
-    public int MinimumMemberNumber { get; set; }
-
-    /// <summary>
-    /// Текущее установленное количество участников СД (не меньше минимального).
-    /// </summary>
-    public int MemberNumber { get; set; }
-
-    /// <summary>
     /// Дата начала законного окна проведения годового общего собрания акционеров (ГОСА).
     /// Для ПАО может быть сокращённое окно (в пределах 01.03–30.06) согласно уставу.
     /// Для АО/НАО фиксировано 01.03.
@@ -46,10 +36,4 @@ public class LegalEntityBoardSettings
     /// При наличии Секретаря: протоколы СД подписываются Секретарём.
     /// </summary>
     public bool SecretarySignsProtocols { get; set; }
-
-    /// <summary>
-    /// Создание Совета директоров обязательно для выбранного ЮЛ (ПАО, АО > 50 акционеров).
-    /// Если true — чекбокс «Совет директоров» заблокирован во включённом состоянии.
-    /// </summary>
-    public bool BoardMandatory { get; set; }
 }

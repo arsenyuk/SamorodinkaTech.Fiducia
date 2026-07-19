@@ -53,7 +53,6 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.Property(x => x.Inn).HasColumnName("inn").HasMaxLength(12);
             b.Property(x => x.Ogrn).HasColumnName("ogrn").HasMaxLength(15);
             b.Property(x => x.OkopfId).HasColumnName("okopf_id");
-            b.Property(x => x.ShareholdersCount).HasColumnName("shareholders_count");
             b.HasIndex(x => x.Name).HasDatabaseName("ix_legal_entities_name");
             b.HasIndex(x => x.Inn).HasDatabaseName("ix_legal_entities_inn");
             b.HasIndex(x => x.Ogrn).HasDatabaseName("ix_legal_entities_ogrn");
@@ -90,6 +89,7 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.Property(x => x.Id).HasColumnName("id");
             b.Property(x => x.FullName).HasColumnName("full_name").IsRequired();
             b.Property(x => x.Position).HasColumnName("position").HasMaxLength(200);
+            b.Property(x => x.LastSelectedLegalEntityId).HasColumnName("last_selected_legal_entity_id");
         });
 
         modelBuilder.Entity<LegalEntityBoardSettings>(b =>
@@ -97,8 +97,6 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.ToTable("legal_entity_board_settings");
             b.HasKey(x => x.Id);
             b.Property(x => x.Id).HasColumnName("id");
-            b.Property(x => x.MinimumMemberNumber).HasColumnName("minimum_member_number");
-            b.Property(x => x.MemberNumber).HasColumnName("member_number");
             // Интервал ГОСА (date без времени)
             b.Property(x => x.GosaWindowStart)
              .HasColumnName("gosa_window_start")
@@ -109,7 +107,6 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.Property(x => x.DeputyChairProvided).HasColumnName("deputy_chair_provided").HasDefaultValue(false);
             b.Property(x => x.SecretaryProvided).HasColumnName("secretary_provided").HasDefaultValue(true);
             b.Property(x => x.SecretarySignsProtocols).HasColumnName("secretary_signs_protocols").HasDefaultValue(false);
-            b.Property(x => x.BoardMandatory).HasColumnName("board_mandatory").HasDefaultValue(false);
         });
 
         modelBuilder.Entity<LegalEntityVotingRules>(b =>

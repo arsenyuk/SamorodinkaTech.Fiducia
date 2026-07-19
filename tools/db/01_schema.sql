@@ -268,8 +268,7 @@ CREATE TABLE IF NOT EXISTS legal_entities (
     short_name varchar(255),
     inn varchar(12),
     ogrn varchar(15),
-    okopf_id uuid REFERENCES ref_okopf(id) ON DELETE RESTRICT,
-    shareholders_count int
+    okopf_id uuid REFERENCES ref_okopf(id) ON DELETE RESTRICT
 );
 CREATE INDEX IF NOT EXISTS ix_legal_entities_name ON legal_entities(name);
 CREATE INDEX IF NOT EXISTS ix_legal_entities_inn ON legal_entities(inn);
@@ -279,7 +278,8 @@ CREATE INDEX IF NOT EXISTS ix_legal_entities_ogrn ON legal_entities(ogrn);
 CREATE TABLE IF NOT EXISTS current_workplace (
     id uuid PRIMARY KEY,
     full_name varchar(300) NOT NULL,
-    position varchar(200)
+    position varchar(200),
+    last_selected_legal_entity_id uuid REFERENCES legal_entities(id)
 );
 
 -- Singleton: не более одной записи руководителя (одно-компанийный режим, BDR‑007)
@@ -306,8 +306,6 @@ CREATE INDEX IF NOT EXISTS ix_notifications_created_at ON notifications(created_
 -- Таблица: legal_entity_board_settings (глобальные настройки СД, singleton, BDR‑007)
 CREATE TABLE IF NOT EXISTS legal_entity_board_settings (
     id uuid PRIMARY KEY,
-    minimum_member_number int NOT NULL,
-    member_number int NOT NULL,
     -- Интервал проведения годового общего собрания акционеров (ГОСА)
     gosa_window_start date,
     gosa_window_end date,
@@ -315,7 +313,6 @@ CREATE TABLE IF NOT EXISTS legal_entity_board_settings (
     deputy_chair_provided boolean NOT NULL DEFAULT FALSE,
     secretary_provided boolean NOT NULL DEFAULT TRUE,
     secretary_signs_protocols boolean NOT NULL DEFAULT FALSE,
-    board_mandatory boolean NOT NULL DEFAULT FALSE,
     CONSTRAINT ck_gosa_window_valid CHECK (
         (gosa_window_start IS NULL AND gosa_window_end IS NULL)
         OR (gosa_window_start IS NOT NULL AND gosa_window_end IS NOT NULL AND gosa_window_start <= gosa_window_end)

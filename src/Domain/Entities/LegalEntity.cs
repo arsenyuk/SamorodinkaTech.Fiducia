@@ -12,12 +12,7 @@ public class LegalEntity
     public string? Inn { get; set; } // ИНН (10 знаков для ЮЛ)
     public string? Ogrn { get; set; } // ОГРН (13 знаков)
 
-    // Внешний ключ на ОКОПФ (UUID)
+    /// <summary>Внешний ключ на ОКОПФ (okopf_id).</summary>
     public Guid? OkopfId { get; set; }
     public Okopf? Okopf { get; set; }
-
-    /// <summary>
-    /// Количество акционеров (для справочной/юридической информации).
-    /// </summary>
-    public int? ShareholdersCount { get; set; }
 }

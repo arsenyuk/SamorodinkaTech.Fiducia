@@ -41,6 +41,9 @@ public class SparkApiClient : ISparkApiClient
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _baseUrl = baseUrl?.TrimEnd('/') ?? throw new ArgumentNullException(nameof(baseUrl));
         _apiKey = apiKey ?? throw new ArgumentNullException(nameof(apiKey));
+
+        if (string.IsNullOrWhiteSpace(_apiKey))
+            _logger.LogWarning("API-ключ СПАРК не задан — интеграция отключена");
     }
 
     /// <inheritdoc />
@@ -48,6 +51,9 @@ public class SparkApiClient : ISparkApiClient
         string inn,
         CancellationToken cancellationToken = default)
     {
+        if (string.IsNullOrWhiteSpace(_apiKey))
+            return null;
+
         _logger.LogDebug("Запрос карточки компании из СПАРК по ИНН={Inn}", inn);
 
         var request = new HttpRequestMessage(HttpMethod.Get,
@@ -69,6 +75,9 @@ public class SparkApiClient : ISparkApiClient
         string inn,
         CancellationToken cancellationToken = default)
     {
+        if (string.IsNullOrWhiteSpace(_apiKey))
+            return null;
+
         _logger.LogDebug("Запрос данных о гендиректоре из СПАРК по ИНН={Inn}", inn);
 
         var request = new HttpRequestMessage(HttpMethod.Get,
