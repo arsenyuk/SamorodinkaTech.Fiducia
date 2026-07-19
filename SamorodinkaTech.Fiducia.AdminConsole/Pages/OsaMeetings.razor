@@ -243,6 +243,12 @@
                     </div>
                     }
                 </div>
+                @if (!editIsGosa)
+                {
+                <div class="text-muted small mb-2">
+                    ℹ️ Для ВОСА: если решения по изменению состава СД не было, флаг «Состав СД утверждён» устанавливать не нужно.
+                </div>
+                }
                 }
 
                 @if (editBoardMandatory || editBoardCompositionApproved)
