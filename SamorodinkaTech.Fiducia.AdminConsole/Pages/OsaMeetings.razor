@@ -333,12 +333,6 @@
                     {
                         <div class="alert alert-warning py-2 mb-2 small">⚠️ @ldapDuplicateWarning</div>
                     }
-                    @if (editBoardCompositionApproved && AreBoardFieldsIncomplete())
-                    {
-                        <div class="alert alert-danger py-2 mb-2 small">
-                            ⚠️ Поля членов СД не заполнены — вкладка «Файлы» недоступна
-                        </div>
-                    }
                     @* ДИАГНОСТИКА — убрать после отладки *@
                     <div class="text-muted small mb-1" style="font-family:monospace;font-size:11px">
                         editHasBoard=@editHasBoard | editBoardCompositionApproved=@editBoardCompositionApproved
