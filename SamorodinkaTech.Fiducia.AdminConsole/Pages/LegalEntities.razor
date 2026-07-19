@@ -2,6 +2,7 @@
 @using Microsoft.EntityFrameworkCore
 @inject IDbContextFactory<SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext> DbFactory
 @inject SamorodinkaTech.Fiducia.Domain.Interfaces.ILegalEntityGosaIntervalService GosaSvc
+@inject SamorodinkaTech.Fiducia.Domain.Interfaces.ISparkApiClient SparkApi
 @inject ILogger<LegalEntities> Logger
 @attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "SYS_ADMIN")]
 
@@ -66,7 +67,30 @@
                     </div>
                     <div class="col-12 col-md-6">
                         <label class="form-label">ФИО Генерального директора</label>
-                        <input class="form-control" @bind="editFullName" />
+                        <div class="input-group">
+                            <input class="form-control" @bind="editFullName" />
+                            @if (!string.IsNullOrEmpty(selectedEntity?.Inn))
+                            {
+                                <button class="btn btn-outline-secondary"
+                                        @onclick="LoadSparkData"
+                                        disabled="@sparkLoading"
+                                        title="Загрузить данные из СПАРК">
+                                    @if (sparkLoading)
+                                    {
+                                        <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                                        @:СПАРК...
+                                    }
+                                    else
+                                    {
+                                        @:СПАРК
+                                    }
+                                </button>
+                            }
+                        </div>
+                        @if (!string.IsNullOrEmpty(sparkError))
+                        {
+                            <div class="text-danger small mt-1">@sparkError</div>
+                        }
                     </div>
                 </div>
             </fieldset>
@@ -272,6 +296,8 @@
     private string? gosaError;
     private string? saveError;
     private string? saveSuccess;
+    private bool sparkLoading;
+    private string? sparkError;
 
     private Guid? _influentialPersonId;
 
@@ -542,6 +568,118 @@
         {
             Logger.LogWarning(ex, "Ошибка сохранения ЮЛ");
             saveError = ExceptionFlattener.Unwrap(ex);
+        }
+    }
+
+    private async Task LoadSparkData()
+    {
+        if (string.IsNullOrEmpty(selectedEntity?.Inn)) return;
+        sparkLoading = true;
+        sparkError = null;
+        StateHasChanged();
+
+        try
+        {
+            var inn = selectedEntity.Inn.Trim();
+            var company = await SparkApi.GetCompanyByInnAsync(inn);
+            var manager = await SparkApi.GetManagerAsync(inn);
+
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+
+            // Сохраняем карточку компании в ext_spark_company (BDR-009)
+            if (company is not null)
+            {
+                var existing = await ctx.ExtSparkCompanies.FirstOrDefaultAsync(x => x.Inn == inn);
+                if (existing is null)
+                {
+                    ctx.ExtSparkCompanies.Add(new SamorodinkaTech.Fiducia.Domain.Entities.ExtSparkCompany
+                    {
+                        Id = Guid.NewGuid(),
+                        Inn = company.Inn,
+                        Ogrn = company.Ogrn,
+                        FullName = company.FullName,
+                        ShortName = company.ShortName,
+                        OkopfCode = company.OkopfCode,
+                        OkopfName = company.OkopfName,
+                        LegalAddress = company.LegalAddress,
+                        Status = company.Status,
+                        RegistrationDate = company.RegistrationDate,
+                        ShareholdersCount = company.ShareholdersCount,
+                        EmployeesCount = company.EmployeesCount,
+                        FetchedAt = DateTime.UtcNow
+                    });
+                }
+                else
+                {
+                    existing.Ogrn = company.Ogrn;
+                    existing.FullName = company.FullName;
+                    existing.ShortName = company.ShortName;
+                    existing.OkopfCode = company.OkopfCode;
+                    existing.OkopfName = company.OkopfName;
+                    existing.LegalAddress = company.LegalAddress;
+                    existing.Status = company.Status;
+                    existing.RegistrationDate = company.RegistrationDate;
+                    existing.ShareholdersCount = company.ShareholdersCount;
+                    existing.EmployeesCount = company.EmployeesCount;
+                    existing.FetchedAt = DateTime.UtcNow;
+                }
+            }
+
+            // Сохраняем руководителя в ext_spark_manager (BDR-009)
+            if (manager is not null)
+            {
+                var existing = await ctx.ExtSparkManagers.FirstOrDefaultAsync(x => x.Inn == inn);
+                if (existing is null)
+                {
+                    ctx.ExtSparkManagers.Add(new SamorodinkaTech.Fiducia.Domain.Entities.ExtSparkManager
+                    {
+                        Id = Guid.NewGuid(),
+                        Inn = inn,
+                        FullName = manager.FullName,
+                        Position = manager.Position,
+                        PersonInn = manager.Inn,
+                        StartDate = manager.StartDate,
+                        FetchedAt = DateTime.UtcNow
+                    });
+                }
+                else
+                {
+                    existing.FullName = manager.FullName;
+                    existing.Position = manager.Position;
+                    existing.PersonInn = manager.Inn;
+                    existing.StartDate = manager.StartDate;
+                    existing.FetchedAt = DateTime.UtcNow;
+                }
+
+                editFullName = manager.FullName;
+                editPosition = manager.Position ?? "Генеральный директор";
+            }
+            else
+            {
+                // Если руководитель не найден в API, пробуем загрузить из кэша ext_spark_manager
+                var cachedManager = await ctx.ExtSparkManagers.FirstOrDefaultAsync(x => x.Inn == inn);
+                if (cachedManager is not null)
+                {
+                    editFullName = cachedManager.FullName;
+                    editPosition = cachedManager.Position ?? "Генеральный директор";
+                }
+                else
+                {
+                    sparkError = "Руководитель не найден в СПАРК";
+                }
+            }
+
+            await ctx.SaveChangesAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Ошибка загрузки данных из СПАРК для ИНН={Inn}", selectedEntity.Inn);
+            sparkError = "Ошибка соединения со СПАРК";
+        }
+        finally
+        {
+            sparkLoading = false;
+            StateHasChanged();
         }
     }
 

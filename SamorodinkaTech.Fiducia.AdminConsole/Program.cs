@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using SamorodinkaTech.Fiducia.Domain.Entities;
 using SamorodinkaTech.Fiducia.Domain.Interfaces;
 using SamorodinkaTech.Fiducia.Infrastructure.Auditing;
@@ -58,8 +59,13 @@ else if (authMethod == "LDAP")
 {
     // LDAP должен быть включён в конфигурации
     if (!builder.Configuration.GetValue<bool>("Ldap:Enabled"))
-        throw new InvalidOperationException(
-            "Auth:Method = LDAP, но Ldap:Enabled = false. Включите LDAP в конфигурации.");
+    {
+        Log.Warning("Auth:Method = LDAP, но Ldap:Enabled = false. Переключаюсь на Basic.");
+        builder.Services.AddScoped<IAuthProvider, BasicProvider>();
+        // Пропускаем LDAP-регистрацию
+    }
+    else
+    {
 
     // LdapAuthProvider использует ILdapService, который регистрируется ниже
     builder.Services.AddScoped<IAuthProvider>(sp =>
@@ -72,6 +78,7 @@ else if (authMethod == "LDAP")
                           ?? "cn=BoardOfDirectors,ou=Groups,dc=bryansk-arsenal,dc=local";
         return new LdapAuthProvider(ldap, logger, sysAdminGroupDn, boardGroupDn);
     });
+    }
 }
 else
 {
@@ -92,6 +99,16 @@ builder.Services.AddSingleton<ILegalEntityGosaIntervalService, LegalEntityGosaIn
 // File Storage (ADR-020)
 builder.Services.AddFileStorage(builder.Configuration);
 
+// SPARK API — проверка ЮЛ по ИНН, карточка компании и данные о гендиректоре
+// Все настройки — в appsettings.json, секция Spark (ADR-022)
+builder.Services.Configure<SparkOptions>(builder.Configuration.GetSection("Spark"));
+builder.Services.AddScoped<ISparkApiClient>(sp =>
+{
+    var options = sp.GetRequiredService<IOptions<SparkOptions>>().Value;
+    var logger = sp.GetRequiredService<ILogger<SparkApiClient>>();
+    return new SparkApiClient(new HttpClient(), logger, options.BaseUrl, options.ApiKey);
+});
+
 // LDAP — корпоративный каталог для синхронизации состава СД (опционально)
 if (builder.Configuration.GetValue<bool>("Ldap:Enabled"))
 {
@@ -101,7 +118,7 @@ if (builder.Configuration.GetValue<bool>("Ldap:Enabled"))
         var logger = sp.GetRequiredService<ILogger<LdapService>>();
         return new LdapService(
             cfg["Server"] ?? "localhost",
-            int.Parse(cfg["Port"] ?? "389"),
+            int.TryParse(cfg["Port"], out var port) ? port : 389,
             cfg["BaseDn"] ?? "dc=bryansk-arsenal,dc=local",
             cfg["BindUser"],
             cfg["BindPassword"],
@@ -122,8 +139,19 @@ if (builder.Configuration.GetValue<bool>("Ldap:Enabled"))
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
-        var secretKey = builder.Configuration["Session:JwtSecret"]
-            ?? throw new InvalidOperationException("Session:JwtSecret is not configured");
+        var secretKey = builder.Configuration["Session:JwtSecret"];
+        if (string.IsNullOrEmpty(secretKey))
+        {
+            if (builder.Environment.IsDevelopment())
+            {
+                Log.Warning("Session:JwtSecret не задан — используется dev-ключ");
+                secretKey = "Fiducia-dev-secret-key-change-in-production";
+            }
+            else
+            {
+                throw new InvalidOperationException("Session:JwtSecret is not configured");
+            }
+        }
 
         options.TokenValidationParameters = new TokenValidationParameters
         {

@@ -33,6 +33,8 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
     public DbSet<CurrentWorkplace> CurrentWorkplaces => Set<CurrentWorkplace>();
     public DbSet<LegalEntityBoardSettings> LegalEntityBoardSettings => Set<LegalEntityBoardSettings>();
     public DbSet<FileEntry> Files => Set<FileEntry>();
+    public DbSet<ExtSparkCompany> ExtSparkCompanies => Set<ExtSparkCompany>();
+    public DbSet<ExtSparkManager> ExtSparkManagers => Set<ExtSparkManager>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -244,6 +246,38 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.HasOne(x => x.Role)
              .WithMany()
              .HasForeignKey(x => x.RoleId);
+        });
+
+        modelBuilder.Entity<ExtSparkCompany>(b =>
+        {
+            b.ToTable("ext_spark_company");
+            b.HasKey(x => x.Id);
+            b.Property(x => x.Id).HasColumnName("id");
+            b.Property(x => x.Inn).HasColumnName("inn").HasMaxLength(12).IsRequired();
+            b.Property(x => x.Ogrn).HasColumnName("ogrn").HasMaxLength(15);
+            b.Property(x => x.FullName).HasColumnName("full_name").HasMaxLength(500);
+            b.Property(x => x.ShortName).HasColumnName("short_name").HasMaxLength(255);
+            b.Property(x => x.OkopfCode).HasColumnName("okopf_code").HasMaxLength(10);
+            b.Property(x => x.OkopfName).HasColumnName("okopf_name").HasMaxLength(255);
+            b.Property(x => x.LegalAddress).HasColumnName("legal_address");
+            b.Property(x => x.Status).HasColumnName("status").HasMaxLength(100);
+            b.Property(x => x.RegistrationDate).HasColumnName("registration_date");
+            b.Property(x => x.ShareholdersCount).HasColumnName("shareholders_count");
+            b.Property(x => x.EmployeesCount).HasColumnName("employees_count");
+            b.Property(x => x.FetchedAt).HasColumnName("fetched_at").IsRequired();
+        });
+
+        modelBuilder.Entity<ExtSparkManager>(b =>
+        {
+            b.ToTable("ext_spark_manager");
+            b.HasKey(x => x.Id);
+            b.Property(x => x.Id).HasColumnName("id");
+            b.Property(x => x.Inn).HasColumnName("inn").HasMaxLength(12).IsRequired();
+            b.Property(x => x.FullName).HasColumnName("full_name").HasMaxLength(300).IsRequired();
+            b.Property(x => x.Position).HasColumnName("position").HasMaxLength(200);
+            b.Property(x => x.PersonInn).HasColumnName("person_inn").HasMaxLength(12);
+            b.Property(x => x.StartDate).HasColumnName("start_date");
+            b.Property(x => x.FetchedAt).HasColumnName("fetched_at").IsRequired();
         });
     }
 }

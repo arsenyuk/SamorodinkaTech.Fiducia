@@ -638,6 +638,182 @@ tests/.../Services/
 
 ---
 
+# Интеграция с СПАРК (Интерфакс)
+
+> Внешняя система: **СПАРК** (Система профессионального анализа рынков и компаний) — российская платформа проверки контрагентов и due diligence от Интерфакс.
+
+---
+
+## Обзор
+
+СПАРК используется для автоматического получения данных о юридическом лице и его генеральном директоре по ИНН. Интеграция сокращает ручной ввод на странице «Юридическое лицо» (Admin Console): администратор нажимает кнопку «СПАРК» — система вызывает API и автозаполняет поля должности и ФИО руководителя.
+
+**Опциональность**: интеграция необязательна. Если API-ключ не настроен (пустая строка `Spark:ApiKey`), запросы к СПАРК будут возвращать 401 — страница ЮЛ остаётся полностью работоспособной.
+
+---
+
+## Место в архитектуре
+
+```
+┌──────────────┐      ┌────────────────────┐      ┌──────────────────┐
+│ LegalEntities │─────▶│  ISparkApiClient    │─────▶│  СПАРК API        │
+│   .razor      │      │  (Domain Interface) │      │  api.spark-       │
+│ (AdminConsole)│      └────────────────────┘      │  interfax.ru      │
+└──────────────┘               ▲                   └──────────────────┘
+                               │ implements
+                       ┌───────┴─────────┐
+                       │ SparkApiClient   │  ← Infrastructure
+                       │ (HttpClient)     │
+                       └─────────────────┘
+```
+
+---
+
+## Аутентификация
+
+СПАРК API использует авторизацию через **API-ключ** в HTTP-заголовке:
+
+```
+Authorization: Bearer <api_key>
+```
+
+Ключ выдаётся Интерфакс при подключении тарифа с API-доступом.
+
+---
+
+## Операции API, используемые в проекте
+
+| Метод | Endpoint | Применение |
+|-------|----------|------------|
+| `GET` | `/api/v1/companies/{inn}` | Карточка компании: полное/краткое наименование, ОГРН, ОКОПФ, адрес, статус |
+| `GET` | `/api/v1/companies/{inn}/managers` | Данные о руководителях: ФИО, должность, ИНН, дата начала полномочий |
+
+Из списка руководителей клиент возвращает первого (генерального директора).
+
+---
+
+## Жизненный цикл запроса
+
+```
+Администратор открывает страницу ЮЛ
+  │
+  ├─ 1. Выбирает ЮЛ из справочника (поиск по ИНН/наименованию)
+  │
+  ├─ 2. Нажимает кнопку «СПАРК» в разделе «Руководитель»
+  │     (кнопка видна только если у ЮЛ заполнен ИНН)
+  │
+  ├─ 3. SparkApiClient.GetManagerAsync(inn)
+  │     └─ GET /api/v1/companies/{inn}/managers
+  │        → SparkManager: FullName, Position
+  │
+  ├─ 4. Ответ API сохраняется в ext_ таблицы (BDR-009):
+  │     ext_spark_company — карточка компании
+  │     ext_spark_manager — данные руководителя
+  │     (upsert по ИНН: новая запись или обновление существующей)
+  │
+  ├─ 5. Поля «Должность» и «ФИО Генерального директора»
+  │     заполняются автоматически из ответа API или кэша ext_spark_manager
+  │
+  └─ 6. Администратор проверяет данные и нажимает «Сохранить»
+```
+
+---
+
+## Структура кода
+
+```
+src/Domain/
+  Models/Spark/
+    SparkCompany.cs                    — карточка компании (DTO API)
+    SparkManager.cs                    — руководитель (DTO API)
+  Entities/
+    ExtSparkCompany.cs                 — кэш карточки (ext_spark_company, BDR-009)
+    ExtSparkManager.cs                 — кэш руководителя (ext_spark_manager, BDR-009)
+  Interfaces/
+    ISparkApiClient.cs                 — интерфейс клиента
+
+src/Infrastructure/
+  Services/
+    SparkApiClient.cs                  — реализация через HttpClient
+
+tools/db/
+  01_schema.sql                        — ext_spark_company, ext_spark_manager (BDR-009)
+
+tests/SamorodinkaTech.Fiducia.Tests.Unit/
+  Mocks/
+    MockSparkApiClient.cs              — mock для тестирования
+  Services/
+    SparkApiClientTests.cs             — 8 unit-тестов
+```
+
+---
+
+## Конфигурация
+
+В `appsettings.json` (секция `Spark`) — только для Admin Console:
+
+```json
+{
+  "Spark": {
+    "BaseUrl": "https://api.spark-interfax.ru",
+    "ApiKey": ""
+  }
+}
+```
+
+| Параметр | Описание |
+|----------|----------|
+| `BaseUrl` | Базовый URL API СПАРК |
+| `ApiKey` | API-ключ (оставить пустым, если интеграция не используется) |
+
+---
+
+## Регистрация в DI
+
+```csharp
+// Program.cs (AdminConsole)
+builder.Services.AddScoped<ISparkApiClient>(sp =>
+{
+    var config = sp.GetRequiredService<IConfiguration>();
+    var logger = sp.GetRequiredService<ILogger<SparkApiClient>>();
+    var baseUrl = config["Spark:BaseUrl"] ?? "https://api.spark-interfax.ru";
+    var apiKey = config["Spark:ApiKey"] ?? "";
+    return new SparkApiClient(new HttpClient(), logger, baseUrl, apiKey);
+});
+```
+
+---
+
+## Тестирование
+
+1. **Unit-тесты** (8 тестов) — используют `MockSparkApiClient`:
+   - Получение карточки компании: все поля (ИНН, ОГРН, наименование, ОКОПФ, адрес, статус)
+   - Получение гендиректора: ФИО, должность, ИНН
+   - Null при отсутствии компании/руководителя в СПАРК
+   - Разные компании по разным ИНН
+   - Имитация отказа API (`SimulateFailure = true`) — `HttpRequestException`
+
+2. **Интеграционные тесты** (планируются) — с реальным API СПАРК в тестовом контуре.
+
+---
+
+## Безопасность
+
+- Все запросы выполняются по HTTPS.
+- `ApiKey` хранится в конфигурации (appsettings.json / переменные окружения). В production — через защищённое хранилище.
+- Ключ предоставляет доступ только к операциям чтения (GET) — карточка компании и руководители.
+- Сетевой доступ ограничен: только сервер AdminConsole → `api.spark-interfax.ru:443`.
+
+---
+
+## Зависимости
+
+- **СПАРК (Интерфакс)**: тариф с API-доступом.
+- **API-ключ**: выдаётся Интерфакс при подключении.
+- **Сетевой доступ**: HTTPS к `api.spark-interfax.ru`.
+
+---
+
 # Файловое хранилище (IFileStorage)
 
 > Абстракция файлового хранилища для документов, протоколов, бюллетеней и вложений. Регламентировано [ADR‑020](decision_records/dr_architecture.md).

@@ -29,6 +29,8 @@ public interface IApplicationDbContext
     DbSet<CurrentWorkplace> CurrentWorkplaces { get; }
     DbSet<LegalEntityBoardSettings> LegalEntityBoardSettings { get; }
     DbSet<FileEntry> Files { get; }
+    DbSet<ExtSparkCompany> ExtSparkCompanies { get; }
+    DbSet<ExtSparkManager> ExtSparkManagers { get; }
 
     System.Threading.Tasks.Task<int> SaveChangesAsync(System.Threading.CancellationToken cancellationToken = default);
 }

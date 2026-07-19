@@ -336,3 +336,42 @@ CREATE UNIQUE INDEX IF NOT EXISTS ux_files_provider_key ON files(storage_provide
 -- Полезные индексы
 CREATE INDEX IF NOT EXISTS ix_files_created_at ON files(created_at);
 CREATE INDEX IF NOT EXISTS ix_files_checksum ON files(checksum);
+
+-- ============================================================================
+-- ext_ таблицы: данные из внешних источников (BDR-009)
+-- Не являются авторитетным источником. Обновляются только через API.
+-- ============================================================================
+
+-- ext_spark_company: карточка компании из СПАРК (Интерфакс)
+CREATE TABLE IF NOT EXISTS ext_spark_company (
+    id uuid PRIMARY KEY,
+    inn varchar(12) NOT NULL,
+    ogrn varchar(15),
+    full_name varchar(500),
+    short_name varchar(255),
+    okopf_code varchar(10),
+    okopf_name varchar(255),
+    legal_address text,
+    status varchar(100),
+    registration_date date,
+    shareholders_count integer,
+    employees_count integer,
+    fetched_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS ux_ext_spark_company_inn ON ext_spark_company(inn);
+CREATE INDEX IF NOT EXISTS ix_ext_spark_company_fetched_at ON ext_spark_company(fetched_at);
+
+-- ext_spark_manager: руководитель компании из СПАРК
+CREATE TABLE IF NOT EXISTS ext_spark_manager (
+    id uuid PRIMARY KEY,
+    inn varchar(12) NOT NULL,
+    full_name varchar(300) NOT NULL,
+    position varchar(200),
+    person_inn varchar(12),
+    start_date date,
+    fetched_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS ix_ext_spark_manager_inn ON ext_spark_manager(inn);
+CREATE INDEX IF NOT EXISTS ix_ext_spark_manager_fetched_at ON ext_spark_manager(fetched_at);

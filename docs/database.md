@@ -149,6 +149,32 @@ erDiagram
     users ||--o{ bulletins : casts
     legal_entities ||--o{ ref_okopf : "classified by"
     legal_entities ||--o{ influential_people : has
+
+    ext_spark_company {
+        uuid id PK
+        varchar inn UK
+        varchar ogrn
+        varchar full_name
+        varchar short_name
+        varchar okopf_code
+        varchar okopf_name
+        text legal_address
+        varchar status
+        date registration_date
+        int shareholders_count
+        int employees_count
+        timestamp fetched_at
+    }
+
+    ext_spark_manager {
+        uuid id PK
+        varchar inn FK
+        varchar full_name
+        varchar position
+        varchar person_inn
+        date start_date
+        timestamp fetched_at
+    }
 ```
 
 ---
@@ -421,6 +447,40 @@ CREATE INDEX idx_b_user_id ON bulletins(user_id);
 CREATE INDEX idx_b_vote_value ON bulletins(vote_value);
 CREATE INDEX idx_b_signed_at ON bulletins(signed_at);
 ```
+
+### ext_spark_company
+
+Кэш карточки компании из СПАРК (BDR-009). Не авторитетный источник.
+
+| Поле | Тип | Описание |
+|------|-----|----------|
+| `id` | UUID | Первичный ключ |
+| `inn` | VARCHAR(12) | ИНН компании (уникальный) |
+| `ogrn` | VARCHAR(15) | ОГРН |
+| `full_name` | VARCHAR(500) | Полное наименование |
+| `short_name` | VARCHAR(255) | Краткое наименование |
+| `okopf_code` | VARCHAR(10) | Код ОКОПФ |
+| `okopf_name` | VARCHAR(255) | Наименование ОКОПФ |
+| `legal_address` | TEXT | Юридический адрес |
+| `status` | VARCHAR(100) | Статус компании |
+| `registration_date` | DATE | Дата регистрации |
+| `shareholders_count` | INTEGER | Количество акционеров |
+| `employees_count` | INTEGER | Количество сотрудников |
+| `fetched_at` | TIMESTAMPTZ | Время получения данных из API |
+
+### ext_spark_manager
+
+Кэш данных о руководителе из СПАРК (BDR-009). Не авторитетный источник.
+
+| Поле | Тип | Описание |
+|------|-----|----------|
+| `id` | UUID | Первичный ключ |
+| `inn` | VARCHAR(12) | ИНН компании |
+| `full_name` | VARCHAR(300) | ФИО руководителя |
+| `position` | VARCHAR(200) | Должность |
+| `person_inn` | VARCHAR(12) | ИНН физлица-руководителя |
+| `start_date` | DATE | Дата начала полномочий |
+| `fetched_at` | TIMESTAMPTZ | Время получения данных из API |
 
 ### security_audit_log
 
