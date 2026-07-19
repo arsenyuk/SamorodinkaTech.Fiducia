@@ -737,13 +737,13 @@ builder.Services.AddFileStorage(builder.Configuration);
 Пример настройки SMB-шара на Linux-сервере:
 
 ```bash
-# Монтирование SMB-шара с файлового сервера
+# Монтирование SMB-шара с файлового сервера (права 440 — только чтение)
 mount -t cifs //fileserver.local/fiducia-storage /var/lib/fiducia/storage \
-    -o username=fiducia,password=...,uid=1000,gid=1000,file_mode=0644,dir_mode=0755
+    -o username=fiducia,password=...,uid=1000,gid=1000,file_mode=0440,dir_mode=0750
 
 # Запись в /etc/fstab для автоматического монтирования при загрузке
 //fileserver.local/fiducia-storage /var/lib/fiducia/storage cifs \
-    credentials=/etc/fiducia/smb.credentials,uid=1000,gid=1000,file_mode=0644,dir_mode=0755 0 0
+    credentials=/etc/fiducia/smb.credentials,uid=1000,gid=1000,file_mode=0440,dir_mode=0750 0 0
 ```
 
 После монтирования приложение продолжает использовать `Provider: Local` — для него это обычный каталог, физически расположенный на удалённом NAS.
@@ -793,9 +793,65 @@ minio:
 
 ---
 
+## Модель прав и WORM-семантика
+
+Главное требование 152-ФЗ — файлы сохранённого документа **не должны удаляться или перезаписываться после публикации**. Это достигается комбинацией прав ОС и дополнительных механизмов неизменяемости.
+
+### Права сервисной учётной записи (Linux)
+
+Приложение работает под выделенным пользователем `fiducia`. Базовая модель:
+
+```
+# Каталог хранилища
+drwxr-s---  root    fiducia  /var/lib/fiducia/storage/
+#                  ↑ группа fiducia — только создание, не удаление
+
+# Создаваемые файлы
+-r--r-----  fiducia fiducia  /var/lib/fiducia/storage/2026/07/19/abc123.pdf
+#           ↑ владелец — fiducia, но права 440 (только чтение)
+```
+
+| Операция | Кто выполняет | Разрешено | Механизм |
+|----------|--------------|-----------|----------|
+| Создание файла | `fiducia` (приложение) | ✅ Да | Группа `fiducia` имеет `w` на каталог |
+| Чтение файла | `fiducia` (приложение) | ✅ Да | Владелец файла |
+| Удаление файла | `fiducia` (приложение) | ❌ Нет | Файл создаётся с правами `440` (без `w` для владельца) + `chattr +i` |
+| Аудит/проверка | `auditor` (read-only пользователь) | ✅ Да | Группа `fiducia` или ACL `r--` на каталог |
+
+### Реализация в коде: `LocalFileStorage` + WORM
+
+```csharp
+// После сохранения файла — снять право на запись
+File.SetUnixFileMode(fullPath,
+    UnixFileMode.UserRead | UnixFileMode.GroupRead);
+```
+
+### Три уровня WORM
+
+| Уровень | Механизм | Гарантия | Применимость |
+|---------|----------|----------|-------------|
+| **1. Права ФС** | `chmod 440` после записи | Приложение не может удалить файл стандартными средствами | Минимальный, всегда работает |
+| **2. Immutable-флаг** | `chattr +i` (ext4/xfs/btrfs) | Никто, включая root, не может удалить без снятия флага | Рекомендуемый для production |
+| **3. Аппаратный WORM** | NAS с WORM-политикой (NetApp SnapLock, Dell Isilon SmartLock) | Удаление невозможно на уровне СХД, даже при физическом доступе | Максимальная защита для регулируемых отраслей |
+
+### Специализированные WORM-решения
+
+Помимо стандартных прав ОС, для обеспечения некорректируемого хранения могут применяться:
+
+- **Linux `chattr +i`** (immutable) — встроен в ext4/xfs/btrfs. Файл не может быть изменён, удалён, переименован или перелинкован. Требует `CAP_LINUX_IMMUTABLE`. Снять флаг может только root.
+- **SMB-шар с WORM** — SMB-сервер (Windows Server, Samba) может быть настроен на режим «только запись и чтение» для шар, без права удаления на уровне SMB-протокола.
+- **NFS с экспортом readonly-after-write** — NFS-сервер может экспортировать каталог с опциями, запрещающими удаление существующих файлов.
+- **NetApp SnapLock** — аппаратный WORM на уровне СХД. Файлы в SnapLock-томе не могут быть изменены или удалены до истечения retention-периода (месяцы или годы). Compliance-режим не позволяет снять блокировку даже администратору СХД.
+- **Dell EMC Isilon SmartLock** — аналогично NetApp, WORM на уровне кластерной ФС Isilon OneFS. Поддерживает два режима: enterprise (администратор может снять) и compliance (нельзя снять).
+- **S3 Object Lock** (для MinIO) — режимы governance (снимается специальной ролью) и compliance (не снимается). Требует включения object lock при создании бакета и установки retention-периода на каждый объект.
+
+> **Рекомендация для production**: уровень 2 (`chattr +i`) как минимум, уровень 3 (аппаратный WORM NAS) для организаций с повышенными требованиями ИБ (банки, госсектор). Механизм `chattr +i` реализуется в `LocalFileStorage.SaveAsync()` после записи файла на диск.
+
+---
+
 ## Безопасность
 
-- **Права ФС** — для папочного хранилища файлы создаются с `644` (чтение для всех, запись только для владельца), каталоги — `755`. Приложение работает под выделенным пользователем ОС.
+- **Права ФС** — для папочного хранилища файлы создаются с `440` (только чтение для владельца и группы), каталоги — с `g+s` (SGID). Приложение работает под выделенным пользователем `fiducia`.
 - **Аудит** — факты создания/чтения файлов логируются через `ILogger<LocalFileStorage>` / `ILogger<MinioFileStorage>`.
 - **Access Key / Secret Key** (MinIO) — в production через переменные окружения, не в `appsettings.json`.
 - **Сеть** — SMB-шар или MinIO должны быть доступны только с сервера приложений (файрвол/сегментация).
@@ -813,7 +869,11 @@ minio:
 ## Ссылки
 
 - [ADR-020: Файловое хранилище](decision_records/dr_architecture.md#adr-020-файловое-хранилище)
+- [chattr(1) — Linux immutable flag](https://man7.org/linux/man-pages/man1/chattr.1.html)
+- [Linux filesystem capabilities (CAP_LINUX_IMMUTABLE)](https://man7.org/linux/man-pages/man7/capabilities.7.html)
 - [SMB/CIFS в Linux (mount.cifs)](https://wiki.samba.org/index.php/Mounting_samba_shares_from_a_unix_client)
 - [NFS в Linux](https://wiki.archlinux.org/title/NFS)
+- [NetApp SnapLock (WORM)](https://docs.netapp.com/us-en/ontap/snaplock/)
+- [Dell EMC Isilon SmartLock (WORM)](https://www.dell.com/support/kbdoc/000156903)
 - [Документация MinIO](https://min.io/docs/minio/linux/index.html)
 - [MinIO Object Lock (WORM)](https://min.io/docs/minio/linux/administration/object-management/object-lock.html)
