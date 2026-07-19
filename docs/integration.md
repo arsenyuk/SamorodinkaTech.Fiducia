@@ -635,3 +635,161 @@ tests/.../Services/
 ## Архитектурное решение
 
 См. [ADR-011: Интеграция с LDAP/AD-каталогом](decision_records/dr_architecture.md#adr-011-интеграция-с-ldapad-каталогом-для-синхронизации-состава-совета-директоров).
+
+---
+
+# Интеграция с MinIO (S3-совместимое объектное хранилище)
+
+> Внешняя система: **MinIO** — S3-совместимое объектное хранилище для файлов документов, протоколов, бюллетеней и вложений.
+
+---
+
+## Назначение
+
+MinIO используется как опциональная альтернатива локальному файловому хранилищу (`LocalFileStorage`) для продакшен-развёртывания. Обеспечивает:
+
+- **Масштабирование** — хранение документов в распределённом объектном хранилище
+- **Отказоустойчивость** — репликация данных между узлами MinIO
+- **Совместимость с S3** — возможность миграции на AWS S3 или другие S3-совместимые хранилища без изменения кода
+- **Изоляция** — файлы не хранятся на сервере приложений, что упрощает горизонтальное масштабирование
+
+---
+
+## Архитектура
+
+Выбор провайдера хранилища определяется полем `Provider` в конфигурации:
+
+```mermaid
+graph LR
+    App[Fiducia App] --> |IFileStorage| Provider{Provider?}
+    Provider --> |Local| Local[LocalFileStorage<br>Файловая система]
+    Provider --> |MinIO| Minio[MinioFileStorage<br>MinIO Server]
+```
+
+**Ключевые компоненты**:
+
+| Компонент | Расположение | Назначение |
+|-----------|-------------|------------|
+| `IFileStorage` | `src/Domain/Interfaces/` | Абстракция файлового хранилища (Dependency Inversion) |
+| `LocalFileStorage` | `src/Infrastructure/FileStorage/` | Локальное хранилище (разработка/отладка) |
+| `MinioFileStorage` | `src/Infrastructure/FileStorage/` | MinIO-хранилище (продакшен) |
+| `FileStorageOptions` | `src/Infrastructure/FileStorage/` | Конфигурация: провайдер, endpoint, ключи, бакет |
+| `FileStorageServiceCollectionExtensions` | `src/Infrastructure/FileStorage/` | Регистрация в DI с выбором провайдера |
+
+---
+
+## Запуск MinIO в Docker
+
+```bash
+# Запуск контейнера
+docker compose up minio -d
+
+# Проверка
+docker compose ps minio
+```
+
+После запуска доступны:
+- **S3 API**: `http://localhost:9000`
+- **Web Console**: `http://localhost:9001` (логин: `minioadmin`, пароль: `minioadmin`)
+
+Docker Compose (`docker-compose.yml`):
+
+```yaml
+minio:
+  image: minio/minio:latest
+  container_name: fiducia-minio
+  restart: unless-stopped
+  command: server /data --console-address ":9001"
+  environment:
+    MINIO_ROOT_USER: minioadmin
+    MINIO_ROOT_PASSWORD: minioadmin
+  ports:
+    - "9000:9000"   # S3 API
+    - "9001:9001"   # Web Console
+  volumes:
+    - minio_data:/data
+  healthcheck:
+    test: ["CMD-SHELL", "mc ready local"]
+    interval: 10s
+    timeout: 5s
+    retries: 20
+    start_period: 10s
+```
+
+---
+
+## Регистрация в DI
+
+```csharp
+// Program.cs — единый вызов для обоих порталов
+builder.Services.AddFileStorage(builder.Configuration);
+```
+
+Метод `AddFileStorage()` читает `FileStorage:Provider` и регистрирует `MinioFileStorage` (при `"MinIO"`) или `LocalFileStorage` (по умолчанию `"Local"`) как синглтон `IFileStorage`.
+
+---
+
+## Конфигурация
+
+Секция `FileStorage` в `appsettings.json`:
+
+```json
+{
+  "FileStorage": {
+    "Provider": "Local",
+    "LocalBasePath": "/var/lib/fiducia/storage",
+    "MinioEndpoint": "localhost:9000",
+    "MinioAccessKey": "minioadmin",
+    "MinioSecretKey": "minioadmin",
+    "MinioBucketName": "fiducia",
+    "MinioUseSsl": false
+  }
+}
+```
+
+| Параметр | Значение по умолчанию | Описание |
+|----------|----------------------|----------|
+| `Provider` | `Local` | Провайдер: `Local` или `MinIO` |
+| `LocalBasePath` | `/var/lib/fiducia/storage` | Базовый каталог для локального хранилища |
+| `MinioEndpoint` | `localhost:9000` | Адрес MinIO-сервера (хост:порт) |
+| `MinioAccessKey` | `minioadmin` | Ключ доступа (access key) |
+| `MinioSecretKey` | `minioadmin` | Секретный ключ (secret key) |
+| `MinioBucketName` | `fiducia` | Имя S3-бакета (создаётся автоматически) |
+| `MinioUseSsl` | `false` | Использовать HTTPS-подключение |
+
+---
+
+## Тестирование
+
+Интеграция тестируется на двух уровнях:
+
+1. **Unit-тесты** (13 тестов) — проверяют корректность контракта `IFileStorage` без реального MinIO-сервера:
+   - `MockFileStorage` — in-memory реализация с методами `FileCount`, `StorageKeys`, `Exists`, флагом `SimulateFailure`
+   - `MinioFileStorage` — валидация конструктора (обязательность endpoint, access key, secret key)
+
+2. **Интеграционные тесты** (планируются) — подключаются к реальному MinIO в тестовом контуре.
+
+---
+
+## Безопасность
+
+- **Access Key / Secret Key** — в production следует использовать переменные окружения или защищённое хранилище (Key Vault), не хранить в `appsettings.json`
+- **HTTPS** — для продакшен-развёртывания установить `MinioUseSsl: true`
+- **Сетевой доступ** — MinIO должен быть доступен только с сервера приложений (файрвол/сегментация)
+- **Бакет** — создаётся автоматически при первом сохранении, но политики доступа (IAM) настраиваются вручную в MinIO Console
+
+---
+
+## Зависимости
+
+- **Minio** NuGet-пакет v6.0.4 (`Minio` в `SamorodinkaTech.Fiducia.Infrastructure.csproj`)
+- **MinIO Server** (Docker-образ `minio/minio:latest` в `docker-compose.yml`)
+- **Сетевой доступ** от сервера Fiducia к MinIO по HTTP/HTTPS (порт 9000)
+
+---
+
+## Ссылки
+
+- [Документация MinIO](https://min.io/docs/minio/linux/index.html)
+- [MinIO .NET SDK](https://min.io/docs/minio/linux/developers/dotnet/API.html)
+- [Docker Hub: minio/minio](https://hub.docker.com/r/minio/minio)
