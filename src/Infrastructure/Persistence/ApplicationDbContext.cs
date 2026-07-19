@@ -122,6 +122,9 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.Property(x => x.ChairTiebreaker).HasColumnName("chair_tiebreaker").HasDefaultValue(false);
             b.Property(x => x.AbsenteeOpinions).HasColumnName("absentee_opinions").HasDefaultValue(false);
             b.Property(x => x.QualifiedMajorityPercent).HasColumnName("qualified_majority_percent").HasDefaultValue(75);
+            b.Property(x => x.InPersonAllowed).HasColumnName("in_person_allowed").HasDefaultValue(true);
+            b.Property(x => x.AbsenteeAllowed).HasColumnName("absentee_allowed").HasDefaultValue(false);
+            b.Property(x => x.MixedAllowed).HasColumnName("mixed_allowed").HasDefaultValue(false);
             b.Property(x => x.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("CURRENT_TIMESTAMP");
             b.HasOne(x => x.LegalEntity)
              .WithMany()

@@ -269,6 +269,29 @@
             @if (_activeTab == 1)
             {
                 <fieldset class="border rounded p-3 mb-3">
+                    <legend class="float-none w-auto px-2 mb-0">Допустимые формы голосования</legend>
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" id="editInPersonAllowed" checked disabled>
+                        <label class="form-check-label" for="editInPersonAllowed">
+                            Очное голосование
+                        </label>
+                        <div class="text-muted small">Всегда разрешено (ст. 68 208-ФЗ)</div>
+                    </div>
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" id="editAbsenteeAllowed" @bind="_editAbsenteeAllowed">
+                        <label class="form-check-label" for="editAbsenteeAllowed">
+                            Заочное голосование
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="editMixedAllowed" @bind="_editMixedAllowed">
+                        <label class="form-check-label" for="editMixedAllowed">
+                            Смешанное голосование (очное + заочное)
+                        </label>
+                    </div>
+                </fieldset>
+
+                <fieldset class="border rounded p-3 mb-3">
                     <legend class="float-none w-auto px-2 mb-0">Пороги голосования</legend>
                     <div class="row g-3">
                         <div class="col-md-6">
@@ -360,6 +383,8 @@
     private int _editQualifiedMajorityPercent = 75;
     private bool _editChairTiebreaker;
     private bool _editAbsenteeOpinions;
+    private bool _editAbsenteeAllowed;
+    private bool _editMixedAllowed;
     private Guid? _votingRulesId;
 
     protected override async Task OnInitializedAsync()
@@ -629,6 +654,8 @@
                         QuorumPercent = _editQuorumPercent,
                         ChairTiebreaker = _editChairTiebreaker,
                         AbsenteeOpinions = _editAbsenteeOpinions,
+                        AbsenteeAllowed = _editAbsenteeAllowed,
+                        MixedAllowed = _editMixedAllowed,
                         QualifiedMajorityPercent = _editQualifiedMajorityPercent
                     };
                     ctx.LegalEntityVotingRules.Add(votingRules);
@@ -639,6 +666,8 @@
                     votingRules.ChairTiebreaker = _editChairTiebreaker;
                     votingRules.AbsenteeOpinions = _editAbsenteeOpinions;
                     votingRules.QualifiedMajorityPercent = _editQualifiedMajorityPercent;
+                    votingRules.AbsenteeAllowed = _editAbsenteeAllowed;
+                    votingRules.MixedAllowed = _editMixedAllowed;
                 }
             }
             else
@@ -886,6 +915,8 @@
                 _editQualifiedMajorityPercent = rules.QualifiedMajorityPercent;
                 _editChairTiebreaker = rules.ChairTiebreaker;
                 _editAbsenteeOpinions = rules.AbsenteeOpinions;
+                _editAbsenteeAllowed = rules.AbsenteeAllowed;
+                _editMixedAllowed = rules.MixedAllowed;
             }
             else
             {
@@ -894,6 +925,8 @@
                 _editQualifiedMajorityPercent = 75;
                 _editChairTiebreaker = false;
                 _editAbsenteeOpinions = false;
+                _editAbsenteeAllowed = false;
+                _editMixedAllowed = false;
             }
         }
         catch (Exception ex)

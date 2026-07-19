@@ -27,6 +27,15 @@ public class LegalEntityVotingRules
     /// <summary>Порог квалифицированного большинства в процентах (qualified_majority_percent).</summary>
     public int QualifiedMajorityPercent { get; set; } = 75;
 
+    /// <summary>Разрешено очное голосование — всегда включено (in_person_allowed).</summary>
+    public bool InPersonAllowed { get; set; } = true;
+
+    /// <summary>Разрешено заочное голосование (absentee_allowed).</summary>
+    public bool AbsenteeAllowed { get; set; }
+
+    /// <summary>Разрешено смешанное голосование (mixed_allowed).</summary>
+    public bool MixedAllowed { get; set; }
+
     /// <summary>Дата и время создания записи (created_at).</summary>
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }

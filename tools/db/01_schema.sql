@@ -333,6 +333,9 @@ CREATE TABLE IF NOT EXISTS legal_entity_voting_rules (
     chair_tiebreaker boolean NOT NULL DEFAULT FALSE,
     absentee_opinions boolean NOT NULL DEFAULT FALSE,
     qualified_majority_percent int NOT NULL DEFAULT 75 CHECK (qualified_majority_percent > 0 AND qualified_majority_percent <= 100),
+    in_person_allowed boolean NOT NULL DEFAULT TRUE,
+    absentee_allowed boolean NOT NULL DEFAULT FALSE,
+    mixed_allowed boolean NOT NULL DEFAULT FALSE,
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_voting_rules_entity ON legal_entity_voting_rules (legal_entity_id);
