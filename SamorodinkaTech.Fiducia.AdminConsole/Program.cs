@@ -90,8 +90,7 @@ builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddSingleton<ILegalEntityGosaIntervalService, LegalEntityGosaIntervalService>();
 
 // File Storage (ADR-020)
-builder.Services.Configure<FileStorageOptions>(builder.Configuration.GetSection("FileStorage"));
-builder.Services.AddSingleton<IFileStorage, LocalFileStorage>();
+builder.Services.AddFileStorage(builder.Configuration);
 
 // LDAP — корпоративный каталог для синхронизации состава СД (опционально)
 if (builder.Configuration.GetValue<bool>("Ldap:Enabled"))
