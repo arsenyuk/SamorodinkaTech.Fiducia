@@ -12,7 +12,7 @@
 
 ```mermaid
 erDiagram
-    USERS {
+    users {
         uuid id PK
         varchar last_name
         varchar first_name
@@ -25,18 +25,39 @@ erDiagram
         timestamp created_at
     }
 
-    REF_ROLES {
+    ref_roles {
         uuid id PK
         varchar role_code UK
         varchar role_name
     }
 
-    USER_ROLES {
+    user_roles {
         uuid user_id FK
         uuid role_id FK
     }
 
-    COMMITTEES {
+    legal_entities {
+        uuid id PK
+        varchar name
+        varchar okopf_code FK
+        date gosa_start
+        date gosa_end
+        timestamp created_at
+    }
+
+    ref_okopf {
+        uuid id PK
+        varchar code UK
+        varchar name
+    }
+
+    okopf {
+        uuid id PK
+        varchar code UK
+        varchar name
+    }
+
+    committees {
         uuid id PK
         varchar code UK
         varchar name
@@ -47,12 +68,12 @@ erDiagram
         timestamp created_at
     }
 
-    COMMITTEE_MEMBERS {
+    committee_members {
         uuid committee_id FK
         uuid user_id FK
     }
 
-    MEETINGS {
+    meetings {
         uuid id PK
         varchar meeting_number
         varchar meeting_form
@@ -63,7 +84,7 @@ erDiagram
         timestamp created_at
     }
 
-    AGENDA_QUESTIONS {
+    agenda_questions {
         uuid id PK
         uuid meeting_id FK
         int sequence_number
@@ -72,7 +93,7 @@ erDiagram
         varchar status
     }
 
-    COMMITTEE_TASKS {
+    committee_tasks {
         uuid id PK
         uuid committee_id FK
         uuid agenda_question_id FK
@@ -83,7 +104,7 @@ erDiagram
         timestamp created_at
     }
 
-    BULLETINS {
+    bulletins {
         uuid id PK
         uuid agenda_question_id FK
         uuid user_id FK
@@ -96,7 +117,7 @@ erDiagram
         text cancellation_reason
     }
 
-    SECURITY_AUDIT_LOG {
+    security_audit_log {
         bigint id PK
         uuid user_id
         varchar user_ip
@@ -107,24 +128,27 @@ erDiagram
         timestamp log_timestamp
     }
 
-    USERS ||--o{ USER_ROLES : "has"
-    REF_ROLES ||--o{ USER_ROLES : "has"
-    USERS ||--o{ COMMITTEES : "chairs"
-    USERS ||--o{ COMMITTEES : "secretaries"
-    USERS ||--o{ COMMITTEE_MEMBERS : "belongs to"
-    COMMITTEES ||--o{ COMMITTEE_MEMBERS : "has"
-    USERS ||--o{ MEETINGS : "creates"
-    MEETINGS ||--o{ AGENDA_QUESTIONS : "has"
-    COMMITTEES ||--o{ COMMITTEE_TASKS : "receives"
-    AGENDA_QUESTIONS ||--o{ COMMITTEE_TASKS : "triggers"
-    AGENDA_QUESTIONS ||--o{ BULLETINS : "receives votes"
-    USERS ||--o{ BULLETINS : "casts"
-
-    REF_OKOPF {
+    influential_people {
         uuid id PK
-        varchar code UK
-        varchar name
+        uuid legal_entity_id FK
+        varchar full_name
+        varchar position
     }
+
+    users ||--o{ user_roles : has
+    ref_roles ||--o{ user_roles : has
+    users ||--o{ committees : chairs
+    users ||--o{ committees : secretaries
+    users ||--o{ committee_members : "belongs to"
+    committees ||--o{ committee_members : has
+    users ||--o{ meetings : creates
+    meetings ||--o{ agenda_questions : has
+    committees ||--o{ committee_tasks : receives
+    agenda_questions ||--o{ committee_tasks : triggers
+    agenda_questions ||--o{ bulletins : "receives votes"
+    users ||--o{ bulletins : casts
+    legal_entities ||--o{ ref_okopf : "classified by"
+    legal_entities ||--o{ influential_people : has
 ```
 
 ---
@@ -551,30 +575,22 @@ CREATE TABLE influential_people (
 CREATE INDEX ix_influential_people_legal_entity_id ON influential_people(legal_entity_id);
 ```
 
-### Структура миграций
+### Структура SQL-скриптов (Database‑First)
+
+Проект использует Database‑First (BDR‑002). Все изменения схемы вносятся через SQL-скрипты:
 
 ```
-src/Infrastructure/Persistence/Migrations/
-├── 20260115100000_InitialCreate.cs
-├── 20260116120000_AddCommittees.cs
-├── 20260117140000_AddAuditLog.cs
-└── ...
+tools/db/
+├── 01_schema.sql    # Полная схема БД (DDL)
+├── 02_seed.sql      # Начальные данные справочников
+└── 03_demo.sql      # Демо-данные для разработки
 ```
 
-### Создание миграции
-
+Применение скриптов:
 ```bash
-dotnet ef migrations add <MigrationName> \
-  --project src/Infrastructure \
-  --startup-project src/Api
-```
-
-### Применение миграций
-
-```bash
-dotnet ef database update \
-  --project src/Infrastructure \
-  --startup-project src/Api
+cat tools/db/01_schema.sql | docker exec -i fiducia-postgres psql -U fiducia -d fiducia -v ON_ERROR_STOP=1
+cat tools/db/02_seed.sql | docker exec -i fiducia-postgres psql -U fiducia -d fiducia -v ON_ERROR_STOP=1
+cat tools/db/03_demo.sql | docker exec -i fiducia-postgres psql -U fiducia -d fiducia -v ON_ERROR_STOP=1
 ```
 
 ---
@@ -585,7 +601,7 @@ dotnet ef database update \
 
 ```sql
 -- Тестовые роли
-INSERT INTO roles (role_code, role_name) VALUES
+INSERT INTO ref_roles (role_code, role_name) VALUES
     ('SYS_ADMIN', 'Системный администратор'),
     ('CORP_SECRETARY', 'Корпоративный секретарь'),
     ('CHAIR_BOARD', 'Председатель СД'),

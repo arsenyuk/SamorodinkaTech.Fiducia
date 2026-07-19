@@ -4,7 +4,7 @@
 
 ## Обзор
 
-Платформа построена по принципам модульной монолитной архитектуры с выделенным ядром бизнес-логики. Система спроектирована для обеспечения юридической значимости решений, полного соответствия корпоративному законодательству РФ и работы в офлайн-режиме.
+Платформа построена по принципам чистой архитектуры: два независимых Blazor Server-приложения (Board Portal и Admin Console) разделяют общий доменный слой и инфраструктуру. Система спроектирована для обеспечения юридической значимости решений, полного соответствия корпоративному законодательству РФ и работы в офлайн-режиме.
 
 ---
 
@@ -12,13 +12,11 @@
 
 | Принцип | Описание |
 |---------|----------|
-| **Чистая архитектура** | Зависимости направлены внутрь — от инфраструктуры к бизнес-логике |
-| **Domain-Driven Design** | Моделирование через домены, ограниченные контексты |
-| **Event-Driven** | Асинхронная коммуникация через события |
-| **CQRS** | Разделение чтения и записи для оптимизации |
+| **Чистая архитектура** | Зависимости направлены внутрь — BoardPortal/AdminConsole → Infrastructure → Domain |
+| **Domain-Driven Design** | Моделирование через доменные сущности, ограниченные контексты |
 | **SOLID** | Соблюдение всех пяти принципов |
 | **Legal-First** | Юридические требования на первом месте |
-| **Database-First** | Схема БД ведётся одним каноническим SQL (ADR‑012) |
+| **Database-First** | Схема БД ведётся одним каноническим SQL (BDR‑002) |
 | **Справочники с префиксом** | Все справочники имеют префикс `ref_` и единый стиль идентификаторов |
 
 ---
@@ -27,435 +25,302 @@
 
 ```mermaid
 graph TB
-    subgraph "Клиенты"
-        WEB[Веб-портал<br/>Board Portal]
-        ADMIN[Админ-панель<br/>Admin Console]
+    subgraph "Клиенты (браузер)"
+        WEB[Board Portal<br/>Blazor Server<br/>:5002]
+        ADMIN[Admin Console<br/>Blazor Server<br/>:5001]
     end
 
-    subgraph "API Gateway"
-        GW[API Gateway<br/>Rate Limiting<br/>Authentication<br/>JWT + 2FA]
+    subgraph "Общий код"
+        DOMAIN[Domain Layer<br/>Сущности, Enum, Интерфейсы]
+        INFRA[Infrastructure Layer<br/>EF Core, Аудит, ВКС-клиенты,<br/>LDAP, Файловое хранилище]
     end
 
-    subgraph "Сервисы"
-        AUTH[Auth Service<br/>OAuth2 + ПЭП]
-        MEETING[Meeting Service<br/>Заседания]
-        VOTING[Voting Service<br/>Голосование]
-        COMMITTEE[Committee Service<br/>Комитеты]
-        DOC[Document Service<br/>Документооборот]
-        NOTIFY[Notification Service<br/>Оповещения]
-        AUDIT[Audit Service<br/>Аудит-лог]
+    subgraph "Инфраструктура (текущая)"
+        DB[(PostgreSQL 16<br/>:5434)]
+        FS[Файловое хранилище<br/>Локальная ФС / SMB]
     end
 
-    subgraph "Ядро"
-        DOMAIN[Доменная модель]
-        EVENTS[Event Bus]
-        CQRS[CQRS Pipeline]
-    end
-
-    subgraph "Инфраструктура"
-        DB[(PostgreSQL)]
+    subgraph "Инфраструктура (Фаза 3, целевая)"
         CACHE[(Redis)]
         MQ[RabbitMQ]
-        STORAGE[File Storage<br/>Документы]
-        TSP[TSP Server<br/>Точное время]
-        CRYPTO[КриптоПро<br/>УКЭП]
+        TSP[TSP Server]
+        CRYPTO[КриптоПро]
     end
 
-    WEB --> GW
-    ADMIN --> GW
+    WEB --> DOMAIN
+    WEB --> INFRA
+    ADMIN --> DOMAIN
+    ADMIN --> INFRA
 
-    GW --> AUTH
-    GW --> MEETING
-    GW --> VOTING
-    GW --> COMMITTEE
-    GW --> DOC
+    INFRA --> DB
+    INFRA --> FS
 
-    AUTH --> DOMAIN
-    MEETING --> DOMAIN
-    VOTING --> DOMAIN
-    COMMITTEE --> DOMAIN
-    DOC --> DOMAIN
-
-    DOMAIN --> EVENTS
-    EVENTS --> NOTIFY
-    EVENTS --> AUDIT
-
-    MEETING --> DB
-    VOTING --> DB
-    COMMITTEE --> DB
-    DOC --> DB
-    AUDIT --> DB
-
-    VOTING --> CACHE
-    MEETING --> CACHE
-
-    EVENTS --> MQ
-    NOTIFY --> MQ
-
-    DOC --> STORAGE
-    VOTING --> TSP
-    VOTING --> CRYPTO
+    INFRA -.-> CACHE
+    INFRA -.-> MQ
+    INFRA -.-> TSP
+    INFRA -.-> CRYPTO
 ```
+
+Два Blazor Server-приложения работают независимо, разделяя общие проекты `Domain` и `Infrastructure`. Взаимодействие с БД — через EF Core (Database-First, схема из `tools/db/01_schema.sql`). Redis, RabbitMQ, TSP и КриптоПро запланированы на Фазу 3 и в текущей версии не используются (показаны пунктиром).
 
 ---
 
-## Системная архитектура
+## Системная архитектура (текущая)
 
 ```mermaid
 graph LR
-    subgraph "Frontend"
-        REACT[React SPA<br/>Board Portal]
-        ADMIN_REACT[React SPA<br/>Admin Console]
+    subgraph "Frontend (.NET 9, Blazor Server)"
+        BOARD[Board Portal<br/>Kestrel :5002]
+        ADM[Admin Console<br/>Kestrel :5001]
     end
 
-    subgraph "Backend Services"
-        API[API Layer<br/>REST/GraphQL]
-        BIZ[Business Layer<br/>Use Cases]
-        INFRA[Infrastructure<br/>Repositories]
+    subgraph "Shared Backend"
+        DOM[Domain<br/>net9.0]
+        INF[Infrastructure<br/>net9.0]
     end
 
-    subgraph "External"
-        TSP_S[TSP Server<br/>RFC 3161]
-        CRYPTO_S[КриптоПро<br/>CSP]
-        SMTP_S[SMTP Server<br/>Email]
+    subgraph "Data"
+        PG[(PostgreSQL 16)]
+        FS[File Storage<br/>Local / SMB]
     end
 
-    REACT --> API
-    ADMIN_REACT --> API
+    BOARD --> DOM
+    BOARD --> INF
+    ADM --> DOM
+    ADM --> INF
 
-    API --> BIZ
-    BIZ --> INFRA
-
-    INFRA --> TSP_S
-    INFRA --> CRYPTO_S
-    INFRA --> SMTP_S
+    INF --> PG
+    INF --> FS
 ```
 
 ---
 
-## Структура каталогов
+## Структура проекта
 
 ```
 SamorodinkaTech.Fiducia/
+├── SamorodinkaTech.Fiducia.BoardPortal/   # Blazor Server — портал директоров (:5002)
+│   ├── Pages/                             # Razor-страницы (Login, Meetings, Voting, …)
+│   ├── Shared/                            # Общие компоненты (MainLayout, NavMenu, …)
+│   ├── Program.cs                         # Точка входа, DI, middleware
+│   └── appsettings.json                   # Конфигурация
+├── SamorodinkaTech.Fiducia.AdminConsole/  # Blazor Server — админ-панель (:5001)
+│   ├── Pages/                             # Razor-страницы (LegalEntities, Committees, …)
+│   ├── Shared/                            # Общие компоненты (MainLayout, NavMenu, …)
+│   ├── Services/                          # Сервисы, специфичные для Admin Console
+│   ├── Contracts/                         # DTO/контракты для форм
+│   ├── Program.cs                         # Точка входа, DI, middleware
+│   └── appsettings.json                   # Конфигурация
 ├── src/
-│   ├── Api/                          # REST API (ASP.NET Core)
-│   │   ├── Controllers/
-│   │   ├── Filters/
-│   │   ├── Middleware/
-│   │   └── Program.cs
-│   ├── Application/                  # Application Layer (Use Cases)
-│   │   ├── Contracts/                # Interfaces
-│   │   ├── Services/                 # Application Services
-│   │   ├── Commands/                 # CQRS Commands
-│   │   ├── Queries/                  # CQRS Queries
-│   │   └── Validators/              # FluentValidation
-│   ├── Domain/                       # Domain Layer (Core)
-│   │   ├── Entities/                 # Domain Entities
-│   │   ├── ValueObjects/            # Value Objects
-│   │   ├── Aggregates/              # Aggregates
-│   │   ├── Events/                  # Domain Events
-│   │   ├── Exceptions/             # Domain Exceptions
-│   │   └── Interfaces/             # Domain Interfaces
-│   ├── Infrastructure/              # Infrastructure Layer
-│   │   ├── Persistence/             # EF Core, Repositories
-│   │   ├── Messaging/               # RabbitMQ, MediatR
-│   │   ├── External/                # External Services (TSP, КриптоПро)
-│   │   ├── Cache/                   # Redis
-│   │   └── Storage/                 # File Storage
-│   └── Common/                      # Shared Kernel
-│       ├── Primitives/              # Base Classes
-│       ├── Extensions/              # Extension Methods
-│       └── Constants/              # Constants
+│   ├── Domain/                            # Domain Layer (net9.0)
+│   │   ├── Entities/                      # Доменные сущности (24 шт.)
+│   │   ├── Enums/                         # Перечисления (8 шт.)
+│   │   ├── Interfaces/                    # Абстракции (11 шт.)
+│   │   ├── Models/                        # Модели данных (DTO внешних API)
+│   │   └── Validation/                    # Валидаторы доменной логики
+│   ├── Infrastructure/                    # Infrastructure Layer (net9.0)
+│   │   ├── Persistence/                   # EF Core DbContext, конфигурации, репозитории
+│   │   ├── Services/                      # Реализации интерфейсов домена
+│   │   ├── Authentication/               # LDAP, JWT-провайдеры
+│   │   ├── Auditing/                      # Аудит-лог (БД + файлы)
+│   │   ├── FileStorage/                   # Локальное/S3 файловое хранилище
+│   │   ├── Notifications/                 # Email/SMS-уведомления
+│   │   └── Middleware/                    # ПО промежуточного слоя
+│   ├── Common/                            # Общие утилиты
+│   │   └── Exceptions/                    # Базовые классы исключений
+│   └── Tools/                             # Утилиты
+│       ├── DbReset/                       # Сброс и пересоздание БД
+│       ├── LegalEntitiesDemo/             # Генератор демо-данных ЮЛ
+│       └── OkopfImporter/                 # Импорт справочника ОКОПФ
 ├── tests/
-│   ├── Unit/                        # Unit Tests
-│   ├── Integration/                # Integration Tests
-│   └── Functional/                 # Functional Tests
-├── docs/                            # Documentation
-├── tools/                           # Dev Tools, Scripts
-├── .mimocode/                       # AI Assistant Config
-├── *.sln                            # Solution Files
-└── *.md                             # Documentation
+│   ├── SamorodinkaTech.Fiducia.Tests.Unit/
+│   ├── SamorodinkaTech.Fiducia.Tests.Integration/
+│   └── SamorodinkaTech.Fiducia.Tests.Functional/
+├── tools/
+│   ├── db/                                # SQL-скрипты (01_schema, 02_seed, 03_demo)
+│   ├── ldap/                              # LDAP seed-данные
+│   └── dev/                               # Скрипты разработчика
+├── docs/                                  # Документация
+├── docker-compose.yml                     # PostgreSQL 16
+├── docker-compose.ldap.yml                # OpenLDAP (только x86_64)
+└── start.sh                               # Запуск обоих порталов
 ```
 
 ---
 
 ## Компоненты системы
 
-### 1. API Layer (Presentation)
+### 1. Board Portal (Blazor Server, :5002)
 
-**Ответственность**: Обработка HTTP-запросов, валидация, авторизация.
+**Ответственность**: Рабочее пространство директора — вход, просмотр заседаний, голосование, документы, оповещения.
 
-**Технологии**: ASP.NET Core 8, MediatR, FluentValidation.
-
-**Ключевые элементы**:
-- `Controllers/` — REST API endpoints
-- `Filters/` — Action/Exception фильтры
-- `Middleware/` — Pipeline middleware
-
-### 2. Application Layer
-
-**Ответственность**: Оркестрация бизнес-операций, транзакции, кросс-модульная коммуникация.
-
-**Паттерны**: CQRS, MediatR, Use Cases.
+**Технологии**: .NET 9, Blazor Server, Bootstrap 5, Kestrel.
 
 **Ключевые элементы**:
-- `Commands/` — Запись данных (Create, Update, Delete)
-- `Queries/` — Чтение данных (Get, Search, Filter)
-- `Services/` — Application Services
-- `Validators/` — Валидация входных данных
+- `Pages/` — Razor-страницы (Login, Meetings, Voting, Documents, Notifications, …)
+- `Shared/` — MainLayout, NavMenu, общие компоненты
+- `Program.cs` — DI-контейнер, middleware, конфигурация
+
+### 2. Admin Console (Blazor Server, :5001)
+
+**Ответственность**: Администрирование системы — управление ЮЛ, комитетами, пользователями, аудит-логом, печатными формами.
+
+**Технологии**: .NET 9, Blazor Server, Bootstrap 5, Kestrel.
+
+**Ключевые элементы**:
+- `Pages/` — Razor-страницы (LegalEntities, Committees, Users, Audit, Print, …)
+- `Shared/` — MainLayout, NavMenu, общие компоненты
+- `Services/` — Сервисы, специфичные для Admin Console
+- `Contracts/` — DTO и контракты для форм
+- `Program.cs` — DI-контейнер, middleware, конфигурация
 
 ### 3. Domain Layer
 
-**Ответственность**: Бизнес-логика, правила, инварианты.
+**Ответственность**: Бизнес-логика, сущности, перечисления, интерфейсы, валидация.
 
-**Паттерны**: Domain Events, Value Objects, Aggregates.
+**Паттерны**: Domain-Driven Design, Repository Pattern (через интерфейсы).
 
 **Ключевые элементы**:
-- `Entities/` — Сущности с уникальным Identity
-- `ValueObjects/` — Immutable value types
-- `Aggregates/` — Корни агрегации
-- `Events/` — Domain Events
-- `Exceptions/` — Business Exceptions
+- `Entities/` — 24 сущности: User, Role, Meeting, AgendaQuestion, Bulletin, Committee, CommitteeMember, CommitteeTask, BoardMember, LegalEntity, Okopf, OsaMeeting, OsaForm, Notification, SecurityAuditLog, FileEntry и др.
+- `Enums/` — 8 перечислений: MeetingForm, MeetingStatus, VoteValue, SignatureType, BehaviorType, TaskStatus, QuestionStatus, NotificationType
+- `Interfaces/` — 11 абстракций: IApplicationDbContext, IAuthProvider, ISessionService, ISecurityAuditService, INotificationService, IFileStorage, ITrueConfApiClient, IMtsLinkApiClient, ILdapService, IBoardMemberLdapService, ILegalEntityGosaIntervalService
+- `Validation/` — Валидаторы доменной логики
+- `Models/` — DTO для внешних API (TrueConf, МТС Линк, LDAP)
 
 ### 4. Infrastructure Layer
 
-**Ответственность**: Техническая реализация, доступ к данным, внешние интеграции.
+**Ответственность**: Техническая реализация интерфейсов домена, доступ к данным, внешние интеграции.
 
-**Технологии**: EF Core, RabbitMQ, Redis, MinIO/S3.
+**Технологии**: EF Core 9, Npgsql, System.DirectoryServices.Protocols.
 
 **Ключевые элементы**:
-- `Persistence/` — Repositories, EF Core DbContext
-- `Messaging/` — Event Bus, Message Handlers
-- `External/` — API Clients (TSP, КриптоПро, SMTP)
-- `Cache/` — Redis Cache
-- `Storage/` — File Storage (MinIO/S3)
+- `Persistence/` — DbContext, EF-конфигурации сущностей, репозитории
+- `Services/` — Реализации интерфейсов (TrueConfApiClient, MtsLinkApiClient, LdapService, BoardMemberLdapService, …)
+- `Authentication/` — LdapAuthProvider, JWT-провайдер
+- `Auditing/` — SecurityAuditService, SecurityAuditFileWriter
+- `FileStorage/` — LocalFileStorage, MinioFileStorage
+- `Notifications/` — Email- и SMS-уведомления
+- `Middleware/` — ПО промежуточного слоя (аудит, обработка ошибок)
 
 ---
 
-## Модули системы
+## Доменные модули
 
-### Module: Auth (Авторизация)
+### Auth (Аутентификация и авторизация)
 
-**Описание**: Управление пользователями, аутентификация, авторизация.
+**Сущности**: `User`, `Role`, `UserRole`, `CurrentWorkplace`.
 
-**Компоненты**:
-- `UserService` — Управление пользователями
-- `AuthService` — OAuth2 + 2FA
-- `PepAgreementService` — Подписание Соглашения о ПЭП
-- `RoleService` — RBAC матрица
+**Интерфейсы**: `IAuthProvider`, `ISessionService`.
 
-**Доменная модель**:
-```mermaid
-classDiagram
-    class User {
-        +int Id
-        +string LastName
-        +string FirstName
-        +string MiddleName
-        +string Email
-        +string Phone
-        +bool IsExternal
-        +bool PepAgreementSigned
-        +DateTime? PepSignedAt
-    }
+**Реализация**: JWT cookie + LDAP (опционально) + ПЭП-соглашение.
 
-    class Role {
-        +int Id
-        +string RoleCode
-        +string RoleName
-    }
+**Особенности**:
+- Блокировка входа до подписания Соглашения о ПЭП (63-ФЗ)
+- Принудительное закрытие сессии при бездействии (УПД.15, 152-ФЗ)
+- RBAC: SYS_ADMIN, CORP_SECRETARY, CHAIR_BOARD, MEMBER_BOARD и др.
 
-    class UserRole {
-        +int UserId
-        +int RoleId
-    }
+### Meetings (Заседания)
 
-    User "1" --> "*" UserRole
-    Role "1" --> "*" UserRole
-```
+**Сущности**: `Meeting`, `AgendaQuestion`, `Bulletin`, `OsaMeeting`, `OsaForm`, `OsaMeetingFile`.
 
-### Module: Meeting (Заседания)
+**Ключевая логика**:
+- Создание заседаний с контролем кворума и дедлайна 3 дня (208-ФЗ)
+- Бюллетени с подписью ПЭП/УКЭП
+- Подсчёт голосов (ЗА/ПРОТИВ/ВОЗДЕРЖАЛСЯ/КОНФЛИКТ)
+- ОСА (Общее собрание акционеров) с настройкой интервала ГОСА
 
-**Описание**: Организация и управление заседаниями совета директоров.
+### Committees (Комитеты)
 
-**Компоненты**:
-- `MeetingService` — Управление заседаниями
-- `AgendaService` — Повестка дня
-- `QuorumService` — Контроль кворума
-- `NotificationService` — Уведомления о созыве
+**Сущности**: `Committee`, `CommitteeMember`, `CommitteeTask`.
 
-**Доменная модель**:
-```mermaid
-classDiagram
-    class Meeting {
-        +int Id
-        +string MeetingNumber
-        +MeetingForm MeetingForm
-        +MeetingStatus Status
-        +DateTime? VotingStartAt
-        +DateTime? VotingEndAt
-        +int CreatedBy
-    }
+**Ключевая логика**:
+- Два типа логики: CONTROL (защитный) и STRATEGIC (стратегический)
+- Председатель и секретарь не могут быть одним лицом
+- Поручения комитетам с дедлайнами и статусами
 
-    class AgendaQuestion {
-        +int Id
-        +int MeetingId
-        +int SequenceNumber
-        +string QuestionText
-        +string ProposedResolution
-        +QuestionStatus Status
-    }
+### Board (Совет директоров)
 
-    Meeting "1" --> "*" AgendaQuestion
-```
+**Сущности**: `BoardMember`, `BoardMemberAppointment`, `BoardMemberType`, `BoardRole`, `LegalEntity`, `LegalEntityBoardSettings`.
 
-### Module: Voting (Голосование)
+**Ключевая логика**:
+- Состав СД с типами (исполнительный, независимый, неисполнительный, штатный)
+- Временный председательствующий
+- Настройки ЮЛ: интервал ГОСА, количество директоров, секретарь
 
-**Описание**: Электронное голосование с ПЭП/УКЭП.
+### Documents (Документооборот)
 
-**Компоненты**:
-- `BulletinService` — Бюллетени
-- `VoteService` — Подсчёт голосов
-- `SignatureService` — Электронные подписи
-- `TspService` — Метки времени
+**Сущности**: `FileEntry`.
 
-**Доменная модель**:
-```mermaid
-classDiagram
-    class Bulletin {
-        +int Id
-        +int AgendaQuestionId
-        +int UserId
-        +VoteValue VoteValue
-        +string? SpecialOpinion
-        +SignatureType SignatureType
-        +string SignatureValue
-        +DateTime SignedAt
-        +bool IsCancelled
-        +string? CancellationReason
-    }
+**Интерфейс**: `IFileStorage`.
 
-    class VoteValue {
-        <<enumeration>>
-        ZA
-        PROTIV
-        VOZDERZHALSYA
-    }
+**Реализация**: `LocalFileStorage` (основной), `MinioFileStorage` (опциональный).
 
-    class SignatureType {
-        <<enumeration>>
-        PEP
-        UKEP
-    }
+**Особенности**:
+- WORM-семантика (Write Once, Read Many) для соответствия 152-ФЗ
+- Папочное хранилище с SMB/NFS-монтированием в production
+- Печатные формы по ГОСТ Р 7.0.97-2025 (UI готов, генерация — в плане)
 
-    Bulletin --> VoteValue
-    Bulletin --> SignatureType
-```
+### Notifications (Оповещения)
 
-### Module: Committee (Комитеты)
+**Сущности**: `Notification`.
 
-**Описание**: Динамическое управление комитетами совета директоров.
+**Интерфейс**: `INotificationService`.
 
-**Компоненты**:
-- `CommitteeService` — Управление комитетами
-- `CommitteeMemberService` — Члены комитетов
-- `CommitteeTaskService` — Поручения комитетам
-- `CommitteeMeetingService` — Заседания комитетов
+**Типы**: созыв заседания, напоминание, протокол, дедлайн.
 
-**Доменная модель**:
-```mermaid
-classDiagram
-    class Committee {
-        +int Id
-        +string Code
-        +string Name
-        +BehaviorType BehaviorType
-        +bool IsActive
-        +int? ChairId
-        +int? SecretaryId
-    }
+**Каналы**: UI-оповещения в Board Portal + Admin Console (email/SMS — в плане).
 
-    class CommitteeMember {
-        +int CommitteeId
-        +int UserId
-    }
+### Audit (Аудит безопасности)
 
-    class CommitteeTask {
-        +int Id
-        +int CommitteeId
-        +int? AgendaQuestionId
-        +string TaskDescription
-        +DateTime DeadlineAt
-        +TaskStatus Status
-        +int CreatedBy
-    }
+**Сущности**: `SecurityAuditLog`.
 
-    class BehaviorType {
-        <<enumeration>>
-        CONTROL
-        STRATEGIC
-    }
+**Интерфейс**: `ISecurityAuditService`.
 
-    Committee --> BehaviorType
-    Committee "1" --> "*" CommitteeMember
-    Committee "1" --> "*" CommitteeTask
-```
+**Реализация**: запись в PostgreSQL + файловый лог.
 
-### Module: Document (Документооборот)
+**Особенности**:
+- Некорректируемый аудит-лог (152-ФЗ)
+- Два потока: аудит безопасности + логи приложений
+- Роллинг-файлы с настраиваемым форматом имени
 
-**Описание**: Генерация и управление документами по ГОСТ Р 7.0.97-2025.
+### External Integrations (Внешние интеграции)
 
-**Компоненты**:
-- `ProtocolService` — Протоколы заседаний
-- `GostTemplateService` — ГОСТ-шаблоны
-- `WatermarkService` — Водяные знаки
-- `FileStorageService` — Хранилище файлов
+**Видеоконференцсвязь**:
+- `ITrueConfApiClient` → TrueConf Server API v4
+- `IMtsLinkApiClient` → МТС Линк API v3
 
-### Module: Audit (Аудит)
+**LDAP/AD**:
+- `ILDapService` — низкоуровневые LDAP-операции
+- `IBoardMemberLdapService` — синхронизация состава СД из каталога
 
-**Описание**: Некорректируемый журнал аудита ИБ.
-
-**Компоненты**:
-- `AuditLogService` — Журнал аудита
-- `SecurityEventService` — События безопасности
+**Справочники**:
+- `Okopf` — справочник ОКОПФ (импорт из CSV, `ref_okopf`)
 
 ---
 
-## Взаимодействие модулей
+## Взаимодействие компонентов
 
 ```mermaid
 sequenceDiagram
-    participant S as Секретарь
-    participant API as API Gateway
-    participant MEETING as Meeting Service
-    participant VOTING as Voting Service
-    participant NOTIFY as Notification Service
-    participant DB as Database
-    participant AUDIT as Audit Service
+    participant S as Секретарь (браузер)
+    participant AC as Admin Console<br/>(Blazor Server)
+    participant DOM as Domain
+    participant INFRA as Infrastructure
+    participant DB as PostgreSQL
 
-    S->>API: POST /api/meetings
-    API->>MEETING: CreateMeeting
+    S->>AC: Создать заседание (форма)
+    AC->>DOM: Валидация
+    DOM->>INFRA: Сохранить
+    INFRA->>DB: INSERT meeting
+    DB-->>INFRA: OK
+    INFRA-->>AC: Результат
+    AC-->>S: Обновление UI
 
-    MEETING->>DB: Save Meeting
-    MEETING->>AUDIT: Log Action
-
-    MEETING->>NOTIFY: SendNotifications
-    NOTIFY->>NOTIFY: SendEmail to Directors
-
-    Note over VOTING: Голосование
-    VOTING->>API: POST /api/bulletins
-    API->>VOTING: SubmitVote
-
-    VOTING->>VOTING: Validate Quorum
-    VOTING->>VOTING: Sign with PEP/UKEP
-    VOTING->>VOTING: Get TSP Timestamp
-
-    VOTING->>DB: Save Bulletin
-    VOTING->>AUDIT: Log Vote
-
-    VOTING->>API: Return Result
-    API->>S: 200 OK
+    Note over AC,INFRA: Параллельно — аудит
+    INFRA->>DB: INSERT security_audit_log
 ```
+
+Взаимодействие между компонентами происходит in-process: Blazor Server-приложение вызывает методы доменного слоя, тот — интерфейсы инфраструктуры. Внешних вызовов между приложениями нет — Board Portal и Admin Console работают независимо, разделяя общую БД.
 
 ---
 
@@ -525,11 +390,11 @@ flowchart TD
 graph TB
     subgraph "Локальная разработка / текущий деплой"
         subgraph "AdminConsole (.NET 9, Blazor Server, Kestrel)"
-            ADMIN[AdminConsole<br/>http://localhost:5169]
+            ADMIN[AdminConsole<br/>http://localhost:5001]
         end
 
         subgraph "BoardPortal (.NET 9, Blazor Server, Kestrel)"
-            BOARD[BoardPortal<br/>http://localhost:5112]
+            BOARD[BoardPortal<br/>http://localhost:5002]
         end
 
         subgraph "Docker Compose"
@@ -549,7 +414,7 @@ graph TB
 | БД | PostgreSQL Primary + Replica | Один инстанс PostgreSQL 16 (`fiducia-postgres`, порт 5434), без реплики |
 | Кэш | Redis Cluster (Primary + Replica) | Отсутствует |
 | Message Broker | RabbitMQ (2 узла) | Отсутствует — коммуникация in-process |
-| Файловое хранилище | MinIO/S3 | Не реализовано |
+| Файловое хранилище | MinIO/S3 | `LocalFileStorage` (папочное хранилище, WORM) — реализовано. MinIO — опционально |
 | TSP Server | Внешний сервис меток времени | Не реализовано |
 | КриптоПро (УКЭП) | Внешняя интеграция | Не реализовано (см. "Известные проблемы" в `AGENTS.md`) |
 | Сессии | — | JWT cookie через `ISessionService`, без Redis |

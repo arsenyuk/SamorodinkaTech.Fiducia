@@ -1,5 +1,7 @@
 # API Reference
 
+> ⚠️ **Статус: целевой документ (Фаза 3).** Описанный ниже REST API **не реализован** в текущей версии. Система работает на Blazor Server — взаимодействие клиент-сервер происходит через SignalR-соединение, без REST-эндпоинтов. Документ сохранён как проектная спецификация для будущей реализации API-слоя.
+
 ---
 
 ## Обзор
@@ -39,7 +41,7 @@ Content-Type: application/json
   "access_token": "eyJhbGciOiJIUzI1NiIs...",
   "token_type": "Bearer",
   "expires_in": 3600,
-  "user_id": 123,
+  "user_id": "550e8400-e29b-41d4-a716-446655440000",
   "roles": ["CHAIR_BOARD"]
 }
 ```
@@ -81,7 +83,7 @@ Content-Type: application/json
 **Ответ** (201 Created):
 ```json
 {
-  "id": 456,
+  "id": "550e8400-e29b-41d4-a716-446655440001",
   "last_name": "Иванов",
   "first_name": "Иван",
   "email": "ivanov@example.com",

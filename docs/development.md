@@ -8,10 +8,8 @@
 
 | Компонент | Минимальная версия | Рекомендуемая версия |
 |-----------|-------------------|---------------------|
-| .NET SDK | 8.0 | 8.0.100+ |
-| PostgreSQL | 14 | 16 |
-| Redis | 6.0 | 7.0+ |
-| RabbitMQ | 3.10 | 3.12+ |
+| .NET SDK | 9.0 | 9.0.100+ |
+| PostgreSQL | 16 | 16 |
 | Node.js | 18 | 20 LTS |
 | Docker | 20.10 | 24.0+ |
 | IDE | Visual Studio 2022 / Rider | последняя версия |
@@ -20,23 +18,20 @@
 
 ```bash
 # macOS (Homebrew)
-brew install dotnet@8
+brew install dotnet@9
 
 # Windows (winget)
-winget install Microsoft.DotNet.SDK.8
+winget install Microsoft.DotNet.SDK.9
 
 # Linux (Ubuntu/Debian)
 wget https://packages.microsoft.com/config/ubuntu/22.04/packages-microsoft-prod.deb -O packages-microsoft-prod.deb
 sudo dpkg -i packages-microsoft-prod.deb
-sudo apt update && sudo apt install dotnet-sdk-8.0
+sudo apt update && sudo apt install dotnet-sdk-9.0
 ```
 
 ### Установка инструментов
 
 ```bash
-# Entity Framework Core tools
-dotnet tool install --global dotnet-ef
-
 # Dotnet-outdated
 dotnet tool install --global dotnet-outdated-tool
 
@@ -64,17 +59,16 @@ docker-compose logs -f api
 ### Локальная разработка
 
 ```bash
-# 1. Запуск зависимостей
-docker-compose up -d postgres redis rabbitmq minio
+# 1. Запуск PostgreSQL
+docker-compose up -d
 
-# 2. Применение миграций
-dotnet ef database update --project src/Infrastructure --startup-project src/Api
+# 2. Применение схемы и начальных данных (Database‑First, BDR‑002)
+cat tools/db/01_schema.sql | docker exec -i fiducia-postgres psql -U fiducia -d fiducia -v ON_ERROR_STOP=1
+cat tools/db/02_seed.sql | docker exec -i fiducia-postgres psql -U fiducia -d fiducia -v ON_ERROR_STOP=1
+cat tools/db/03_demo.sql | docker exec -i fiducia-postgres psql -U fiducia -d fiducia -v ON_ERROR_STOP=1
 
-# 3. Запуск API
-dotnet run --project src/Api
-
-# 4. Запуск в режиме разработки (с hot-reload)
-dotnet watch --project src/Api
+# 3. Запуск обоих порталов
+./start.sh
 ```
 
 ### Запуск тестов
@@ -84,10 +78,10 @@ dotnet watch --project src/Api
 dotnet test
 
 # Только unit-тесты
-dotnet test tests/Unit
+dotnet test tests/SamorodinkaTech.Fiducia.Tests.Unit
 
 # Только integration тесты
-dotnet test tests/Integration
+dotnet test tests/SamorodinkaTech.Fiducia.Tests.Integration
 
 # С покрытием кода
 dotnet test /p:CollectCoverage=true /p:CoverletOutput=./coverage/
@@ -116,15 +110,12 @@ docker-compose exec -T postgres psql -U fiducia -d fiducia -v ON_ERROR_STOP=1 -f
 ### Функциональные тесты (E2E)
 
 Тесты ожидают работающие порталы:
-- Board Portal: http://localhost:5000
+- Board Portal: http://localhost:5002
 - Admin Console: http://localhost:5001
 
 ```bash
 # Запуск порталов в фоне (dev)
-dotnet run --project SamorodinkaTech.Fiducia.BoardPortal --urls "http://localhost:5000" &
-BPID=$!
-dotnet run --project SamorodinkaTech.Fiducia.AdminConsole --urls "http://localhost:5001" &
-APID=$!
+./start.sh &
 
 # Небольшая задержка и/или ожидание доступности
 sleep 5
@@ -133,10 +124,10 @@ sleep 5
 dotnet test tests/SamorodinkaTech.Fiducia.Tests.Functional
 
 # Остановка порталов после тестов
-kill $BPID $APID || true
+kill %1 || true
 ```
 
-См. также ADR‑011/ADR‑012 для деталей по сценариям инициализации.
+См. также BDR‑002/BDR‑003 для деталей по сценариям инициализации БД.
 
 ---
 
@@ -146,28 +137,22 @@ kill $BPID $APID || true
 
 ```
 tests/
-├── Unit/                              # Unit Tests
-│   ├── Fiducia.Domain.Tests/
-│   ├── Fiducia.Application.Tests/
-│   └── Fiducia.Infrastructure.Tests/
-├── Integration/                       # Integration Tests
-│   ├── Fiducia.Api.Tests/
-│   └── Fiducia.Database.Tests/
-└── Functional/                        # Functional Tests (E2E)
-    └── Fiducia.Functional.Tests/
+├── SamorodinkaTech.Fiducia.Tests.Unit/     # Unit Tests
+├── SamorodinkaTech.Fiducia.Tests.Integration/  # Integration Tests
+└── SamorodinkaTech.Fiducia.Tests.Functional/   # Functional Tests (E2E)
 ```
 
 ### Запуск тестов по типам
 
 ```bash
 # Unit Tests (быстрые, без зависимостей)
-dotnet test tests/Unit --logger "console;verbosity=detailed"
+dotnet test tests/SamorodinkaTech.Fiducia.Tests.Unit --logger "console;verbosity=detailed"
 
 # Integration Tests (требуют Docker)
-dotnet test tests/Integration --logger "trx;LogFileName=integration.trx"
+dotnet test tests/SamorodinkaTech.Fiducia.Tests.Integration --logger "trx;LogFileName=integration.trx"
 
 # Functional Tests (E2E)
-dotnet test tests/Functional --logger "trx;LogFileName=functional.trx"
+dotnet test tests/SamorodinkaTech.Fiducia.Tests.Functional --logger "trx;LogFileName=functional.trx"
 ```
 
 ### Генерация отчёта покрытия
@@ -367,20 +352,22 @@ dotnet outdated --upgrade
 dotnet build -c Release
 ```
 
-### Миграции
+### Управление схемой БД (Database‑First)
+
+Проект использует Database‑First (BDR‑002): схема ведётся в SQL-скриптах (`tools/db/`), а не через EF-миграции.
 
 ```bash
-# Добавить миграцию
-dotnet ef migrations add <MigrationName> --project src/Infrastructure
+# Применить схему
+cat tools/db/01_schema.sql | docker exec -i fiducia-postgres psql -U fiducia -d fiducia -v ON_ERROR_STOP=1
 
-# Применить миграции
-dotnet ef database update --project src/Infrastructure
+# Применить начальные данные
+cat tools/db/02_seed.sql | docker exec -i fiducia-postgres psql -U fiducia -d fiducia -v ON_ERROR_STOP=1
 
-# Откатить последнюю миграцию
-dotnet ef database update LastGoodMigration --project src/Infrastructure
+# Применить демо-данные
+cat tools/db/03_demo.sql | docker exec -i fiducia-postgres psql -U fiducia -d fiducia -v ON_ERROR_STOP=1
 
-# Удалить последнюю миграцию
-dotnet ef migrations remove --project src/Infrastructure
+# Проверить список таблиц
+docker exec -it fiducia-postgres psql -U fiducia -d fiducia -c "\\dt"
 ```
 
 ### Форматирование
@@ -393,17 +380,17 @@ dotnet format
 dotnet format --verify-no-changes
 
 # Форматирование конкретного проекта
-dotnet format src/Api
+dotnet format SamorodinkaTech.Fiducia.BoardPortal
 ```
 
 ### Docker
 
 ```bash
 # Сборка образа
-docker build -t fiducia-api .
+docker build -t fiducia-boardportal -f SamorodinkaTech.Fiducia.BoardPortal/Dockerfile .
 
 # Запуск контейнера
-docker run -p 5000:8080 fiducia-api
+docker run -p 5002:8080 fiducia-boardportal
 
 # Остановка и удаление
 docker-compose down -v
@@ -452,14 +439,18 @@ docker-compose down -v
 
 ## Troubleshooting
 
-### Проблема: Миграции не применяются
+### Проблема: Схема БД не совпадает с кодом
 
 ```bash
-# Проверить статус миграций
-dotnet ef migrations list --project src/Infrastructure
+# Проверить список таблиц
+docker exec -it fiducia-postgres psql -U fiducia -d fiducia -c "\dt"
 
-# Принудительно применить
-dotnet ef database update --project src/Infrastructure --verbose
+# Переприменить схему с нуля (внимание: удаляет все данные!)
+docker-compose down -v
+docker-compose up -d
+cat tools/db/01_schema.sql | docker exec -i fiducia-postgres psql -U fiducia -d fiducia -v ON_ERROR_STOP=1
+cat tools/db/02_seed.sql | docker exec -i fiducia-postgres psql -U fiducia -d fiducia -v ON_ERROR_STOP=1
+cat tools/db/03_demo.sql | docker exec -i fiducia-postgres psql -U fiducia -d fiducia -v ON_ERROR_STOP=1
 ```
 
 ### Проблема: Тесты падают
@@ -487,13 +478,11 @@ docker info
 
 ```bash
 # Найти процесс на порту (macOS)
-lsof -i :5000
+lsof -i :5001
+lsof -i :5002
 
 # Убить процесс
 kill -9 <PID>
-
-# Или сменить порт
-dotnet run --project src/Api --urls "http://localhost:5001"
 ```
 ### Изменения схемы данных (PostgreSQL)
 
