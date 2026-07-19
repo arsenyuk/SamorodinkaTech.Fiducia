@@ -832,20 +832,31 @@ File.SetUnixFileMode(fullPath,
 |---------|----------|----------|-------------|
 | **1. Права ФС** | `chmod 440` после записи | Приложение не может удалить файл стандартными средствами | Минимальный, всегда работает |
 | **2. Immutable-флаг** | `chattr +i` (ext4/xfs/btrfs) | Никто, включая root, не может удалить без снятия флага | Рекомендуемый для production |
-| **3. Аппаратный WORM** | NAS с WORM-политикой (NetApp SnapLock, Dell Isilon SmartLock) | Удаление невозможно на уровне СХД, даже при физическом доступе | Максимальная защита для регулируемых отраслей |
+| **3. Аппаратный WORM** | Отечественные СХД (Аэродиск, Yadro TATLIN) или NAS с WORM-политикой | Удаление невозможно на уровне СХД, даже при физическом доступе | Максимальная защита для регулируемых отраслей |
 
 ### Специализированные WORM-решения
 
 Помимо стандартных прав ОС, для обеспечения некорректируемого хранения могут применяться:
 
+#### Отечественные решения (рекомендованы)
+
+- **Аэродиск (Aerodisk)** — российская СХД (в реестре Минпромторга), поддерживает неизменяемые (immutable) снапшоты. Файлы в снапшоте не могут быть изменены или удалены. Решение сертифицировано для использования в госсекторе и организациях с повышенными требованиями ИБ.
+- **Yadro TATLIN** — российская платформа хранения данных (в реестре Минпромторга), корпоративные СХД уровня All-Flash и Hybrid. Поддерживают аппаратную защиту данных от модификации, включая неизменяемые тома и снапшоты.
+- **RAIDIX** — российское программное обеспечение для систем хранения данных (в реестре отечественного ПО). Позволяет построить WORM-хранилище на стандартном серверном оборудовании через механизмы неизменяемых снапшотов и контроля доступа на уровне СХД.
+
+#### Программные WORM-механизмы (Linux)
+
 - **Linux `chattr +i`** (immutable) — встроен в ext4/xfs/btrfs. Файл не может быть изменён, удалён, переименован или перелинкован. Требует `CAP_LINUX_IMMUTABLE`. Снять флаг может только root.
 - **SMB-шар с WORM** — SMB-сервер (Windows Server, Samba) может быть настроен на режим «только запись и чтение» для шар, без права удаления на уровне SMB-протокола.
 - **NFS с экспортом readonly-after-write** — NFS-сервер может экспортировать каталог с опциями, запрещающими удаление существующих файлов.
-- **NetApp SnapLock** — аппаратный WORM на уровне СХД. Файлы в SnapLock-томе не могут быть изменены или удалены до истечения retention-периода (месяцы или годы). Compliance-режим не позволяет снять блокировку даже администратору СХД.
-- **Dell EMC Isilon SmartLock** — аналогично NetApp, WORM на уровне кластерной ФС Isilon OneFS. Поддерживает два режима: enterprise (администратор может снять) и compliance (нельзя снять).
 - **S3 Object Lock** (для MinIO) — режимы governance (снимается специальной ролью) и compliance (не снимается). Требует включения object lock при создании бакета и установки retention-периода на каждый объект.
 
-> **Рекомендация для production**: уровень 2 (`chattr +i`) как минимум, уровень 3 (аппаратный WORM NAS) для организаций с повышенными требованиями ИБ (банки, госсектор). Механизм `chattr +i` реализуется в `LocalFileStorage.SaveAsync()` после записи файла на диск.
+#### Иностранные решения (ранее использовались)
+
+- **NetApp SnapLock** — аппаратный WORM на уровне СХД. Compliance-режим не позволяет снять блокировку даже администратору СХД.
+- **Dell EMC Isilon SmartLock** — WORM на уровне кластерной ФС Isilon OneFS. Два режима: enterprise (администратор может снять) и compliance (нельзя снять).
+
+> **Рекомендация для production**: уровень 2 (`chattr +i`) как минимум, уровень 3 (отечественные СХД: Аэродиск, Yadro TATLIN, RAIDIX) для организаций с повышенными требованиями ИБ (банки, госсектор). Механизм `chattr +i` реализуется в `LocalFileStorage.SaveAsync()` после записи файла на диск.
 
 ---
 
@@ -873,7 +884,10 @@ File.SetUnixFileMode(fullPath,
 - [Linux filesystem capabilities (CAP_LINUX_IMMUTABLE)](https://man7.org/linux/man-pages/man7/capabilities.7.html)
 - [SMB/CIFS в Linux (mount.cifs)](https://wiki.samba.org/index.php/Mounting_samba_shares_from_a_unix_client)
 - [NFS в Linux](https://wiki.archlinux.org/title/NFS)
-- [NetApp SnapLock (WORM)](https://docs.netapp.com/us-en/ontap/snaplock/)
-- [Dell EMC Isilon SmartLock (WORM)](https://www.dell.com/support/kbdoc/000156903)
+- [Аэродиск — российская СХД (реестр Минпромторга)](https://aerodisk.ru/)
+- [Yadro TATLIN — российская платформа хранения данных](https://yadro.com/products/tatlin/)
+- [RAIDIX — российское ПО для СХД (реестр ПО)](https://www.raidix.com/ru)
 - [Документация MinIO](https://min.io/docs/minio/linux/index.html)
 - [MinIO Object Lock (WORM)](https://min.io/docs/minio/linux/administration/object-management/object-lock.html)
+- [NetApp SnapLock (WORM)](https://docs.netapp.com/us-en/ontap/snaplock/) — ранее использовалось
+- [Dell EMC Isilon SmartLock (WORM)](https://www.dell.com/support/kbdoc/000156903) — ранее использовалось
