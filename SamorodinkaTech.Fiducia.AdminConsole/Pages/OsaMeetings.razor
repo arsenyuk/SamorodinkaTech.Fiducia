@@ -1165,6 +1165,9 @@
             m.BoardMandatory = editBoardMandatory;
             m.BoardApproved = editBoardApproved;
 
+            // Привязываем строки без UserId к справочнику пользователей (LDAP)
+            await EnsureUserIds(ctx);
+
             // Сохраняем состав СД, если утверждён
             if (editBoardCompositionApproved && editHasBoard)
             {
@@ -1588,6 +1591,37 @@
                 editBoardCompositionApproved = false;
                 OnBoardCompositionChanged();
             }
+        }
+    }
+
+    private async Task EnsureUserIds(IApplicationDbContext ctx)
+    {
+        foreach (var row in boardMemberRows)
+        {
+            if (row.UserId.HasValue) continue;
+            if (string.IsNullOrWhiteSpace(row.Email) || string.IsNullOrWhiteSpace(row.Name)) continue;
+
+            // Ищем в change tracker'е (уже добавлен в этом же цикле) или в БД
+            var existing = await ctx.Users.FirstOrDefaultAsync(u => u.Email == row.Email.Trim());
+            if (existing != null)
+            {
+                row.UserId = existing.Id;
+                continue;
+            }
+
+            var nameParts = row.Name.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            var newUser = new User
+            {
+                LastName = nameParts.Length > 0 ? nameParts[0] : row.Name,
+                FirstName = nameParts.Length > 1 ? nameParts[1] : string.Empty,
+                MiddleName = nameParts.Length > 2 ? nameParts[2] : null,
+                Email = row.Email.Trim(),
+                Phone = string.Empty,
+                IsExternal = false,
+                CreatedAt = DateTime.UtcNow
+            };
+            ctx.Users.Add(newUser);
+            row.UserId = newUser.Id;
         }
     }
 
@@ -2192,6 +2226,9 @@
             m.BoardApproved = editBoardApproved;
             m.ProtocolSignedAt = editProtocolSigned && editProtocolSignedAt.HasValue
                 ? ((DateTime)editProtocolSignedAt).ToUniversalTime() : null;
+
+            // Привязываем строки без UserId к справочнику пользователей (LDAP)
+            await EnsureUserIds(ctx);
 
             // Обновляем состав СД: удаляем старых, создаём новых
             var oldMembers = await ctx.BoardMembers.Where(x => x.OsaMeetingId == editingMeetingId.Value).ToListAsync();
