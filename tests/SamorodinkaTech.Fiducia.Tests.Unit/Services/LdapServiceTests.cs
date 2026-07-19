@@ -14,6 +14,9 @@ public class LdapServiceTests
 {
     private readonly MockLdapService _ldap = new();
 
+    /// <summary>
+    /// Аутентификация с корректными учётными данными возвращает true.
+    /// </summary>
     [Fact]
     public async Task AuthenticateAsync_ValidCredentials_ShouldReturnTrue()
     {
@@ -24,6 +27,9 @@ public class LdapServiceTests
         result.Should().BeTrue();
     }
 
+    /// <summary>
+    /// Аутентификация с неверным паролем возвращает false.
+    /// </summary>
     [Fact]
     public async Task AuthenticateAsync_WrongPassword_ShouldReturnFalse()
     {
@@ -34,6 +40,9 @@ public class LdapServiceTests
         result.Should().BeFalse();
     }
 
+    /// <summary>
+    /// Аутентификация несуществующего пользователя возвращает false.
+    /// </summary>
     [Fact]
     public async Task AuthenticateAsync_UnknownUser_ShouldReturnFalse()
     {
@@ -42,6 +51,9 @@ public class LdapServiceTests
         result.Should().BeFalse();
     }
 
+    /// <summary>
+    /// Поиск существующего пользователя по логину возвращает объект со всеми полями.
+    /// </summary>
     [Fact]
     public async Task FindUserByLoginAsync_Existing_ShouldReturnUser()
     {
@@ -56,6 +68,9 @@ public class LdapServiceTests
         user.Title.Should().Be("Член СД");
     }
 
+    /// <summary>
+    /// Поиск несуществующего пользователя по логину возвращает null.
+    /// </summary>
     [Fact]
     public async Task FindUserByLoginAsync_NonExisting_ShouldReturnNull()
     {
@@ -64,6 +79,9 @@ public class LdapServiceTests
         user.Should().BeNull();
     }
 
+    /// <summary>
+    /// Поиск пользователей по фильтру department возвращает только пользователей нужного отдела.
+    /// </summary>
     [Fact]
     public async Task SearchUsersAsync_ByDepartment_ShouldFilter()
     {
@@ -79,6 +97,9 @@ public class LdapServiceTests
         results.Should().NotContain(u => u.LoginName == "sidorov");
     }
 
+    /// <summary>
+    /// Получение членов группы возвращает только пользователей, добавленных в эту группу.
+    /// </summary>
     [Fact]
     public async Task GetGroupMembersAsync_ShouldReturnMembers()
     {
@@ -102,6 +123,9 @@ public class LdapServiceTests
         members.Should().NotContain(u => u.LoginName == "sidorov");
     }
 
+    /// <summary>
+    /// Получение членов пустой группы возвращает пустой список.
+    /// </summary>
     [Fact]
     public async Task GetGroupMembersAsync_EmptyGroup_ShouldReturnEmpty()
     {
@@ -111,6 +135,9 @@ public class LdapServiceTests
         members.Should().BeEmpty();
     }
 
+    /// <summary>
+    /// LDAP-фильтр memberOf возвращает только членов указанной группы.
+    /// </summary>
     [Fact]
     public async Task SearchUsersAsync_MemberOfFilter_ShouldReturnGroupMembers()
     {
@@ -130,6 +157,9 @@ public class LdapServiceTests
         results.Should().HaveCount(2);
     }
 
+    /// <summary>
+    /// LDAP-пользователь должен нести все атрибуты: DN, логин, ФИО, email, должность, отдел, телефон, группы.
+    /// </summary>
     [Fact]
     public async Task LdapUser_ShouldHaveAllFields()
     {
@@ -159,6 +189,9 @@ public class LdapServiceTests
         user.MemberOf[0].Should().Contain("BoardOfDirectors");
     }
 
+    /// <summary>
+    /// При включённой симуляции сбоя все операции выбрасывают исключение.
+    /// </summary>
     [Fact]
     public async Task SimulateFailure_ShouldThrowOnAllOperations()
     {
@@ -183,6 +216,9 @@ public class LdapServiceTests
 /// </summary>
 internal static class TestHelper
 {
+    /// <summary>
+    /// Создаёт LDAP-пользователя с заданными параметрами.
+    /// </summary>
     public static LdapUser Director(
         string login,
         string displayName,

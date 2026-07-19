@@ -13,6 +13,9 @@ public class BoardMemberLdapServiceTests
 {
     private readonly MockBoardMemberLdapService _service = new();
 
+    /// <summary>
+    /// GetAllCandidatesAsync возвращает всех добавленных кандидатов.
+    /// </summary>
     [Fact]
     public async Task GetCandidatesAsync_ShouldReturnAllAddedCandidates()
     {
@@ -28,6 +31,9 @@ public class BoardMemberLdapServiceTests
         candidates.Should().Contain(c => c.Login == "s.sidorov");
     }
 
+    /// <summary>
+    /// При пустом списке кандидатов возвращается пустая коллекция.
+    /// </summary>
     [Fact]
     public async Task GetCandidatesAsync_Empty_ShouldReturnEmptyList()
     {
@@ -36,6 +42,9 @@ public class BoardMemberLdapServiceTests
         candidates.Should().BeEmpty();
     }
 
+    /// <summary>
+    /// Поиск кандидата по логину: существующий логин возвращает кандидата со всеми полями.
+    /// </summary>
     [Fact]
     public async Task GetCandidateByLoginAsync_Existing_ShouldReturnCandidate()
     {
@@ -50,6 +59,9 @@ public class BoardMemberLdapServiceTests
         candidate.SuggestedMemberTypeCode.Should().Be("EXECUTIVE");
     }
 
+    /// <summary>
+    /// Поиск кандидата по несуществующему логину возвращает null.
+    /// </summary>
     [Fact]
     public async Task GetCandidateByLoginAsync_NonExisting_ShouldReturnNull()
     {
@@ -58,6 +70,9 @@ public class BoardMemberLdapServiceTests
         candidate.Should().BeNull();
     }
 
+    /// <summary>
+    /// Проверка уникальности: новый логин не считается дубликатом.
+    /// </summary>
     [Fact]
     public void IsDuplicate_NewLogin_ShouldReturnFalse()
     {
@@ -68,6 +83,9 @@ public class BoardMemberLdapServiceTests
         result.Should().BeFalse();
     }
 
+    /// <summary>
+    /// Проверка уникальности: уже присутствующий логин считается дубликатом.
+    /// </summary>
     [Fact]
     public void IsDuplicate_ExistingLogin_ShouldReturnTrue()
     {
@@ -78,6 +96,9 @@ public class BoardMemberLdapServiceTests
         result.Should().BeTrue();
     }
 
+    /// <summary>
+    /// Попытка назначить одного кандидата дважды блокируется проверкой IsDuplicate.
+    /// </summary>
     [Fact]
     public async Task IsDuplicate_PreventsDoubleAssignment()
     {
@@ -94,6 +115,9 @@ public class BoardMemberLdapServiceTests
         isDuplicate.Should().BeTrue();
     }
 
+    /// <summary>
+    /// FindDuplicates: при отсутствии дубликатов возвращается пустой список.
+    /// </summary>
     [Fact]
     public void FindDuplicates_NoDuplicates_ShouldReturnEmpty()
     {
@@ -104,6 +128,9 @@ public class BoardMemberLdapServiceTests
         duplicates.Should().BeEmpty();
     }
 
+    /// <summary>
+    /// FindDuplicates: при наличии одного дубликата — он обнаруживается.
+    /// </summary>
     [Fact]
     public void FindDuplicates_WithDuplicates_ShouldDetectThem()
     {
@@ -115,6 +142,9 @@ public class BoardMemberLdapServiceTests
         duplicates[0].Should().Be("i.ivanov");
     }
 
+    /// <summary>
+    /// FindDuplicates: при нескольких дубликатах — все обнаруживаются.
+    /// </summary>
     [Fact]
     public void FindDuplicates_MultipleDuplicates_ShouldDetectAll()
     {
@@ -127,6 +157,9 @@ public class BoardMemberLdapServiceTests
         duplicates.Should().Contain("p.petrov");
     }
 
+    /// <summary>
+    /// Кандидат должен нести все поля: логин, ФИО, email, должность, телефон, DN, тип.
+    /// </summary>
     [Fact]
     public async Task Candidates_ShouldCarryAllFields()
     {
@@ -153,6 +186,9 @@ public class BoardMemberLdapServiceTests
         c.SuggestedMemberTypeCode.Should().Be("STAFF");
     }
 
+    /// <summary>
+    /// При включённой симуляции сбоя все асинхронные операции выбрасывают исключение.
+    /// </summary>
     [Fact]
     public async Task SimulateFailure_ShouldThrowOnAsyncOperations()
     {
@@ -167,6 +203,9 @@ public class BoardMemberLdapServiceTests
 
     // ── helpers ──────────────────────────────────────────────────────────
 
+    /// <summary>
+    /// Создаёт тестового кандидата с заданными параметрами.
+    /// </summary>
     private static BoardMemberCandidate Candidate(
         string login,
         string fullName,

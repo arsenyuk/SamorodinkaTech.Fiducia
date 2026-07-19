@@ -4,8 +4,15 @@ using SamorodinkaTech.Fiducia.Domain.Enums;
 
 namespace SamorodinkaTech.Fiducia.Tests.Unit.Entities;
 
+/// <summary>
+/// Тесты доменной сущности Committee: значения по умолчанию, типы поведения,
+/// председатель и секретарь, деактивация.
+/// </summary>
 public class CommitteeTests
 {
+    /// <summary>
+    /// Новая сущность Committee имеет корректные значения по умолчанию.
+    /// </summary>
     [Fact]
     public void Committee_ShouldHaveDefaultValues()
     {
@@ -23,6 +30,9 @@ public class CommitteeTests
         committee.Members.Should().BeEmpty();
     }
 
+    /// <summary>
+    /// Комитет типа CONTROL имеет поведение CONTROL.
+    /// </summary>
     [Fact]
     public void Committee_ControlType_ShouldHaveControlBehavior()
     {
@@ -38,6 +48,9 @@ public class CommitteeTests
         committee.BehaviorType.Should().Be(BehaviorType.CONTROL);
     }
 
+    /// <summary>
+    /// Комитет типа STRATEGIC имеет поведение STRATEGIC.
+    /// </summary>
     [Fact]
     public void Committee_StrategicType_ShouldHaveStrategicBehavior()
     {
@@ -53,6 +66,9 @@ public class CommitteeTests
         committee.BehaviorType.Should().Be(BehaviorType.STRATEGIC);
     }
 
+    /// <summary>
+    /// Председатель и секретарь комитета — разные пользователи.
+    /// </summary>
     [Fact]
     public void Committee_ChairAndSecretary_ShouldBeDifferentUsers()
     {
@@ -69,6 +85,9 @@ public class CommitteeTests
         committee.ChairId!.Value.Should().NotBe(committee.SecretaryId!.Value);
     }
 
+    /// <summary>
+    /// Комитет можно деактивировать установкой IsActive = false.
+    /// </summary>
     [Fact]
     public void Committee_CanBeDeactivated()
     {

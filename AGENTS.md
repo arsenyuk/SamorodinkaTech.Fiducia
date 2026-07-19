@@ -666,6 +666,25 @@ public async Task CreateAsync_WhenValidRequest_ShouldReturnNewId()
 - **Moq**: Мокинг
 - **FluentAssertion**: Утверждения
 
+### DB-валидаторы: тестирование через Moq (КРИТИЧНО)
+
+- DB-валидаторы (проверки, требующие выборки из БД: уникальность,
+  существование связанных сущностей) должны принимать абстракцию
+  `IApplicationDbContext` (порт из Domain), а не конкретную коллекцию
+  или EF-контекст. Это Dependency Inversion: ядро не знает о EF Core.
+- В unit-тестах используется **Moq** для мока `IApplicationDbContext`
+  и его свойств (например, `Mock<DbSet<OsaMeeting>>` через
+  `.Setup(db => db.OsaMeetings).Returns(mockSet.Object)`).
+- Запрещено передавать в DB-валидатор конкретные коллекции
+  (`List<T>`, `IEnumerable<T>`) — выборка из БД должна происходить
+  внутри валидатора через `IApplicationDbContext`, чтобы тест проверял
+  реальную логику, а не «предварительно отфильтрованные» данные.
+- Шаблон теста:
+  1. Arrange: создаётся `Mock<IApplicationDbContext>`, настраивается
+     `Mock<DbSet<T>>` с тестовым списком и провайдером `IQueryable`.
+  2. Act: вызывается метод валидатора с mock-объектом.
+  3. Assert: проверяется результат (ошибки/успех) через FluentAssertions.
+
 ---
 
 ## Безопасность

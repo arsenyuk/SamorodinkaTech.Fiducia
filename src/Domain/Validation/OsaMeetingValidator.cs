@@ -1,3 +1,6 @@
+using SamorodinkaTech.Fiducia.Domain.Entities;
+using SamorodinkaTech.Fiducia.Domain.Interfaces;
+
 namespace SamorodinkaTech.Fiducia.Domain.Validation;
 
 /// <summary>
@@ -111,5 +114,37 @@ public static class OsaMeetingValidator
                     $"Общее количество директоров по типам ({total}) " +
                     $"не может превышать количество участников СД ({model.BoardMemberNumber.Value}).");
         }
+    }
+
+    /// <summary>
+    /// DB-валидатор: проверяет, что ГОСА с указанным годом ещё не существует.
+    /// Принимает IApplicationDbContext (порт) для инверсии зависимостей.
+    /// </summary>
+    /// <param name="db">Контекст БД (абстракция).</param>
+    /// <param name="currentMeetingId">
+    ///   Идентификатор редактируемой записи при редактировании.
+    ///   При создании новой записи передаётся null.
+    /// </param>
+    /// <param name="gosaYear">Предлагаемый год ГОСА.</param>
+    /// <returns>Результат валидации с ошибкой при обнаружении дубликата.</returns>
+    public static LegalEntitySaveValidationResult ValidateUniqueGosaYear(
+        IApplicationDbContext db,
+        Guid? currentMeetingId,
+        int? gosaYear)
+    {
+        var result = new LegalEntitySaveValidationResult();
+
+        if (!gosaYear.HasValue || gosaYear.Value <= 0)
+            return result;
+
+        var duplicate = currentMeetingId.HasValue
+            ? db.OsaMeetings.Any(m => m.Id != currentMeetingId.Value && m.GosaYear == gosaYear.Value)
+            : db.OsaMeetings.Any(m => m.GosaYear == gosaYear.Value);
+
+        if (duplicate)
+            result.AddError(
+                $"ГОСА за {gosaYear.Value} год уже существует. Нельзя создать более одного ГОСА в году.");
+
+        return result;
     }
 }

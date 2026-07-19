@@ -3,8 +3,15 @@ using SamorodinkaTech.Fiducia.Domain.Entities;
 
 namespace SamorodinkaTech.Fiducia.Tests.Unit.Entities;
 
+/// <summary>
+/// Тесты доменной сущности User: значения по умолчанию, флаг внешнего директора,
+/// фиксация даты подписания ПЭП.
+/// </summary>
 public class UserTests
 {
+    /// <summary>
+    /// Новая сущность User имеет корректные значения по умолчанию.
+    /// </summary>
     [Fact]
     public void User_ShouldHaveDefaultValues()
     {
@@ -24,6 +31,9 @@ public class UserTests
         user.UserRoles.Should().BeEmpty();
     }
 
+    /// <summary>
+    /// Пользователь с флагом IsExternal = true является внешним директором.
+    /// </summary>
     [Fact]
     public void User_WithExternalFlag_ShouldBeExternal()
     {
@@ -39,6 +49,9 @@ public class UserTests
         user.IsExternal.Should().BeTrue();
     }
 
+    /// <summary>
+    /// При подписании ПЭП фиксируется дата подписания.
+    /// </summary>
     [Fact]
     public void User_PepAgreementSigned_ShouldTrackDate()
     {

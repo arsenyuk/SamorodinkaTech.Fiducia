@@ -3,10 +3,18 @@ using SamorodinkaTech.Fiducia.Domain.Validation;
 
 namespace SamorodinkaTech.Fiducia.Tests.Unit.Validation;
 
+/// <summary>
+/// Тесты form-валидатора юридического лица: проверяет поля формы
+/// без обращения к БД — ОКОПФ, количество акционеров, состав СД,
+/// интервал ГОСА, руководитель.
+/// </summary>
 public class LegalEntityValidatorTests
 {
     // ─── OrgType detection ───────────────────────────────────────────────
 
+    /// <summary>
+    /// Определение типа организации по коду ОКОПФ: ПАО, НАО/АО, ООО, неизвестный.
+    /// </summary>
     [Theory]
     [InlineData("12247", OrgValidationType.PAO)]
     [InlineData("12267", OrgValidationType.NAO_AO)]
@@ -24,6 +32,9 @@ public class LegalEntityValidatorTests
 
     // ─── Valid model: all org types ─────────────────────────────────────
 
+    /// <summary>
+    /// ПАО с корректными данными — валидация успешна.
+    /// </summary>
     [Fact]
     public void Valid_PAO_ShouldReturnSuccess()
     {
@@ -46,6 +57,9 @@ public class LegalEntityValidatorTests
         result.Errors.Should().BeEmpty();
     }
 
+    /// <summary>
+    /// НАО с корректными данными — валидация успешна.
+    /// </summary>
     [Fact]
     public void Valid_NAO_ShouldReturnSuccess()
     {
@@ -67,6 +81,9 @@ public class LegalEntityValidatorTests
         result.IsValid.Should().BeTrue();
     }
 
+    /// <summary>
+    /// ООО с корректными данными — валидация успешна.
+    /// </summary>
     [Fact]
     public void Valid_LLC_ShouldReturnSuccess()
     {
@@ -88,6 +105,9 @@ public class LegalEntityValidatorTests
         result.IsValid.Should().BeTrue();
     }
 
+    /// <summary>
+    /// Совет директоров отключён — проверки состава СД и акционеров пропускаются.
+    /// </summary>
     [Fact]
     public void Valid_NoBoard_ShouldSkipBoardChecks()
     {
@@ -104,6 +124,9 @@ public class LegalEntityValidatorTests
         result.IsValid.Should().BeTrue();
     }
 
+    /// <summary>
+    /// ПАО с неограниченным количеством акционеров (500 000) — валидация успешна.
+    /// </summary>
     [Fact]
     public void Valid_PAO_UnlimitedShareholders_ShouldPass()
     {
@@ -125,6 +148,9 @@ public class LegalEntityValidatorTests
 
     // ─── Shareholders count ─────────────────────────────────────────────
 
+    /// <summary>
+    /// СД включён, но количество акционеров не указано — ошибка валидации.
+    /// </summary>
     [Fact]
     public void Shareholders_Null_WhenBoardEnabled_ShouldFail()
     {
@@ -136,6 +162,9 @@ public class LegalEntityValidatorTests
         result.Errors.Should().Contain(e => e.Contains("количество акционеров"));
     }
 
+    /// <summary>
+    /// СД включён, но количество акционеров равно нулю — ошибка валидации.
+    /// </summary>
     [Fact]
     public void Shareholders_Zero_WhenBoardEnabled_ShouldFail()
     {
@@ -147,6 +176,9 @@ public class LegalEntityValidatorTests
         result.Errors.Should().Contain(e => e.Contains("количество акционеров"));
     }
 
+    /// <summary>
+    /// СД включён, но количество акционеров отрицательное — ошибка валидации.
+    /// </summary>
     [Fact]
     public void Shareholders_Negative_WhenBoardEnabled_ShouldFail()
     {
@@ -158,6 +190,9 @@ public class LegalEntityValidatorTests
         result.Errors.Should().Contain(e => e.Contains("количество акционеров"));
     }
 
+    /// <summary>
+    /// СД отключён, количество акционеров не указано — валидация успешна.
+    /// </summary>
     [Fact]
     public void Shareholders_Null_WhenBoardDisabled_ShouldPass()
     {
@@ -177,6 +212,9 @@ public class LegalEntityValidatorTests
 
     // ─── Max 50 for Non-PAO ────────────────────────────────────────────
 
+    /// <summary>
+    /// Для не-ПАО количество акционеров/участников не может превышать 50.
+    /// </summary>
     [Theory]
     [InlineData("12267", 51)]
     [InlineData("12267", 100)]
@@ -202,6 +240,9 @@ public class LegalEntityValidatorTests
         result.Errors.Should().Contain(e => e.Contains("50") && e.Contains(count.ToString()));
     }
 
+    /// <summary>
+    /// Для не-ПАО количество акционеров ≤ 50 — валидация успешна.
+    /// </summary>
     [Theory]
     [InlineData("12267", 50)]
     [InlineData("12267", 1)]
@@ -226,6 +267,9 @@ public class LegalEntityValidatorTests
 
     // ─── Board member number vs minimum ────────────────────────────────
 
+    /// <summary>
+    /// Количество членов СД меньше минимального — ошибка валидации.
+    /// </summary>
     [Fact]
     public void BoardMembers_BelowMinimum_ShouldFail()
     {
@@ -238,6 +282,9 @@ public class LegalEntityValidatorTests
             e.Contains("3") && e.Contains("5") && e.Contains("меньше минимального"));
     }
 
+    /// <summary>
+    /// Количество членов СД равно минимальному — валидация успешна.
+    /// </summary>
     [Fact]
     public void BoardMembers_EqualsMinimum_ShouldPass()
     {
@@ -248,6 +295,9 @@ public class LegalEntityValidatorTests
         result.IsValid.Should().BeTrue();
     }
 
+    /// <summary>
+    /// Количество членов СД больше минимального — валидация успешна.
+    /// </summary>
     [Fact]
     public void BoardMembers_AboveMinimum_ShouldPass()
     {
@@ -258,6 +308,9 @@ public class LegalEntityValidatorTests
         result.IsValid.Should().BeTrue();
     }
 
+    /// <summary>
+    /// Минимальное количество членов СД не задано — проверка пропускается.
+    /// </summary>
     [Fact]
     public void BoardMembers_MinNull_ShouldSkipCheck()
     {
@@ -268,6 +321,9 @@ public class LegalEntityValidatorTests
         result.IsValid.Should().BeTrue();
     }
 
+    /// <summary>
+    /// Количество членов СД не задано — проверка пропускается.
+    /// </summary>
     [Fact]
     public void BoardMembers_MemberNull_ShouldSkipCheck()
     {
@@ -280,6 +336,9 @@ public class LegalEntityValidatorTests
 
     // ─── GOSA window ────────────────────────────────────────────────────
 
+    /// <summary>
+    /// Дата окончания окна ГОСА раньше даты начала — ошибка валидации.
+    /// </summary>
     [Fact]
     public void Gosa_EndBeforeStart_ShouldFail()
     {
@@ -295,6 +354,9 @@ public class LegalEntityValidatorTests
         result.Errors.Should().Contain(e => e.Contains("раньше"));
     }
 
+    /// <summary>
+    /// Для ПАО окно ГОСА за пределами законного диапазона 01.03–30.06 — ошибка валидации.
+    /// </summary>
     [Fact]
     public void Gosa_PAO_OutsideLegalWindow_ShouldFail()
     {
@@ -310,6 +372,9 @@ public class LegalEntityValidatorTests
         result.Errors.Should().Contain(e => e.Contains("01.03–30.06"));
     }
 
+    /// <summary>
+    /// Для ПАО окно ГОСА внутри законного диапазона 01.03–30.06 — валидация успешна.
+    /// </summary>
     [Fact]
     public void Gosa_PAO_WithinLegalWindow_ShouldPass()
     {
@@ -324,6 +389,9 @@ public class LegalEntityValidatorTests
         result.IsValid.Should().BeTrue();
     }
 
+    /// <summary>
+    /// Для ПАО окно ГОСА точно совпадает с законным диапазоном — валидация успешна.
+    /// </summary>
     [Fact]
     public void Gosa_PAO_ExactWindow_ShouldPass()
     {
@@ -338,6 +406,9 @@ public class LegalEntityValidatorTests
         result.IsValid.Should().BeTrue();
     }
 
+    /// <summary>
+    /// Для НАО окно ГОСА точно совпадает с фиксированным диапазоном — валидация успешна.
+    /// </summary>
     [Fact]
     public void Gosa_NAO_ExactWindow_ShouldPass()
     {
@@ -352,6 +423,9 @@ public class LegalEntityValidatorTests
         result.IsValid.Should().BeTrue();
     }
 
+    /// <summary>
+    /// Для НАО окно ГОСА отличается от фиксированного — ошибка валидации.
+    /// </summary>
     [Fact]
     public void Gosa_NAO_CustomWindow_ShouldFail()
     {
@@ -369,6 +443,9 @@ public class LegalEntityValidatorTests
 
     // ─── Director fields ────────────────────────────────────────────────
 
+    /// <summary>
+    /// ФИО руководителя — пустая строка: ошибка валидации.
+    /// </summary>
     [Fact]
     public void Director_EmptyFullName_ShouldFail()
     {
@@ -380,6 +457,9 @@ public class LegalEntityValidatorTests
         result.Errors.Should().Contain(e => e.Contains("ФИО"));
     }
 
+    /// <summary>
+    /// ФИО руководителя — null: ошибка валидации.
+    /// </summary>
     [Fact]
     public void Director_NullFullName_ShouldFail()
     {
@@ -391,6 +471,9 @@ public class LegalEntityValidatorTests
         result.Errors.Should().Contain(e => e.Contains("ФИО"));
     }
 
+    /// <summary>
+    /// ФИО руководителя — только пробелы: ошибка валидации.
+    /// </summary>
     [Fact]
     public void Director_WhitespaceFullName_ShouldFail()
     {
@@ -402,6 +485,9 @@ public class LegalEntityValidatorTests
         result.Errors.Should().Contain(e => e.Contains("ФИО"));
     }
 
+    /// <summary>
+    /// Должность руководителя — пустая строка: ошибка валидации.
+    /// </summary>
     [Fact]
     public void Director_EmptyPosition_ShouldFail()
     {
@@ -413,6 +499,9 @@ public class LegalEntityValidatorTests
         result.Errors.Should().Contain(e => e.Contains("должность"));
     }
 
+    /// <summary>
+    /// Должность руководителя — null: ошибка валидации.
+    /// </summary>
     [Fact]
     public void Director_NullPosition_ShouldFail()
     {
@@ -426,6 +515,9 @@ public class LegalEntityValidatorTests
 
     // ─── Multiple errors ────────────────────────────────────────────────
 
+    /// <summary>
+    /// При нескольких ошибках валидации все они попадают в результат.
+    /// </summary>
     [Fact]
     public void MultipleErrors_ShouldAllBeReported()
     {
@@ -448,6 +540,9 @@ public class LegalEntityValidatorTests
         result.Errors.Should().HaveCountGreaterThanOrEqualTo(4);
     }
 
+    /// <summary>
+    /// При отключённом СД ошибки — только по руководителю (ФИО и должность).
+    /// </summary>
     [Fact]
     public void EmptyModel_NoBoard_ShouldFailOnlyDirector()
     {
@@ -466,6 +561,9 @@ public class LegalEntityValidatorTests
 
     // ─── OrgTypeLabel ───────────────────────────────────────────────────
 
+    /// <summary>
+    /// Отображение типа организации в тексте ошибок.
+    /// </summary>
     [Theory]
     [InlineData(OrgValidationType.PAO, "ПАО")]
     [InlineData(OrgValidationType.NAO_AO, "непубличного АО")]
@@ -478,6 +576,9 @@ public class LegalEntityValidatorTests
 
     // ─── Helper factories ───────────────────────────────────────────────
 
+    /// <summary>
+    /// Фабрика корректной модели ПАО для тестов.
+    /// </summary>
     private static LegalEntitySaveValidationModel ValidPaoModel() => new()
     {
         OkopfCode = "12247",
@@ -491,6 +592,9 @@ public class LegalEntityValidatorTests
         FullName = "Иванов И.И."
     };
 
+    /// <summary>
+    /// Фабрика корректной модели НАО для тестов.
+    /// </summary>
     private static LegalEntitySaveValidationModel ValidNaoModel() => new()
     {
         OkopfCode = "12267",

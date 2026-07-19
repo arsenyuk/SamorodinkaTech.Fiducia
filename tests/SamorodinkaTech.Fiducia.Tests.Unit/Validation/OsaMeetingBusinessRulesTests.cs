@@ -1,178 +1,255 @@
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
+using Moq;
 using SamorodinkaTech.Fiducia.Domain.Entities;
-using SamorodinkaTech.Fiducia.Tests.Unit.Fakes;
+using SamorodinkaTech.Fiducia.Domain.Interfaces;
+using SamorodinkaTech.Fiducia.Domain.Validation;
 
 namespace SamorodinkaTech.Fiducia.Tests.Unit.Validation;
 
 /// <summary>
-/// Тесты бизнес-правил ОСА с использованием FakeDbContext (in-memory).
-/// Проверяют сценарии, требующие выборки из БД:
-/// уникальность года ГОСА, создание и редактирование.
+/// Тесты DB-валидатора уникальности года ГОСА.
+/// Проверяют бизнес-правило «не более 1 ГОСА в году»
+/// через Moq-мок IApplicationDbContext (Clean Architecture / Dependency Inversion).
 /// </summary>
 public class OsaMeetingBusinessRulesTests
 {
+    /// <summary>
+    /// Нет существующих записей — создание нового ГОСА должно пройти успешно.
+    /// </summary>
     [Fact]
-    public async Task CreateGosa_NoExisting_ShouldSucceed()
+    public void CreateGosa_NoExisting_ShouldSucceed()
     {
-        await using var ctx = FakeDbContextFactory.Create();
+        var mockDb = MockDb(Array.Empty<OsaMeeting>());
 
-        var gosaYear = 2025;
-        var exists = await ctx.OsaMeetings
-            .AnyAsync(m => m.GosaYear == gosaYear);
+        var result = OsaMeetingValidator.ValidateUniqueGosaYear(mockDb.Object, null, 2025);
 
-        exists.Should().BeFalse();
+        result.IsValid.Should().BeTrue();
     }
 
+    /// <summary>
+    /// Существующая запись на тот же год — дубликат обнаружен.
+    /// </summary>
     [Fact]
-    public async Task CreateGosa_DuplicateYear_ShouldBeDetected()
+    public void CreateGosa_DuplicateYear_ShouldBeDetected()
     {
-        await using var ctx = await FakeDbContextFactory.CreateSeededAsync(async db =>
-        {
-            db.OsaMeetings.Add(new OsaMeeting
-            {
-                Id = Guid.NewGuid(),
-                OsaFormId = Guid.NewGuid(),
-                GosaYear = 2025,
-                GosaWindowStart = new DateOnly(2025, 3, 1),
-                GosaWindowEnd = new DateOnly(2025, 6, 30),
-                Title = "Годовое за 2025 год"
-            });
-            await db.SaveChangesAsync();
-        });
+        var mockDb = MockDb(new[] { Gosa(2025) });
 
-        var existing = await ctx.OsaMeetings
-            .AnyAsync(m => m.GosaYear == 2025);
+        var result = OsaMeetingValidator.ValidateUniqueGosaYear(mockDb.Object, null, 2025);
 
-        existing.Should().BeTrue();
+        result.IsValid.Should().BeFalse();
+        result.Errors.Should().Contain(e => e.Contains("2025") && e.Contains("уже существует"));
     }
 
+    /// <summary>
+    /// Существующая запись на другой год — создание разрешено.
+    /// </summary>
     [Fact]
-    public async Task CreateGosa_DifferentYear_ShouldBeAllowed()
+    public void CreateGosa_DifferentYear_ShouldBeAllowed()
     {
-        await using var ctx = await FakeDbContextFactory.CreateSeededAsync(async db =>
-        {
-            db.OsaMeetings.Add(new OsaMeeting
-            {
-                Id = Guid.NewGuid(),
-                OsaFormId = Guid.NewGuid(),
-                GosaYear = 2025,
-                Title = "Годовое за 2025 год"
-            });
-            await db.SaveChangesAsync();
-        });
+        var mockDb = MockDb(new[] { Gosa(2025) });
 
-        // 2026 — другой год, должно быть разрешено
-        var existing2026 = await ctx.OsaMeetings
-            .AnyAsync(m => m.GosaYear == 2026);
+        var result = OsaMeetingValidator.ValidateUniqueGosaYear(mockDb.Object, null, 2026);
 
-        existing2026.Should().BeFalse();
+        result.IsValid.Should().BeTrue();
     }
 
+    /// <summary>
+    /// При редактировании (год не меняется) — дубликат не должен обнаруживаться.
+    /// </summary>
     [Fact]
-    public async Task EditGosa_SameYearNoChange_ShouldNotDetectDuplicate()
+    public void EditGosa_SameYearNoChange_ShouldNotDetectDuplicate()
     {
         var meetingId = Guid.NewGuid();
-        await using var ctx = await FakeDbContextFactory.CreateSeededAsync(async db =>
-        {
-            db.OsaMeetings.Add(new OsaMeeting
-            {
-                Id = meetingId,
-                OsaFormId = Guid.NewGuid(),
-                GosaYear = 2025,
-                Title = "Годовое за 2025 год"
-            });
-            await db.SaveChangesAsync();
-        });
+        var mockDb = MockDb(new[] { Gosa(2025, meetingId) });
 
-        // Проверка: редактируем ту же запись — год не меняется, дубликатов нет
-        var duplicate = await ctx.OsaMeetings
-            .AnyAsync(m => m.Id != meetingId && m.GosaYear == 2025);
+        var result = OsaMeetingValidator.ValidateUniqueGosaYear(mockDb.Object, meetingId, 2025);
 
-        duplicate.Should().BeFalse();
+        result.IsValid.Should().BeTrue();
     }
 
+    /// <summary>
+    /// При редактировании смена года на уже занятый — дубликат обнаружен.
+    /// </summary>
     [Fact]
-    public async Task EditGosa_ChangeYearToExistingYear_ShouldDetectDuplicate()
+    public void EditGosa_ChangeYearToExistingYear_ShouldDetectDuplicate()
     {
         var meeting1Id = Guid.NewGuid();
         var meeting2Id = Guid.NewGuid();
-
-        await using var ctx = await FakeDbContextFactory.CreateSeededAsync(async db =>
+        var mockDb = MockDb(new[]
         {
-            db.OsaMeetings.Add(new OsaMeeting
+            Gosa(2025, meeting1Id),
+            Gosa(2026, meeting2Id)
+        });
+
+        // Редактируем встречу 2026 → 2025 (уже занято)
+        var result = OsaMeetingValidator.ValidateUniqueGosaYear(mockDb.Object, meeting2Id, 2025);
+
+        result.IsValid.Should().BeFalse();
+        result.Errors.Should().Contain(e => e.Contains("2025") && e.Contains("уже существует"));
+    }
+
+    /// <summary>
+    /// Год не указан (null) — проверка пропускается.
+    /// </summary>
+    [Fact]
+    public void CreateGosa_NullYear_ShouldSkipCheck()
+    {
+        var mockDb = MockDb(Array.Empty<OsaMeeting>());
+
+        var result = OsaMeetingValidator.ValidateUniqueGosaYear(mockDb.Object, null, null);
+
+        result.IsValid.Should().BeTrue();
+    }
+
+    /// <summary>
+    /// Год равен нулю — проверка пропускается (0 означает «год не указан»).
+    /// </summary>
+    [Fact]
+    public void CreateGosa_ZeroYear_ShouldSkipCheck()
+    {
+        var mockDb = MockDb(new[] { Gosa(0) });
+
+        var result = OsaMeetingValidator.ValidateUniqueGosaYear(mockDb.Object, null, 0);
+
+        result.IsValid.Should().BeTrue();
+    }
+
+    /// <summary>
+    /// Множество записей за разные годы — создание на новый год разрешено.
+    /// </summary>
+    [Fact]
+    public void CreateGosa_AmongMultipleYears_ShouldSucceed()
+    {
+        var mockDb = MockDb(new[]
+        {
+            Gosa(2020), Gosa(2021), Gosa(2022),
+            Gosa(2023), Gosa(2024)
+        });
+
+        var result = OsaMeetingValidator.ValidateUniqueGosaYear(mockDb.Object, null, 2025);
+
+        result.IsValid.Should().BeTrue();
+    }
+
+    /// <summary>
+    /// Множество записей за разные годы — создание на занятый год даёт ошибку.
+    /// </summary>
+    [Fact]
+    public void CreateGosa_AmongMultipleYears_DuplicateDetected()
+    {
+        var mockDb = MockDb(new[]
+        {
+            Gosa(2020), Gosa(2021), Gosa(2022),
+            Gosa(2023), Gosa(2024)
+        });
+
+        var result = OsaMeetingValidator.ValidateUniqueGosaYear(mockDb.Object, null, 2022);
+
+        result.IsValid.Should().BeFalse();
+        result.Errors.Should().Contain(e => e.Contains("2022") && e.Contains("уже существует"));
+    }
+
+    /// <summary>
+    /// При редактировании сброс года в null не должен обнаруживать дубликатов.
+    /// </summary>
+    [Fact]
+    public void EditGosa_ClearYearToNull_ShouldNotDetectDuplicate()
+    {
+        var meetingId = Guid.NewGuid();
+        var mockDb = MockDb(new[] { Gosa(2025, meetingId) });
+
+        var result = OsaMeetingValidator.ValidateUniqueGosaYear(mockDb.Object, meetingId, null);
+
+        result.IsValid.Should().BeTrue();
+    }
+
+    /// <summary>
+    /// При редактировании сброс года в 0 не должен обнаруживать дубликатов.
+    /// </summary>
+    [Fact]
+    public void EditGosa_ClearYearToZero_ShouldNotDetectDuplicate()
+    {
+        var meetingId = Guid.NewGuid();
+        var mockDb = MockDb(new[] { Gosa(2025, meetingId) });
+
+        var result = OsaMeetingValidator.ValidateUniqueGosaYear(mockDb.Object, meetingId, 0);
+
+        result.IsValid.Should().BeTrue();
+    }
+
+    /// <summary>
+    /// Создание ГОСА на год, который уже занят, с отличающимися полями — всё равно дубликат.
+    /// </summary>
+    [Fact]
+    public void CreateGosa_SameYearDifferentFileds_ShouldBeDetected()
+    {
+        var mockDb = MockDb(new[]
+        {
+            new OsaMeeting
             {
-                Id = meeting1Id,
-                OsaFormId = Guid.NewGuid(),
+                Id = Guid.NewGuid(),
                 GosaYear = 2025,
-                Title = "ГОСА 2025"
-            });
-            db.OsaMeetings.Add(new OsaMeeting
-            {
-                Id = meeting2Id,
-                OsaFormId = Guid.NewGuid(),
-                GosaYear = 2026,
-                Title = "ГОСА 2026"
-            });
-            await db.SaveChangesAsync();
-        });
-
-        // Пытаемся изменить 2026 → 2025 (уже занято)
-        var editTargetId = meeting2Id;
-        var newYear = 2025;
-
-        var duplicate = await ctx.OsaMeetings
-            .AnyAsync(m => m.Id != editTargetId && m.GosaYear == newYear);
-
-        duplicate.Should().BeTrue();
-    }
-
-    [Fact]
-    public async Task SaveChanges_AddsRecordToDatabase()
-    {
-        await using var ctx = FakeDbContextFactory.Create();
-        var id = Guid.NewGuid();
-
-        ctx.OsaMeetings.Add(new OsaMeeting
-        {
-            Id = id,
-            OsaFormId = Guid.NewGuid(),
-            GosaYear = 2025,
-            Title = "ГОСА 2025"
-        });
-        await ctx.SaveChangesAsync();
-
-        var saved = await ctx.OsaMeetings.FindAsync(id);
-        saved.Should().NotBeNull();
-        saved!.Title.Should().Be("ГОСА 2025");
-    }
-
-    [Fact]
-    public async Task MultipleRecords_DifferentYears_AllPersist()
-    {
-        await using var ctx = await FakeDbContextFactory.CreateSeededAsync(async db =>
-        {
-            for (int year = 2020; year <= 2025; year++)
-            {
-                db.OsaMeetings.Add(new OsaMeeting
-                {
-                    Id = Guid.NewGuid(),
-                    OsaFormId = Guid.NewGuid(),
-                    GosaYear = year,
-                    Title = $"ГОСА {year}"
-                });
+                Title = "Совсем другое ГОСА",
+                GosaWindowStart = new DateOnly(2025, 4, 1),
+                GosaWindowEnd = new DateOnly(2025, 5, 15)
             }
-            await db.SaveChangesAsync();
         });
 
-        var count = await ctx.OsaMeetings.CountAsync();
-        count.Should().Be(6);
+        var result = OsaMeetingValidator.ValidateUniqueGosaYear(mockDb.Object, null, 2025);
 
-        var years = await ctx.OsaMeetings
-            .Select(m => m.GosaYear)
-            .OrderBy(y => y)
-            .ToListAsync();
+        result.IsValid.Should().BeFalse();
+    }
 
-        years.Should().Equal(2020, 2021, 2022, 2023, 2024, 2025);
+    /// <summary>
+    /// После удаления ГОСА (запись исключена из БД) год свободен — создание разрешено.
+    /// </summary>
+    [Fact]
+    public void DeleteGosa_ThenRecreateSameYear_ShouldBeAllowed()
+    {
+        // Удалённая запись не передаётся в mockDb — год свободен
+        var mockDb = MockDb(Array.Empty<OsaMeeting>());
+
+        var result = OsaMeetingValidator.ValidateUniqueGosaYear(mockDb.Object, null, 2025);
+
+        result.IsValid.Should().BeTrue();
+    }
+
+    // ── helpers ──────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Создаёт мок IApplicationDbContext с синхронным DbSet, подкреплённым списком.
+    /// DbSet реализует IQueryable, поэтому .Any() работает без асинхронного провайдера.
+    /// </summary>
+    private static Mock<IApplicationDbContext> MockDb(IEnumerable<OsaMeeting> data)
+    {
+        var queryable = data.AsQueryable();
+
+        var mockSet = new Mock<DbSet<OsaMeeting>>();
+        mockSet.As<IQueryable<OsaMeeting>>().Setup(m => m.Provider).Returns(queryable.Provider);
+        mockSet.As<IQueryable<OsaMeeting>>().Setup(m => m.Expression).Returns(queryable.Expression);
+        mockSet.As<IQueryable<OsaMeeting>>().Setup(m => m.ElementType).Returns(queryable.ElementType);
+        mockSet.As<IQueryable<OsaMeeting>>().Setup(m => m.GetEnumerator()).Returns(queryable.GetEnumerator());
+
+        var mockDb = new Mock<IApplicationDbContext>();
+        mockDb.Setup(db => db.OsaMeetings).Returns(mockSet.Object);
+
+        return mockDb;
+    }
+
+    /// <summary>
+    /// Создаёт минимальную запись ОСА с заданным годом.
+    /// </summary>
+    private static OsaMeeting Gosa(int? year, Guid? id = null)
+    {
+        return new OsaMeeting
+        {
+            Id = id ?? Guid.NewGuid(),
+            OsaFormId = Guid.NewGuid(),
+            GosaYear = year,
+            Title = year.HasValue && year > 0
+                ? $"ГОСА {year}"
+                : "ГОСА без года"
+        };
     }
 }

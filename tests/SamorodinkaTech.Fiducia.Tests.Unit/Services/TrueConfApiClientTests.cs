@@ -13,6 +13,9 @@ public class TrueConfApiClientTests
 {
     private readonly MockTrueConfApiClient _client = new();
 
+    /// <summary>
+    /// Получение токена возвращает непустой access-токен с префиксом mock.
+    /// </summary>
     [Fact]
     public async Task GetTokenAsync_ShouldReturnToken()
     {
@@ -23,6 +26,9 @@ public class TrueConfApiClientTests
         _client.LastTokenIssued.Should().Be(result.AccessToken);
     }
 
+    /// <summary>
+    /// Создание конференции возвращает объект с корректными данными и ссылкой.
+    /// </summary>
     [Fact]
     public async Task CreateConferenceAsync_ShouldReturnConferenceWithCorrectData()
     {
@@ -47,6 +53,9 @@ public class TrueConfApiClientTests
         result.Schedule.Duration.Should().Be(3600);
     }
 
+    /// <summary>
+    /// Каждое создание конференции получает уникальный ID.
+    /// </summary>
     [Fact]
     public async Task CreateConferenceAsync_ShouldAssignUniqueIds()
     {
@@ -65,6 +74,9 @@ public class TrueConfApiClientTests
         conf1.Id.Should().NotBe(conf2.Id);
     }
 
+    /// <summary>
+    /// Получение существующей конференции по ID возвращает объект с сохранёнными данными.
+    /// </summary>
     [Fact]
     public async Task GetConferenceAsync_ExistingConference_ShouldReturnIt()
     {
@@ -82,6 +94,9 @@ public class TrueConfApiClientTests
         result.DisplayName.Should().Be("Тестовая конференция");
     }
 
+    /// <summary>
+    /// Получение несуществующей конференции по ID возвращает null.
+    /// </summary>
     [Fact]
     public async Task GetConferenceAsync_NonExistingConference_ShouldReturnNull()
     {
@@ -90,6 +105,9 @@ public class TrueConfApiClientTests
         result.Should().BeNull();
     }
 
+    /// <summary>
+    /// Удаление существующей конференции возвращает true, после чего конференция не находится.
+    /// </summary>
     [Fact]
     public async Task DeleteConferenceAsync_ExistingConference_ShouldReturnTrue()
     {
@@ -107,6 +125,9 @@ public class TrueConfApiClientTests
         afterDelete.Should().BeNull();
     }
 
+    /// <summary>
+    /// Удаление несуществующей конференции возвращает false.
+    /// </summary>
     [Fact]
     public async Task DeleteConferenceAsync_NonExistingConference_ShouldReturnFalse()
     {
@@ -115,6 +136,9 @@ public class TrueConfApiClientTests
         deleted.Should().BeFalse();
     }
 
+    /// <summary>
+    /// GetStoppedConferencesAsync возвращает только конференции со статусом stopped.
+    /// </summary>
     [Fact]
     public async Task GetStoppedConferencesAsync_ShouldReturnOnlyStopped()
     {
@@ -138,6 +162,9 @@ public class TrueConfApiClientTests
         stopped[0].Id.Should().Be("stopped-1");
     }
 
+    /// <summary>
+    /// GetUsersAsync возвращает всех добавленных пользователей.
+    /// </summary>
     [Fact]
     public async Task GetUsersAsync_ShouldReturnAddedUsers()
     {
@@ -161,6 +188,9 @@ public class TrueConfApiClientTests
         users.Should().Contain(u => u.LoginName == "petrov");
     }
 
+    /// <summary>
+    /// При включённой симуляции сбоя все операции выбрасывают HttpRequestException.
+    /// </summary>
     [Fact]
     public async Task SimulateFailure_ShouldThrowOnAllOperations()
     {
@@ -190,6 +220,9 @@ public class TrueConfApiClientTests
         await usersAct.Should().ThrowAsync<HttpRequestException>();
     }
 
+    /// <summary>
+    /// Mock-клиент сохраняет данные между вызовами: три конференции доступны по своим ID.
+    /// </summary>
     [Fact]
     public async Task Mock_ShouldPreserveDataAcrossCalls()
     {

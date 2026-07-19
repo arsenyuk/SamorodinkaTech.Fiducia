@@ -13,6 +13,9 @@ public class MtsLinkApiClientTests
 {
     private readonly MockMtsLinkApiClient _client = new();
 
+    /// <summary>
+    /// Создание встречи возвращает сессию с корректными данными и ссылкой.
+    /// </summary>
     [Fact]
     public async Task CreateMeetingAsync_ShouldReturnSessionWithCorrectData()
     {
@@ -37,6 +40,9 @@ public class MtsLinkApiClientTests
         result.Link.Should().Contain("my.mts-link.ru");
     }
 
+    /// <summary>
+    /// Каждое создание встречи получает уникальный ID и уникальную ссылку.
+    /// </summary>
     [Fact]
     public async Task CreateMeetingAsync_ShouldAssignUniqueIds()
     {
@@ -55,6 +61,9 @@ public class MtsLinkApiClientTests
         m1.Link.Should().NotBe(m2.Link);
     }
 
+    /// <summary>
+    /// Получение существующей сессии по ID возвращает объект с сохранёнными данными.
+    /// </summary>
     [Fact]
     public async Task GetEventSessionAsync_Existing_ShouldReturnIt()
     {
@@ -72,6 +81,9 @@ public class MtsLinkApiClientTests
         result.Name.Should().Be("Тестовая встреча");
     }
 
+    /// <summary>
+    /// Получение несуществующей сессии по ID возвращает null.
+    /// </summary>
     [Fact]
     public async Task GetEventSessionAsync_NonExisting_ShouldReturnNull()
     {
@@ -80,6 +92,9 @@ public class MtsLinkApiClientTests
         result.Should().BeNull();
     }
 
+    /// <summary>
+    /// Удаление существующей сессии возвращает true, после чего сессия больше не находится.
+    /// </summary>
     [Fact]
     public async Task DeleteEventSessionAsync_Existing_ShouldReturnTrue()
     {
@@ -97,6 +112,9 @@ public class MtsLinkApiClientTests
         after.Should().BeNull();
     }
 
+    /// <summary>
+    /// Удаление несуществующей сессии возвращает false.
+    /// </summary>
     [Fact]
     public async Task DeleteEventSessionAsync_NonExisting_ShouldReturnFalse()
     {
@@ -105,6 +123,9 @@ public class MtsLinkApiClientTests
         deleted.Should().BeFalse();
     }
 
+    /// <summary>
+    /// Остановка и повторный запуск сессии корректно меняют статус ACTIVE ↔ STOP.
+    /// </summary>
     [Fact]
     public async Task StartStopEventSession_ShouldChangeStatus()
     {
@@ -126,6 +147,9 @@ public class MtsLinkApiClientTests
         restarted!.Status.Should().Be("ACTIVE");
     }
 
+    /// <summary>
+    /// Регистрация участника возвращает объект с participationId, ссылкой и contactId.
+    /// </summary>
     [Fact]
     public async Task RegisterParticipantAsync_ShouldReturnParticipationWithLink()
     {
@@ -151,6 +175,9 @@ public class MtsLinkApiClientTests
         result.ContactId.Should().NotBeNull();
     }
 
+    /// <summary>
+    /// Регистрация участника в несуществующей сессии выбрасывает KeyNotFoundException.
+    /// </summary>
     [Fact]
     public async Task RegisterParticipantAsync_NonExistingSession_ShouldThrow()
     {
@@ -162,6 +189,9 @@ public class MtsLinkApiClientTests
         await act.Should().ThrowAsync<KeyNotFoundException>();
     }
 
+    /// <summary>
+    /// Регистрация нескольких участников: каждый получает уникальный ID и ссылку.
+    /// </summary>
     [Fact]
     public async Task RegisterMultipleParticipants_ShouldGetUniqueIds()
     {
@@ -185,6 +215,9 @@ public class MtsLinkApiClientTests
         p1.Link.Should().NotBe(p2.Link);
     }
 
+    /// <summary>
+    /// При включённой симуляции сбоя все операции выбрасывают HttpRequestException.
+    /// </summary>
     [Fact]
     public async Task SimulateFailure_ShouldThrowOnAllOperations()
     {
