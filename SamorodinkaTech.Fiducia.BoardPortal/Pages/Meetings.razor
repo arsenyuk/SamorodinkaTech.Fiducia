@@ -3,6 +3,7 @@
 @using SamorodinkaTech.Fiducia.Domain.Interfaces
 @using SamorodinkaTech.Fiducia.Domain.Enums
 @inject IApplicationDbContext DbContext
+@inject IApplicationDbContext DbContext
 @inject ILogger<Meetings> Logger
 
 <PageTitle>Fiducia — Созывы заседаний СД</PageTitle>
@@ -34,9 +35,13 @@
                             <tr>
                                 <td><strong>@meeting.MeetingNumber</strong></td>
                                 <td>
-                                    @if (meeting.MeetingForm == MeetingForm.OCHN)
+                                    @if (meeting.MeetingForm?.Code == "OCHN")
                                     {
                                         <span class="badge bg-info">Очная</span>
+                                    }
+                                    else if (meeting.MeetingForm?.Code == "MIXED")
+                                    {
+                                        <span class="badge bg-warning text-dark">Смешанная</span>
                                     }
                                     else
                                     {
@@ -118,9 +123,11 @@
 
                     <div class="mb-3">
                         <label class="form-label">Форма проведения *</label>
-                        <select class="form-select" @bind="_newMeetingForm">
-                            <option value="OCHN">Очная (OCHN)</option>
-                            <option value="ZAOCHN">Заочная (ZAOCHN)</option>
+                        <select class="form-select" @bind="_newMeetingFormId">
+                            @foreach (var form in _meetingForms)
+                            {
+                                <option value="@form.Id">@form.Name</option>
+                            }
                         </select>
                     </div>
 
@@ -178,11 +185,12 @@
     private string? _errorMessage;
 
     private string _newMeetingNumber = string.Empty;
-    private string _newMeetingForm = "OCHN";
+    private Guid _newMeetingFormId;
     private DateTime _newVotingStart = DateTime.UtcNow.AddDays(1);
     private DateTime _newVotingEnd = DateTime.UtcNow.AddDays(4);
     private List<User> _availableUsers = new();
     private HashSet<Guid> _selectedUserIds = new();
+    private List<RefMeetingForm> _meetingForms = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -190,11 +198,13 @@
         {
             await LoadMeetings();
             _availableUsers = await DbContext.Users.ToListAsync();
+            _meetingForms = await DbContext.MeetingForms.OrderBy(f => f.Code).ToListAsync();
         }
         catch
         {
             _meetings = new List<Meeting>();
             _availableUsers = new List<User>();
+            _meetingForms = new List<RefMeetingForm>();
         }
     }
 
@@ -203,6 +213,7 @@
         try
         {
             _meetings = await DbContext.Meetings
+                .Include(m => m.MeetingForm)
                 .OrderByDescending(m => m.CreatedAt)
                 .ToListAsync();
         }
@@ -283,7 +294,7 @@
             var meeting = new Meeting
             {
                 MeetingNumber = _newMeetingNumber,
-                MeetingForm = _newMeetingForm == "OCHN" ? MeetingForm.OCHN : MeetingForm.ZAOCHN,
+                MeetingFormId = _newMeetingFormId,
                 Status = MeetingStatus.DRAFT,
                 VotingStartAt = _newVotingStart,
                 VotingEndAt = _newVotingEnd,

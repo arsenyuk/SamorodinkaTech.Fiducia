@@ -30,6 +30,7 @@ public interface IApplicationDbContext
     DbSet<LegalEntityBoardSettings> LegalEntityBoardSettings { get; }
     DbSet<FileEntry> Files { get; }
     DbSet<ExtSparkCompany> ExtSparkCompanies { get; }
+    DbSet<RefMeetingForm> MeetingForms { get; }
     DbSet<ExtSparkManager> ExtSparkManagers { get; }
 
     System.Threading.Tasks.Task<int> SaveChangesAsync(System.Threading.CancellationToken cancellationToken = default);

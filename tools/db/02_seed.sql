@@ -38,6 +38,13 @@ INSERT INTO ref_month(id, code, name) VALUES
     ('cccccccc-cccc-cccc-cccc-cccccccccc12','12','Декабрь')
 ON CONFLICT (code) DO NOTHING;
 
+-- Форма проведения заседания СД
+INSERT INTO ref_meeting_form(id, code, name, short_name) VALUES
+    ('ffffffff-ffff-ffff-ffff-fffffffffff1','OCHN','Очное заседание (совместное присутствие)','Очное'),
+    ('ffffffff-ffff-ffff-ffff-fffffffffff2','ZAOCHN','Заочное голосование (опросным путём)','Заочное'),
+    ('ffffffff-ffff-ffff-ffff-fffffffffff3','MIXED','Смешанное (очное заседание + заочное голосование)','Смешанное')
+ON CONFLICT (code) DO NOTHING;
+
 -- Форма проведения ОСА
 INSERT INTO ref_osa_form(id, code, name, short_name) VALUES
     ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb1','GOSA','Годовое общее собрание акционеров','ГОСА'),

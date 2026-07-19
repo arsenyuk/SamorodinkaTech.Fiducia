@@ -67,11 +67,19 @@ CREATE TABLE IF NOT EXISTS committee_members (
     UNIQUE (committee_id, user_id)
 );
 
+-- Справочник: ref_meeting_form (формы проведения заседания СД)
+CREATE TABLE IF NOT EXISTS ref_meeting_form (
+    id uuid PRIMARY KEY,
+    code varchar(10) UNIQUE NOT NULL,
+    name varchar(200) NOT NULL,
+    short_name varchar(50)
+);
+
 -- Таблица: meetings
 CREATE TABLE IF NOT EXISTS meetings (
     id uuid PRIMARY KEY,
     meeting_number varchar(50),
-    meeting_form varchar(20) NOT NULL CHECK (meeting_form IN ('OCHN','ZAOCHN')),
+    meeting_form_id uuid NOT NULL REFERENCES ref_meeting_form(id) ON DELETE RESTRICT,
     status varchar(50) DEFAULT 'DRAFT' NOT NULL CHECK (status IN ('DRAFT','NOTIFIED','VOTING','PROTOCOL','ARCHIVE')),
     voting_start_at timestamp with time zone,
     voting_end_at timestamp with time zone,

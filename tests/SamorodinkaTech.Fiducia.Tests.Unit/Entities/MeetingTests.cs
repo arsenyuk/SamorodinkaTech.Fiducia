@@ -21,7 +21,8 @@ public class MeetingTests
 
         // Assert
         meeting.MeetingNumber.Should().BeNull();
-        meeting.MeetingForm.Should().Be(default);
+        meeting.MeetingFormId.Should().Be(default(Guid));
+        meeting.MeetingForm.Should().BeNull();
         meeting.Status.Should().Be(MeetingStatus.DRAFT);
         meeting.VotingStartAt.Should().BeNull();
         meeting.VotingEndAt.Should().BeNull();
@@ -31,35 +32,38 @@ public class MeetingTests
     }
 
     /// <summary>
-    /// Заседание с формой ОЧН (очное) сохраняет MeetingForm.OCHN.
+    /// Заседание с формой ОЧН (очное) сохраняет MeetingFormId.
     /// </summary>
     [Fact]
-    public void Meeting_InPersonForm_ShouldHaveOCHNType()
+    public void Meeting_InPersonForm_ShouldSetFormId()
     {
-        // Arrange & Act
+        var formId = Guid.NewGuid();
+
         var meeting = new Meeting
         {
-            MeetingForm = MeetingForm.OCHN
+            MeetingFormId = formId
         };
 
-        // Assert
-        meeting.MeetingForm.Should().Be(MeetingForm.OCHN);
+        meeting.MeetingFormId.Should().Be(formId);
     }
 
     /// <summary>
-    /// Заседание с формой ЗАОЧН (заочное) сохраняет MeetingForm.ZAOCHN.
+    /// Заседание может иметь навигационное свойство к справочнику форм.
     /// </summary>
     [Fact]
-    public void Meeting_AbsenteeForm_ShouldHaveZAOCHNType()
+    public void Meeting_ShouldLinkToRefMeetingForm()
     {
-        // Arrange & Act
+        var form = new RefMeetingForm { Id = Guid.NewGuid(), Code = "MIXED", Name = "Смешанное" };
+
         var meeting = new Meeting
         {
-            MeetingForm = MeetingForm.ZAOCHN
+            MeetingFormId = form.Id,
+            MeetingForm = form
         };
 
-        // Assert
-        meeting.MeetingForm.Should().Be(MeetingForm.ZAOCHN);
+        meeting.MeetingFormId.Should().Be(form.Id);
+        meeting.MeetingForm.Should().Be(form);
+        meeting.MeetingForm.Code.Should().Be("MIXED");
     }
 
     /// <summary>

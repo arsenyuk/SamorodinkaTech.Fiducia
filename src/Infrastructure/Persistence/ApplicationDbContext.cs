@@ -34,6 +34,7 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
     public DbSet<LegalEntityBoardSettings> LegalEntityBoardSettings => Set<LegalEntityBoardSettings>();
     public DbSet<FileEntry> Files => Set<FileEntry>();
     public DbSet<ExtSparkCompany> ExtSparkCompanies => Set<ExtSparkCompany>();
+    public DbSet<RefMeetingForm> MeetingForms => Set<RefMeetingForm>();
     public DbSet<ExtSparkManager> ExtSparkManagers => Set<ExtSparkManager>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -108,6 +109,17 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.Property(x => x.SecretaryProvided).HasColumnName("secretary_provided").HasDefaultValue(true);
             b.Property(x => x.SecretarySignsProtocols).HasColumnName("secretary_signs_protocols").HasDefaultValue(false);
             b.Property(x => x.BoardMandatory).HasColumnName("board_mandatory").HasDefaultValue(false);
+        });
+
+        modelBuilder.Entity<RefMeetingForm>(b =>
+        {
+            b.ToTable("ref_meeting_form");
+            b.HasKey(x => x.Id);
+            b.Property(x => x.Id).HasColumnName("id");
+            b.Property(x => x.Code).HasColumnName("code").HasMaxLength(10).IsRequired();
+            b.Property(x => x.Name).HasColumnName("name").HasMaxLength(200).IsRequired();
+            b.Property(x => x.ShortName).HasColumnName("short_name").HasMaxLength(50);
+            b.HasIndex(x => x.Code).IsUnique().HasDatabaseName("ux_ref_meeting_form_code");
         });
 
         modelBuilder.Entity<OsaForm>(b =>
