@@ -147,6 +147,8 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.Property(x => x.SecretarySignsProtocols).HasColumnName("secretary_signs_protocols").HasDefaultValue(false);
             b.Property(x => x.TemporaryChairProvided).HasColumnName("temporary_chair_provided").HasDefaultValue(false);
             b.Property(x => x.BoardCompositionApproved).HasColumnName("board_composition_approved").HasDefaultValue(false);
+            b.Property(x => x.BoardMandatory).HasColumnName("board_mandatory").HasDefaultValue(false);
+            b.Property(x => x.BoardApproved).HasColumnName("board_approved").HasDefaultValue(false);
             b.Property(x => x.TemporaryChairSelection).HasColumnName("temporary_chair_selection").HasMaxLength(50);
             b.Property(x => x.TemporaryChairName).HasColumnName("temporary_chair_name").HasMaxLength(300);
             b.Property(x => x.ProtocolSignedAt).HasColumnName("protocol_signed_at");

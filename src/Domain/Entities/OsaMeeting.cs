@@ -77,6 +77,12 @@ public class OsaMeeting
     /// <summary>Состав СД утверждён (board_composition_approved).</summary>
     public bool BoardCompositionApproved { get; set; }
 
+    /// <summary>Совет директоров обязателен для данного ОСА (board_mandatory).</summary>
+    public bool BoardMandatory { get; set; }
+
+    /// <summary>Совет директоров утверждён администратором (board_approved).</summary>
+    public bool BoardApproved { get; set; }
+
     /// <summary>Способ выбора временного председательствующего (temporary_chair_selection).</summary>
     public string? TemporaryChairSelection { get; set; }
 
