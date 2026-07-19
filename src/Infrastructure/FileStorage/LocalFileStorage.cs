@@ -7,6 +7,7 @@ namespace SamorodinkaTech.Fiducia.Infrastructure.FileStorage
 {
     /// <summary>
     /// Локальное файловое хранилище: сохраняет файлы в подкаталог от конфигурированного BasePath.
+    /// Не управляет правами файлов — WORM-семантика обеспечивается на уровне инфраструктуры (umask, SGID, chattr, СХД).
     /// </summary>
     public sealed class LocalFileStorage : IFileStorage
     {
