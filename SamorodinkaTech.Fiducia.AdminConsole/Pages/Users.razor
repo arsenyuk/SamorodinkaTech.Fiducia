@@ -34,20 +34,20 @@
             <table class="table table-hover">
                 <thead>
                     <tr>
-                        <th>ID</th>
                         <th>ФИО</th>
                         <th>Email</th>
                         <th>Телефон</th>
                         <th>Тип</th>
+                        <th>Статус LDAP</th>
+                        <th>Действует до</th>
                         <th>Статус</th>
-                        <th>Действия</th>
+                        <th></th>
                     </tr>
                 </thead>
                 <tbody>
                     @foreach (var user in _filteredUsers)
                     {
                         <tr>
-                            <td>@user.Id</td>
                             <td><strong>@user.LastName @user.FirstName @user.MiddleName</strong></td>
                             <td>@user.Email</td>
                             <td>@user.Phone</td>
@@ -61,6 +61,21 @@
                                     <span class="badge bg-secondary">Внутренний</span>
                                 }
                             </td>
+                            <td>
+                                @if (!user.IsActive)
+                                {
+                                    <span class="badge bg-danger">Заблокирован</span>
+                                }
+                                else if (user.AccountExpiresAt.HasValue && user.AccountExpiresAt.Value < DateTime.UtcNow)
+                                {
+                                    <span class="badge bg-warning">Истёк</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-success">Активен</span>
+                                }
+                            </td>
+                            <td>@(user.AccountExpiresAt?.ToString("dd.MM.yyyy") ?? "—")</td>
                             <td>
                                 @if (user.IsExternal)
                                 {
@@ -79,7 +94,7 @@
                                 }
                                 else
                                 {
-                                    <span class="badge bg-success">Активен</span>
+                                    <span class="badge bg-secondary">Внутренний</span>
                                 }
                             </td>
                             <td>
@@ -88,8 +103,6 @@
                                     <button class="btn btn-sm btn-outline-primary"
                                             @onclick="() => CopyInviteLink(user)">Ссылка</button>
                                 }
-                                <button class="btn btn-sm btn-outline-primary">Ред.</button>
-                                <button class="btn btn-sm btn-outline-danger">Уд.</button>
                             </td>
                         </tr>
                     }

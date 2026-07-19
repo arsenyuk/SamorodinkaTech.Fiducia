@@ -28,4 +28,13 @@ public class LdapUser
 
     /// <summary>Член групп (memberOf — DN групп).</summary>
     public IReadOnlyList<string> MemberOf { get; init; } = Array.Empty<string>();
+
+    /// <summary>Активна ли учётная запись (из userAccountControl AD / блокировка LDAP).</summary>
+    public bool IsActive { get; init; } = true;
+
+    /// <summary>Дата окончания действия учётной записи (accountExpires AD).</summary>
+    public DateTime? AccountExpiresAt { get; init; }
+
+    /// <summary>Дата создания учётной записи в LDAP-каталоге (whenCreated AD / createTimestamp OpenLDAP).</summary>
+    public DateTime? LdapCreatedAt { get; init; }
 }

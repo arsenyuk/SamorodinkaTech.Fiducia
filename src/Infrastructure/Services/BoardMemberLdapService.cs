@@ -123,7 +123,10 @@ public class BoardMemberLdapService : IBoardMemberLdapService
             Title = user.Title,
             Phone = user.Phone,
             DistinguishedName = user.DistinguishedName,
-            SuggestedMemberTypeCode = MapTitleToMemberType(user.Title)
+            SuggestedMemberTypeCode = MapTitleToMemberType(user.Title),
+            IsActive = user.IsActive,
+            AccountExpiresAt = user.AccountExpiresAt,
+            LdapCreatedAt = user.LdapCreatedAt
         };
 
         return candidate;

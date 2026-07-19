@@ -22,6 +22,9 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(u => u.PepAgreementSigned).HasColumnName("pep_agreement_signed").HasDefaultValue(false);
         builder.Property(u => u.PepSignedAt).HasColumnName("pep_signed_at");
         builder.Property(u => u.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("CURRENT_TIMESTAMP");
+        builder.Property(u => u.IsActive).HasColumnName("is_active").HasDefaultValue(true);
+        builder.Property(u => u.AccountExpiresAt).HasColumnName("account_expires_at");
+        builder.Property(u => u.LdapCreatedAt).HasColumnName("ldap_created_at");
 
         // Онбординг внешних директоров и согласия ПДн (snake_case)
         builder.Property(u => u.InvitationToken).HasColumnName("invitation_token");

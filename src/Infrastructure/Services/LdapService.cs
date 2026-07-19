@@ -345,8 +345,42 @@ public class LdapService : ILdapService
             Title = GetStringAttr(entry, "title"),
             Department = GetStringAttr(entry, "department"),
             Phone = GetStringAttr(entry, "telephoneNumber"),
-            MemberOf = GetMultiStringAttr(entry, "memberOf")
+            MemberOf = GetMultiStringAttr(entry, "memberOf"),
+            IsActive = ParseUserAccountControl(entry),
+            AccountExpiresAt = ParseAccountExpires(entry),
+            LdapCreatedAt = ParseCreatedAt(entry)
         };
+    }
+
+    /// <summary>
+    /// Извлекает дату создания учётной записи из whenCreated (AD) или createTimestamp (OpenLDAP).
+    /// Формат: GeneralizedTime (YYYYMMDDHHmmss.0Z).
+    /// </summary>
+    private static DateTime? ParseCreatedAt(SearchResultEntry entry)
+    {
+        var raw = GetStringAttr(entry, "whenCreated")
+               ?? GetStringAttr(entry, "createTimestamp");
+        if (raw == null) return null;
+
+        // GeneralizedTime: "20250101000000.0Z"
+        var digits = new string(raw.Where(char.IsDigit).ToArray());
+        if (digits.Length < 14) return null;
+
+        try
+        {
+            return new DateTime(
+                int.Parse(digits[..4]),
+                int.Parse(digits[4..6]),
+                int.Parse(digits[6..8]),
+                int.Parse(digits[8..10]),
+                int.Parse(digits[10..12]),
+                int.Parse(digits[12..14]),
+                DateTimeKind.Utc);
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     private static string? GetStringAttr(SearchResultEntry entry, string name)
@@ -365,6 +399,48 @@ public class LdapService : ILdapService
         return entry.Attributes[name].GetValues(typeof(string))
             .Cast<string>()
             .ToList();
+    }
+
+    /// <summary>
+    /// Извлекает флаг активности из userAccountControl (AD).
+    /// UF_ACCOUNTDISABLE = 0x0002. Если атрибут отсутствует — считаем активным.
+    /// </summary>
+    private static bool ParseUserAccountControl(SearchResultEntry entry)
+    {
+        if (!entry.Attributes.Contains("userAccountControl"))
+            return true;
+
+        var raw = entry.Attributes["userAccountControl"][0]?.ToString();
+        if (raw == null || !int.TryParse(raw, out var uac))
+            return true;
+
+        return (uac & 0x0002) == 0;
+    }
+
+    /// <summary>
+    /// Извлекает дату истечения учётной записи из accountExpires (AD FileTime).
+    /// 0 или 0x7FFFFFFFFFFFFFFF = никогда не истекает.
+    /// </summary>
+    private static DateTime? ParseAccountExpires(SearchResultEntry entry)
+    {
+        if (!entry.Attributes.Contains("accountExpires"))
+            return null;
+
+        var raw = entry.Attributes["accountExpires"][0]?.ToString();
+        if (raw == null || !long.TryParse(raw, out var fileTime))
+            return null;
+
+        if (fileTime == 0 || fileTime == 0x7FFFFFFFFFFFFFFF)
+            return null;
+
+        try
+        {
+            return DateTime.FromFileTimeUtc(fileTime);
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     private static string EscapeLdapFilter(string value)

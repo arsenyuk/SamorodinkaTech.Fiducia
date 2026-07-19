@@ -13,6 +13,15 @@ public class User
     public DateTime? PepSignedAt { get; set; }
     public DateTime CreatedAt { get; set; }
 
+    /// <summary>Активна ли учётная запись (is_active).</summary>
+    public bool IsActive { get; set; } = true;
+
+    /// <summary>Дата окончания действия учётной записи (account_expires_at).</summary>
+    public DateTime? AccountExpiresAt { get; set; }
+
+    /// <summary>Дата создания учётной записи в LDAP-каталоге (ldap_created_at).</summary>
+    public DateTime? LdapCreatedAt { get; set; }
+
     // Онбординг внешних директоров
     public string? InvitationToken { get; set; }
     public DateTime? InvitationExpiresAt { get; set; }

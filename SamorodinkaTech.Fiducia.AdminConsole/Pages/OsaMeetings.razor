@@ -1610,14 +1610,20 @@
             }
 
             var nameParts = row.Name.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            var candidate = ldapCandidates.FirstOrDefault(c =>
+                string.Equals(c.Login, row.Account ?? row.LdapLogin, StringComparison.OrdinalIgnoreCase));
             var newUser = new User
             {
+                Id = Guid.NewGuid(),
                 LastName = nameParts.Length > 0 ? nameParts[0] : row.Name,
                 FirstName = nameParts.Length > 1 ? nameParts[1] : string.Empty,
                 MiddleName = nameParts.Length > 2 ? nameParts[2] : null,
                 Email = row.Email.Trim(),
                 Phone = string.Empty,
                 IsExternal = false,
+                IsActive = candidate?.IsActive ?? true,
+                AccountExpiresAt = candidate?.AccountExpiresAt,
+                LdapCreatedAt = candidate?.LdapCreatedAt,
                 CreatedAt = DateTime.UtcNow
             };
             ctx.Users.Add(newUser);

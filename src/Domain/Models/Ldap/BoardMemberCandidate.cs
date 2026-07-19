@@ -26,4 +26,13 @@ public class BoardMemberCandidate
 
     /// <summary>Предложенный тип директора (код ref_board_member_types).</summary>
     public string? SuggestedMemberTypeCode { get; init; }
+
+    /// <summary>Активна ли учётная запись в LDAP.</summary>
+    public bool IsActive { get; init; } = true;
+
+    /// <summary>Дата окончания действия учётной записи в LDAP.</summary>
+    public DateTime? AccountExpiresAt { get; init; }
+
+    /// <summary>Дата создания учётной записи в LDAP-каталоге.</summary>
+    public DateTime? LdapCreatedAt { get; init; }
 }
