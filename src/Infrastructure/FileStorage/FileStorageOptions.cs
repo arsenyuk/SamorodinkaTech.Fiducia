@@ -32,7 +32,7 @@ namespace SamorodinkaTech.Fiducia.Infrastructure.FileStorage
         public string? MinioSecretKey { get; set; }
 
         /// <summary>
-        /// Имя бакета MinIO.
+        /// Имя корзины MinIO.
         /// </summary>
         public string? MinioBucketName { get; set; }
 
