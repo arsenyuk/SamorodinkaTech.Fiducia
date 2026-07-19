@@ -853,7 +853,7 @@ WORM-семантика (невозможность удаления и пере
 #### Программные WORM-механизмы (Linux)
 
 - **Linux `chattr +i`** (immutable) — встроен в ext4/xfs/btrfs. Файл не может быть изменён, удалён, переименован или перелинкован. Требует `CAP_LINUX_IMMUTABLE`. Снять флаг может только root.
-- **SMB-шар с WORM** — SMB-сервер (Windows Server, Samba) может быть настроен на режим «только запись и чтение» для шар, без права удаления на уровне SMB-протокола.
+- **SMB-шар с WORM** — SMB-сервер (Windows Server, Samba) может быть настроен на режим «только запись и чтение» для шара, без права удаления на уровне SMB-протокола.
 - **NFS с экспортом readonly-after-write** — NFS-сервер может экспортировать каталог с опциями, запрещающими удаление существующих файлов.
 
 #### Настройка WORM для S3-корзин (MinIO / AWS S3)
@@ -908,17 +908,9 @@ mc put --retention "mode=compliance,retain-until-date=2036-07-19" \
     protocol.pdf fiducia/fiducia-storage/2026/07/19/
 ```
 
-В коде (`MinioFileStorage`): передача retention-параметров в `PutObjectArgs`:
-```csharp
-var putArgs = new PutObjectArgs()
-    .WithBucket(_bucketName)
-    .WithObject(storageKey)
-    .WithStreamData(content)
-    .WithObjectSize(content.Length)
-    .WithRetention(new Retention(
-        mode: RetentionMode.COMPLIANCE,
-        retainUntilDate: DateTime.UtcNow.AddYears(10)));
-```
+Retention также можно установить через default retention на корзине (Шаг 2) — тогда все загружаемые объекты автоматически наследуют retention-период без явного указания в коде.
+
+> **Архитектурное решение**: код `MinioFileStorage` не вызывает `.WithRetention()` и не управляет retention/legal hold. WORM-семантика S3 обеспечивается конфигурацией корзины (default retention) и IAM-политиками — на уровне инфраструктуры, не в коде приложения.
 
 **Шаг 4. Legal Hold — дополнительная защита**
 
