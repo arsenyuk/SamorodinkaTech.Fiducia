@@ -638,83 +638,56 @@ tests/.../Services/
 
 ---
 
-# Интеграция с MinIO (S3-совместимое объектное хранилище)
+# Файловое хранилище (IFileStorage)
 
-> Внешняя система: **MinIO** — S3-совместимое объектное хранилище для файлов документов, протоколов, бюллетеней и вложений.
-
----
-
-## Назначение
-
-MinIO используется как опциональная альтернатива локальному файловому хранилищу (`LocalFileStorage`) для продакшен-развёртывания. Обеспечивает:
-
-- **Масштабирование** — хранение документов в распределённом объектном хранилище
-- **Отказоустойчивость** — репликация данных между узлами MinIO
-- **Совместимость с S3** — возможность миграции на AWS S3 или другие S3-совместимые хранилища без изменения кода
-- **Изоляция** — файлы не хранятся на сервере приложений, что упрощает горизонтальное масштабирование
+> Абстракция файлового хранилища для документов, протоколов, бюллетеней и вложений. Регламентировано [ADR‑020](decision_records/dr_architecture.md).
 
 ---
 
-## Архитектура
+## Архитектурное решение: папочное хранилище как основной подход
 
-Выбор провайдера хранилища определяется полем `Provider` в конфигурации:
+**Ключевое требование проекта, вытекающее из 152-ФЗ и требований некорректируемого аудит-лога**: файлы однажды сохранённого документа **не должны подлежать удалению или перезаписи**. Хранилище работает в режиме **WORM** (Write Once, Read Many): запись — один раз, чтение — многократно, удаление — не предусмотрено.
+
+Этому требованию наиболее естественно соответствует **простое папочное (файловое) хранилище**:
+- Физически — каталог на диске (локальная ФС, SMB-шар, NFS-монтирование)
+- Защита от удаления — на уровне прав ОС (файлы создаются с правами только на чтение для приложения после записи)
+- Интерфейс — стандартные файловые операции (создать, прочитать), без HTTP API
+- Прозрачность — любой администратор может проверить содержимое стандартными средствами ОС
+
+**`LocalFileStorage` — не «локальное для разработки», а универсальный провайдер для любого папочного хранилища.** В production каталог `/var/lib/fiducia/storage` монтируется как SMB-шар с выделенного файлового сервера (NAS) или NFS-экспорт. Для приложения это прозрачно — оно работает с путём в локальной ФС, физическое расположение данных определяется на уровне инфраструктуры.
 
 ```mermaid
 graph LR
     App[Fiducia App] --> |IFileStorage| Provider{Provider?}
-    Provider --> |Local| Local[LocalFileStorage<br>Файловая система]
-    Provider --> |MinIO| Minio[MinioFileStorage<br>MinIO Server]
+    Provider --> |Local| Local[LocalFileStorage]
+    Local --> |dev| DevFS[Локальная ФС<br>./storage/]
+    Local --> |prod| ProdFS[SMB/NFS шар<br>/var/lib/fiducia/storage<br>NAS / файловый сервер]
+    Provider --> |MinIO| Minio[MinioFileStorage<br>⚠️ опционально]
 ```
+
+---
+
+## Провайдеры
+
+### 1. LocalFileStorage — основной (папочное хранилище)
+
+Реализует `IFileStorage` через стандартные файловые операции .NET (`FileStream`). Файлы сохраняются в подкаталоги по дате (`yyyy/MM/dd/GUID.ext`). Поддерживает любую ФС, доступную ОС: локальный диск, SMB-шар (монтированный через `/etc/fstab` или `mount -t cifs`), NFS.
+
+### 2. MinioFileStorage — опциональный (S3-объектное хранилище)
+
+Резервная реализация через MinIO SDK. Включена в проект как **опциональная альтернатива** для сценариев, где S3-совместимый API предпочтителен по инфраструктурным причинам (например, организация уже использует MinIO как корпоративный стандарт).
+
+> ⚠️ **Важно:** MinIO не обеспечивает WORM-семантику из коробки. Объекты в S3-бакете могут быть удалены через API или консоль. Для соответствия требованиям аудита потребуется дополнительная настройка: object lock (режим compliance/governance) с retention-периодом и legal hold. Рекомендуемый подход для проекта — папочное хранилище с правами ОС.
 
 **Ключевые компоненты**:
 
 | Компонент | Расположение | Назначение |
 |-----------|-------------|------------|
-| `IFileStorage` | `src/Domain/Interfaces/` | Абстракция файлового хранилища (Dependency Inversion) |
-| `LocalFileStorage` | `src/Infrastructure/FileStorage/` | Локальное хранилище (разработка/отладка) |
-| `MinioFileStorage` | `src/Infrastructure/FileStorage/` | MinIO-хранилище (продакшен) |
-| `FileStorageOptions` | `src/Infrastructure/FileStorage/` | Конфигурация: провайдер, endpoint, ключи, бакет |
+| `IFileStorage` | `src/Domain/Interfaces/` | Абстракция (Dependency Inversion) |
+| `LocalFileStorage` | `src/Infrastructure/FileStorage/` | Папочное хранилище — основной провайдер |
+| `MinioFileStorage` | `src/Infrastructure/FileStorage/` | S3/MinIO — опциональный провайдер |
+| `FileStorageOptions` | `src/Infrastructure/FileStorage/` | Конфигурация: провайдер, путь/endpoint, ключи |
 | `FileStorageServiceCollectionExtensions` | `src/Infrastructure/FileStorage/` | Регистрация в DI с выбором провайдера |
-
----
-
-## Запуск MinIO в Docker
-
-```bash
-# Запуск контейнера
-docker compose up minio -d
-
-# Проверка
-docker compose ps minio
-```
-
-После запуска доступны:
-- **S3 API**: `http://localhost:9000`
-- **Web Console**: `http://localhost:9001` (логин: `minioadmin`, пароль: `minioadmin`)
-
-Docker Compose (`docker-compose.yml`):
-
-```yaml
-minio:
-  image: minio/minio:latest
-  container_name: fiducia-minio
-  restart: unless-stopped
-  command: server /data --console-address ":9001"
-  environment:
-    MINIO_ROOT_USER: minioadmin
-    MINIO_ROOT_PASSWORD: minioadmin
-  ports:
-    - "9000:9000"   # S3 API
-    - "9001:9001"   # Web Console
-  volumes:
-    - minio_data:/data
-  healthcheck:
-    test: ["CMD-SHELL", "mc ready local"]
-    interval: 10s
-    timeout: 5s
-    retries: 20
-    start_period: 10s
-```
 
 ---
 
@@ -725,7 +698,7 @@ minio:
 builder.Services.AddFileStorage(builder.Configuration);
 ```
 
-Метод `AddFileStorage()` читает `FileStorage:Provider` и регистрирует `MinioFileStorage` (при `"MinIO"`) или `LocalFileStorage` (по умолчанию `"Local"`) как синглтон `IFileStorage`.
+Метод `AddFileStorage()` читает `FileStorage:Provider` и регистрирует нужную реализацию как синглтон `IFileStorage`. По умолчанию — `LocalFileStorage`.
 
 ---
 
@@ -749,47 +722,98 @@ builder.Services.AddFileStorage(builder.Configuration);
 
 | Параметр | Значение по умолчанию | Описание |
 |----------|----------------------|----------|
-| `Provider` | `Local` | Провайдер: `Local` или `MinIO` |
-| `LocalBasePath` | `/var/lib/fiducia/storage` | Базовый каталог для локального хранилища |
-| `MinioEndpoint` | `localhost:9000` | Адрес MinIO-сервера (хост:порт) |
-| `MinioAccessKey` | `minioadmin` | Ключ доступа (access key) |
-| `MinioSecretKey` | `minioadmin` | Секретный ключ (secret key) |
-| `MinioBucketName` | `fiducia` | Имя S3-бакета (создаётся автоматически) |
-| `MinioUseSsl` | `false` | Использовать HTTPS-подключение |
+| `Provider` | `Local` | `Local` (папочное хранилище, рекомендовано) или `MinIO` (опционально) |
+| `LocalBasePath` | `/var/lib/fiducia/storage` | Путь к каталогу. В production — точка монтирования SMB/NFS |
+| `MinioEndpoint` | `localhost:9000` | Адрес MinIO-сервера (только при `Provider: MinIO`) |
+| `MinioAccessKey` | `minioadmin` | Ключ доступа MinIO |
+| `MinioSecretKey` | `minioadmin` | Секретный ключ MinIO |
+| `MinioBucketName` | `fiducia` | Имя бакета (создаётся автоматически) |
+| `MinioUseSsl` | `false` | HTTPS-подключение к MinIO |
+
+---
+
+## Production: монтирование SMB/NFS
+
+Пример настройки SMB-шара на Linux-сервере:
+
+```bash
+# Монтирование SMB-шара с файлового сервера
+mount -t cifs //fileserver.local/fiducia-storage /var/lib/fiducia/storage \
+    -o username=fiducia,password=...,uid=1000,gid=1000,file_mode=0644,dir_mode=0755
+
+# Запись в /etc/fstab для автоматического монтирования при загрузке
+//fileserver.local/fiducia-storage /var/lib/fiducia/storage cifs \
+    credentials=/etc/fiducia/smb.credentials,uid=1000,gid=1000,file_mode=0644,dir_mode=0755 0 0
+```
+
+После монтирования приложение продолжает использовать `Provider: Local` — для него это обычный каталог, физически расположенный на удалённом NAS.
+
+---
+
+## Запуск MinIO в Docker (опционально)
+
+```bash
+# Запуск контейнера (только при Provider: MinIO)
+docker compose up minio -d
+
+# Проверка
+docker compose ps minio
+```
+
+После запуска:
+- **S3 API**: `http://localhost:9000`
+- **Web Console**: `http://localhost:9001` (логин: `minioadmin` / `minioadmin`)
+
+```yaml
+# docker-compose.yml (фрагмент)
+minio:
+  image: minio/minio:latest
+  container_name: fiducia-minio
+  restart: unless-stopped
+  command: server /data --console-address ":9001"
+  environment:
+    MINIO_ROOT_USER: minioadmin
+    MINIO_ROOT_PASSWORD: minioadmin
+  ports:
+    - "9000:9000"
+    - "9001:9001"
+  volumes:
+    - minio_data:/data
+```
 
 ---
 
 ## Тестирование
 
-Интеграция тестируется на двух уровнях:
-
-1. **Unit-тесты** (13 тестов) — проверяют корректность контракта `IFileStorage` без реального MinIO-сервера:
-   - `MockFileStorage` — in-memory реализация с методами `FileCount`, `StorageKeys`, `Exists`, флагом `SimulateFailure`
-   - `MinioFileStorage` — валидация конструктора (обязательность endpoint, access key, secret key)
-
-2. **Интеграционные тесты** (планируются) — подключаются к реальному MinIO в тестовом контуре.
+| Уровень | Файлы | Что проверяется |
+|---------|-------|-----------------|
+| **Unit** (13 тестов) | `MockFileStorageTests.cs` | In-memory реализация: CRUD, `FileCount`, `StorageKeys`, флаг `SimulateFailure` |
+| | `MinioFileStorageTests.cs` | Валидация конструктора: обязательность endpoint, access key, secret key |
+| **Integration** (планируется) | — | Подключение к реальному SMB-шару и MinIO в тестовом контуре |
 
 ---
 
 ## Безопасность
 
-- **Access Key / Secret Key** — в production следует использовать переменные окружения или защищённое хранилище (Key Vault), не хранить в `appsettings.json`
-- **HTTPS** — для продакшен-развёртывания установить `MinioUseSsl: true`
-- **Сетевой доступ** — MinIO должен быть доступен только с сервера приложений (файрвол/сегментация)
-- **Бакет** — создаётся автоматически при первом сохранении, но политики доступа (IAM) настраиваются вручную в MinIO Console
+- **Права ФС** — для папочного хранилища файлы создаются с `644` (чтение для всех, запись только для владельца), каталоги — `755`. Приложение работает под выделенным пользователем ОС.
+- **Аудит** — факты создания/чтения файлов логируются через `ILogger<LocalFileStorage>` / `ILogger<MinioFileStorage>`.
+- **Access Key / Secret Key** (MinIO) — в production через переменные окружения, не в `appsettings.json`.
+- **Сеть** — SMB-шар или MinIO должны быть доступны только с сервера приложений (файрвол/сегментация).
 
 ---
 
 ## Зависимости
 
-- **Minio** NuGet-пакет v6.0.4 (`Minio` в `SamorodinkaTech.Fiducia.Infrastructure.csproj`)
-- **MinIO Server** (Docker-образ `minio/minio:latest` в `docker-compose.yml`)
-- **Сетевой доступ** от сервера Fiducia к MinIO по HTTP/HTTPS (порт 9000)
+- **Папочное хранилище**: стандартная библиотека .NET (`System.IO`), без внешних зависимостей
+- **MinIO**: NuGet `Minio` v6.0.4, Docker-образ `minio/minio:latest`
+- **Инфраструктура**: файловый сервер с SMB/NFS (для production с папочным хранилищем) или MinIO Server (опционально)
 
 ---
 
 ## Ссылки
 
+- [ADR-020: Файловое хранилище](decision_records/dr_architecture.md#adr-020-файловое-хранилище)
+- [SMB/CIFS в Linux (mount.cifs)](https://wiki.samba.org/index.php/Mounting_samba_shares_from_a_unix_client)
+- [NFS в Linux](https://wiki.archlinux.org/title/NFS)
 - [Документация MinIO](https://min.io/docs/minio/linux/index.html)
-- [MinIO .NET SDK](https://min.io/docs/minio/linux/developers/dotnet/API.html)
-- [Docker Hub: minio/minio](https://hub.docker.com/r/minio/minio)
+- [MinIO Object Lock (WORM)](https://min.io/docs/minio/linux/administration/object-management/object-lock.html)
