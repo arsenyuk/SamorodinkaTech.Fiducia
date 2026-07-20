@@ -173,3 +173,13 @@ INSERT INTO tpl_org_offers (id, stage_id, name, description, sort_order, start_o
     ('cccccccc-cccc-cccc-cccc-cccccccccc37', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbb34', 'Подготовка протокола', 'Оформление протокола первого заседания СД', 1, 0, 'FIXED_DAYS', 2),
     ('cccccccc-cccc-cccc-cccc-cccccccccc38', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbb34', 'Подписание протокола', 'Подписание протокола председателем и секретарём', 2, 2, 'FIXED_DAYS', 1)
 ON CONFLICT DO NOTHING;
+
+-- Оферы для шаблона «Заседание Совета директоров» (aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa20)
+INSERT INTO tpl_org_offers (id, stage_id, name, description, sort_order, start_offset_days, deadline_rule, deadline_days) VALUES
+    ('cccccccc-cccc-cccc-cccc-cccccccccc11', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbb11', 'Уведомление членов СД', 'Подготовка и рассылка уведомлений о созыве', 1, 0, 'FIXED_DAYS', 3),
+    ('cccccccc-cccc-cccc-cccc-cccccccccc12', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbb11', 'Сбор материалов', 'Сбор и подготовка материалов к заседанию', 2, 3, 'FIXED_DAYS', 2),
+    ('cccccccc-cccc-cccc-cccc-cccccccccc13', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbb12', 'Обсуждение вопросов', 'Проведение обсуждения вопросов повестки', 1, 0, NULL, NULL),
+    ('cccccccc-cccc-cccc-cccc-cccccccccc14', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbb12', 'Голосование', 'Проведение голосования по каждому вопросу', 2, 0, NULL, NULL),
+    ('cccccccc-cccc-cccc-cccc-cccccccccc15', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbb13', 'Оформление протокола', 'Подготовка текста протокола заседания', 1, 0, 'FIXED_DAYS', 2),
+    ('cccccccc-cccc-cccc-cccc-cccccccccc16', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbb13', 'Подписание протокола', 'Подписание протокола председателем и секретарём', 2, 2, 'FIXED_DAYS', 1)
+ON CONFLICT DO NOTHING;
