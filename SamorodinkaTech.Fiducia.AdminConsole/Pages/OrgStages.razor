@@ -91,7 +91,7 @@
 @code {
     [Parameter] public Guid IntentId { get; set; }
 
-    private List<OrgStage> _items = new();
+    private List<TplOrgStage> _items = new();
     private string? _intentName;
     private string? _error;
     private string? _success;
@@ -110,13 +110,13 @@
         try
         {
             await using var ctx = await DbFactory.CreateDbContextAsync();
-            _intentName = (await ctx.OrgIntents.FirstOrDefaultAsync(x => x.Id == IntentId))?.Name;
-            _items = await ctx.OrgStages.Where(x => x.IntentId == IntentId).OrderBy(x => x.SortOrder).ThenBy(x => x.Name).ToListAsync();
+            _intentName = (await ctx.TplOrgIntents.FirstOrDefaultAsync(x => x.Id == IntentId))?.Name;
+            _items = await ctx.TplOrgStages.Where(x => x.IntentId == IntentId).OrderBy(x => x.SortOrder).ThenBy(x => x.Name).ToListAsync();
         }
         catch (Exception ex) { Logger.LogWarning(ex, "Ошибка загрузки этапов"); _error = ExceptionFlattener.Unwrap(ex); }
     }
 
-    private void Edit(OrgStage s)
+    private void Edit(TplOrgStage s)
     {
         _editingId = s.Id; _editName = s.Name; _editOffset = s.StartOffsetDays;
         _editDeadlineRule = s.DeadlineRule ?? ""; _editDeadlineDays = s.DeadlineDays; _editSort = s.SortOrder; _showForm = true;
@@ -132,7 +132,7 @@
             await using var ctx = await DbFactory.CreateDbContextAsync();
             if (_editingId.HasValue)
             {
-                var e = await ctx.OrgStages.FirstOrDefaultAsync(x => x.Id == _editingId.Value);
+                var e = await ctx.TplOrgStages.FirstOrDefaultAsync(x => x.Id == _editingId.Value);
                 if (e != null)
                 {
                     e.Name = _editName.Trim(); e.StartOffsetDays = _editOffset;
@@ -141,7 +141,7 @@
             }
             else
             {
-                ctx.OrgStages.Add(new OrgStage { Id = Guid.NewGuid(), Name = _editName.Trim(), IntentId = IntentId,
+                ctx.TplOrgStages.Add(new TplOrgStage { Id = Guid.NewGuid(), Name = _editName.Trim(), IntentId = IntentId,
                     StartOffsetDays = _editOffset, DeadlineRule = (string.IsNullOrWhiteSpace(_editDeadlineRule) ? null : _editDeadlineRule.Trim()), DeadlineDays = _editDeadlineDays, SortOrder = _editSort });
             }
             await ctx.SaveChangesAsync();
@@ -151,13 +151,13 @@
         catch (Exception ex) { Logger.LogWarning(ex, "Ошибка сохранения"); _error = ExceptionFlattener.Unwrap(ex); }
     }
 
-    private async Task Delete(OrgStage s)
+    private async Task Delete(TplOrgStage s)
     {
         try
         {
             await using var ctx = await DbFactory.CreateDbContextAsync();
-            var e = await ctx.OrgStages.FirstOrDefaultAsync(x => x.Id == s.Id);
-            if (e != null) { ctx.OrgStages.Remove(e); await ctx.SaveChangesAsync(); await LoadAsync(); _success = "Этап удалён."; }
+            var e = await ctx.TplOrgStages.FirstOrDefaultAsync(x => x.Id == s.Id);
+            if (e != null) { ctx.TplOrgStages.Remove(e); await ctx.SaveChangesAsync(); await LoadAsync(); _success = "Этап удалён."; }
         }
         catch (Exception ex) { Logger.LogWarning(ex, "Ошибка удаления"); _error = ExceptionFlattener.Unwrap(ex); }
     }

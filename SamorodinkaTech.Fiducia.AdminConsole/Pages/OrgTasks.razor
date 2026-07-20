@@ -87,7 +87,7 @@
 @code {
     [Parameter] public Guid OfferId { get; set; }
 
-    private List<OrgTask> _items = new();
+    private List<TplOrgTask> _items = new();
     private List<Role> _roles = new();
     private string? _offerName;
     private string? _stageName;
@@ -108,20 +108,20 @@
         try
         {
             await using var ctx = await DbFactory.CreateDbContextAsync();
-            var offer = await ctx.OrgOffers.Include(x => x.Stage).ThenInclude(x => x!.Intent).FirstOrDefaultAsync(x => x.Id == OfferId);
+            var offer = await ctx.TplOrgOffers.Include(x => x.Stage).ThenInclude(x => x!.Intent).FirstOrDefaultAsync(x => x.Id == OfferId);
             if (offer != null)
             {
                 _offerName = offer.Name;
                 _stageId = offer.StageId;
                 _stageName = offer.Stage?.Name;
             }
-            _items = await ctx.OrgTasks.Where(x => x.OfferId == OfferId).OrderBy(x => x.SortOrder).ThenBy(x => x.Name).ToListAsync();
+            _items = await ctx.TplOrgTasks.Where(x => x.OfferId == OfferId).OrderBy(x => x.SortOrder).ThenBy(x => x.Name).ToListAsync();
             _roles = await ctx.Roles.OrderBy(x => x.Name).ToListAsync();
         }
         catch (Exception ex) { Logger.LogWarning(ex, "Ошибка загрузки задач"); _error = ExceptionFlattener.Unwrap(ex); }
     }
 
-    private void Edit(OrgTask t)
+    private void Edit(TplOrgTask t)
     {
         _editingId = t.Id; _editName = t.Name; _editDesc = t.Description ?? "";
         _editRoleId = t.AssignedRoleId?.ToString() ?? ""; _editSort = t.SortOrder; _showForm = true;
@@ -137,7 +137,7 @@
             await using var ctx = await DbFactory.CreateDbContextAsync();
             if (_editingId.HasValue)
             {
-                var e = await ctx.OrgTasks.FirstOrDefaultAsync(x => x.Id == _editingId.Value);
+                var e = await ctx.TplOrgTasks.FirstOrDefaultAsync(x => x.Id == _editingId.Value);
                 if (e != null)
                 {
                     e.Name = _editName.Trim(); e.Description = (string.IsNullOrWhiteSpace(_editDesc) ? null : _editDesc.Trim());
@@ -146,7 +146,7 @@
             }
             else
             {
-                ctx.OrgTasks.Add(new OrgTask { Id = Guid.NewGuid(), Name = _editName.Trim(), Description = (string.IsNullOrWhiteSpace(_editDesc) ? null : _editDesc.Trim()), OfferId = OfferId,
+                ctx.TplOrgTasks.Add(new TplOrgTask { Id = Guid.NewGuid(), Name = _editName.Trim(), Description = (string.IsNullOrWhiteSpace(_editDesc) ? null : _editDesc.Trim()), OfferId = OfferId,
                     AssignedRoleId = string.IsNullOrWhiteSpace(_editRoleId) ? null : Guid.Parse(_editRoleId), SortOrder = _editSort });
             }
             await ctx.SaveChangesAsync();
@@ -156,13 +156,13 @@
         catch (Exception ex) { Logger.LogWarning(ex, "Ошибка сохранения"); _error = ExceptionFlattener.Unwrap(ex); }
     }
 
-    private async Task Delete(OrgTask t)
+    private async Task Delete(TplOrgTask t)
     {
         try
         {
             await using var ctx = await DbFactory.CreateDbContextAsync();
-            var e = await ctx.OrgTasks.FirstOrDefaultAsync(x => x.Id == t.Id);
-            if (e != null) { ctx.OrgTasks.Remove(e); await ctx.SaveChangesAsync(); await LoadAsync(); _success = "Задача удалена."; }
+            var e = await ctx.TplOrgTasks.FirstOrDefaultAsync(x => x.Id == t.Id);
+            if (e != null) { ctx.TplOrgTasks.Remove(e); await ctx.SaveChangesAsync(); await LoadAsync(); _success = "Задача удалена."; }
         }
         catch (Exception ex) { Logger.LogWarning(ex, "Ошибка удаления"); _error = ExceptionFlattener.Unwrap(ex); }
     }

@@ -99,7 +99,7 @@
 @code {
     [Parameter] public Guid StageId { get; set; }
 
-    private List<OrgOffer> _items = new();
+    private List<TplOrgOffer> _items = new();
     private string? _stageName;
     private string? _intentName;
     private Guid? _intentId;
@@ -121,19 +121,19 @@
         try
         {
             await using var ctx = await DbFactory.CreateDbContextAsync();
-            var stage = await ctx.OrgStages.Include(x => x.Intent).FirstOrDefaultAsync(x => x.Id == StageId);
+            var stage = await ctx.TplOrgStages.Include(x => x.Intent).FirstOrDefaultAsync(x => x.Id == StageId);
             if (stage != null)
             {
                 _stageName = stage.Name;
                 _intentId = stage.IntentId;
                 _intentName = stage.Intent?.Name;
             }
-            _items = await ctx.OrgOffers.Where(x => x.StageId == StageId).OrderBy(x => x.SortOrder).ThenBy(x => x.Name).ToListAsync();
+            _items = await ctx.TplOrgOffers.Where(x => x.StageId == StageId).OrderBy(x => x.SortOrder).ThenBy(x => x.Name).ToListAsync();
         }
         catch (Exception ex) { Logger.LogWarning(ex, "Ошибка загрузки оферов"); _error = ExceptionFlattener.Unwrap(ex); }
     }
 
-    private void Edit(OrgOffer o)
+    private void Edit(TplOrgOffer o)
     {
         _editingId = o.Id; _editName = o.Name; _editDesc = o.Description ?? "";
         _editOffset = o.StartOffsetDays; _editDeadlineRule = o.DeadlineRule ?? ""; _editDeadlineDays = o.DeadlineDays; _editSort = o.SortOrder; _showForm = true;
@@ -149,7 +149,7 @@
             await using var ctx = await DbFactory.CreateDbContextAsync();
             if (_editingId.HasValue)
             {
-                var e = await ctx.OrgOffers.FirstOrDefaultAsync(x => x.Id == _editingId.Value);
+                var e = await ctx.TplOrgOffers.FirstOrDefaultAsync(x => x.Id == _editingId.Value);
                 if (e != null)
                 {
                     e.Name = _editName.Trim(); e.Description = (string.IsNullOrWhiteSpace(_editDesc) ? null : _editDesc.Trim()); e.StartOffsetDays = _editOffset;
@@ -158,7 +158,7 @@
             }
             else
             {
-                ctx.OrgOffers.Add(new OrgOffer { Id = Guid.NewGuid(), Name = _editName.Trim(), Description = (string.IsNullOrWhiteSpace(_editDesc) ? null : _editDesc.Trim()), StageId = StageId,
+                ctx.TplOrgOffers.Add(new TplOrgOffer { Id = Guid.NewGuid(), Name = _editName.Trim(), Description = (string.IsNullOrWhiteSpace(_editDesc) ? null : _editDesc.Trim()), StageId = StageId,
                     StartOffsetDays = _editOffset, DeadlineRule = (string.IsNullOrWhiteSpace(_editDeadlineRule) ? null : _editDeadlineRule.Trim()), DeadlineDays = _editDeadlineDays, SortOrder = _editSort });
             }
             await ctx.SaveChangesAsync();
@@ -168,13 +168,13 @@
         catch (Exception ex) { Logger.LogWarning(ex, "Ошибка сохранения"); _error = ExceptionFlattener.Unwrap(ex); }
     }
 
-    private async Task Delete(OrgOffer o)
+    private async Task Delete(TplOrgOffer o)
     {
         try
         {
             await using var ctx = await DbFactory.CreateDbContextAsync();
-            var e = await ctx.OrgOffers.FirstOrDefaultAsync(x => x.Id == o.Id);
-            if (e != null) { ctx.OrgOffers.Remove(e); await ctx.SaveChangesAsync(); await LoadAsync(); _success = "Офер удалён."; }
+            var e = await ctx.TplOrgOffers.FirstOrDefaultAsync(x => x.Id == o.Id);
+            if (e != null) { ctx.TplOrgOffers.Remove(e); await ctx.SaveChangesAsync(); await LoadAsync(); _success = "Офер удалён."; }
         }
         catch (Exception ex) { Logger.LogWarning(ex, "Ошибка удаления"); _error = ExceptionFlattener.Unwrap(ex); }
     }

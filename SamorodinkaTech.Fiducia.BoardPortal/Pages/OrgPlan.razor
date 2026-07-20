@@ -106,9 +106,9 @@ else
 }
 
 @code {
-    private List<OrgIntent> _intents = new();
-    private Dictionary<Guid, List<OrgStage>> _stagesByIntent = new();
-    private Dictionary<Guid, List<OrgOffer>> _offersByStage = new();
+    private List<TplOrgIntent> _intents = new();
+    private Dictionary<Guid, List<TplOrgStage>> _stagesByIntent = new();
+    private Dictionary<Guid, List<TplOrgOffer>> _offersByStage = new();
     private Dictionary<Guid, int> _intentStageCounts = new();
     private HashSet<Guid> _expandedIntents = new();
     private HashSet<Guid> _expandedStages = new();
@@ -118,9 +118,9 @@ else
         try
         {
             await using var ctx = await DbFactory.CreateDbContextAsync();
-            _intents = await ctx.OrgIntents.OrderBy(x => x.SortOrder).ThenBy(x => x.Name).ToListAsync();
-            var stages = await ctx.OrgStages.OrderBy(x => x.SortOrder).ThenBy(x => x.Name).ToListAsync();
-            var offers = await ctx.OrgOffers.OrderBy(x => x.SortOrder).ThenBy(x => x.Name).ToListAsync();
+            _intents = await ctx.TplOrgIntents.OrderBy(x => x.SortOrder).ThenBy(x => x.Name).ToListAsync();
+            var stages = await ctx.TplOrgStages.OrderBy(x => x.SortOrder).ThenBy(x => x.Name).ToListAsync();
+            var offers = await ctx.TplOrgOffers.OrderBy(x => x.SortOrder).ThenBy(x => x.Name).ToListAsync();
 
             _stagesByIntent = stages.GroupBy(s => s.IntentId).ToDictionary(g => g.Key, g => g.ToList());
             _offersByStage = offers.GroupBy(o => o.StageId).ToDictionary(g => g.Key, g => g.ToList());

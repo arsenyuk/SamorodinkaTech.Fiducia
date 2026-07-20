@@ -34,6 +34,11 @@ public interface IApplicationDbContext
     DbSet<RefMeetingForm> MeetingForms { get; }
     DbSet<ExtSparkManager> ExtSparkManagers { get; }
 
+
+    DbSet<TplOrgIntent> TplOrgIntents { get; }
+    DbSet<TplOrgStage> TplOrgStages { get; }
+    DbSet<TplOrgOffer> TplOrgOffers { get; }
+    DbSet<TplOrgTask> TplOrgTasks { get; }
     DbSet<OrgIntent> OrgIntents { get; }
     DbSet<OrgStage> OrgStages { get; }
     DbSet<OrgOffer> OrgOffers { get; }

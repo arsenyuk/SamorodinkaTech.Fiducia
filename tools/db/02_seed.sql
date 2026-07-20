@@ -105,12 +105,12 @@ ON CONFLICT (code) DO NOTHING;
 
 
 -- Шаблоны организационных мероприятий
-INSERT INTO org_intents (id, name, description, sort_order) VALUES
+INSERT INTO tpl_org_intents (id, name, description, sort_order) VALUES
     ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa10', 'Подготовка к ГОСА', 'Подготовка к годовому общему собранию акционеров', 1),
     ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa20', 'Заседание Совета директоров', 'Стандартный цикл проведения заседания СД', 2)
 ON CONFLICT DO NOTHING;
 
-INSERT INTO org_stages (id, intent_id, name, description, sort_order, start_offset_days, deadline_rule, deadline_days) VALUES
+INSERT INTO tpl_org_stages (id, intent_id, name, description, sort_order, start_offset_days, deadline_rule, deadline_days) VALUES
     ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbb01', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa10', 'Формирование повестки дня', 'Сбор и утверждение вопросов повестки ГОСА', 1, 0, 'FIXED_DAYS', 14),
     ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbb02', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa10', 'Утверждение списка кандидатов в СД', 'Выдвижение и утверждение кандидатов в Совет директоров', 2, 14, 'FIXED_DAYS', 14),
     ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbb03', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa10', 'Подготовка бюллетеней и уведомлений', 'Формирование документов для рассылки акционерам', 3, 28, 'FIXED_DAYS', 7),
@@ -120,7 +120,7 @@ INSERT INTO org_stages (id, intent_id, name, description, sort_order, start_offs
     ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbb13', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa20', 'Подписание протокола', 'Оформление и подписание протокола заседания', 3, 6, 'FIXED_DAYS', 3)
 ON CONFLICT DO NOTHING;
 
-INSERT INTO org_offers (id, stage_id, name, description, sort_order, start_offset_days, deadline_rule, deadline_days) VALUES
+INSERT INTO tpl_org_offers (id, stage_id, name, description, sort_order, start_offset_days, deadline_rule, deadline_days) VALUES
     ('cccccccc-cccc-cccc-cccc-cccccccccc01', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbb01', 'Сбор предложений от акционеров', 'Приём предложений в повестку дня ГОСА', 1, 0, 'FIXED_DAYS', 7),
     ('cccccccc-cccc-cccc-cccc-cccccccccc02', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbb01', 'Утверждение перечня вопросов', 'Формирование и утверждение окончательного перечня', 2, 7, 'FIXED_DAYS', 7),
     ('cccccccc-cccc-cccc-cccc-cccccccccc03', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbb02', 'Выдвижение кандидатов', 'Сбор заявок на выдвижение в Совет директоров', 1, 0, 'FIXED_DAYS', 7),
@@ -129,4 +129,47 @@ INSERT INTO org_offers (id, stage_id, name, description, sort_order, start_offse
     ('cccccccc-cccc-cccc-cccc-cccccccccc06', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbb03', 'Рассылка уведомлений акционерам', 'Отправка уведомлений о проведении ГОСА', 2, 3, 'FIXED_DAYS', 4),
     ('cccccccc-cccc-cccc-cccc-cccccccccc07', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbb04', 'Регистрация участников', 'Регистрация акционеров и проверка полномочий', 1, 0, 'FIXED_DAYS', 1),
     ('cccccccc-cccc-cccc-cccc-cccccccccc08', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbb04', 'Голосование и подсчёт', 'Проведение голосования и подсчёт голосов', 2, 0, NULL, NULL)
+ON CONFLICT DO NOTHING;
+
+INSERT INTO tpl_org_intents (id, name, description, sort_order) VALUES
+    ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa30', 'Подготовка к ВОСА', 'Подготовка к внеочередному общему собранию акционеров', 3)
+ON CONFLICT DO NOTHING;
+
+INSERT INTO tpl_org_stages (id, intent_id, name, description, sort_order, start_offset_days, deadline_rule, deadline_days) VALUES
+    ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbb21', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa30', 'Выдвижение требования', 'Получение и проверка требования о созыве ВОСА', 1, 0, 'FIXED_DAYS', 5),
+    ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbb22', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa30', 'Подготовка повестки', 'Формирование повестки дня ВОСА', 2, 5, 'FIXED_DAYS', 5),
+    ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbb23', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa30', 'Созыв собрания', 'Уведомление акционеров и подготовка бюллетеней', 3, 10, 'FIXED_DAYS', 20),
+    ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbb24', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa30', 'Проведение ВОСА', 'Регистрация, голосование, подведение итогов', 4, 30, 'FIXED_DAYS', 1)
+ON CONFLICT DO NOTHING;
+
+INSERT INTO tpl_org_offers (id, stage_id, name, description, sort_order, start_offset_days, deadline_rule, deadline_days) VALUES
+    ('cccccccc-cccc-cccc-cccc-cccccccccc21', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbb21', 'Проверка требования', 'Проверка легитимности требования о созыве ВОСА', 1, 0, 'FIXED_DAYS', 3),
+    ('cccccccc-cccc-cccc-cccc-cccccccccc22', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbb21', 'Принятие решения о созыве', 'Решение СД о созыве либо отказе в созыве ВОСА', 2, 3, 'FIXED_DAYS', 2),
+    ('cccccccc-cccc-cccc-cccc-cccccccccc23', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbb22', 'Утверждение вопросов', 'Утверждение перечня вопросов повестки дня', 1, 0, 'FIXED_DAYS', 5),
+    ('cccccccc-cccc-cccc-cccc-cccccccccc24', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbb23', 'Рассылка уведомлений', 'Уведомление акционеров о проведении ВОСА', 1, 0, 'FIXED_DAYS', 5),
+    ('cccccccc-cccc-cccc-cccc-cccccccccc25', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbb23', 'Формирование бюллетеней', 'Подготовка бюллетеней для голосования', 2, 5, 'FIXED_DAYS', 5),
+    ('cccccccc-cccc-cccc-cccc-cccccccccc26', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbb24', 'Регистрация участников', 'Регистрация акционеров и проверка полномочий', 1, 0, 'FIXED_DAYS', 1),
+    ('cccccccc-cccc-cccc-cccc-cccccccccc27', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbb24', 'Голосование и подсчёт', 'Проведение голосования и подсчёт голосов', 2, 0, NULL, NULL)
+ON CONFLICT DO NOTHING;
+
+INSERT INTO tpl_org_intents (id, name, description, sort_order) VALUES
+    ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa40', 'Подготовка и проведение первого СД', 'Подготовка и проведение первого заседания Совета директоров после избрания', 4)
+ON CONFLICT DO NOTHING;
+
+INSERT INTO tpl_org_stages (id, intent_id, name, description, sort_order, start_offset_days, deadline_rule, deadline_days) VALUES
+    ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbb31', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa40', 'Формирование состава СД', 'Утверждение персонального состава Совета директоров', 1, 0, 'FIXED_DAYS', 5),
+    ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbb32', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa40', 'Избрание председателя', 'Избрание председателя СД и секретаря', 2, 5, 'FIXED_DAYS', 3),
+    ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbb33', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa40', 'Первое заседание', 'Проведение первого заседания СД', 3, 8, 'FIXED_DAYS', 1),
+    ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbb34', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa40', 'Оформление протокола', 'Подготовка и подписание протокола первого заседания', 4, 9, 'FIXED_DAYS', 3)
+ON CONFLICT DO NOTHING;
+
+INSERT INTO tpl_org_offers (id, stage_id, name, description, sort_order, start_offset_days, deadline_rule, deadline_days) VALUES
+    ('cccccccc-cccc-cccc-cccc-cccccccccc31', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbb31', 'Сбор данных о членах СД', 'Получение анкет и документов членов Совета директоров', 1, 0, 'FIXED_DAYS', 3),
+    ('cccccccc-cccc-cccc-cccc-cccccccccc32', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbb31', 'Проверка требований', 'Проверка соответствия кандидатов требованиям законодательства', 2, 3, 'FIXED_DAYS', 2),
+    ('cccccccc-cccc-cccc-cccc-cccccccccc33', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbb32', 'Выдвижение председателя', 'Выдвижение кандидатуры и голосование по председателю СД', 1, 0, 'FIXED_DAYS', 2),
+    ('cccccccc-cccc-cccc-cccc-cccccccccc34', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbb32', 'Назначение секретаря', 'Назначение корпоративного секретаря СД', 2, 2, 'FIXED_DAYS', 1),
+    ('cccccccc-cccc-cccc-cccc-cccccccccc35', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbb33', 'Утверждение повестки', 'Утверждение повестки дня первого заседания', 1, 0, 'FIXED_DAYS', 1),
+    ('cccccccc-cccc-cccc-cccc-cccccccccc36', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbb33', 'Рассмотрение вопросов', 'Рассмотрение и голосование по вопросам повестки', 2, 0, NULL, NULL),
+    ('cccccccc-cccc-cccc-cccc-cccccccccc37', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbb34', 'Подготовка протокола', 'Оформление протокола первого заседания СД', 1, 0, 'FIXED_DAYS', 2),
+    ('cccccccc-cccc-cccc-cccc-cccccccccc38', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbb34', 'Подписание протокола', 'Подписание протокола председателем и секретарём', 2, 2, 'FIXED_DAYS', 1)
 ON CONFLICT DO NOTHING;

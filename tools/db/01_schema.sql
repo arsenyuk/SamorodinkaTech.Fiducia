@@ -399,11 +399,11 @@ CREATE INDEX IF NOT EXISTS ix_ext_spark_manager_fetched_at ON ext_spark_manager(
 
 -- ============================================================================
 -- Шаблоны организационных мероприятий (Org Templates)
--- Иерархия: org_intents → org_stages → org_offers → org_tasks
+-- Иерархия: tpl_org_intents → tpl_org_stages → tpl_org_offers → tpl_org_tasks
 -- ============================================================================
 
--- org_intents: цели (верхний уровень)
-CREATE TABLE IF NOT EXISTS org_intents (
+-- tpl_org_intents: цели (верхний уровень)
+CREATE TABLE IF NOT EXISTS tpl_org_intents (
     id uuid PRIMARY KEY,
     name varchar(300) NOT NULL,
     description text,
@@ -411,10 +411,10 @@ CREATE TABLE IF NOT EXISTS org_intents (
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 
--- org_stages: этапы (привязаны к целям)
-CREATE TABLE IF NOT EXISTS org_stages (
+-- tpl_org_stages: этапы (привязаны к целям)
+CREATE TABLE IF NOT EXISTS tpl_org_stages (
     id uuid PRIMARY KEY,
-    intent_id uuid NOT NULL REFERENCES org_intents(id) ON DELETE CASCADE,
+    intent_id uuid NOT NULL REFERENCES tpl_org_intents(id) ON DELETE CASCADE,
     name varchar(300) NOT NULL,
     description text,
     sort_order int NOT NULL DEFAULT 0,
@@ -423,12 +423,12 @@ CREATE TABLE IF NOT EXISTS org_stages (
     deadline_days int,
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
-CREATE INDEX IF NOT EXISTS ix_org_stages_intent ON org_stages(intent_id);
+CREATE INDEX IF NOT EXISTS ix_tpl_org_stages_intent ON tpl_org_stages(intent_id);
 
--- org_offers: оферы (привязаны к этапам)
-CREATE TABLE IF NOT EXISTS org_offers (
+-- tpl_org_offers: оферы (привязаны к этапам)
+CREATE TABLE IF NOT EXISTS tpl_org_offers (
     id uuid PRIMARY KEY,
-    stage_id uuid NOT NULL REFERENCES org_stages(id) ON DELETE CASCADE,
+    stage_id uuid NOT NULL REFERENCES tpl_org_stages(id) ON DELETE CASCADE,
     name varchar(300) NOT NULL,
     description text,
     sort_order int NOT NULL DEFAULT 0,
@@ -438,16 +438,84 @@ CREATE TABLE IF NOT EXISTS org_offers (
     candidate_roles text,
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
-CREATE INDEX IF NOT EXISTS ix_org_offers_stage ON org_offers(stage_id);
+CREATE INDEX IF NOT EXISTS ix_tpl_org_offers_stage ON tpl_org_offers(stage_id);
 
--- org_tasks: задачи (привязаны к оферам)
-CREATE TABLE IF NOT EXISTS org_tasks (
+-- tpl_org_tasks: задачи (привязаны к оферам)
+CREATE TABLE IF NOT EXISTS tpl_org_tasks (
     id uuid PRIMARY KEY,
-    offer_id uuid NOT NULL REFERENCES org_offers(id) ON DELETE CASCADE,
+    offer_id uuid NOT NULL REFERENCES tpl_org_offers(id) ON DELETE CASCADE,
     name varchar(300) NOT NULL,
     description text,
     sort_order int NOT NULL DEFAULT 0,
     assigned_role_id uuid REFERENCES ref_roles(id),
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
+CREATE INDEX IF NOT EXISTS ix_tpl_org_tasks_offer ON tpl_org_tasks(offer_id);
+
+
+-- ============================================================================
+-- Реальные планы организационных мероприятий (создаются из шаблонов tpl_org_*)
+-- Привязываются к конкретному ЮЛ, имеют фактические даты и статус выполнения
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS org_intents (
+    id uuid PRIMARY KEY,
+    legal_entity_id uuid NOT NULL REFERENCES legal_entities(id) ON DELETE CASCADE,
+    template_intent_id uuid REFERENCES tpl_org_intents(id),
+    name varchar(300) NOT NULL,
+    description text,
+    sort_order int NOT NULL DEFAULT 0,
+    status varchar(20) NOT NULL DEFAULT 'PLANNED',
+    actual_start date,
+    actual_end date,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+CREATE INDEX IF NOT EXISTS ix_org_intents_legal_entity ON org_intents(legal_entity_id);
+
+CREATE TABLE IF NOT EXISTS org_stages (
+    id uuid PRIMARY KEY,
+    intent_id uuid NOT NULL REFERENCES org_intents(id) ON DELETE CASCADE,
+    template_stage_id uuid REFERENCES tpl_org_stages(id),
+    name varchar(300) NOT NULL,
+    description text,
+    sort_order int NOT NULL DEFAULT 0,
+    status varchar(20) NOT NULL DEFAULT 'PLANNED',
+    actual_start date,
+    actual_end date,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+CREATE INDEX IF NOT EXISTS ix_org_stages_intent ON org_stages(intent_id);
+
+CREATE TABLE IF NOT EXISTS org_offers (
+    id uuid PRIMARY KEY,
+    stage_id uuid NOT NULL REFERENCES org_stages(id) ON DELETE CASCADE,
+    template_offer_id uuid REFERENCES tpl_org_offers(id),
+    name varchar(300) NOT NULL,
+    description text,
+    sort_order int NOT NULL DEFAULT 0,
+    status varchar(20) NOT NULL DEFAULT 'PLANNED',
+    assigned_user_id uuid REFERENCES users(id),
+    candidate_roles text,
+    actual_start date,
+    actual_end date,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+CREATE INDEX IF NOT EXISTS ix_org_offers_stage ON org_offers(stage_id);
+CREATE INDEX IF NOT EXISTS ix_org_offers_user ON org_offers(assigned_user_id);
+
+CREATE TABLE IF NOT EXISTS org_tasks (
+    id uuid PRIMARY KEY,
+    offer_id uuid NOT NULL REFERENCES org_offers(id) ON DELETE CASCADE,
+    template_task_id uuid REFERENCES tpl_org_tasks(id),
+    name varchar(300) NOT NULL,
+    description text,
+    sort_order int NOT NULL DEFAULT 0,
+    status varchar(20) NOT NULL DEFAULT 'PLANNED',
+    assigned_user_id uuid REFERENCES users(id),
+    assigned_role_id uuid REFERENCES ref_roles(id),
+    actual_start date,
+    actual_end date,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
 CREATE INDEX IF NOT EXISTS ix_org_tasks_offer ON org_tasks(offer_id);
+CREATE INDEX IF NOT EXISTS ix_org_tasks_user ON org_tasks(assigned_user_id);

@@ -1,9 +1,10 @@
 namespace SamorodinkaTech.Fiducia.Domain.Entities;
 
 /// <summary>
-/// Реальный этап организационного мероприятия (org_stages), созданный из шаблона tpl_org_stages.
+/// Этап организационного мероприятия (tpl_org_stages).
+/// Второй уровень иерархии, привязан к OrgIntent.
 /// </summary>
-public class OrgStage
+public class TplOrgStage
 {
     /// <summary>Идентификатор (id).</summary>
     public Guid Id { get; set; }
@@ -12,13 +13,7 @@ public class OrgStage
     public Guid IntentId { get; set; }
 
     /// <summary>Цель.</summary>
-    public OrgIntent? Intent { get; set; }
-
-    /// <summary>Идентификатор шаблона (template_stage_id).</summary>
-    public Guid? TemplateStageId { get; set; }
-
-    /// <summary>Шаблон.</summary>
-    public TplOrgStage? TemplateStage { get; set; }
+    public TplOrgIntent? Intent { get; set; }
 
     /// <summary>Наименование этапа (name).</summary>
     public string Name { get; set; } = default!;
@@ -29,18 +24,18 @@ public class OrgStage
     /// <summary>Порядок сортировки (sort_order).</summary>
     public int SortOrder { get; set; }
 
-    /// <summary>Статус (status).</summary>
-    public string Status { get; set; } = "PLANNED";
+    /// <summary>Смещение начала относительно родителя, дни (start_offset_days).</summary>
+    public int? StartOffsetDays { get; set; }
 
-    /// <summary>Фактическая дата начала (actual_start).</summary>
-    public DateOnly? ActualStart { get; set; }
+    /// <summary>Принцип вычисления дедлайна: FIXED_DAYS, BEFORE_DATE, AFTER_START (deadline_rule).</summary>
+    public string? DeadlineRule { get; set; }
 
-    /// <summary>Фактическая дата завершения (actual_end).</summary>
-    public DateOnly? ActualEnd { get; set; }
+    /// <summary>Количество дней до дедлайна (deadline_days).</summary>
+    public int? DeadlineDays { get; set; }
 
     /// <summary>Дата и время создания записи (created_at).</summary>
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     /// <summary>Оферы, относящиеся к данному этапу.</summary>
-    public ICollection<OrgOffer>? Offers { get; set; }
+    public ICollection<TplOrgOffer>? Offers { get; set; }
 }

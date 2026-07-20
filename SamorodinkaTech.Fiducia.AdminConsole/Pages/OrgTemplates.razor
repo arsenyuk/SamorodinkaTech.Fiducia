@@ -73,7 +73,7 @@
 </table>
 
 @code {
-    private List<OrgIntent> _items = new();
+    private List<TplOrgIntent> _items = new();
     private string? _error;
     private string? _success;
     private bool _showForm;
@@ -89,12 +89,12 @@
         try
         {
             await using var ctx = await DbFactory.CreateDbContextAsync();
-            _items = await ctx.OrgIntents.OrderBy(x => x.SortOrder).ThenBy(x => x.Name).ToListAsync();
+            _items = await ctx.TplOrgIntents.OrderBy(x => x.SortOrder).ThenBy(x => x.Name).ToListAsync();
         }
         catch (Exception ex) { Logger.LogWarning(ex, "Ошибка загрузки целей"); _error = ExceptionFlattener.Unwrap(ex); }
     }
 
-    private void Edit(OrgIntent i)
+    private void Edit(TplOrgIntent i)
     {
         _editingId = i.Id; _editName = i.Name; _editDesc = i.Description ?? ""; _editSort = i.SortOrder; _showForm = true;
     }
@@ -109,12 +109,12 @@
             await using var ctx = await DbFactory.CreateDbContextAsync();
             if (_editingId.HasValue)
             {
-                var e = await ctx.OrgIntents.FirstOrDefaultAsync(x => x.Id == _editingId.Value);
+                var e = await ctx.TplOrgIntents.FirstOrDefaultAsync(x => x.Id == _editingId.Value);
                 if (e != null) { e.Name = _editName.Trim(); e.Description = (string.IsNullOrWhiteSpace(_editDesc) ? null : _editDesc.Trim()); e.SortOrder = _editSort; }
             }
             else
             {
-                ctx.OrgIntents.Add(new OrgIntent { Id = Guid.NewGuid(), Name = _editName.Trim(), Description = (string.IsNullOrWhiteSpace(_editDesc) ? null : _editDesc.Trim()), SortOrder = _editSort });
+                ctx.TplOrgIntents.Add(new TplOrgIntent { Id = Guid.NewGuid(), Name = _editName.Trim(), Description = (string.IsNullOrWhiteSpace(_editDesc) ? null : _editDesc.Trim()), SortOrder = _editSort });
             }
             await ctx.SaveChangesAsync();
             CancelForm(); await LoadAsync();
@@ -123,13 +123,13 @@
         catch (Exception ex) { Logger.LogWarning(ex, "Ошибка сохранения"); _error = ExceptionFlattener.Unwrap(ex); }
     }
 
-    private async Task Delete(OrgIntent i)
+    private async Task Delete(TplOrgIntent i)
     {
         try
         {
             await using var ctx = await DbFactory.CreateDbContextAsync();
-            var e = await ctx.OrgIntents.FirstOrDefaultAsync(x => x.Id == i.Id);
-            if (e != null) { ctx.OrgIntents.Remove(e); await ctx.SaveChangesAsync(); await LoadAsync(); _success = "Цель удалена."; }
+            var e = await ctx.TplOrgIntents.FirstOrDefaultAsync(x => x.Id == i.Id);
+            if (e != null) { ctx.TplOrgIntents.Remove(e); await ctx.SaveChangesAsync(); await LoadAsync(); _success = "Цель удалена."; }
         }
         catch (Exception ex) { Logger.LogWarning(ex, "Ошибка удаления"); _error = ExceptionFlattener.Unwrap(ex); }
     }
