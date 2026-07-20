@@ -1,0 +1,136 @@
+@page "/admin/org-templates"
+@using Microsoft.EntityFrameworkCore
+@inject IDbContextFactory<SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext> DbFactory
+@inject ILogger<OrgTemplates> Logger
+@inject NavigationManager Nav
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "SYS_ADMIN")]
+
+<h3>Шаблоны организационных мероприятий</h3>
+
+<ul class="nav nav-tabs mb-3">
+    <li class="nav-item">
+        <NavLink class="nav-link" href="/admin/org-templates">Цели</NavLink>
+    </li>
+</ul>
+
+@if (!string.IsNullOrEmpty(_error))
+{
+    <div class="alert alert-danger">@_error</div>
+}
+@if (!string.IsNullOrEmpty(_success))
+{
+    <div class="alert alert-success">@_success</div>
+}
+
+<button class="btn btn-primary btn-sm mb-2" @onclick="() => _showForm = true">Добавить цель</button>
+
+@if (_showForm)
+{
+    <div class="card mb-3">
+        <div class="card-body">
+            <div class="row g-2">
+                <div class="col-md-4">
+                    <label class="form-label">Название</label>
+                    <input class="form-control" @bind="_editName" />
+                </div>
+                <div class="col-md-5">
+                    <label class="form-label">Описание</label>
+                    <input class="form-control" @bind="_editDesc" />
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Порядок</label>
+                    <input class="form-control" type="number" @bind="_editSort" />
+                </div>
+                <div class="col-md-1 d-flex align-items-end">
+                    <button class="btn btn-success btn-sm me-1" @onclick="Save">✓</button>
+                    <button class="btn btn-outline-secondary btn-sm" @onclick="CancelForm">✕</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<table class="table table-sm table-hover">
+    <thead>
+        <tr><th>Название</th><th>Описание</th><th style="width:80px">Порядок</th><th style="width:100px">Действия</th></tr>
+    </thead>
+    <tbody>
+    @foreach (var i in _items)
+    {
+        <tr>
+            <td>
+                <a href="/admin/org-templates/intents/@i.Id/stages" class="text-decoration-none">@i.Name</a>
+            </td>
+            <td class="text-muted small">@i.Description</td>
+            <td>@i.SortOrder</td>
+            <td>
+                <button class="btn btn-outline-secondary btn-sm me-1" @onclick="() => Edit(i)">✏️</button>
+                <button class="btn btn-outline-danger btn-sm" @onclick="() => Delete(i)">🗑️</button>
+            </td>
+        </tr>
+    }
+    </tbody>
+</table>
+
+@code {
+    private List<OrgIntent> _items = new();
+    private string? _error;
+    private string? _success;
+    private bool _showForm;
+    private string _editName = "";
+    private string _editDesc = "";
+    private int _editSort;
+    private Guid? _editingId;
+
+    protected override async Task OnInitializedAsync() { await LoadAsync(); }
+
+    private async Task LoadAsync()
+    {
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+            _items = await ctx.OrgIntents.OrderBy(x => x.SortOrder).ThenBy(x => x.Name).ToListAsync();
+        }
+        catch (Exception ex) { Logger.LogWarning(ex, "Ошибка загрузки целей"); _error = ExceptionFlattener.Unwrap(ex); }
+    }
+
+    private void Edit(OrgIntent i)
+    {
+        _editingId = i.Id; _editName = i.Name; _editDesc = i.Description ?? ""; _editSort = i.SortOrder; _showForm = true;
+    }
+
+    private void CancelForm() { _showForm = false; _editingId = null; }
+
+    private async Task Save()
+    {
+        if (string.IsNullOrWhiteSpace(_editName)) return;
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+            if (_editingId.HasValue)
+            {
+                var e = await ctx.OrgIntents.FirstOrDefaultAsync(x => x.Id == _editingId.Value);
+                if (e != null) { e.Name = _editName.Trim(); e.Description = (string.IsNullOrWhiteSpace(_editDesc) ? null : _editDesc.Trim()); e.SortOrder = _editSort; }
+            }
+            else
+            {
+                ctx.OrgIntents.Add(new OrgIntent { Id = Guid.NewGuid(), Name = _editName.Trim(), Description = (string.IsNullOrWhiteSpace(_editDesc) ? null : _editDesc.Trim()), SortOrder = _editSort });
+            }
+            await ctx.SaveChangesAsync();
+            CancelForm(); await LoadAsync();
+            _success = _editingId.HasValue ? "Цель обновлена." : "Цель создана.";
+        }
+        catch (Exception ex) { Logger.LogWarning(ex, "Ошибка сохранения"); _error = ExceptionFlattener.Unwrap(ex); }
+    }
+
+    private async Task Delete(OrgIntent i)
+    {
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+            var e = await ctx.OrgIntents.FirstOrDefaultAsync(x => x.Id == i.Id);
+            if (e != null) { ctx.OrgIntents.Remove(e); await ctx.SaveChangesAsync(); await LoadAsync(); _success = "Цель удалена."; }
+        }
+        catch (Exception ex) { Logger.LogWarning(ex, "Ошибка удаления"); _error = ExceptionFlattener.Unwrap(ex); }
+    }
+}

@@ -395,3 +395,59 @@ CREATE TABLE IF NOT EXISTS ext_spark_manager (
 
 CREATE INDEX IF NOT EXISTS ix_ext_spark_manager_inn ON ext_spark_manager(inn);
 CREATE INDEX IF NOT EXISTS ix_ext_spark_manager_fetched_at ON ext_spark_manager(fetched_at);
+
+
+-- ============================================================================
+-- Шаблоны организационных мероприятий (Org Templates)
+-- Иерархия: org_intents → org_stages → org_offers → org_tasks
+-- ============================================================================
+
+-- org_intents: цели (верхний уровень)
+CREATE TABLE IF NOT EXISTS org_intents (
+    id uuid PRIMARY KEY,
+    name varchar(300) NOT NULL,
+    description text,
+    sort_order int NOT NULL DEFAULT 0,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+-- org_stages: этапы (привязаны к целям)
+CREATE TABLE IF NOT EXISTS org_stages (
+    id uuid PRIMARY KEY,
+    intent_id uuid NOT NULL REFERENCES org_intents(id) ON DELETE CASCADE,
+    name varchar(300) NOT NULL,
+    description text,
+    sort_order int NOT NULL DEFAULT 0,
+    start_offset_days int,
+    deadline_rule varchar(100),
+    deadline_days int,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+CREATE INDEX IF NOT EXISTS ix_org_stages_intent ON org_stages(intent_id);
+
+-- org_offers: оферы (привязаны к этапам)
+CREATE TABLE IF NOT EXISTS org_offers (
+    id uuid PRIMARY KEY,
+    stage_id uuid NOT NULL REFERENCES org_stages(id) ON DELETE CASCADE,
+    name varchar(300) NOT NULL,
+    description text,
+    sort_order int NOT NULL DEFAULT 0,
+    start_offset_days int,
+    deadline_rule varchar(100),
+    deadline_days int,
+    candidate_roles text,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+CREATE INDEX IF NOT EXISTS ix_org_offers_stage ON org_offers(stage_id);
+
+-- org_tasks: задачи (привязаны к оферам)
+CREATE TABLE IF NOT EXISTS org_tasks (
+    id uuid PRIMARY KEY,
+    offer_id uuid NOT NULL REFERENCES org_offers(id) ON DELETE CASCADE,
+    name varchar(300) NOT NULL,
+    description text,
+    sort_order int NOT NULL DEFAULT 0,
+    assigned_role_id uuid REFERENCES ref_roles(id),
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+CREATE INDEX IF NOT EXISTS ix_org_tasks_offer ON org_tasks(offer_id);

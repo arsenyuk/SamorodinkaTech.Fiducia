@@ -34,5 +34,10 @@ public interface IApplicationDbContext
     DbSet<RefMeetingForm> MeetingForms { get; }
     DbSet<ExtSparkManager> ExtSparkManagers { get; }
 
+    DbSet<OrgIntent> OrgIntents { get; }
+    DbSet<OrgStage> OrgStages { get; }
+    DbSet<OrgOffer> OrgOffers { get; }
+    DbSet<OrgTask> OrgTasks { get; }
+
     System.Threading.Tasks.Task<int> SaveChangesAsync(System.Threading.CancellationToken cancellationToken = default);
 }

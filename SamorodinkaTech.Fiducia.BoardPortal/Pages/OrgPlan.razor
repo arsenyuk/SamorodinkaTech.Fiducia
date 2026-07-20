@@ -1,0 +1,167 @@
+@page "/org-plan"
+@using Microsoft.EntityFrameworkCore
+@inject IDbContextFactory<SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext> DbFactory
+@inject ILogger<OrgPlan> Logger
+
+<h3>План организационных мероприятий</h3>
+
+@if (_intents.Count == 0)
+{
+    <div class="text-muted">Шаблоны мероприятий не заданы. Обратитесь к администратору.</div>
+}
+else
+{
+    @foreach (var intent in _intents)
+    {
+        var isExpanded = _expandedIntents.Contains(intent.Id);
+        <div class="mb-3">
+            @* Интент *@
+            <div class="d-flex align-items-center gap-2 p-2 bg-light rounded"
+                 style="cursor:pointer" @onclick="() => ToggleIntent(intent.Id)">
+                <span class="fw-bold fs-5" style="min-width:20px">@(isExpanded ? "▾" : "▸")</span>
+                <span class="fw-bold">@intent.Name</span>
+                @if (!string.IsNullOrEmpty(intent.Description))
+                {
+                    <span class="text-muted small">— @intent.Description</span>
+                }
+                <div class="ms-auto">
+                    <span class="badge bg-secondary">@_intentStageCounts.GetValueOrDefault(intent.Id, 0) этапов</span>
+                </div>
+            </div>
+
+            @if (isExpanded)
+            {
+                var stages = _stagesByIntent.GetValueOrDefault(intent.Id, new());
+                foreach (var stage in stages)
+                {
+                    var stageExpanded = _expandedStages.Contains(stage.Id);
+                    var barWidth = ComputeBarWidth(stage.StartOffsetDays, stage.DeadlineRule, stage.DeadlineDays);
+                    var deadlineLabel = stage.DeadlineRule switch
+                    {
+                        "FIXED_DAYS" => $"T+{stage.StartOffsetDays ?? 0} → T+{(stage.StartOffsetDays ?? 0) + (stage.DeadlineDays ?? 0)}",
+                        "AFTER_START" => $"T+{stage.StartOffsetDays ?? 0} → T+{(stage.StartOffsetDays ?? 0) + (stage.DeadlineDays ?? 0)}",
+                        _ => $"T+{stage.StartOffsetDays ?? 0}"
+                    };
+
+                    <div class="ms-4 mb-2">
+                        @* Этап *@
+                        <div class="d-flex align-items-center gap-2 p-1"
+                             style="cursor:pointer" @onclick="() => ToggleStage(stage.Id)">
+                            <span style="min-width:16px">@(stageExpanded ? "▾" : "▸")</span>
+                            <span class="fw-semibold">@stage.Name</span>
+                            <div class="flex-grow-1 ms-3 me-3">
+                                <div class="progress" style="height:16px; background:#e9ecef">
+                                    <div class="progress-bar bg-primary" role="progressbar"
+                                         style="width:@(barWidth)%; min-width:40px"
+                                         title="@deadlineLabel">
+                                        <small>@deadlineLabel</small>
+                                    </div>
+                                    @if (barWidth < 100)
+                                    {
+                                        <div class="progress-bar bg-transparent text-muted"
+                                             style="width:@(100 - barWidth)%">
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+
+                        @if (stageExpanded)
+                        {
+                            var offers = _offersByStage.GetValueOrDefault(stage.Id, new());
+                            foreach (var offer in offers)
+                            {
+                                var offBarWidth = ComputeBarWidth(offer.StartOffsetDays, offer.DeadlineRule, offer.DeadlineDays);
+                                var offDeadlineLabel = offer.DeadlineRule switch
+                                {
+                                    "FIXED_DAYS" => $"T+{offer.StartOffsetDays ?? 0} → T+{(offer.StartOffsetDays ?? 0) + (offer.DeadlineDays ?? 0)}",
+                                    "AFTER_START" => $"T+{offer.StartOffsetDays ?? 0} → T+{(offer.StartOffsetDays ?? 0) + (offer.DeadlineDays ?? 0)}",
+                                    _ => $"T+{offer.StartOffsetDays ?? 0}"
+                                };
+
+                                <div class="ms-5 mb-1 d-flex align-items-center gap-2">
+                                    <span class="text-muted">•</span>
+                                    <span>@offer.Name</span>
+                                    <div class="flex-grow-1 ms-3 me-3">
+                                        <div class="progress" style="height:12px; background:#e9ecef">
+                                            <div class="progress-bar bg-success" role="progressbar"
+                                                 style="width:@(offBarWidth)%; min-width:60px"
+                                                 title="@offDeadlineLabel">
+                                                <small>@offDeadlineLabel</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    @if (!string.IsNullOrEmpty(offer.CandidateRoles))
+                                    {
+                                        <small class="text-muted">Роли: @offer.CandidateRoles</small>
+                                    }
+                                </div>
+                            }
+                        }
+                    </div>
+                }
+            }
+        </div>
+    }
+}
+
+@code {
+    private List<OrgIntent> _intents = new();
+    private Dictionary<Guid, List<OrgStage>> _stagesByIntent = new();
+    private Dictionary<Guid, List<OrgOffer>> _offersByStage = new();
+    private Dictionary<Guid, int> _intentStageCounts = new();
+    private HashSet<Guid> _expandedIntents = new();
+    private HashSet<Guid> _expandedStages = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+            _intents = await ctx.OrgIntents.OrderBy(x => x.SortOrder).ThenBy(x => x.Name).ToListAsync();
+            var stages = await ctx.OrgStages.OrderBy(x => x.SortOrder).ThenBy(x => x.Name).ToListAsync();
+            var offers = await ctx.OrgOffers.OrderBy(x => x.SortOrder).ThenBy(x => x.Name).ToListAsync();
+
+            _stagesByIntent = stages.GroupBy(s => s.IntentId).ToDictionary(g => g.Key, g => g.ToList());
+            _offersByStage = offers.GroupBy(o => o.StageId).ToDictionary(g => g.Key, g => g.ToList());
+            _intentStageCounts = stages.GroupBy(s => s.IntentId).ToDictionary(g => g.Key, g => g.Count());
+
+            // Expand first intent by default
+            if (_intents.Count > 0)
+                _expandedIntents.Add(_intents[0].Id);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Ошибка загрузки плана");
+        }
+    }
+
+    private void ToggleIntent(Guid id)
+    {
+        if (_expandedIntents.Contains(id))
+            _expandedIntents.Remove(id);
+        else
+            _expandedIntents.Add(id);
+    }
+
+    private void ToggleStage(Guid id)
+    {
+        if (_expandedStages.Contains(id))
+            _expandedStages.Remove(id);
+        else
+            _expandedStages.Add(id);
+    }
+
+    private static int ComputeBarWidth(int? offsetDays, string? deadlineRule, int? deadlineDays)
+    {
+        if (!offsetDays.HasValue) return 5;
+        if (string.IsNullOrEmpty(deadlineRule) || !deadlineDays.HasValue) return 20;
+
+        var total = offsetDays.Value + deadlineDays.Value;
+        if (total <= 0) return 5;
+
+        // Scale: find max offset+deadline across all stages for proportional width
+        if (total > 90) return 90;
+        return Math.Max(10, total);
+    }
+}

@@ -102,3 +102,31 @@ INSERT INTO committees (id, code, name, description, behavior_type, is_mandatory
      'Контроль надежности производственных мощностей, повышение энергоэффективности и внедрение инноваций.',
      'STRATEGIC', FALSE, TRUE, '2025-01-01T00:00:00Z')
 ON CONFLICT (code) DO NOTHING;
+
+
+-- Шаблоны организационных мероприятий
+INSERT INTO org_intents (id, name, description, sort_order) VALUES
+    ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa10', 'Подготовка к ГОСА', 'Подготовка к годовому общему собранию акционеров', 1),
+    ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa20', 'Заседание Совета директоров', 'Стандартный цикл проведения заседания СД', 2)
+ON CONFLICT DO NOTHING;
+
+INSERT INTO org_stages (id, intent_id, name, description, sort_order, start_offset_days, deadline_rule, deadline_days) VALUES
+    ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbb01', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa10', 'Формирование повестки дня', 'Сбор и утверждение вопросов повестки ГОСА', 1, 0, 'FIXED_DAYS', 14),
+    ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbb02', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa10', 'Утверждение списка кандидатов в СД', 'Выдвижение и утверждение кандидатов в Совет директоров', 2, 14, 'FIXED_DAYS', 14),
+    ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbb03', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa10', 'Подготовка бюллетеней и уведомлений', 'Формирование документов для рассылки акционерам', 3, 28, 'FIXED_DAYS', 7),
+    ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbb04', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa10', 'Проведение ГОСА', 'Регистрация, голосование, подведение итогов', 4, 35, 'FIXED_DAYS', 1),
+    ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbb11', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa20', 'Созыв заседания', 'Уведомление членов СД о дате и повестке', 1, 0, 'FIXED_DAYS', 5),
+    ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbb12', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa20', 'Проведение заседания', 'Обсуждение вопросов повестки', 2, 5, 'FIXED_DAYS', 1),
+    ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbb13', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa20', 'Подписание протокола', 'Оформление и подписание протокола заседания', 3, 6, 'FIXED_DAYS', 3)
+ON CONFLICT DO NOTHING;
+
+INSERT INTO org_offers (id, stage_id, name, description, sort_order, start_offset_days, deadline_rule, deadline_days) VALUES
+    ('cccccccc-cccc-cccc-cccc-cccccccccc01', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbb01', 'Сбор предложений от акционеров', 'Приём предложений в повестку дня ГОСА', 1, 0, 'FIXED_DAYS', 7),
+    ('cccccccc-cccc-cccc-cccc-cccccccccc02', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbb01', 'Утверждение перечня вопросов', 'Формирование и утверждение окончательного перечня', 2, 7, 'FIXED_DAYS', 7),
+    ('cccccccc-cccc-cccc-cccc-cccccccccc03', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbb02', 'Выдвижение кандидатов', 'Сбор заявок на выдвижение в Совет директоров', 1, 0, 'FIXED_DAYS', 7),
+    ('cccccccc-cccc-cccc-cccc-cccccccccc04', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbb02', 'Согласование с комитетом по назначениям', 'Проверка кандидатов комитетом по назначениям', 2, 7, 'FIXED_DAYS', 7),
+    ('cccccccc-cccc-cccc-cccc-cccccccccc05', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbb03', 'Формирование бюллетеней', 'Подготовка бюллетеней для голосования', 1, 0, 'FIXED_DAYS', 3),
+    ('cccccccc-cccc-cccc-cccc-cccccccccc06', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbb03', 'Рассылка уведомлений акционерам', 'Отправка уведомлений о проведении ГОСА', 2, 3, 'FIXED_DAYS', 4),
+    ('cccccccc-cccc-cccc-cccc-cccccccccc07', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbb04', 'Регистрация участников', 'Регистрация акционеров и проверка полномочий', 1, 0, 'FIXED_DAYS', 1),
+    ('cccccccc-cccc-cccc-cccc-cccccccccc08', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbb04', 'Голосование и подсчёт', 'Проведение голосования и подсчёт голосов', 2, 0, NULL, NULL)
+ON CONFLICT DO NOTHING;

@@ -38,7 +38,12 @@ builder.Services.AddScoped(sp =>
 });
 
 // Database
-builder.Services.AddDbContext<IApplicationDbContext, FiduciaDbContext>(options =>
+// DbContextOptions as Singleton so IDbContextFactory can consume them without lifetime conflicts
+builder.Services.AddDbContext<IApplicationDbContext, FiduciaDbContext>(
+    options => options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")),
+    contextLifetime: ServiceLifetime.Scoped,
+    optionsLifetime: ServiceLifetime.Singleton);
+builder.Services.AddDbContextFactory<FiduciaDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // Authentication Provider

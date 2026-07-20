@@ -1,0 +1,181 @@
+@page "/admin/org-templates/stages/{StageId:guid}/offers"
+@using Microsoft.EntityFrameworkCore
+@inject IDbContextFactory<SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext> DbFactory
+@inject ILogger<OrgTemplates> Logger
+@inject NavigationManager Nav
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "SYS_ADMIN")]
+
+<h3>
+    <a href="/admin/org-templates" class="text-decoration-none">Шаблоны</a> →
+    @if (_intentId.HasValue)
+    {
+        <a href="/admin/org-templates/intents/@_intentId/stages" class="text-decoration-none">@(_intentName ?? "Этапы")</a>
+    }
+    <span>→ @(_stageName ?? "Оферы")</span>
+</h3>
+
+@if (!string.IsNullOrEmpty(_error))
+{
+    <div class="alert alert-danger">@_error</div>
+}
+@if (!string.IsNullOrEmpty(_success))
+{
+    <div class="alert alert-success">@_success</div>
+}
+
+<button class="btn btn-primary btn-sm mb-2" @onclick="() => _showForm = true">Добавить офер</button>
+
+@if (_showForm)
+{
+    <div class="card mb-3">
+        <div class="card-body">
+            <div class="row g-2 align-items-end">
+                <div class="col-md-3">
+                    <label class="form-label">Название</label>
+                    <input class="form-control" @bind="_editName" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Описание</label>
+                    <input class="form-control" @bind="_editDesc" />
+                </div>
+                <div class="col-md-1">
+                    <label class="form-label">Смещение</label>
+                    <input class="form-control" type="number" @bind="_editOffset" />
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Дедлайн</label>
+                    <select class="form-select" @bind="_editDeadlineRule">
+                        <option value="">— нет —</option>
+                        <option value="FIXED_DAYS">Через N дней</option>
+                        <option value="AFTER_START">После начала</option>
+                    </select>
+                </div>
+                <div class="col-md-1">
+                    <label class="form-label">Дни</label>
+                    <input class="form-control" type="number" @bind="_editDeadlineDays" />
+                </div>
+                <div class="col-md-1">
+                    <label class="form-label">Порядок</label>
+                    <input class="form-control" type="number" @bind="_editSort" />
+                </div>
+                <div class="col-md-1 d-flex gap-1">
+                    <button class="btn btn-success btn-sm" @onclick="Save">✓</button>
+                    <button class="btn btn-outline-secondary btn-sm" @onclick="CancelForm">✕</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<table class="table table-sm table-hover">
+    <thead>
+        <tr><th>Название</th><th>Смещение</th><th>Дедлайн</th><th style="width:80px">Порядок</th><th style="width:100px">Действия</th></tr>
+    </thead>
+    <tbody>
+    @foreach (var s in _items)
+    {
+        var deadlineLabel = s.DeadlineRule switch
+        {
+            "FIXED_DAYS" => $"+{s.DeadlineDays} дн.",
+            "AFTER_START" => $"после нач. +{s.DeadlineDays} дн.",
+            _ => "—"
+        };
+        <tr>
+            <td>
+                <a href="/admin/org-templates/offers/@s.Id/tasks" class="text-decoration-none">@s.Name</a>
+            </td>
+            <td>@(s.StartOffsetDays?.ToString() ?? "—")</td>
+            <td>@deadlineLabel</td>
+            <td>@s.SortOrder</td>
+            <td>
+                <button class="btn btn-outline-secondary btn-sm me-1" @onclick="() => Edit(s)">✏️</button>
+                <button class="btn btn-outline-danger btn-sm" @onclick="() => Delete(s)">🗑️</button>
+            </td>
+        </tr>
+    }
+    </tbody>
+</table>
+
+@code {
+    [Parameter] public Guid StageId { get; set; }
+
+    private List<OrgOffer> _items = new();
+    private string? _stageName;
+    private string? _intentName;
+    private Guid? _intentId;
+    private string? _error;
+    private string? _success;
+    private bool _showForm;
+    private string _editName = "";
+    private string _editDesc = "";
+    private int? _editOffset;
+    private string _editDeadlineRule = "";
+    private int? _editDeadlineDays;
+    private int _editSort;
+    private Guid? _editingId;
+
+    protected override async Task OnInitializedAsync() { await LoadAsync(); }
+
+    private async Task LoadAsync()
+    {
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+            var stage = await ctx.OrgStages.Include(x => x.Intent).FirstOrDefaultAsync(x => x.Id == StageId);
+            if (stage != null)
+            {
+                _stageName = stage.Name;
+                _intentId = stage.IntentId;
+                _intentName = stage.Intent?.Name;
+            }
+            _items = await ctx.OrgOffers.Where(x => x.StageId == StageId).OrderBy(x => x.SortOrder).ThenBy(x => x.Name).ToListAsync();
+        }
+        catch (Exception ex) { Logger.LogWarning(ex, "Ошибка загрузки оферов"); _error = ExceptionFlattener.Unwrap(ex); }
+    }
+
+    private void Edit(OrgOffer o)
+    {
+        _editingId = o.Id; _editName = o.Name; _editDesc = o.Description ?? "";
+        _editOffset = o.StartOffsetDays; _editDeadlineRule = o.DeadlineRule ?? ""; _editDeadlineDays = o.DeadlineDays; _editSort = o.SortOrder; _showForm = true;
+    }
+
+    private void CancelForm() { _showForm = false; _editingId = null; }
+
+    private async Task Save()
+    {
+        if (string.IsNullOrWhiteSpace(_editName)) return;
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+            if (_editingId.HasValue)
+            {
+                var e = await ctx.OrgOffers.FirstOrDefaultAsync(x => x.Id == _editingId.Value);
+                if (e != null)
+                {
+                    e.Name = _editName.Trim(); e.Description = (string.IsNullOrWhiteSpace(_editDesc) ? null : _editDesc.Trim()); e.StartOffsetDays = _editOffset;
+                    e.DeadlineRule = (string.IsNullOrWhiteSpace(_editDeadlineRule) ? null : _editDeadlineRule.Trim()); e.DeadlineDays = _editDeadlineDays; e.SortOrder = _editSort;
+                }
+            }
+            else
+            {
+                ctx.OrgOffers.Add(new OrgOffer { Id = Guid.NewGuid(), Name = _editName.Trim(), Description = (string.IsNullOrWhiteSpace(_editDesc) ? null : _editDesc.Trim()), StageId = StageId,
+                    StartOffsetDays = _editOffset, DeadlineRule = (string.IsNullOrWhiteSpace(_editDeadlineRule) ? null : _editDeadlineRule.Trim()), DeadlineDays = _editDeadlineDays, SortOrder = _editSort });
+            }
+            await ctx.SaveChangesAsync();
+            CancelForm(); await LoadAsync();
+            _success = _editingId.HasValue ? "Офер обновлён." : "Офер создан.";
+        }
+        catch (Exception ex) { Logger.LogWarning(ex, "Ошибка сохранения"); _error = ExceptionFlattener.Unwrap(ex); }
+    }
+
+    private async Task Delete(OrgOffer o)
+    {
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+            var e = await ctx.OrgOffers.FirstOrDefaultAsync(x => x.Id == o.Id);
+            if (e != null) { ctx.OrgOffers.Remove(e); await ctx.SaveChangesAsync(); await LoadAsync(); _success = "Офер удалён."; }
+        }
+        catch (Exception ex) { Logger.LogWarning(ex, "Ошибка удаления"); _error = ExceptionFlattener.Unwrap(ex); }
+    }
+}
