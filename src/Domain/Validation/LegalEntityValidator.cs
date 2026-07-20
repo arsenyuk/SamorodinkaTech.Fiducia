@@ -10,9 +10,6 @@ public static class LegalEntityValidator
     /// <summary>Код ПАО по ОКОПФ.</summary>
     public const string PaoCode = "12247";
 
-    /// <summary>Максимальное количество акционеров для НАО/ООО.</summary>
-    public const int MaxShareholdersForNonPao = 50;
-
     /// <summary>
     /// Выполняет полную серверную валидацию данных ЮЛ перед сохранением.
     /// </summary>
@@ -24,65 +21,10 @@ public static class LegalEntityValidator
 
         var orgType = DetectOrgType(model.OkopfCode);
 
-        ValidateBoardMandatory(model, orgType, result);
-        ValidateShareholdersCount(model, orgType, result);
-        ValidateBoardMembers(model, orgType, result);
         ValidateGosaWindow(model, orgType, result);
         ValidateDirector(model, result);
 
         return result;
-    }
-
-    private static void ValidateBoardMandatory(
-        LegalEntitySaveValidationModel model,
-        OrgValidationType orgType,
-        LegalEntitySaveValidationResult result)
-    {
-        var mandatory = orgType == OrgValidationType.PAO
-            || (orgType == OrgValidationType.NAO_AO && (model.ShareholdersCount ?? 1) >= MaxShareholdersForNonPao);
-
-        if (mandatory && !model.HasBoardOfDirectors)
-            result.AddError($"Для {OrgTypeLabel(orgType)} Совет директоров обязателен.");
-    }
-
-    private static void ValidateShareholdersCount(
-        LegalEntitySaveValidationModel model,
-        OrgValidationType orgType,
-        LegalEntitySaveValidationResult result)
-    {
-        if (!model.HasBoardOfDirectors)
-            return;
-
-        if (model.ShareholdersCount is null or <= 0)
-        {
-            result.AddError("Укажите количество акционеров.");
-            return;
-        }
-
-        if (orgType != OrgValidationType.PAO && model.ShareholdersCount.Value > MaxShareholdersForNonPao)
-        {
-            var label = OrgTypeLabel(orgType);
-            result.AddError(
-                $"Для {label} максимальное количество акционеров — {MaxShareholdersForNonPao}. " +
-                $"Указано: {model.ShareholdersCount.Value}.");
-        }
-    }
-
-    private static void ValidateBoardMembers(
-        LegalEntitySaveValidationModel model,
-        OrgValidationType orgType,
-        LegalEntitySaveValidationResult result)
-    {
-        if (!model.HasBoardOfDirectors)
-            return;
-
-        if (model.BoardMemberNumber.HasValue && model.BoardMinNumber.HasValue
-            && model.BoardMemberNumber.Value < model.BoardMinNumber.Value)
-        {
-            result.AddError(
-                $"Количество участников СД ({model.BoardMemberNumber.Value}) " +
-                $"не может быть меньше минимального ({model.BoardMinNumber.Value}).");
-        }
     }
 
     private static void ValidateGosaWindow(
