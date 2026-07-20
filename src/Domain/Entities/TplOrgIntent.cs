@@ -9,6 +9,9 @@ public class TplOrgIntent
     /// <summary>Идентификатор (id).</summary>
     public Guid Id { get; set; }
 
+    /// <summary>Код цели для программного поиска (code).</summary>
+    public string? Code { get; set; }
+
     /// <summary>Наименование цели (name).</summary>
     public string Name { get; set; } = default!;
 

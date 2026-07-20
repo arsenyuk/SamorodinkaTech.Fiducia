@@ -405,6 +405,7 @@ CREATE INDEX IF NOT EXISTS ix_ext_spark_manager_fetched_at ON ext_spark_manager(
 -- tpl_org_intents: цели (верхний уровень)
 CREATE TABLE IF NOT EXISTS tpl_org_intents (
     id uuid PRIMARY KEY,
+    code varchar(50),
     name varchar(300) NOT NULL,
     description text,
     sort_order int NOT NULL DEFAULT 0,
@@ -470,6 +471,7 @@ CREATE TABLE IF NOT EXISTS org_intents (
     actual_end date,
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
+CREATE UNIQUE INDEX IF NOT EXISTS ux_tpl_org_intents_code ON tpl_org_intents(code);
 CREATE INDEX IF NOT EXISTS ix_org_intents_legal_entity ON org_intents(legal_entity_id);
 
 CREATE TABLE IF NOT EXISTS org_stages (

@@ -59,6 +59,7 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.ToTable("tpl_org_intents");
             b.HasKey(x => x.Id);
             b.Property(x => x.Id).HasColumnName("id");
+            b.Property(x => x.Code).HasColumnName("code").HasMaxLength(50);
             b.Property(x => x.Name).HasColumnName("name").IsRequired().HasMaxLength(300);
             b.Property(x => x.Description).HasColumnName("description");
             b.Property(x => x.SortOrder).HasColumnName("sort_order").HasDefaultValue(0);

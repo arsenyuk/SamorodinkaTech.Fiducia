@@ -106,8 +106,8 @@ ON CONFLICT (code) DO NOTHING;
 
 -- Шаблоны организационных мероприятий
 INSERT INTO tpl_org_intents (id, name, description, sort_order) VALUES
-    ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa10', 'Подготовка к ГОСА', 'Подготовка к годовому общему собранию акционеров', 1),
-    ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa20', 'Заседание Совета директоров', 'Стандартный цикл проведения заседания СД', 2)
+    ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa10', 'GOSA', 'Подготовка к ГОСА', 'Подготовка к годовому общему собранию акционеров', 1),
+    ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa20', 'BOARD_MEETING', 'Заседание Совета директоров', 'Стандартный цикл проведения заседания СД', 2)
 ON CONFLICT DO NOTHING;
 
 INSERT INTO tpl_org_stages (id, intent_id, name, description, sort_order, start_offset_days, deadline_rule, deadline_days) VALUES
@@ -132,7 +132,7 @@ INSERT INTO tpl_org_offers (id, stage_id, name, description, sort_order, start_o
 ON CONFLICT DO NOTHING;
 
 INSERT INTO tpl_org_intents (id, name, description, sort_order) VALUES
-    ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa30', 'Подготовка к ВОСА', 'Подготовка к внеочередному общему собранию акционеров', 3)
+    ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa30', 'VOSA', 'Подготовка к ВОСА', 'Подготовка к внеочередному общему собранию акционеров', 3)
 ON CONFLICT DO NOTHING;
 
 INSERT INTO tpl_org_stages (id, intent_id, name, description, sort_order, start_offset_days, deadline_rule, deadline_days) VALUES
@@ -153,7 +153,7 @@ INSERT INTO tpl_org_offers (id, stage_id, name, description, sort_order, start_o
 ON CONFLICT DO NOTHING;
 
 INSERT INTO tpl_org_intents (id, name, description, sort_order) VALUES
-    ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa40', 'Подготовка и проведение первого СД', 'Подготовка и проведение первого заседания Совета директоров после избрания', 4)
+    ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa40', 'FIRST_BOARD', 'Подготовка и проведение первого СД', 'Подготовка и проведение первого заседания Совета директоров после избрания', 4)
 ON CONFLICT DO NOTHING;
 
 INSERT INTO tpl_org_stages (id, intent_id, name, description, sort_order, start_offset_days, deadline_rule, deadline_days) VALUES
