@@ -208,10 +208,22 @@
                                 </select>
                             </div>
                         </div>
-                        @if (!gosaIsPao)
+                        @if (gosaIsPao)
                         {
                             <div class="col-auto align-self-center">
-                                <span class="text-muted small">Для данного типа общества интервал ГОСА фиксирован: 01.03 – 30.06 (ст. 47 208-ФЗ)</span>
+                                <span class="text-muted small">Допустимый диапазон: 01.03 – 30.06 (ст. 47 208-ФЗ)</span>
+                            </div>
+                        }
+                        else if (_orgType == OrgType.LLC)
+                        {
+                            <div class="col-auto align-self-center">
+                                <span class="text-muted small">Для ООО интервал фиксирован: 01.03 – 30.04 (ст. 34 14-ФЗ)</span>
+                            </div>
+                        }
+                        else if (_orgType == OrgType.NAO_AO)
+                        {
+                            <div class="col-auto align-self-center">
+                                <span class="text-muted small">Для АО интервал фиксирован: 01.03 – 30.06 (ст. 47 208-ФЗ)</span>
                             </div>
                         }
                         <div class="col-auto">
@@ -605,7 +617,7 @@
                     }
                     else
                     {
-                        var (defStart, defEnd) = GosaSvc.GetDefaultWindow();
+                        var (defStart, defEnd) = GosaSvc.GetWindowForOkopf(leForGosa.Okopf?.Code);
                         settings.GosaWindowStart = defStart;
                         settings.GosaWindowEnd = defEnd;
                     }
@@ -879,7 +891,7 @@
             var le = await ctx.LegalEntities.Include(x => x.Okopf).FirstOrDefaultAsync(x => x.Id == legalEntityId);
             if (le is null) { gosaError = "ЮЛ не найдено"; return; }
             var settings = await ctx.LegalEntityBoardSettings.FirstOrDefaultAsync();
-            var (defStart, defEnd) = GosaSvc.GetDefaultWindow();
+            var (defStart, defEnd) = GosaSvc.GetWindowForOkopf(le.Okopf?.Code);
             var s = settings?.GosaWindowStart ?? defStart;
             var e = settings?.GosaWindowEnd ?? defEnd;
             gosaStartMonth = s.Month;

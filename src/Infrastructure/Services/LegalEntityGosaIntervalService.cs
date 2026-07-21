@@ -11,24 +11,36 @@ public class LegalEntityGosaIntervalService : ILegalEntityGosaIntervalService
     // Код ОКОПФ ПАО по ОКОПФ: 12247 — Публичные акционерные общества
     private const string PaoOkopfCode = "12247";
 
+    // Код ОКОПФ ООО по ОКОПФ: 12300 — Общества с ограниченной ответственностью
+    private const string LlcOkopfCode = "12300";
+
     public bool IsPao(string? okopfCode) => string.Equals(okopfCode?.Trim(), PaoOkopfCode, StringComparison.Ordinal);
+
+    private static bool IsLlc(string? okopfCode) => string.Equals(okopfCode?.Trim(), LlcOkopfCode, StringComparison.Ordinal);
 
     public (DateOnly start, DateOnly end) GetDefaultWindow() =>
         (new DateOnly(DateTime.UtcNow.Year, 3, 1), new DateOnly(DateTime.UtcNow.Year, 6, 30));
+
+    public (DateOnly start, DateOnly end) GetWindowForOkopf(string? okopfCode)
+    {
+        var year = DateTime.UtcNow.Year;
+        return IsLlc(okopfCode)
+            ? (new DateOnly(year, 3, 1), new DateOnly(year, 4, 30))
+            : (new DateOnly(year, 3, 1), new DateOnly(year, 6, 30));
+    }
 
     public bool ValidateForOkopf(string? okopfCode, DateOnly start, DateOnly end)
     {
         if (end < start) return false;
 
-        var (min, max) = GetDefaultWindow();
-
         if (IsPao(okopfCode))
         {
-            // ПАО: любой подинтервал в пределах 01.03–30.06
+            var (min, max) = GetDefaultWindow();
             return start >= min && end <= max;
         }
 
-        // АО/НАО: только ровно 01.03–30.06
-        return start == min && end == max;
+        // АО/НАО и ООО: только фиксированный интервал согласно ОПФ
+        var (defStart, defEnd) = GetWindowForOkopf(okopfCode);
+        return start == defStart && end == defEnd;
     }
 }
