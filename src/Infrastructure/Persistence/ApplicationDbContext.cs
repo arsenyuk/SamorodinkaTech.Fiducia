@@ -28,6 +28,9 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
     public DbSet<BoardMemberType> BoardMemberTypes => Set<BoardMemberType>();
     public DbSet<BoardRole> BoardRoles => Set<BoardRole>();
     public DbSet<BoardMemberAppointment> BoardMemberAppointments => Set<BoardMemberAppointment>();
+    public DbSet<BoardMemberAppointmentStatus> BoardMemberAppointmentStatuses => Set<BoardMemberAppointmentStatus>();
+    public DbSet<ResignationReason> ResignationReasons => Set<ResignationReason>();
+    public DbSet<UserBoardMemberResignation> UserBoardMemberResignations => Set<UserBoardMemberResignation>();
     public DbSet<OsaMeetingFile> OsaMeetingFiles => Set<OsaMeetingFile>();
     public DbSet<LegalEntity> LegalEntities => Set<LegalEntity>();
     public DbSet<CurrentWorkplace> CurrentWorkplaces => Set<CurrentWorkplace>();
@@ -269,7 +272,9 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.Property(x => x.RoleCode).HasColumnName("role_code").HasMaxLength(20).IsRequired();
             b.Property(x => x.StartedAt).HasColumnName("started_at");
             b.Property(x => x.EndedAt).HasColumnName("ended_at");
-            b.Property(x => x.Status).HasColumnName("status").HasMaxLength(20).HasDefaultValue("ACTIVE");
+            b.Property(x => x.StatusId).HasColumnName("status_id").IsRequired();
+            b.Property(x => x.ResignedAt).HasColumnName("resigned_at");
+            b.Property(x => x.ResignationReasonId).HasColumnName("resignation_reason_id");
             b.HasOne(x => x.BoardMember)
              .WithMany()
              .HasForeignKey(x => x.BoardMemberId)
@@ -277,6 +282,12 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.HasOne(x => x.Role)
              .WithMany()
              .HasForeignKey(x => x.RoleId);
+            b.HasOne(x => x.Status)
+             .WithMany()
+             .HasForeignKey(x => x.StatusId);
+            b.HasOne(x => x.ResignationReason)
+             .WithMany()
+             .HasForeignKey(x => x.ResignationReasonId);
         });
 
         modelBuilder.Entity<ExtSparkCompany>(b =>
@@ -461,6 +472,49 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.HasOne(x => x.Role).WithMany().HasForeignKey(x => x.RoleId);
         });
 
+        modelBuilder.Entity<BoardMemberAppointmentStatus>(b =>
+        {
+            b.ToTable("ref_board_member_appointment_statuses");
+            b.HasKey(x => x.Id);
+            b.Property(x => x.Id).HasColumnName("id");
+            b.Property(x => x.Code).HasColumnName("code").HasMaxLength(20);
+            b.Property(x => x.Name).HasColumnName("name").HasMaxLength(200).IsRequired();
+            b.HasIndex(x => x.Code).IsUnique();
+        });
+
+        modelBuilder.Entity<ResignationReason>(b =>
+        {
+            b.ToTable("ref_resignation_reasons");
+            b.HasKey(x => x.Id);
+            b.Property(x => x.Id).HasColumnName("id");
+            b.Property(x => x.Code).HasColumnName("code").HasMaxLength(20);
+            b.Property(x => x.Name).HasColumnName("name").HasMaxLength(200).IsRequired();
+            b.HasIndex(x => x.Code).IsUnique();
+        });
+
+        modelBuilder.Entity<UserBoardMemberResignation>(b =>
+        {
+            b.ToTable("user_board_member_resignations");
+            b.HasKey(x => x.Id);
+            b.Property(x => x.Id).HasColumnName("id");
+            b.Property(x => x.UserId).HasColumnName("user_id").IsRequired();
+            b.Property(x => x.BoardMemberAppointmentId).HasColumnName("board_member_appointment_id").IsRequired();
+            b.Property(x => x.ResignedAt).HasColumnName("resigned_at").IsRequired();
+            b.Property(x => x.ResignationReasonId).HasColumnName("resignation_reason_id").IsRequired();
+            b.Property(x => x.RdlExtractFileId).HasColumnName("rdl_extract_file_id");
+            b.Property(x => x.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("CURRENT_TIMESTAMP");
+            b.HasOne(x => x.User)
+             .WithMany()
+             .HasForeignKey(x => x.UserId)
+             .OnDelete(DeleteBehavior.Cascade);
+            b.HasOne(x => x.BoardMemberAppointment)
+             .WithMany()
+             .HasForeignKey(x => x.BoardMemberAppointmentId)
+             .OnDelete(DeleteBehavior.Cascade);
+            b.HasOne(x => x.ResignationReason)
+             .WithMany()
+             .HasForeignKey(x => x.ResignationReasonId);
+        });
 
 
     }

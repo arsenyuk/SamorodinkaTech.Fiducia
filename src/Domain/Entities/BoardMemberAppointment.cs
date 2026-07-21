@@ -23,9 +23,17 @@ public class BoardMemberAppointment
     /// <summary>Дата завершения полномочий (ended_at).</summary>
     public DateOnly? EndedAt { get; set; }
 
-    /// <summary>Статус назначения (status).</summary>
-    public string Status { get; set; } = "ACTIVE";
+    /// <summary>Статус назначения (status_id).</summary>
+    public Guid StatusId { get; set; }
+
+    /// <summary>Дата сложения полномочий (resigned_at). Заполняется только при статусе RESIGNED.</summary>
+    public DateTime? ResignedAt { get; set; }
+
+    /// <summary>Причина сложения полномочий (resignation_reason_id). Заполняется только при статусе RESIGNED.</summary>
+    public Guid? ResignationReasonId { get; set; }
 
     public BoardMember? BoardMember { get; set; }
     public BoardRole? Role { get; set; }
+    public BoardMemberAppointmentStatus? Status { get; set; }
+    public ResignationReason? ResignationReason { get; set; }
 }

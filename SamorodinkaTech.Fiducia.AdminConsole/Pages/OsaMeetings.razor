@@ -888,6 +888,7 @@
     private List<BoardMemberRow> boardMemberRows = new();
     private List<BoardMemberType> memberTypes = new();
     private List<BoardRole> boardRoles = new();
+    private List<BoardMemberAppointmentStatus> appointmentStatuses = new();
     private bool isFinalized;
     private DateTime? finalizedAt;
 
@@ -1200,7 +1201,7 @@
                             RoleId = row.RoleId.Value,
                             RoleCode = boardRoles.FirstOrDefault(r => r.Id == row.RoleId.Value)?.Code ?? "",
                             StartedAt = startedAt,
-                            Status = "ACTIVE"
+                            StatusId = appointmentStatuses.FirstOrDefault(s => s.Code == "ACTIVE")?.Id ?? Guid.Empty
                         });
                     }
                 }
@@ -1501,7 +1502,7 @@
             .ToListAsync();
         var memberIds = members.Select(x => x.Id).ToList();
         var appointments = await ctx.BoardMemberAppointments
-            .Where(x => memberIds.Contains(x.BoardMemberId) && x.Status == "ACTIVE")
+            .Where(x => memberIds.Contains(x.BoardMemberId) && x.Status.Code == "ACTIVE")
             .ToListAsync();
 
         boardMemberRows = members.Select(x => new BoardMemberRow
@@ -1525,6 +1526,7 @@
 
         memberTypes = await ctx.BoardMemberTypes.OrderBy(x => x.Code).ToListAsync();
         boardRoles = await ctx.BoardRoles.OrderBy(x => x.SortOrder).ToListAsync();
+        appointmentStatuses = await ctx.BoardMemberAppointmentStatuses.OrderBy(x => x.Code).ToListAsync();
         editTemporaryChairSelection = m.TemporaryChairSelection ?? "CHARTER_SENIOR";
 
         // Загружаем ОКОПФ первого ЮЛ для валидации
@@ -1664,7 +1666,7 @@
                         .ToListAsync();
 
                     var lastAppointments = await ctx.BoardMemberAppointments
-                        .Where(x => lastMembers.Select(m => m.Id).Contains(x.BoardMemberId) && x.Status == "ACTIVE")
+                        .Where(x => lastMembers.Select(m => m.Id).Contains(x.BoardMemberId) && x.Status.Code == "ACTIVE")
                         .ToListAsync();
 
                     foreach (var m in lastMembers)
@@ -1774,7 +1776,7 @@
                 .ToListAsync();
             var memberIds = members.Select(x => x.Id).ToList();
             var appointments = await ctx.BoardMemberAppointments
-                .Where(x => memberIds.Contains(x.BoardMemberId) && x.Status == "ACTIVE")
+                .Where(x => memberIds.Contains(x.BoardMemberId) && x.Status.Code == "ACTIVE")
                 .ToListAsync();
 
             boardMemberRows = members.Select(x => new BoardMemberRow
@@ -2267,7 +2269,7 @@
                         RoleId = row.RoleId.Value,
                         RoleCode = boardRoles.FirstOrDefault(r => r.Id == row.RoleId.Value)?.Code ?? "",
                         StartedAt = startedAt,
-                        Status = "ACTIVE"
+                        StatusId = appointmentStatuses.FirstOrDefault(s => s.Code == "ACTIVE")?.Id ?? Guid.Empty
                     });
                 }
             }

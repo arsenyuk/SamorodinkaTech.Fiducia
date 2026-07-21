@@ -24,6 +24,9 @@ public interface IApplicationDbContext
     DbSet<BoardMemberType> BoardMemberTypes { get; }
     DbSet<BoardRole> BoardRoles { get; }
     DbSet<BoardMemberAppointment> BoardMemberAppointments { get; }
+    DbSet<BoardMemberAppointmentStatus> BoardMemberAppointmentStatuses { get; }
+    DbSet<ResignationReason> ResignationReasons { get; }
+    DbSet<UserBoardMemberResignation> UserBoardMemberResignations { get; }
     DbSet<OsaMeetingFile> OsaMeetingFiles { get; }
     DbSet<LegalEntity> LegalEntities { get; }
     DbSet<CurrentWorkplace> CurrentWorkplaces { get; }
