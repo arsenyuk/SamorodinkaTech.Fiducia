@@ -87,10 +87,13 @@
                 <li class="nav-item">
                     <button class="nav-link @(_activeTab == 2 ? "active" : "")" @onclick="() => _activeTab = 2">Интервал ГОСА</button>
                 </li>
+                <li class="nav-item">
+                    <button class="nav-link @(_activeTab == 3 ? "active" : "")" @onclick="() => _activeTab = 3">Документооборот</button>
+                </li>
                 @if (editHasBoardOfDirectors)
                 {
                     <li class="nav-item">
-                        <button class="nav-link @(_activeTab == 3 ? "active" : "")" @onclick="() => _activeTab = 3">Правила голосования в СД</button>
+                        <button class="nav-link @(_activeTab == 4 ? "active" : "")" @onclick="() => _activeTab = 4">Правила голосования в СД</button>
                     </li>
                 }
             </ul>
@@ -223,6 +226,34 @@
 
             @if (_activeTab == 3)
             {
+                <div class="mb-3">
+                    <label class="form-label">Вид документооборота</label>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="docFlow" value="0"
+                               checked="@(_editDocumentFlow == SamorodinkaTech.Fiducia.Domain.Enums.DocumentFlowType.Paper)"
+                               @onchange="() => _editDocumentFlow = SamorodinkaTech.Fiducia.Domain.Enums.DocumentFlowType.Paper">
+                        <label class="form-check-label">Бумажный документооборот</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="docFlow" value="1"
+                               checked="@(_editDocumentFlow == SamorodinkaTech.Fiducia.Domain.Enums.DocumentFlowType.Mixed)"
+                               @onchange="() => _editDocumentFlow = SamorodinkaTech.Fiducia.Domain.Enums.DocumentFlowType.Mixed">
+                        <label class="form-check-label">Смешанный документооборот (бумажный и ЮЗЭДО)</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="docFlow" value="2"
+                               disabled>
+                        <label class="form-check-label text-muted">Юридически значимый электронный документооборот (ЮЗЭДО)</label>
+                    </div>
+                    <div class="text-muted small mt-2">
+                        В связи с особенностями текущего законодательства выбор только электронного документооборота
+                        (без бумажного) невозможен.
+                    </div>
+                </div>
+            }  @* end of _activeTab == 3 *@
+
+            @if (_activeTab == 4)
+            {
                 <fieldset class="border rounded p-3 mb-3">
                     <legend class="float-none w-auto px-2 mb-0">Допустимые формы голосования</legend>
                     <div class="d-flex gap-4 flex-wrap">
@@ -280,7 +311,7 @@
                         <div class="text-muted small">Если предусмотрено уставом (п. 1 ст. 68 208-ФЗ)</div>
                     </div>
                 </fieldset>
-            }  @* end of _activeTab == 3 *@
+            }  @* end of _activeTab == 4 *@
 
             @if (!string.IsNullOrEmpty(saveError))
             {
@@ -348,6 +379,7 @@
     private bool _editAbsenteeOpinions;
     private bool _editAbsenteeAllowed;
     private bool _editMixedAllowed;
+    private SamorodinkaTech.Fiducia.Domain.Enums.DocumentFlowType _editDocumentFlow = SamorodinkaTech.Fiducia.Domain.Enums.DocumentFlowType.Paper;
     private Guid? _votingRulesId;
 
     protected override async Task OnInitializedAsync()
@@ -593,6 +625,7 @@
                         AbsenteeOpinions = _editAbsenteeOpinions,
                         AbsenteeAllowed = _editAbsenteeAllowed,
                         MixedAllowed = _editMixedAllowed,
+                        DocumentFlow = _editDocumentFlow,
                         QualifiedMajorityPercent = _editQualifiedMajorityPercent
                     };
                     ctx.LegalEntityVotingRules.Add(votingRules);
@@ -605,6 +638,7 @@
                     votingRules.QualifiedMajorityPercent = _editQualifiedMajorityPercent;
                     votingRules.AbsenteeAllowed = _editAbsenteeAllowed;
                     votingRules.MixedAllowed = _editMixedAllowed;
+                    votingRules.DocumentFlow = _editDocumentFlow;
                 }
             }
 
@@ -886,6 +920,7 @@
                 _editAbsenteeOpinions = rules.AbsenteeOpinions;
                 _editAbsenteeAllowed = rules.AbsenteeAllowed;
                 _editMixedAllowed = rules.MixedAllowed;
+                _editDocumentFlow = rules.DocumentFlow;
             }
             else
             {
@@ -896,6 +931,7 @@
                 _editAbsenteeOpinions = false;
                 _editAbsenteeAllowed = false;
                 _editMixedAllowed = false;
+                _editDocumentFlow = SamorodinkaTech.Fiducia.Domain.Enums.DocumentFlowType.Paper;
             }
         }
         catch (Exception ex)

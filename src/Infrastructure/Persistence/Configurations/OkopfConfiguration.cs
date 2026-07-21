@@ -11,8 +11,10 @@ public class OkopfConfiguration : IEntityTypeConfiguration<Okopf>
 {
     public void Configure(EntityTypeBuilder<Okopf> builder)
     {
-        builder.ToTable("okopf");
-        builder.HasKey(x => x.Code);
+        builder.ToTable("ref_okopf");
+        builder.HasKey(x => x.Id);
+        builder.Property(x => x.Id)
+            .HasColumnName("id");
         builder.Property(x => x.Code)
             .HasColumnName("code")
             .HasMaxLength(10)
@@ -22,6 +24,6 @@ public class OkopfConfiguration : IEntityTypeConfiguration<Okopf>
             .HasMaxLength(500)
             .IsRequired();
 
-        builder.HasIndex(x => x.Name).HasDatabaseName("ix_okopf_name");
+        builder.HasIndex(x => x.Name).HasDatabaseName("ix_ref_okopf_name");
     }
 }

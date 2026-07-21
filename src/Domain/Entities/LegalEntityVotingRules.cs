@@ -1,3 +1,5 @@
+using SamorodinkaTech.Fiducia.Domain.Enums;
+
 namespace SamorodinkaTech.Fiducia.Domain.Entities;
 
 /// <summary>
@@ -35,6 +37,9 @@ public class LegalEntityVotingRules
 
     /// <summary>Разрешено смешанное голосование (mixed_allowed).</summary>
     public bool MixedAllowed { get; set; }
+
+    /// <summary>Вид документооборота, применяемый юридическим лицом (document_flow).</summary>
+    public DocumentFlowType DocumentFlow { get; set; } = DocumentFlowType.Paper;
 
     /// <summary>Дата и время создания записи (created_at).</summary>
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

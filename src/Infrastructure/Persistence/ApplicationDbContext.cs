@@ -123,6 +123,7 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.Property(x => x.InPersonAllowed).HasColumnName("in_person_allowed").HasDefaultValue(true);
             b.Property(x => x.AbsenteeAllowed).HasColumnName("absentee_allowed").HasDefaultValue(false);
             b.Property(x => x.MixedAllowed).HasColumnName("mixed_allowed").HasDefaultValue(false);
+            b.Property(x => x.DocumentFlow).HasColumnName("document_flow").HasDefaultValue(DocumentFlowType.Paper);
             b.Property(x => x.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("CURRENT_TIMESTAMP");
             b.HasOne(x => x.LegalEntity)
              .WithMany()
