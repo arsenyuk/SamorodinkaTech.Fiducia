@@ -83,16 +83,6 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.HasIndex(x => x.Code).IsUnique().HasDatabaseName("ux_ref_month_code");
         });
 
-        modelBuilder.Entity<Okopf>(b =>
-        {
-            b.ToTable("ref_okopf");
-            b.HasKey(o => o.Id);
-            b.Property(o => o.Id).HasColumnName("id");
-            b.Property(o => o.Code).HasColumnName("code").HasMaxLength(10);
-            b.Property(o => o.Name).HasColumnName("name").IsRequired();
-            b.HasIndex(o => o.Code).IsUnique().HasDatabaseName("ux_ref_okopf_code");
-        });
-
         modelBuilder.Entity<CurrentWorkplace>(b =>
         {
             b.ToTable("current_workplace");
