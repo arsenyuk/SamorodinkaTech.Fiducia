@@ -96,6 +96,9 @@ builder.Services.AddScoped<ISecurityAuditService, SecurityAuditService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddSingleton<ILegalEntityGosaIntervalService, LegalEntityGosaIntervalService>();
 
+// Time provider (SOLID: DIP) — абстракция системного времени для тестируемости
+builder.Services.AddSingleton<ITimeProvider, SystemTimeProvider>();
+
 // File Storage (ADR-020)
 builder.Services.AddFileStorage(builder.Configuration);
 

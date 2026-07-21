@@ -8,22 +8,32 @@ namespace SamorodinkaTech.Fiducia.Infrastructure.Services;
 /// </summary>
 public class LegalEntityGosaIntervalService : ILegalEntityGosaIntervalService
 {
+    private readonly ITimeProvider _timeProvider;
+
     // Код ОКОПФ ПАО по ОКОПФ: 12247 — Публичные акционерные общества
     private const string PaoOkopfCode = "12247";
 
     // Код ОКОПФ ООО по ОКОПФ: 12300 — Общества с ограниченной ответственностью
     private const string LlcOkopfCode = "12300";
 
+    /// <summary>
+    /// Создаёт сервис с провайдером системного времени (SOLID: DIP).
+    /// </summary>
+    public LegalEntityGosaIntervalService(ITimeProvider timeProvider)
+    {
+        _timeProvider = timeProvider ?? throw new ArgumentNullException(nameof(timeProvider));
+    }
+
     public bool IsPao(string? okopfCode) => string.Equals(okopfCode?.Trim(), PaoOkopfCode, StringComparison.Ordinal);
 
     private static bool IsLlc(string? okopfCode) => string.Equals(okopfCode?.Trim(), LlcOkopfCode, StringComparison.Ordinal);
 
     public (DateOnly start, DateOnly end) GetDefaultWindow() =>
-        (new DateOnly(DateTime.UtcNow.Year, 3, 1), new DateOnly(DateTime.UtcNow.Year, 6, 30));
+        (new DateOnly(_timeProvider.UtcNow.Year, 3, 1), new DateOnly(_timeProvider.UtcNow.Year, 6, 30));
 
     public (DateOnly start, DateOnly end) GetWindowForOkopf(string? okopfCode)
     {
-        var year = DateTime.UtcNow.Year;
+        var year = _timeProvider.UtcNow.Year;
         return IsLlc(okopfCode)
             ? (new DateOnly(year, 3, 1), new DateOnly(year, 4, 30))
             : (new DateOnly(year, 3, 1), new DateOnly(year, 6, 30));
