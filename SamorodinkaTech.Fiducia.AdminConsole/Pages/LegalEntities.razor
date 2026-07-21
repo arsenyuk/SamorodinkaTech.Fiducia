@@ -239,12 +239,21 @@
             @if (_activeTab == 3)
             {
                 <div class="mb-3">
-                    <select class="form-select" style="max-width:500px"
-                            @bind="_editDocumentFlow">
-                        <option value="@SamorodinkaTech.Fiducia.Domain.Enums.DocumentFlowType.Paper">Бумажный документооборот</option>
-                        <option value="@SamorodinkaTech.Fiducia.Domain.Enums.DocumentFlowType.Mixed">Смешанный документооборот (бумажный и ЮЗЭДО)</option>
-                        <option value="@SamorodinkaTech.Fiducia.Domain.Enums.DocumentFlowType.LegalElectronic" disabled>Юридически значимый электронный документооборот (ЮЗЭДО)</option>
-                    </select>
+                    <div class="form-check" @onclick="() => _editDocumentFlow = SamorodinkaTech.Fiducia.Domain.Enums.DocumentFlowType.Paper">
+                        <input class="form-check-input" type="radio" name="docFlow"
+                               checked="@(_editDocumentFlow == SamorodinkaTech.Fiducia.Domain.Enums.DocumentFlowType.Paper)">
+                        <label class="form-check-label">Бумажный документооборот</label>
+                    </div>
+                    <div class="form-check" @onclick="() => _editDocumentFlow = SamorodinkaTech.Fiducia.Domain.Enums.DocumentFlowType.Mixed">
+                        <input class="form-check-input" type="radio" name="docFlow"
+                               checked="@(_editDocumentFlow == SamorodinkaTech.Fiducia.Domain.Enums.DocumentFlowType.Mixed)">
+                        <label class="form-check-label">Смешанный документооборот (бумажный и ЮЗЭДО)</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="docFlow" value="2"
+                               disabled>
+                        <label class="form-check-label text-muted">Юридически значимый электронный документооборот (ЮЗЭДО)</label>
+                    </div>
                     <div class="text-muted small mt-2">
                         В связи с особенностями текущего законодательства выбор только электронного документооборота
                         (без бумажного) невозможен.
