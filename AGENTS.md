@@ -219,6 +219,24 @@ dotnet format --verify-no-changes
   а `FirstOrDefault(r => r.RoleId == TEMP_CHAIR)`
 - Прямой поиск исключает побочные эффекты от изменения порядка элементов в списке.
 
+### Правило: единственный вызов ApplyConfigurationsFromAssembly (КРИТИЧНО)
+
+Зафиксирован инцидент: в `OnModelCreating` метод `ApplyConfigurationsFromAssembly`
+был вызван дважды (строки 54 и 313), из-за чего seed-данные из
+`IEntityTypeConfiguration<T>.HasData()` регистрировались повторно с теми же
+ключами. Ошибка: `"The seed entity for entity type 'X' cannot be added because
+another seed entity with the same key value for {'Id'} has already been added"`.
+
+Правило: `ApplyConfigurationsFromAssembly` (и любые другие методы загрузки
+конфигураций из сборки) вызывается **ровно один раз** в `OnModelCreating`.
+- Повторный вызов вызывает дублирование seed-данных и другие трудно-диагностируемые
+  ошибки на этапе инициализации модели EF Core.
+- Если в методе уже есть вызов `ApplyConfigurationsFromAssembly` — не добавлять
+  второй даже «для надёжности»; удалить дубликат при обнаружении.
+- Исключение: **разные** сборки с **непересекающимся** набором типов —
+  но и в этом случае рекомендуется единый вызов с типом из сборки,
+  содержащей все конфигурации.
+
 ### Правило: дисциплина вызова инструментов
 
 - Каждый вызов инструмента — это настоящий вызов с реальными аргументами,

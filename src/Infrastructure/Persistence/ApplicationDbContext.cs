@@ -310,10 +310,6 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.Property(x => x.FetchedAt).HasColumnName("fetched_at").IsRequired();
         });
 
-modelBuilder.ApplyConfigurationsFromAssembly(typeof(FiduciaDbContext).Assembly);
-
-        // Конфигурация LegalEntity → ref_okopf по UUID
-
         modelBuilder.Entity<TplOrgIntent>(b =>
         {
             b.ToTable("tpl_org_intents");
