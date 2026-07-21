@@ -6,10 +6,8 @@ public class Meeting
 {
     public Guid Id { get; set; }
     public string? MeetingNumber { get; set; }
-    /// <summary>Форма проведения заседания (meeting_form_id).</summary>
-    public Guid MeetingFormId { get; set; }
-    /// <summary>Справочная запись формы проведения.</summary>
-    public RefMeetingForm? MeetingForm { get; set; }
+    /// <summary>Форма проведения заседания: OCHN = очная, ZAOCHN = заочная (meeting_form).</summary>
+    public string MeetingFormId { get; set; } = string.Empty;
     public MeetingStatus Status { get; set; } = MeetingStatus.DRAFT;
     public DateTime? VotingStartAt { get; set; }
     public DateTime? VotingEndAt { get; set; }

@@ -70,11 +70,11 @@
                                     <tr>
                                         <td><strong>@meeting.MeetingNumber</strong></td>
                                         <td>
-                                            @if (meeting.MeetingForm?.Code == "OCHN")
+                                            @if (meeting.MeetingFormId == "OCHN")
                                             {
                                                 <span class="badge bg-info">Очная</span>
                                             }
-                                            else if (meeting.MeetingForm?.Code == "MIXED")
+                                            else if (meeting.MeetingFormId == "MIXED")
                                             {
                                                 <span class="badge bg-warning text-dark">Смешанная</span>
                                             }
@@ -122,7 +122,6 @@
             .CountAsync(t => t.Status == SamorodinkaTech.Fiducia.Domain.Enums.CommitteeTaskStatus.IN_WORK);
 
         _meetings = await DbContext.Meetings
-            .Include(m => m.MeetingForm)
             .Where(m => m.Status == SamorodinkaTech.Fiducia.Domain.Enums.MeetingStatus.VOTING
                      || m.Status == SamorodinkaTech.Fiducia.Domain.Enums.MeetingStatus.NOTIFIED)
             .OrderByDescending(m => m.VotingEndAt)

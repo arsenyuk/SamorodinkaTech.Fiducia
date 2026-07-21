@@ -19,11 +19,11 @@ public class NotificationTextBuilder
     /// <param name="legalEntityName">Полное наименование юридического лица.</param>
     public (string Title, string Body) BuildFirstMeetingSummons(Meeting meeting, string legalEntityName)
     {
-        if (meeting.MeetingForm?.Code != "OCHN")
+        if (meeting.MeetingFormId != "OCHN")
         {
             throw new ArgumentException(
                 $"Первое заседание совета директоров не может быть проведено " +
-                $"в форме «{meeting.MeetingForm?.Code ?? "(не указана)"}». " +
+                $"в форме «{meeting.MeetingFormId}». " +
                 $"Согласно п. 1 ст. 68 208-ФЗ первое (организационное) заседание " +
                 $"проводится только в очной форме (OCHN).",
                 nameof(meeting));
@@ -60,7 +60,7 @@ public class NotificationTextBuilder
     /// </summary>
     public (string Title, string Body) BuildMeetingSummons(Meeting meeting)
     {
-        var formText = meeting.MeetingForm?.Code switch
+        var formText = meeting.MeetingFormId switch
         {
             "ZAOCHN" => "заочное",
             "MIXED" => "смешанное (очное + заочное голосование)",

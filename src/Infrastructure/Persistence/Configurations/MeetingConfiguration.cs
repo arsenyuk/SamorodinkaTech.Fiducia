@@ -15,7 +15,7 @@ public class MeetingConfiguration : IEntityTypeConfiguration<Meeting>
         builder.Property(m => m.Id).HasColumnName("id");
 
         builder.Property(m => m.MeetingNumber).HasColumnName("meeting_number").HasMaxLength(50);
-        builder.Property(m => m.MeetingFormId).HasColumnName("meeting_form_id").IsRequired();
+        builder.Property(m => m.MeetingFormId).HasColumnName("meeting_form").HasMaxLength(20).IsRequired();
         builder.Property(m => m.Status).HasColumnName("status").HasMaxLength(50)
             .HasConversion<string>().HasDefaultValue(MeetingStatus.DRAFT);
         builder.Property(m => m.VotingStartAt).HasColumnName("voting_start_at");
@@ -30,9 +30,5 @@ public class MeetingConfiguration : IEntityTypeConfiguration<Meeting>
             .WithMany()
             .HasForeignKey(m => m.CreatedBy)
             .OnDelete(DeleteBehavior.SetNull);
-
-        builder.HasOne(m => m.MeetingForm)
-            .WithMany()
-            .HasForeignKey(m => m.MeetingFormId);
     }
 }

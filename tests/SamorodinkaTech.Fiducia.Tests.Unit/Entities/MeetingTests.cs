@@ -21,8 +21,7 @@ public class MeetingTests
 
         // Assert
         meeting.MeetingNumber.Should().BeNull();
-        meeting.MeetingFormId.Should().Be(default(Guid));
-        meeting.MeetingForm.Should().BeNull();
+        meeting.MeetingFormId.Should().Be(string.Empty);
         meeting.Status.Should().Be(MeetingStatus.DRAFT);
         meeting.VotingStartAt.Should().BeNull();
         meeting.VotingEndAt.Should().BeNull();
@@ -37,33 +36,26 @@ public class MeetingTests
     [Fact]
     public void Meeting_InPersonForm_ShouldSetFormId()
     {
-        var formId = Guid.NewGuid();
-
         var meeting = new Meeting
         {
-            MeetingFormId = formId
+            MeetingFormId = "OCHN"
         };
 
-        meeting.MeetingFormId.Should().Be(formId);
+        meeting.MeetingFormId.Should().Be("OCHN");
     }
 
     /// <summary>
-    /// Заседание может иметь навигационное свойство к справочнику форм.
+    /// Форма проведения хранится как код (OCHN/ZAOCHN) в соответствии со схемой БД.
     /// </summary>
     [Fact]
-    public void Meeting_ShouldLinkToRefMeetingForm()
+    public void Meeting_ShouldStoreFormCodes()
     {
-        var form = new RefMeetingForm { Id = Guid.NewGuid(), Code = "MIXED", Name = "Смешанное" };
-
         var meeting = new Meeting
         {
-            MeetingFormId = form.Id,
-            MeetingForm = form
+            MeetingFormId = "ZAOCHN"
         };
 
-        meeting.MeetingFormId.Should().Be(form.Id);
-        meeting.MeetingForm.Should().Be(form);
-        meeting.MeetingForm.Code.Should().Be("MIXED");
+        meeting.MeetingFormId.Should().Be("ZAOCHN");
     }
 
     /// <summary>
