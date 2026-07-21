@@ -1,7 +1,9 @@
 @page "/users"
+@using Microsoft.EntityFrameworkCore
 @using SamorodinkaTech.Fiducia.Domain.Entities
 @using SamorodinkaTech.Fiducia.Domain.Interfaces
 @inject IApplicationDbContext DbContext
+@inject NavigationManager Navigation
 
 <PageTitle>Fiducia — Пользователи</PageTitle>
 
@@ -17,93 +19,22 @@
     </div>
 
     <div class="card">
-        <div class="card-header d-flex justify-content-between">
-            <ul class="nav nav-tabs card-header-tabs">
-                <li class="nav-item">
-                    <button class="nav-link @(_filter == "all" ? "active" : "")" @onclick='() => SetFilter("all")'>Все</button>
-                </li>
-                <li class="nav-item">
-                    <button class="nav-link @(_filter == "internal" ? "active" : "")" @onclick='() => SetFilter("internal")'>Внутренние</button>
-                </li>
-                <li class="nav-item">
-                    <button class="nav-link @(_filter == "external" ? "active" : "")" @onclick='() => SetFilter("external")'>Внешние</button>
-                </li>
-            </ul>
-        </div>
         <div class="card-body">
             <table class="table table-hover">
                 <thead>
                     <tr>
                         <th>ФИО</th>
-                        <th>Email</th>
-                        <th>Телефон</th>
-                        <th>Тип</th>
-                        <th>Статус LDAP</th>
-                        <th>Действует до</th>
-                        <th>Статус</th>
-                        <th></th>
+                        <th>Роли в СД</th>
+                        <th>Статус выбытия</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach (var user in _filteredUsers)
+                    @foreach (var user in _userRows)
                     {
-                        <tr>
-                            <td><strong>@user.LastName @user.FirstName @user.MiddleName</strong></td>
-                            <td>@user.Email</td>
-                            <td>@user.Phone</td>
-                            <td>
-                                @if (user.IsExternal)
-                                {
-                                    <span class="badge bg-warning">Внешний</span>
-                                }
-                                else
-                                {
-                                    <span class="badge bg-secondary">Внутренний</span>
-                                }
-                            </td>
-                            <td>
-                                @if (!user.IsActive)
-                                {
-                                    <span class="badge bg-danger">Заблокирован</span>
-                                }
-                                else if (user.AccountExpiresAt.HasValue && user.AccountExpiresAt.Value < DateTime.UtcNow)
-                                {
-                                    <span class="badge bg-warning">Истёк</span>
-                                }
-                                else
-                                {
-                                    <span class="badge bg-success">Активен</span>
-                                }
-                            </td>
-                            <td>@(user.AccountExpiresAt?.ToString("dd.MM.yyyy") ?? "—")</td>
-                            <td>
-                                @if (user.IsExternal)
-                                {
-                                    @if (user.PepAgreementSigned)
-                                    {
-                                        <span class="badge bg-success">ПЭП подписан</span>
-                                    }
-                                    else if (user.DeclarationCompleted)
-                                    {
-                                        <span class="badge bg-info">Анкета заполнена</span>
-                                    }
-                                    else if (!string.IsNullOrEmpty(user.InvitationToken))
-                                    {
-                                        <span class="badge bg-warning">Ожидает регистрации</span>
-                                    }
-                                }
-                                else
-                                {
-                                    <span class="badge bg-secondary">Внутренний</span>
-                                }
-                            </td>
-                            <td>
-                                @if (user.IsExternal && !user.PepAgreementSigned)
-                                {
-                                    <button class="btn btn-sm btn-outline-primary"
-                                            @onclick="() => CopyInviteLink(user)">Ссылка</button>
-                                }
-                            </td>
+                        <tr style="cursor: pointer;" @onclick="() => OpenUser(user.UserId)">
+                            <td><strong>@user.FullName</strong></td>
+                            <td>@user.BoardRoles</td>
+                            <td>@user.ResignationStatus</td>
                         </tr>
                     }
                 </tbody>
@@ -217,9 +148,7 @@
 }
 
 @code {
-    private List<User> _users = new();
-    private List<User> _filteredUsers = new();
-    private string _filter = "all";
+    private List<UserRow> _userRows = new();
 
     // Создание пользователя
     private bool _showCreateModal;
@@ -242,24 +171,54 @@
 
     protected override async Task OnInitializedAsync()
     {
-        _users = await DbContext.Users.ToListAsync();
-        ApplyFilter();
-    }
+        var users = await DbContext.Users.AsNoTracking().ToListAsync();
 
-    private void SetFilter(string filter)
-    {
-        _filter = filter;
-        ApplyFilter();
-    }
+        var appointments = await DbContext.BoardMemberAppointments
+            .AsNoTracking()
+            .Include(a => a.BoardMember)
+            .Include(a => a.Role)
+            .Where(a => a.BoardMember!.UserId != null)
+            .ToListAsync();
 
-    private void ApplyFilter()
-    {
-        _filteredUsers = _filter switch
+        var rolesByUser = appointments
+            .GroupBy(a => a.BoardMember!.UserId!.Value)
+            .ToDictionary(
+                g => g.Key,
+                g => string.Join(", ", g.Select(a => a.Role!.Name).Distinct().OrderBy(n => n)));
+
+        var resignations = await DbContext.UserBoardMemberResignations
+            .AsNoTracking()
+            .Include(r => r.ResignationReason)
+            .OrderByDescending(r => r.ResignedAt)
+            .ToListAsync();
+
+        var latestResignationByUser = resignations
+            .GroupBy(r => r.UserId)
+            .ToDictionary(g => g.Key, g => g.First());
+
+        _userRows = users.Select(u =>
         {
-            "internal" => _users.Where(u => !u.IsExternal).ToList(),
-            "external" => _users.Where(u => u.IsExternal).ToList(),
-            _ => _users.ToList()
-        };
+            var fullName = string.Join(" ",
+                new[] { u.LastName, u.FirstName, u.MiddleName }.Where(s => !string.IsNullOrWhiteSpace(s)));
+
+            rolesByUser.TryGetValue(u.Id, out var roles);
+            var boardRoles = !string.IsNullOrEmpty(roles) ? roles : "—";
+
+            var resignationStatus = "—";
+            if (latestResignationByUser.TryGetValue(u.Id, out var r))
+            {
+                var date = r.ResignedAt.ToString("dd.MM.yyyy");
+                var reason = r.ResignationReason?.Name ?? r.ResignationReason?.Code ?? "—";
+                resignationStatus = $"Выбыл: {reason}, {date}";
+            }
+
+            return new UserRow(u.Id, fullName, boardRoles, resignationStatus);
+        }).OrderBy(r => r.FullName).ToList();
+    }
+
+    private void OpenUser(Guid userId)
+    {
+        Navigation.NavigateTo($"/users/{userId}");
     }
 
     private void ShowCreateModal()
@@ -297,9 +256,8 @@
         DbContext.Users.Add(user);
         await DbContext.SaveChangesAsync();
 
-        _users.Add(user);
-        ApplyFilter();
         CloseModals();
+        await OnInitializedAsync();
     }
 
     private async Task GenerateInvite()
@@ -326,9 +284,6 @@
             DbContext.Users.Add(user);
             await DbContext.SaveChangesAsync();
 
-            _users.Add(user);
-            ApplyFilter();
-
             _inviteLink = $"http://localhost:5000/onboarding/{token}";
         }
         finally
@@ -337,18 +292,10 @@
         }
     }
 
-    private void CopyInviteLink(User user)
-    {
-        if (!string.IsNullOrEmpty(user.InvitationToken))
-        {
-            _inviteLink = $"http://localhost:5000/onboarding/{user.InvitationToken}";
-            _showInviteModal = true;
-        }
-    }
-
     private async Task CopyToClipboard()
     {
-        // JS interop would be needed here
         await Task.CompletedTask;
     }
+
+    private record UserRow(Guid UserId, string FullName, string BoardRoles, string ResignationStatus);
 }

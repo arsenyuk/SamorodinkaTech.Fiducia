@@ -1167,7 +1167,7 @@
             m.BoardApproved = editBoardApproved;
 
             // Привязываем строки без UserId к справочнику пользователей (LDAP)
-            await EnsureUserIds(ctx);
+            await EnsureUserIds(ctx, validateExisting: true);
 
             // Сохраняем состав СД, если утверждён
             if (editBoardCompositionApproved && editHasBoard)
@@ -1229,8 +1229,8 @@
     private async Task QuickSaveAndNotify()
     {
         await QuickSave();
-        saveError = null;
-        saveSuccess = "Изменения сохранены.";
+        if (saveError == null)
+            saveSuccess = "Изменения сохранены.";
     }
 
     // Файлы
@@ -1596,11 +1596,27 @@
         }
     }
 
-    private async Task EnsureUserIds(IApplicationDbContext ctx)
+    private async Task EnsureUserIds(IApplicationDbContext ctx, bool validateExisting = false)
     {
         foreach (var row in boardMemberRows)
         {
-            if (row.UserId.HasValue) continue;
+            // Проверяем, что ранее назначенный UserId действителен (существует в БД)
+            if (row.UserId.HasValue)
+            {
+                if (validateExisting)
+                {
+                    var exists = await ctx.Users.AnyAsync(u => u.Id == row.UserId.Value);
+                    if (!exists)
+                    {
+                        Logger.LogWarning("UserId {UserId} не найден в БД для строки {Name} — сброс UserId",
+                            row.UserId, row.Name);
+                        row.UserId = null;
+                    }
+                }
+                if (row.UserId.HasValue)
+                    continue;
+            }
+
             if (string.IsNullOrWhiteSpace(row.Email) || string.IsNullOrWhiteSpace(row.Name)) continue;
 
             // Ищем в change tracker'е (уже добавлен в этом же цикле) или в БД
@@ -1621,7 +1637,7 @@
                 FirstName = nameParts.Length > 1 ? nameParts[1] : string.Empty,
                 MiddleName = nameParts.Length > 2 ? nameParts[2] : null,
                 Email = row.Email.Trim(),
-                Phone = string.Empty,
+                Phone = $"auto-{Guid.NewGuid():N}"[..Math.Min(20, 5 + 32)],
                 IsExternal = false,
                 IsActive = candidate?.IsActive ?? true,
                 AccountExpiresAt = candidate?.AccountExpiresAt,
@@ -2236,7 +2252,7 @@
                 ? ((DateTime)editProtocolSignedAt).ToUniversalTime() : null;
 
             // Привязываем строки без UserId к справочнику пользователей (LDAP)
-            await EnsureUserIds(ctx);
+            await EnsureUserIds(ctx, validateExisting: true);
 
             // Обновляем состав СД: удаляем старых, создаём новых
             var oldMembers = await ctx.BoardMembers.Where(x => x.OsaMeetingId == editingMeetingId.Value).ToListAsync();
