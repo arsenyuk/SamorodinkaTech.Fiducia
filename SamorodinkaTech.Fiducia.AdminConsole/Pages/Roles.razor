@@ -1,0 +1,62 @@
+@page "/admin/roles"
+@using Microsoft.EntityFrameworkCore
+@inject IDbContextFactory<SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext> DbFactory
+@inject ILogger<Roles> Logger
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "SYS_ADMIN")]
+
+<h3>Справочник ролей</h3>
+
+@if (_roles is null)
+{
+    <p><em>Загрузка...</em></p>
+}
+else if (_roles.Count == 0)
+{
+    <p class="text-muted">Нет записей.</p>
+}
+else
+{
+    <table class="table table-sm">
+        <thead>
+            <tr>
+                <th>Код</th>
+                <th>Наименование</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var r in _roles)
+            {
+                <tr>
+                    <td><code>@r.Code</code></td>
+                    <td>@r.Name</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<RoleVm>? _roles;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+            _roles = await ctx.Roles
+                .OrderBy(r => r.Code)
+                .Select(r => new RoleVm { Code = r.Code, Name = r.Name })
+                .ToListAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Ошибка загрузки справочника ролей");
+        }
+    }
+
+    private class RoleVm
+    {
+        public string Code { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+    }
+}
