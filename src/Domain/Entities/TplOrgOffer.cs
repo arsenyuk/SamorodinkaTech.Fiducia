@@ -33,12 +33,11 @@ public class TplOrgOffer
     /// <summary>Количество дней до дедлайна (deadline_days).</summary>
     public int? DeadlineDays { get; set; }
 
-    /// <summary>JSON-массив role_id кандидатов (candidate_roles).</summary>
-    public string? CandidateRoles { get; set; }
+    /// <summary>Роли-кандидаты для данного офера.</summary>
+    public ICollection<TplOrgOfferRole>? OfferRoles { get; set; }
 
     /// <summary>Дата и время создания записи (created_at).</summary>
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-
     /// <summary>Задачи, относящиеся к данному оферу.</summary>
     public ICollection<TplOrgTask>? Tasks { get; set; }
 }

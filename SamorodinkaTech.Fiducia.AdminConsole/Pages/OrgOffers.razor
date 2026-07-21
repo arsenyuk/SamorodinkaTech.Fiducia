@@ -1,5 +1,6 @@
 @page "/admin/org-templates/stages/{StageId:guid}/offers"
 @using Microsoft.EntityFrameworkCore
+@using System.Collections.Generic
 @inject IDbContextFactory<SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext> DbFactory
 @inject ILogger<OrgTemplates> Logger
 @inject NavigationManager Nav
@@ -54,6 +55,21 @@
                     <label class="form-label">Дни</label>
                     <input class="form-control" type="number" @bind="_editDeadlineDays" />
                 </div>
+                <div class="col-md-3">
+                    <label class="form-label mb-1">Канд. роли</label>
+                    <div style="max-height:120px; overflow-y:auto; border:1px solid #dee2e6; border-radius:4px; padding:4px 8px;">
+                        @foreach (var r in _roles)
+                        {
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="checkbox"
+                                       id="role_@r.Id"
+                                       checked="@_editRoleIds.Contains(r.Id)"
+                                       @onchange="e => ToggleRole(r.Id, (bool)(e.Value ?? false))" />
+                                <label class="form-check-label small" for="role_@r.Id">@r.Name</label>
+                            </div>
+                        }
+                    </div>
+                </div>
                 <div class="col-md-1">
                     <label class="form-label">Порядок</label>
                     <input class="form-control" type="number" @bind="_editSort" />
@@ -80,15 +96,17 @@
             "AFTER_START" => $"после нач. +{s.DeadlineDays} дн.",
             _ => "—"
         };
+        var roleNames = _offerRoleNames.GetValueOrDefault(s.Id, new());
         <tr>
             <td>
                 <a href="/admin/org-templates/offers/@s.Id/tasks" class="text-decoration-none">@s.Name</a>
             </td>
             <td>@(s.StartOffsetDays?.ToString() ?? "—")</td>
             <td>@deadlineLabel</td>
+            <td class="text-muted small">@string.Join(", ", roleNames)</td>
             <td>@s.SortOrder</td>
             <td>
-                <button class="btn btn-outline-secondary btn-sm me-1" @onclick="() => Edit(s)">✏️</button>
+                <button class="btn btn-outline-secondary btn-sm me-1" @onclick="async () => await Edit(s)">✏️</button>
                 <button class="btn btn-outline-danger btn-sm" @onclick="() => Delete(s)">🗑️</button>
             </td>
         </tr>
@@ -100,6 +118,8 @@
     [Parameter] public Guid StageId { get; set; }
 
     private List<TplOrgOffer> _items = new();
+    private List<SamorodinkaTech.Fiducia.Domain.Entities.Role> _roles = new();
+    private Dictionary<Guid, List<string>> _offerRoleNames = new();
     private string? _stageName;
     private string? _intentName;
     private Guid? _intentId;
@@ -108,6 +128,7 @@
     private bool _showForm;
     private string _editName = "";
     private string _editDesc = "";
+    private HashSet<Guid> _editRoleIds = new();
     private int? _editOffset;
     private string _editDeadlineRule = "";
     private int? _editDeadlineDays;
@@ -128,18 +149,36 @@
                 _intentId = stage.IntentId;
                 _intentName = stage.Intent?.Name;
             }
+            _roles = await ctx.Roles.OrderBy(x => x.Name).ToListAsync();
             _items = await ctx.TplOrgOffers.Where(x => x.StageId == StageId).OrderBy(x => x.SortOrder).ThenBy(x => x.Name).ToListAsync();
+            var links = await ctx.TplOrgOfferRoles.Where(x => _items.Select(o => o.Id).Contains(x.OfferId)).ToListAsync();
+            _offerRoleNames = links.GroupBy(x => x.OfferId).ToDictionary(
+                g => g.Key,
+                g => g.Select(l => _roles.FirstOrDefault(r => r.Id == l.RoleId)?.Name ?? "?").Where(n => n != "?").ToList()
+            );
         }
         catch (Exception ex) { Logger.LogWarning(ex, "Ошибка загрузки оферов"); _error = ExceptionFlattener.Unwrap(ex); }
     }
 
-    private void Edit(TplOrgOffer o)
+    private async Task Edit(TplOrgOffer o)
     {
         _editingId = o.Id; _editName = o.Name; _editDesc = o.Description ?? "";
-        _editOffset = o.StartOffsetDays; _editDeadlineRule = o.DeadlineRule ?? ""; _editDeadlineDays = o.DeadlineDays; _editSort = o.SortOrder; _showForm = true;
+        _editOffset = o.StartOffsetDays; _editDeadlineRule = o.DeadlineRule ?? ""; _editDeadlineDays = o.DeadlineDays;
+        _editSort = o.SortOrder;
+        _editRoleIds.Clear();
+        await using var ctx = await DbFactory.CreateDbContextAsync();
+        var links = await ctx.TplOrgOfferRoles.Where(x => x.OfferId == o.Id).Select(x => x.RoleId).ToListAsync();
+        foreach (var rid in links) _editRoleIds.Add(rid);
+        _showForm = true;
     }
 
-    private void CancelForm() { _showForm = false; _editingId = null; }
+    private void ToggleRole(Guid roleId, bool add)
+    {
+        if (add) _editRoleIds.Add(roleId);
+        else _editRoleIds.Remove(roleId);
+    }
+
+    private void CancelForm() { _showForm = false; _editingId = null; _editRoleIds.Clear(); }
 
     private async Task Save()
     {
@@ -158,8 +197,12 @@
             }
             else
             {
-                ctx.TplOrgOffers.Add(new TplOrgOffer { Id = Guid.NewGuid(), Name = _editName.Trim(), Description = (string.IsNullOrWhiteSpace(_editDesc) ? null : _editDesc.Trim()), StageId = StageId,
-                    StartOffsetDays = _editOffset, DeadlineRule = (string.IsNullOrWhiteSpace(_editDeadlineRule) ? null : _editDeadlineRule.Trim()), DeadlineDays = _editDeadlineDays, SortOrder = _editSort });
+                var newOffer = new TplOrgOffer { Id = Guid.NewGuid(), Name = _editName.Trim(), Description = (string.IsNullOrWhiteSpace(_editDesc) ? null : _editDesc.Trim()), StageId = StageId,
+                    StartOffsetDays = _editOffset, DeadlineRule = (string.IsNullOrWhiteSpace(_editDeadlineRule) ? null : _editDeadlineRule.Trim()), DeadlineDays = _editDeadlineDays,
+                    SortOrder = _editSort };
+                ctx.TplOrgOffers.Add(newOffer);
+                foreach (var rid in _editRoleIds)
+                    ctx.TplOrgOfferRoles.Add(new TplOrgOfferRole { Id = Guid.NewGuid(), OfferId = newOffer.Id, RoleId = rid });
             }
             await ctx.SaveChangesAsync();
             CancelForm(); await LoadAsync();

@@ -44,5 +44,6 @@ public interface IApplicationDbContext
     DbSet<OrgOffer> OrgOffers { get; }
     DbSet<OrgTask> OrgTasks { get; }
 
+    DbSet<TplOrgOfferRole> TplOrgOfferRoles { get; }
     System.Threading.Tasks.Task<int> SaveChangesAsync(System.Threading.CancellationToken cancellationToken = default);
 }

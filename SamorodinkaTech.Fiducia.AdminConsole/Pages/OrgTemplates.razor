@@ -41,10 +41,6 @@
                     <label class="form-label">Описание</label>
                     <input class="form-control" @bind="_editDesc" />
                 </div>
-                <div class="col-md-2">
-                    <label class="form-label">Порядок</label>
-                    <input class="form-control" type="number" @bind="_editSort" />
-                </div>
                 <div class="col-md-1 d-flex align-items-end">
                     <button class="btn btn-success btn-sm me-1" @onclick="Save">✓</button>
                     <button class="btn btn-outline-secondary btn-sm" @onclick="CancelForm">✕</button>
@@ -56,7 +52,7 @@
 
 <table class="table table-sm table-hover">
     <thead>
-        <tr><th>Код</th><th>Название</th><th>Описание</th><th style="width:80px">Порядок</th><th style="width:100px">Действия</th></tr>
+        <tr><th>Код</th><th>Название</th><th>Описание</th><th style="width:100px">Действия</th></tr>
     </thead>
     <tbody>
     @foreach (var i in _items)
@@ -67,7 +63,6 @@
                 <a href="/admin/org-templates/intents/@i.Id/stages" class="text-decoration-none">@i.Name</a>
             </td>
             <td class="text-muted small">@i.Description</td>
-            <td>@i.SortOrder</td>
             <td>
                 <button class="btn btn-outline-secondary btn-sm me-1" @onclick="() => Edit(i)">✏️</button>
                 <button class="btn btn-outline-danger btn-sm" @onclick="() => Delete(i)">🗑️</button>

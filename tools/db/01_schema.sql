@@ -521,3 +521,13 @@ CREATE TABLE IF NOT EXISTS org_tasks (
 );
 CREATE INDEX IF NOT EXISTS ix_org_tasks_offer ON org_tasks(offer_id);
 CREATE INDEX IF NOT EXISTS ix_org_tasks_user ON org_tasks(assigned_user_id);
+
+-- tpl_org_offer_roles: связь офер-роль (пул кандидатов)
+CREATE TABLE IF NOT EXISTS tpl_org_offer_roles (
+    id uuid PRIMARY KEY,
+    offer_id uuid NOT NULL REFERENCES tpl_org_offers(id) ON DELETE CASCADE,
+    role_id uuid NOT NULL REFERENCES ref_roles(id) ON DELETE CASCADE,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+CREATE UNIQUE INDEX IF NOT EXISTS ux_tpl_offer_roles ON tpl_org_offer_roles(offer_id, role_id);
+CREATE INDEX IF NOT EXISTS ix_tpl_offer_roles_role ON tpl_org_offer_roles(role_id);

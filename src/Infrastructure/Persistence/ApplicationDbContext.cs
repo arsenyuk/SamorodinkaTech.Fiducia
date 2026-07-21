@@ -48,6 +48,7 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
     public DbSet<OrgOffer> OrgOffers => Set<OrgOffer>();
     public DbSet<OrgTask> OrgTasks => Set<OrgTask>();
 
+    public DbSet<TplOrgOfferRole> TplOrgOfferRoles => Set<TplOrgOfferRole>();
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(FiduciaDbContext).Assembly);
@@ -94,7 +95,6 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.Property(x => x.StartOffsetDays).HasColumnName("start_offset_days");
             b.Property(x => x.DeadlineRule).HasColumnName("deadline_rule").HasMaxLength(100);
             b.Property(x => x.DeadlineDays).HasColumnName("deadline_days");
-            b.Property(x => x.CandidateRoles).HasColumnName("candidate_roles");
             b.Property(x => x.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("CURRENT_TIMESTAMP");
             b.HasOne(x => x.Stage).WithMany(x => x.Offers).HasForeignKey(x => x.StageId);
         });
@@ -162,7 +162,6 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.Property(x => x.SortOrder).HasColumnName("sort_order").HasDefaultValue(0);
             b.Property(x => x.Status).HasColumnName("status").HasMaxLength(20).HasDefaultValue("PLANNED");
             b.Property(x => x.AssignedUserId).HasColumnName("assigned_user_id");
-            b.Property(x => x.CandidateRoles).HasColumnName("candidate_roles");
             b.Property(x => x.ActualStart).HasColumnName("actual_start").HasColumnType("date");
             b.Property(x => x.ActualEnd).HasColumnName("actual_end").HasColumnType("date");
             b.Property(x => x.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("CURRENT_TIMESTAMP");
@@ -191,6 +190,19 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.HasOne(x => x.TemplateTask).WithMany().HasForeignKey(x => x.TemplateTaskId);
             b.HasOne(x => x.AssignedUser).WithMany().HasForeignKey(x => x.AssignedUserId);
             b.HasOne(x => x.AssignedRole).WithMany().HasForeignKey(x => x.AssignedRoleId);
+        });
+
+
+        modelBuilder.Entity<TplOrgOfferRole>(b =>
+        {
+            b.ToTable("tpl_org_offer_roles");
+            b.HasKey(x => x.Id);
+            b.Property(x => x.Id).HasColumnName("id");
+            b.Property(x => x.OfferId).HasColumnName("offer_id").IsRequired();
+            b.Property(x => x.RoleId).HasColumnName("role_id").IsRequired();
+            b.Property(x => x.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("CURRENT_TIMESTAMP");
+            b.HasOne(x => x.Offer).WithMany(x => x.OfferRoles).HasForeignKey(x => x.OfferId);
+            b.HasOne(x => x.Role).WithMany().HasForeignKey(x => x.RoleId);
         });
 
 
