@@ -1,17 +1,17 @@
 namespace SamorodinkaTech.Fiducia.Domain.Entities;
 
 /// <summary>
-/// Связь офера с ролью — пул кандидатов (tpl_org_offer_roles).
+/// Шаблон: связь офера с ролью — пул кандидатов (tpl_org_offer_roles).
 /// </summary>
 public class TplOrgOfferRole
 {
     /// <summary>Идентификатор (id).</summary>
     public Guid Id { get; set; }
 
-    /// <summary>Идентификатор офера (offer_id).</summary>
-    public Guid OfferId { get; set; }
+    /// <summary>Идентификатор шаблона офера (tpl_offer_id).</summary>
+    public Guid TplOfferId { get; set; }
 
-    /// <summary>Офер.</summary>
+    /// <summary>Шаблон офера.</summary>
     public TplOrgOffer? Offer { get; set; }
 
     /// <summary>Идентификатор роли (role_id).</summary>

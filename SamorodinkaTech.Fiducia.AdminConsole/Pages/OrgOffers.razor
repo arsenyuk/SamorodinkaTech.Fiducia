@@ -151,8 +151,8 @@
             }
             _roles = await ctx.Roles.OrderBy(x => x.Name).ToListAsync();
             _items = await ctx.TplOrgOffers.Where(x => x.StageId == StageId).OrderBy(x => x.SortOrder).ThenBy(x => x.Name).ToListAsync();
-            var links = await ctx.TplOrgOfferRoles.Where(x => _items.Select(o => o.Id).Contains(x.OfferId)).ToListAsync();
-            _offerRoleNames = links.GroupBy(x => x.OfferId).ToDictionary(
+            var links = await ctx.TplOrgOfferRoles.Where(x => _items.Select(o => o.Id).Contains(x.TplOfferId)).ToListAsync();
+            _offerRoleNames = links.GroupBy(x => x.TplOfferId).ToDictionary(
                 g => g.Key,
                 g => g.Select(l => _roles.FirstOrDefault(r => r.Id == l.RoleId)?.Name ?? "?").Where(n => n != "?").ToList()
             );
@@ -167,7 +167,7 @@
         _editSort = o.SortOrder;
         _editRoleIds.Clear();
         await using var ctx = await DbFactory.CreateDbContextAsync();
-        var links = await ctx.TplOrgOfferRoles.Where(x => x.OfferId == o.Id).Select(x => x.RoleId).ToListAsync();
+        var links = await ctx.TplOrgOfferRoles.Where(x => x.TplOfferId == o.Id).Select(x => x.RoleId).ToListAsync();
         foreach (var rid in links) _editRoleIds.Add(rid);
         _showForm = true;
     }
@@ -202,7 +202,7 @@
                     SortOrder = _editSort };
                 ctx.TplOrgOffers.Add(newOffer);
                 foreach (var rid in _editRoleIds)
-                    ctx.TplOrgOfferRoles.Add(new TplOrgOfferRole { Id = Guid.NewGuid(), OfferId = newOffer.Id, RoleId = rid });
+                    ctx.TplOrgOfferRoles.Add(new TplOrgOfferRole { Id = Guid.NewGuid(), TplOfferId = newOffer.Id, RoleId = rid });
             }
             await ctx.SaveChangesAsync();
             CancelForm(); await LoadAsync();

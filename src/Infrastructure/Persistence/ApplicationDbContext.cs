@@ -467,10 +467,10 @@ modelBuilder.ApplyConfigurationsFromAssembly(typeof(FiduciaDbContext).Assembly);
             b.ToTable("tpl_org_offer_roles");
             b.HasKey(x => x.Id);
             b.Property(x => x.Id).HasColumnName("id");
-            b.Property(x => x.OfferId).HasColumnName("offer_id").IsRequired();
+            b.Property(x => x.TplOfferId).HasColumnName("tpl_offer_id").IsRequired();
             b.Property(x => x.RoleId).HasColumnName("role_id").IsRequired();
             b.Property(x => x.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("CURRENT_TIMESTAMP");
-            b.HasOne(x => x.Offer).WithMany(x => x.OfferRoles).HasForeignKey(x => x.OfferId);
+            b.HasOne(x => x.Offer).WithMany(x => x.OfferRoles).HasForeignKey(x => x.TplOfferId);
             b.HasOne(x => x.Role).WithMany().HasForeignKey(x => x.RoleId);
         });
 
