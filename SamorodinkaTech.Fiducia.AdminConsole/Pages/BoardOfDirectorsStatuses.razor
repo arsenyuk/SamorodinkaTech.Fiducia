@@ -1,0 +1,56 @@
+@page "/admin/board-of-directors-statuses"
+@using Microsoft.EntityFrameworkCore
+@inject IDbContextFactory<SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext> DbFactory
+@inject ILogger<BoardOfDirectorsStatuses> Logger
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "SYS_ADMIN")]
+@using SamorodinkaTech.Fiducia.Domain.Entities
+
+<h3>Справочник статусов Совета директоров</h3>
+
+@if (_items is null)
+{
+    <p><em>Загрузка...</em></p>
+}
+else if (_items.Count == 0)
+{
+    <p class="text-muted">Нет записей.</p>
+}
+else
+{
+    <table class="table table-sm">
+        <thead>
+            <tr>
+                <th>Код</th>
+                <th>Наименование</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in _items)
+            {
+                <tr>
+                    <td><code>@item.Code</code></td>
+                    <td>@item.Name</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<BoardOfDirectorsStatus>? _items;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+            _items = await ctx.BoardOfDirectorsStatuses
+                .OrderBy(s => s.Code)
+                .ToListAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Ошибка загрузки справочника статусов Совета директоров");
+        }
+    }
+}

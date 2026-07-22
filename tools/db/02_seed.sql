@@ -69,6 +69,13 @@ INSERT INTO ref_board_roles(id, code, name, sort_order) VALUES
     ('ffffffff-ffff-ffff-ffff-fffffffffff6','SECRETARY','Секретарь СД',6)
 ON CONFLICT (code) DO NOTHING;
 
+-- Статусы Совета директоров
+INSERT INTO ref_board_of_directors_statuses(id, code, name) VALUES
+    ('99999999-9999-9999-9999-999999999991','DRAFT','Черновик'),
+    ('99999999-9999-9999-9999-999999999992','ACTIVE','Действующий'),
+    ('99999999-9999-9999-9999-999999999993','INACTIVE','Недействующий')
+ON CONFLICT (code) DO NOTHING;
+
 -- Базовое наполнение: 10 комитетов Совета директоров
 INSERT INTO committees (id, code, name, description, behavior_type, is_mandatory_for_public, is_active, created_at) VALUES
     ('10000000-0000-0000-0000-000000000001','AUDIT','По аудиту',

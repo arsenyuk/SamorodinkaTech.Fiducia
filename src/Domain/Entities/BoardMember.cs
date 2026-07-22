@@ -27,7 +27,11 @@ public class BoardMember
     /// <summary>Ссылка на пользователя системы (user_id). Заполняется при выборе из LDAP.</summary>
     public Guid? UserId { get; set; }
 
+    /// <summary>Ссылка на Совет директоров (board_of_directors_id).</summary>
+    public Guid? BoardOfDirectorsId { get; set; }
+
     public OsaMeeting? OsaMeeting { get; set; }
+    public BoardOfDirectors? BoardOfDirectors { get; set; }
     public BoardMemberType? BoardMemberType { get; set; }
     public User? User { get; set; }
 }

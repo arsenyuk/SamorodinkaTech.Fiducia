@@ -25,6 +25,8 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
     public DbSet<OsaForm> OsaForms => Set<OsaForm>();
     public DbSet<OsaMeeting> OsaMeetings => Set<OsaMeeting>();
     public DbSet<BoardMember> BoardMembers => Set<BoardMember>();
+    public DbSet<BoardOfDirectors> BoardsOfDirectors => Set<BoardOfDirectors>();
+    public DbSet<BoardOfDirectorsStatus> BoardOfDirectorsStatuses => Set<BoardOfDirectorsStatus>();
     public DbSet<BoardMemberType> BoardMemberTypes => Set<BoardMemberType>();
     public DbSet<BoardRole> BoardRoles => Set<BoardRole>();
     public DbSet<BoardMemberAppointment> BoardMemberAppointments => Set<BoardMemberAppointment>();
@@ -218,6 +220,35 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
              .OnDelete(DeleteBehavior.Cascade);
         });
 
+        modelBuilder.Entity<BoardOfDirectors>(b =>
+        {
+            b.ToTable("board_of_directors");
+            b.HasKey(x => x.Id);
+            b.Property(x => x.Id).HasColumnName("id");
+            b.Property(x => x.OsaMeetingId).HasColumnName("osa_meeting_id").IsRequired();
+            b.Property(x => x.GosaYear).HasColumnName("gosa_year");
+            b.Property(x => x.StartedAt).HasColumnName("started_at");
+            b.Property(x => x.EndedAt).HasColumnName("ended_at");
+            b.Property(x => x.StatusId).HasColumnName("status_id").IsRequired();
+            b.HasOne(x => x.OsaMeeting)
+             .WithMany()
+             .HasForeignKey(x => x.OsaMeetingId)
+             .OnDelete(DeleteBehavior.Cascade);
+            b.HasOne(x => x.Status)
+             .WithMany()
+             .HasForeignKey(x => x.StatusId);
+        });
+
+        modelBuilder.Entity<BoardOfDirectorsStatus>(b =>
+        {
+            b.ToTable("ref_board_of_directors_statuses");
+            b.HasKey(x => x.Id);
+            b.Property(x => x.Id).HasColumnName("id");
+            b.Property(x => x.Code).HasColumnName("code").HasMaxLength(20);
+            b.Property(x => x.Name).HasColumnName("name").HasMaxLength(200).IsRequired();
+            b.HasIndex(x => x.Code).IsUnique();
+        });
+
         modelBuilder.Entity<BoardMember>(b =>
         {
             b.ToTable("board_members");
@@ -229,6 +260,7 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.Property(x => x.Account).HasColumnName("account").HasMaxLength(100);
             b.Property(x => x.Email).HasColumnName("email").HasMaxLength(200);
             b.Property(x => x.UserId).HasColumnName("user_id");
+            b.Property(x => x.BoardOfDirectorsId).HasColumnName("board_of_directors_id");
             b.HasOne(x => x.BoardMemberType)
              .WithMany()
              .HasForeignKey(x => x.BoardMemberTypeId);
@@ -239,6 +271,9 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.HasOne(x => x.User)
              .WithMany()
              .HasForeignKey(x => x.UserId);
+            b.HasOne(x => x.BoardOfDirectors)
+             .WithMany()
+             .HasForeignKey(x => x.BoardOfDirectorsId);
         });
 
         modelBuilder.Entity<BoardMemberType>(b =>

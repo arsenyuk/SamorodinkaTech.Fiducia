@@ -21,6 +21,8 @@ public interface IApplicationDbContext
     DbSet<OsaForm> OsaForms { get; }
     DbSet<OsaMeeting> OsaMeetings { get; }
     DbSet<BoardMember> BoardMembers { get; }
+    DbSet<BoardOfDirectors> BoardsOfDirectors { get; }
+    DbSet<BoardOfDirectorsStatus> BoardOfDirectorsStatuses { get; }
     DbSet<BoardMemberType> BoardMemberTypes { get; }
     DbSet<BoardRole> BoardRoles { get; }
     DbSet<BoardMemberAppointment> BoardMemberAppointments { get; }

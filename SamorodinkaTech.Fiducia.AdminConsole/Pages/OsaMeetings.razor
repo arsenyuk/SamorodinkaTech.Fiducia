@@ -332,7 +332,7 @@
 
                 <div class="mb-3">
                     <div class="d-flex justify-content-between align-items-center mb-1">
-                        <span class="fw-bold">Готовимся к первому заседанию</span>
+                        <span class="fw-bold">Готовимся к первому заседанию @(editGosaYear.HasValue ? $"(Совет директоров {editGosaYear.Value})" : "")</span>
                     </div>
                     <div class="text-muted small mb-2">Заполните все разрешённые поля для каждого члена СД (ФИО, учётная запись, эл. почта).</div>
                     @if (!string.IsNullOrEmpty(ldapDuplicateWarning))
@@ -567,22 +567,9 @@
                                 | <strong>Членов СД:</strong> @(editBoardMemberNumber?.ToString() ?? "—")
                             </div>
                             <div class="col-md-4">
-                                @if (editExecDirectors || editNonExecDirectors || editIndepDirectors)
-                                {
-                                    var parts = new List<string>();
-                                    if (editExecDirectors) parts.Add($"исполнительных: {editExecDirectorsCount ?? 0}");
-                                    if (editNonExecDirectors) parts.Add($"внешних: {editNonExecDirectorsCount ?? 0}");
-                                    if (editIndepDirectors) parts.Add($"независимых: {editIndepDirectorsCount ?? 0}");
-                                    <span><strong>Типы:</strong> @string.Join(", ", parts)</span>
-                                }
-                            </div>
-                            <div class="col-md-4">
                                 <strong>Состав утверждён:</strong> @(editBoardCompositionApproved ? "да" : "нет")
                                 @if (editSecretaryProvided) { <span>| <strong>Секретарь:</strong> да</span> }
                                 @if (editTemporaryChairProvided) { <span>| <strong>Вр. предс.:</strong> @TempChairLabel</span> }
-                            </div>
-                            <div class="col-md-4">
-                                <strong>Файлов:</strong> @meetingFiles.Count
                             </div>
                         </div>
                     </div>
@@ -592,6 +579,16 @@
                     var secRoleId = boardRoles.FirstOrDefault(x => x.Code == "SECRETARY")?.Id;
                     <div class="mt-2">
                         <strong>Состав СД:</strong>
+                        @{
+                            var typeParts = new List<string>();
+                            if (editExecDirectors) typeParts.Add($"исполнительных: {editExecDirectorsCount ?? 0}");
+                            if (editNonExecDirectors) typeParts.Add($"внешних: {editNonExecDirectorsCount ?? 0}");
+                            if (editIndepDirectors) typeParts.Add($"независимых: {editIndepDirectorsCount ?? 0}");
+                        }
+                        @if (typeParts.Count > 0)
+                        {
+                            <span class="text-muted small"> (@string.Join(", ", typeParts))</span>
+                        }
                         <table class="table table-sm table-borderless small mb-0 mt-1">
                             <thead>
                                 <tr><th>ФИО</th><th>Роль</th><th>Тип участника</th></tr>
@@ -612,7 +609,7 @@
                 @if (meetingFiles.Any())
                 {
                     <div class="mt-2">
-                        <strong>Файлы:</strong>
+                        <strong>Файлы (@meetingFiles.Count):</strong>
                         <table class="table table-sm table-borderless small mb-0 mt-1">
                             <thead>
                                 <tr><th>Тип</th><th>Наименование</th><th>Имя файла</th><th>Размер</th></tr>
@@ -631,11 +628,32 @@
                         </table>
                     </div>
                 }
+                @if (!isFinalized && editBoardCompositionApproved && editHasBoard)
+                {
+                    @if (!string.IsNullOrEmpty(_boardActivationSummary))
+                    {
+                        <div class="alert alert-info py-2 mt-2">
+                            🔄 <strong>Утверждение нового состава Совета директоров</strong>
+                            <div class="small mt-1">@_boardActivationSummary</div>
+                        </div>
+                    }
+                    @if (!string.IsNullOrEmpty(_firstBoardTemplateSummary))
+                    {
+                        <div class="alert alert-success py-2 mt-2">
+                            ✅ <strong>При финализации будет создан план задач «Первое заседание СД»</strong>
+                            <div class="small mt-1">@_firstBoardTemplateSummary</div>
+                        </div>
+                    }
+                }
                 @if (isFinalized)
                 {
                     <div class="alert alert-success py-2">
                         <div>✅ <strong>ОСА зафиксирована</strong></div>
                         <div class="small mt-1">Дата: @finalizedAt?.ToString("dd.MM.yyyy HH:mm") | Кем: Администратор</div>
+                        @if (_firstBoardTemplateCreated)
+                        {
+                            <div class="small mt-1">📋 План задач «Первое заседание СД» создан.</div>
+                        }
                     </div>
                 }
             }
@@ -880,6 +898,8 @@
     private bool editSecretarySignsProtocols;
     private bool editTemporaryChairProvided;
     private string? editTemporaryChairSelection = "CHARTER_SENIOR";
+    private Guid? editBoardOfDirectorsId;
+    private Guid? editLegalEntityId;
     private bool ldapEnabled;
     private IBoardMemberLdapService? ldapSvc;
     private List<BoardMemberCandidate> ldapCandidates = new();
@@ -889,6 +909,10 @@
     private List<BoardMemberType> memberTypes = new();
     private List<BoardRole> boardRoles = new();
     private List<BoardMemberAppointmentStatus> appointmentStatuses = new();
+    private List<BoardOfDirectorsStatus> boardOfDirectorsStatuses = new();
+    private string? _firstBoardTemplateSummary;
+    private bool _firstBoardTemplateCreated;
+    private string? _boardActivationSummary;
     private bool isFinalized;
     private DateTime? finalizedAt;
 
@@ -1121,6 +1145,50 @@
             if (m is null) return;
             m.Status = "APPROVED";
             m.FinalizedAt = DateTime.UtcNow;
+
+            // Если в рамках данного ОСА утверждён новый состав СД — активируем его
+            // и деактивируем предыдущий
+            if (editBoardCompositionApproved && editHasBoard && editBoardOfDirectorsId.HasValue)
+            {
+                var boardDate = m.GosaWindowStart.HasValue
+                    ? m.GosaWindowStart.Value
+                    : DateOnly.FromDateTime(DateTime.UtcNow);
+
+                var inactiveStatusId = await ctx.BoardOfDirectorsStatuses
+                    .Where(s => s.Code == "INACTIVE")
+                    .Select(s => s.Id)
+                    .FirstOrDefaultAsync();
+                var activeStatusId = await ctx.BoardOfDirectorsStatuses
+                    .Where(s => s.Code == "ACTIVE")
+                    .Select(s => s.Id)
+                    .FirstOrDefaultAsync();
+
+                // Деактивируем предыдущий действующий СД (не связанный с текущим ОСА)
+                var prevBoard = await ctx.BoardsOfDirectors
+                    .Where(b => b.OsaMeetingId != editingMeetingId.Value
+                             && b.Status.Code == "ACTIVE")
+                    .OrderByDescending(b => b.StartedAt)
+                    .FirstOrDefaultAsync();
+                if (prevBoard != null)
+                {
+                    prevBoard.EndedAt = boardDate.AddDays(-1);
+                    prevBoard.StatusId = inactiveStatusId;
+                }
+
+                // Активируем СД текущего ОСА
+                var currentBoard = await ctx.BoardsOfDirectors
+                    .FirstOrDefaultAsync(b => b.Id == editBoardOfDirectorsId.Value);
+                if (currentBoard != null)
+                {
+                    currentBoard.StartedAt = boardDate;
+                    currentBoard.StatusId = activeStatusId;
+                }
+
+                // Запускаем создание задач по шаблону «Первое заседание»
+                await InstantiateFirstBoardTemplate(ctx, editLegalEntityId);
+                _firstBoardTemplateCreated = true;
+            }
+
             // TODO: получить ID текущего пользователя
             await ctx.SaveChangesAsync();
             isFinalized = true;
@@ -1169,6 +1237,26 @@
             // Привязываем строки без UserId к справочнику пользователей (LDAP)
             await EnsureUserIds(ctx, validateExisting: true);
 
+            // Создаём/обновляем запись Совета директоров
+            var board = await ctx.BoardsOfDirectors.FirstOrDefaultAsync(x => x.OsaMeetingId == editingMeetingId.Value);
+            if (board == null)
+            {
+                var draftStatusId = boardOfDirectorsStatuses.FirstOrDefault(s => s.Code == "DRAFT")?.Id ?? Guid.Empty;
+                board = new SamorodinkaTech.Fiducia.Domain.Entities.BoardOfDirectors
+                {
+                    Id = Guid.NewGuid(),
+                    OsaMeetingId = editingMeetingId.Value,
+                    GosaYear = editGosaYear,
+                    StatusId = draftStatusId
+                };
+                ctx.BoardsOfDirectors.Add(board);
+            }
+            else
+            {
+                board.GosaYear = editGosaYear;
+            }
+            editBoardOfDirectorsId = board.Id;
+
             // Сохраняем состав СД, если утверждён
             if (editBoardCompositionApproved && editHasBoard)
             {
@@ -1185,6 +1273,7 @@
                     {
                         Id = Guid.NewGuid(),
                         OsaMeetingId = editingMeetingId.Value,
+                        BoardOfDirectorsId = editBoardOfDirectorsId,
                         FullName = row.Name.Trim(),
                         BoardMemberTypeId = row.MemberTypeId,
                         Account = string.IsNullOrWhiteSpace(row.Account) ? null : row.Account.Trim(),
@@ -1524,13 +1613,35 @@
                 row.LdapLogin = row.Account;
         }
 
+        // Загружаем или создаём запись Совета директоров
+        var board = await ctx.BoardsOfDirectors.FirstOrDefaultAsync(x => x.OsaMeetingId == meetingId);
+        if (board == null && editGosaYear.HasValue)
+        {
+            var draftStatusId = await ctx.BoardOfDirectorsStatuses
+                .Where(s => s.Code == "DRAFT")
+                .Select(s => s.Id)
+                .FirstOrDefaultAsync();
+            board = new SamorodinkaTech.Fiducia.Domain.Entities.BoardOfDirectors
+            {
+                Id = Guid.NewGuid(),
+                OsaMeetingId = meetingId,
+                GosaYear = editGosaYear.Value,
+                StatusId = draftStatusId
+            };
+            ctx.BoardsOfDirectors.Add(board);
+            await ctx.SaveChangesAsync();
+        }
+        editBoardOfDirectorsId = board?.Id;
+
         memberTypes = await ctx.BoardMemberTypes.OrderBy(x => x.Code).ToListAsync();
         boardRoles = await ctx.BoardRoles.OrderBy(x => x.SortOrder).ToListAsync();
         appointmentStatuses = await ctx.BoardMemberAppointmentStatuses.OrderBy(x => x.Code).ToListAsync();
+        boardOfDirectorsStatuses = await ctx.BoardOfDirectorsStatuses.OrderBy(x => x.Code).ToListAsync();
         editTemporaryChairSelection = m.TemporaryChairSelection ?? "CHARTER_SENIOR";
 
         // Загружаем ОКОПФ первого ЮЛ для валидации
         var le = await ctx.LegalEntities.Include(x => x.Okopf).OrderBy(x => x.Name).FirstOrDefaultAsync();
+        editLegalEntityId = le?.Id;
         editOkopfCode = le?.Okopf?.Code;
         editIsPao = le?.Okopf?.Code == "12247";
         editHasBoard = await ctx.LegalEntityBoardSettings.AnyAsync();
@@ -1562,6 +1673,7 @@
         gosaError = null;
 
         await LoadMeetingFiles();
+        await LoadFirstBoardTemplateSummary(ctx);
         StateHasChanged();
     }
 
@@ -2254,6 +2366,26 @@
             // Привязываем строки без UserId к справочнику пользователей (LDAP)
             await EnsureUserIds(ctx, validateExisting: true);
 
+            // Создаём/обновляем запись Совета директоров
+            var board = await ctx.BoardsOfDirectors.FirstOrDefaultAsync(x => x.OsaMeetingId == editingMeetingId.Value);
+            if (board == null)
+            {
+                var draftStatusId = boardOfDirectorsStatuses.FirstOrDefault(s => s.Code == "DRAFT")?.Id ?? Guid.Empty;
+                board = new SamorodinkaTech.Fiducia.Domain.Entities.BoardOfDirectors
+                {
+                    Id = Guid.NewGuid(),
+                    OsaMeetingId = editingMeetingId.Value,
+                    GosaYear = editGosaYear,
+                    StatusId = draftStatusId
+                };
+                ctx.BoardsOfDirectors.Add(board);
+            }
+            else
+            {
+                board.GosaYear = editGosaYear;
+            }
+            editBoardOfDirectorsId = board.Id;
+
             // Обновляем состав СД: удаляем старых, создаём новых
             var oldMembers = await ctx.BoardMembers.Where(x => x.OsaMeetingId == editingMeetingId.Value).ToListAsync();
             var oldMemberIds = oldMembers.Select(x => x.Id).ToList();
@@ -2268,6 +2400,7 @@
                 {
                     Id = Guid.NewGuid(),
                     OsaMeetingId = editingMeetingId.Value,
+                    BoardOfDirectorsId = editBoardOfDirectorsId,
                     FullName = row.Name.Trim(),
                     BoardMemberTypeId = row.MemberTypeId,
                     Account = string.IsNullOrWhiteSpace(row.Account) ? null : row.Account.Trim(),
@@ -2564,6 +2697,128 @@
         public DateOnly? GosaWindowEnd { get; set; }
         public DateTime CreatedAt { get; set; }
         public string Status { get; set; } = "DRAFT";
+    }
+
+    private async Task InstantiateFirstBoardTemplate(IApplicationDbContext ctx, Guid? legalEntityId)
+    {
+        if (!legalEntityId.HasValue)
+        {
+            Logger.LogWarning("Пропуск инстанцирования шаблона FIRST_BOARD: не задан LegalEntityId");
+            return;
+        }
+
+        var template = await ctx.TplOrgIntents
+            .Include(t => t.Stages)!.ThenInclude(s => s.Offers)!.ThenInclude(o => o.Tasks)
+            .FirstOrDefaultAsync(t => t.Code == "FIRST_BOARD");
+        if (template == null)
+        {
+            Logger.LogWarning("Пропуск инстанцирования: шаблон FIRST_BOARD не найден");
+            return;
+        }
+
+        var intent = new OrgIntent
+        {
+            Id = Guid.NewGuid(),
+            LegalEntityId = legalEntityId.Value,
+            TemplateIntentId = template.Id,
+            Name = template.Name,
+            Description = template.Description,
+            SortOrder = template.SortOrder,
+            Status = "PLANNED"
+        };
+        ctx.OrgIntents.Add(intent);
+
+        if (template.Stages != null)
+        {
+            foreach (var ts in template.Stages.OrderBy(s => s.SortOrder))
+            {
+                var stage = new OrgStage
+                {
+                    Id = Guid.NewGuid(),
+                    IntentId = intent.Id,
+                    TemplateStageId = ts.Id,
+                    Name = ts.Name,
+                    Description = ts.Description,
+                    SortOrder = ts.SortOrder,
+                    Status = "PLANNED"
+                };
+                ctx.OrgStages.Add(stage);
+
+                if (ts.Offers != null)
+                {
+                    foreach (var to in ts.Offers.OrderBy(o => o.SortOrder))
+                    {
+                        var offer = new OrgOffer
+                        {
+                            Id = Guid.NewGuid(),
+                            StageId = stage.Id,
+                            TemplateOfferId = to.Id,
+                            Name = to.Name,
+                            Description = to.Description,
+                            SortOrder = to.SortOrder,
+                            Status = "PLANNED"
+                        };
+                        ctx.OrgOffers.Add(offer);
+
+                        if (to.Tasks != null)
+                        {
+                            foreach (var tt in to.Tasks.OrderBy(t => t.SortOrder))
+                            {
+                                ctx.OrgTasks.Add(new OrgTask
+                                {
+                                    Id = Guid.NewGuid(),
+                                    OfferId = offer.Id,
+                                    TemplateTaskId = tt.Id,
+                                    Name = tt.Name,
+                                    Description = tt.Description,
+                                    SortOrder = tt.SortOrder,
+                                    Status = "PLANNED",
+                                    AssignedRoleId = tt.AssignedRoleId
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        Logger.LogDebug("Шаблон FIRST_BOARD инстанцирован для LegalEntity {LegalEntityId}", legalEntityId);
+    }
+
+    private async Task LoadFirstBoardTemplateSummary(IApplicationDbContext ctx)
+    {
+        _firstBoardTemplateSummary = null;
+        if (!editBoardCompositionApproved || !editHasBoard)
+            return;
+
+        var template = await ctx.TplOrgIntents
+            .Include(t => t.Stages)!.ThenInclude(s => s.Offers)
+            .FirstOrDefaultAsync(t => t.Code == "FIRST_BOARD");
+        if (template == null)
+        {
+            _firstBoardTemplateSummary = "Шаблон «Первое заседание» не найден.";
+            return;
+        }
+
+        var stageCount = template.Stages?.Count ?? 0;
+        var offerCount = template.Stages?.Sum(s => s.Offers?.Count ?? 0) ?? 0;
+        _firstBoardTemplateSummary = $"Шаблон «{template.Name}»: {stageCount} этап(а), {offerCount} задач(и) будут созданы для юридического лица.";
+
+        // Сводка по активации/деактивации СД
+        _boardActivationSummary = null;
+        var boardDate = editGosaStart;
+        var newBoardName = editGosaYear.HasValue ? $"Совет директоров {editGosaYear.Value}" : "новый состав";
+
+        var prevBoard = await ctx.BoardsOfDirectors
+            .Where(b => b.Status.Code == "ACTIVE")
+            .OrderByDescending(b => b.StartedAt)
+            .FirstOrDefaultAsync();
+        if (prevBoard != null)
+        {
+            var prevName = prevBoard.GosaYear.HasValue ? $"Совет директоров {prevBoard.GosaYear.Value}" : "предыдущий состав";
+            _boardActivationSummary = $"Состав «{prevName}» будет деактивирован (окончание полномочий: {boardDate.AddDays(-1):dd.MM.yyyy}). ";
+        }
+        _boardActivationSummary += $"«{newBoardName}» будет активирован (дата начала полномочий: {boardDate:dd.MM.yyyy}).";
     }
 
     private class MeetingFileVm

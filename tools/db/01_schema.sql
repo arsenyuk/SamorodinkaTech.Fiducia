@@ -223,13 +223,34 @@ CREATE TABLE IF NOT EXISTS osa_meeting_files (
 CREATE INDEX IF NOT EXISTS ix_omf_osa_meeting_id ON osa_meeting_files(osa_meeting_id);
 CREATE INDEX IF NOT EXISTS ix_omf_file_id ON osa_meeting_files(file_id);
 
+-- Справочник: ref_board_of_directors_statuses (статусы Совета директоров)
+CREATE TABLE IF NOT EXISTS ref_board_of_directors_statuses (
+    id uuid PRIMARY KEY,
+    code varchar(20) UNIQUE NOT NULL,
+    name varchar(200) NOT NULL
+);
+
+-- Таблица: board_of_directors (головная запись состава СД)
+CREATE TABLE IF NOT EXISTS board_of_directors (
+    id uuid PRIMARY KEY,
+    osa_meeting_id uuid NOT NULL REFERENCES osa_meetings(id) ON DELETE CASCADE,
+    status_id uuid NOT NULL REFERENCES ref_board_of_directors_statuses(id),
+    gosa_year integer,
+    started_at date,
+    ended_at date
+);
+
 -- Таблица: board_members (члены СД, состав утверждается ОСА)
 CREATE TABLE IF NOT EXISTS board_members (
     id uuid PRIMARY KEY,
     osa_meeting_id uuid NOT NULL REFERENCES osa_meetings(id) ON DELETE CASCADE,
+    board_of_directors_id uuid REFERENCES board_of_directors(id),
     full_name varchar(300) NOT NULL,
     position varchar(200),
-    board_member_type_id uuid REFERENCES ref_board_member_types(id)
+    board_member_type_id uuid REFERENCES ref_board_member_types(id),
+    account varchar(100),
+    email varchar(200),
+    user_id uuid
 );
 CREATE INDEX IF NOT EXISTS ix_bm_osa_meeting_id ON board_members(osa_meeting_id);
 
