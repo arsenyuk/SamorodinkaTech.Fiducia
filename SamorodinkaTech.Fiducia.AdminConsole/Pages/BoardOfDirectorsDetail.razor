@@ -43,7 +43,6 @@ else
                     <th>Должность</th>
                     <th>Начало полномочий</th>
                     <th>Окончание полномочий</th>
-                    <th>Статус</th>
                 </tr>
             </thead>
             <tbody>
@@ -54,7 +53,6 @@ else
                         <td>@member.RoleName</td>
                         <td>@member.AppointmentStartedAt?.ToString("dd.MM.yyyy")</td>
                         <td>@member.AppointmentEndedAt?.ToString("dd.MM.yyyy")</td>
-                        <td>@member.AppointmentStatus</td>
                     </tr>
                 }
             </tbody>
@@ -77,7 +75,6 @@ else
         public string? RoleName { get; init; }
         public DateOnly? AppointmentStartedAt { get; init; }
         public DateOnly? AppointmentEndedAt { get; init; }
-        public string? AppointmentStatus { get; init; }
     }
 
     protected override async Task OnInitializedAsync()
@@ -115,11 +112,6 @@ else
                         .Where(a => a.BoardMemberId == m.Id)
                         .OrderByDescending(a => a.StartedAt)
                         .Select(a => a.EndedAt)
-                        .FirstOrDefault(),
-                    AppointmentStatus = ctx.BoardMemberAppointments
-                        .Where(a => a.BoardMemberId == m.Id)
-                        .OrderByDescending(a => a.StartedAt)
-                        .Select(a => a.Status!.Name)
                         .FirstOrDefault()
                 })
                 .ToListAsync();
