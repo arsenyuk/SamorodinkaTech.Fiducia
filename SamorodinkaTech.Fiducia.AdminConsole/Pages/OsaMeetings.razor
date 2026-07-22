@@ -1182,6 +1182,26 @@
                 {
                     currentBoard.StartedAt = boardDate;
                     currentBoard.StatusId = activeStatusId;
+
+                    // Переводим назначения членов СД из DRAFT в ACTIVE
+                    var appointmentDraftId = await ctx.BoardMemberAppointmentStatuses
+                        .Where(s => s.Code == "DRAFT")
+                        .Select(s => s.Id)
+                        .FirstOrDefaultAsync();
+                    var appointmentActiveId = await ctx.BoardMemberAppointmentStatuses
+                        .Where(s => s.Code == "ACTIVE")
+                        .Select(s => s.Id)
+                        .FirstOrDefaultAsync();
+                    if (appointmentDraftId != Guid.Empty && appointmentActiveId != Guid.Empty)
+                    {
+                        var appointmentIds = await ctx.BoardMembers
+                            .Where(bm => bm.BoardOfDirectorsId == currentBoard.Id)
+                            .SelectMany(bm => ctx.BoardMemberAppointments
+                                .Where(a => a.BoardMemberId == bm.Id && a.StatusId == appointmentDraftId))
+                            .ToListAsync();
+                        foreach (var app in appointmentIds)
+                            app.StatusId = appointmentActiveId;
+                    }
                 }
 
                 // Запускаем создание задач по шаблону «Первое заседание»
@@ -1290,7 +1310,7 @@
                             RoleId = row.RoleId.Value,
                             RoleCode = boardRoles.FirstOrDefault(r => r.Id == row.RoleId.Value)?.Code ?? "",
                             StartedAt = startedAt,
-                            StatusId = appointmentStatuses.FirstOrDefault(s => s.Code == "ACTIVE")?.Id ?? Guid.Empty
+                            StatusId = appointmentStatuses.FirstOrDefault(s => s.Code == "DRAFT")?.Id ?? Guid.Empty
                         });
                     }
                 }
@@ -2418,7 +2438,7 @@
                         RoleId = row.RoleId.Value,
                         RoleCode = boardRoles.FirstOrDefault(r => r.Id == row.RoleId.Value)?.Code ?? "",
                         StartedAt = startedAt,
-                        StatusId = appointmentStatuses.FirstOrDefault(s => s.Code == "ACTIVE")?.Id ?? Guid.Empty
+                        StatusId = appointmentStatuses.FirstOrDefault(s => s.Code == "DRAFT")?.Id ?? Guid.Empty
                     });
                 }
             }
