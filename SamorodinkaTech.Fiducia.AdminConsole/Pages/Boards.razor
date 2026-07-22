@@ -24,6 +24,7 @@ else
                 <th>Дата начала полномочий</th>
                 <th>Дата окончания полномочий</th>
                 <th>Статус</th>
+                <th></th>
             </tr>
         </thead>
         <tbody>
@@ -34,6 +35,9 @@ else
                     <td>@(item.StartedAt?.ToString("dd.MM.yyyy") ?? "—")</td>
                     <td>@(item.EndedAt?.ToString("dd.MM.yyyy") ?? "—")</td>
                     <td>@(item.Status?.Name ?? "—")</td>
+                    <td>
+                        <a href="/admin/board-of-directors/@item.Id" class="btn btn-sm btn-outline-primary">Открыть</a>
+                    </td>
                 </tr>
             }
         </tbody>
