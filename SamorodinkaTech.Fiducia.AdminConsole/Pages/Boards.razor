@@ -1,0 +1,62 @@
+@page "/admin/board-of-directors-list"
+@using Microsoft.EntityFrameworkCore
+@inject IDbContextFactory<SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext> DbFactory
+@inject ILogger<Boards> Logger
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "SYS_ADMIN")]
+@using SamorodinkaTech.Fiducia.Domain.Entities
+
+<h3>Совет СД</h3>
+
+@if (_items is null)
+{
+    <p><em>Загрузка...</em></p>
+}
+else if (_items.Count == 0)
+{
+    <p class="text-muted">Нет записей.</p>
+}
+else
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Год ГОСА</th>
+                <th>Дата начала полномочий</th>
+                <th>Дата окончания полномочий</th>
+                <th>Статус</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in _items)
+            {
+                <tr>
+                    <td>@(item.GosaYear?.ToString() ?? "—")</td>
+                    <td>@(item.StartedAt?.ToString("dd.MM.yyyy") ?? "—")</td>
+                    <td>@(item.EndedAt?.ToString("dd.MM.yyyy") ?? "—")</td>
+                    <td>@(item.Status?.Name ?? "—")</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<BoardOfDirectors>? _items;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+            _items = await ctx.BoardsOfDirectors
+                .Include(b => b.Status)
+                .OrderByDescending(b => b.GosaYear)
+                .ThenByDescending(b => b.StartedAt)
+                .ToListAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Ошибка загрузки списка Советов директоров");
+        }
+    }
+}
