@@ -41,6 +41,9 @@ public class LegalEntityVotingRules
     /// <summary>Вид документооборота, применяемый юридическим лицом (document_flow).</summary>
     public DocumentFlowType DocumentFlow { get; set; } = DocumentFlowType.Paper;
 
+    /// <summary>Точечное доизбрание членов СД взамен выбывших (spot_by_election). Предусмотрено уставом согласно п. 6 ст. 66 208-ФЗ.</summary>
+    public bool SpotByElection { get; set; }
+
     /// <summary>Дата и время создания записи (created_at).</summary>
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }
