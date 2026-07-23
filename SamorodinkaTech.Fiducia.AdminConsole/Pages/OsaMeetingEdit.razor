@@ -1513,8 +1513,10 @@
             .OrderBy(x => x.FullName)
             .ToListAsync();
         var memberIds = members.Select(x => x.Id).ToList();
+        // Загружаем все не-сложенные назначения (DRAFT или ACTIVE),
+        // т.к. при промежуточном сохранении статус DRAFT, а при финализации ACTIVE.
         var appointments = await ctx.BoardMemberAppointments
-            .Where(x => memberIds.Contains(x.BoardMemberId) && x.Status.Code == "ACTIVE")
+            .Where(x => memberIds.Contains(x.BoardMemberId) && x.Status.Code != "RESIGNED")
             .ToListAsync();
 
         boardMemberRows = members.Select(x => new BoardMemberRow
@@ -1826,8 +1828,10 @@
                 .OrderBy(x => x.FullName)
                 .ToListAsync();
             var memberIds = members.Select(x => x.Id).ToList();
+            // Загружаем все не-сложенные назначения (DRAFT или ACTIVE),
+            // т.к. при промежуточном сохранении статус DRAFT, а при финализации ACTIVE.
             var appointments = await ctx.BoardMemberAppointments
-                .Where(x => memberIds.Contains(x.BoardMemberId) && x.Status.Code == "ACTIVE")
+                .Where(x => memberIds.Contains(x.BoardMemberId) && x.Status.Code != "RESIGNED")
                 .ToListAsync();
 
             boardMemberRows = members.Select(x => new BoardMemberRow
