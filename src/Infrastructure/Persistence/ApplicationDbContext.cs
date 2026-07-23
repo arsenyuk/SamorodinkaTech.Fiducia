@@ -123,6 +123,8 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.Property(x => x.MinCommitteeMembers).HasColumnName("min_committee_members");
             b.Property(x => x.CommitteeQuorumDefined).HasColumnName("committee_quorum_defined").HasDefaultValue(false);
             b.Property(x => x.CommitteeQuorumPercent).HasColumnName("committee_quorum_percent");
+            b.Property(x => x.JointCommitteeQuorumDefined).HasColumnName("joint_committee_quorum_defined").HasDefaultValue(false);
+            b.Property(x => x.JointCommitteeQuorumPercent).HasColumnName("joint_committee_quorum_percent");
         });
 
         modelBuilder.Entity<LegalEntityVotingRules>(b =>

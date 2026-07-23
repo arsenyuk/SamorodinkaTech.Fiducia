@@ -70,4 +70,10 @@ public class LegalEntityBoardSettings
 
     /// <summary>Кворум для заседания комитета, % (committee_quorum_percent).</summary>
     public int? CommitteeQuorumPercent { get; set; }
+
+    /// <summary>Определен кворум для совместного заседания двух комитетов (joint_committee_quorum_defined).</summary>
+    public bool JointCommitteeQuorumDefined { get; set; }
+
+    /// <summary>Кворум для совместного заседания двух комитетов, % (joint_committee_quorum_percent).</summary>
+    public int? JointCommitteeQuorumPercent { get; set; }
 }

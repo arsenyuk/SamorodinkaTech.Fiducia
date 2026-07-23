@@ -408,6 +408,22 @@
                                disabled="@(!_editCommitteesDefinedByDocuments)">
                     </div>
                 }
+                <div class="form-check mb-2 @(_editCommitteesDefinedByDocuments ? "" : "opacity-50")">
+                    <input class="form-check-input" type="checkbox" id="editJointCommitteeQuorumDefined"
+                           @bind="_editJointCommitteeQuorumDefined"
+                           disabled="@(!_editCommitteesDefinedByDocuments)">
+                    <label class="form-check-label" for="editJointCommitteeQuorumDefined">
+                        Определен кворум для совместного заседания двух комитетов
+                    </label>
+                </div>
+                @if (_editJointCommitteeQuorumDefined)
+                {
+                    <div class="mb-2 @(_editCommitteesDefinedByDocuments ? "" : "opacity-50")" style="max-width:200px">
+                        <label class="form-label">Кворум для совместного заседания двух комитетов (%)</label>
+                        <input type="number" class="form-control" @bind="_editJointCommitteeQuorumPercent" min="1" max="100"
+                               disabled="@(!_editCommitteesDefinedByDocuments)">
+                    </div>
+                }
             }  @* end of _activeTab == 5 *@
 
             @if (!string.IsNullOrEmpty(saveError))
@@ -445,6 +461,8 @@
     private int? _editMinCommitteeMembers;
     private bool _editCommitteeQuorumDefined;
     private int? _editCommitteeQuorumPercent;
+    private bool _editJointCommitteeQuorumDefined;
+    private int? _editJointCommitteeQuorumPercent;
     private OrgType _orgType = OrgType.Unknown;
 
     private int gosaStartMonth = 3;
@@ -731,6 +749,8 @@
                 settings.MinCommitteeMembers = _editMinCommitteeMembersDefined ? _editMinCommitteeMembers : null;
                 settings.CommitteeQuorumDefined = _editCommitteeQuorumDefined;
                 settings.CommitteeQuorumPercent = _editCommitteeQuorumDefined ? _editCommitteeQuorumPercent : null;
+                settings.JointCommitteeQuorumDefined = _editJointCommitteeQuorumDefined;
+                settings.JointCommitteeQuorumPercent = _editJointCommitteeQuorumDefined ? _editJointCommitteeQuorumPercent : null;
 
                 // Сохраняем правила голосования в СД
                 if (_editQuorumPercent < 50)
@@ -1082,6 +1102,8 @@
             _editMinCommitteeMembers = settings?.MinCommitteeMembers;
             _editCommitteeQuorumDefined = settings?.CommitteeQuorumDefined ?? false;
             _editCommitteeQuorumPercent = settings?.CommitteeQuorumPercent;
+            _editJointCommitteeQuorumDefined = settings?.JointCommitteeQuorumDefined ?? false;
+            _editJointCommitteeQuorumPercent = settings?.JointCommitteeQuorumPercent;
         }
         catch (Exception ex)
         {
