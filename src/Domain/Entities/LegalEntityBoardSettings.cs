@@ -64,4 +64,10 @@ public class LegalEntityBoardSettings
 
     /// <summary>Минимальное количество членов в комитете (min_committee_members).</summary>
     public int? MinCommitteeMembers { get; set; }
+
+    /// <summary>Определен кворум для заседания комитета (committee_quorum_defined).</summary>
+    public bool CommitteeQuorumDefined { get; set; }
+
+    /// <summary>Кворум для заседания комитета, % (committee_quorum_percent).</summary>
+    public int? CommitteeQuorumPercent { get; set; }
 }
