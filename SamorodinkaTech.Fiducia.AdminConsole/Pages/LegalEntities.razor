@@ -347,6 +347,7 @@
                 <div class="form-check mb-2 @(_editCommitteesDefinedByDocuments ? "" : "opacity-50")">
                     <input class="form-check-input" type="checkbox" id="editMaxCommitteesPerMemberDefined"
                            @bind="_editMaxCommitteesPerMemberDefined"
+                           @bind:after="OnMaxPerMemberDefinedChanged"
                            disabled="@(!_editCommitteesDefinedByDocuments)">
                     <label class="form-check-label" for="editMaxCommitteesPerMemberDefined">
                         Определено максимальное число комитетов для одного члена СД
@@ -367,6 +368,7 @@
                 <div class="form-check mb-2 @(_editCommitteesDefinedByDocuments ? "" : "opacity-50")">
                     <input class="form-check-input" type="checkbox" id="editMaxCommitteesHeadedPerMemberDefined"
                            @bind="_editMaxCommitteesHeadedPerMemberDefined"
+                           @bind:after="OnMaxHeadedDefinedChanged"
                            disabled="@(!_editCommitteesDefinedByDocuments)">
                     <label class="form-check-label" for="editMaxCommitteesHeadedPerMemberDefined">
                         Определено макс. число возглавляемых комитетов для одного члена СД
@@ -387,6 +389,7 @@
                 <div class="form-check mb-2 @(_editCommitteesDefinedByDocuments ? "" : "opacity-50")">
                     <input class="form-check-input" type="checkbox" id="editMinCommitteeMembersDefined"
                            @bind="_editMinCommitteeMembersDefined"
+                           @bind:after="OnMinMembersDefinedChanged"
                            disabled="@(!_editCommitteesDefinedByDocuments)">
                     <label class="form-check-label" for="editMinCommitteeMembersDefined">
                         Определено мин. количество членов в комитете
@@ -407,6 +410,7 @@
                 <div class="form-check mb-2 @(_editCommitteesDefinedByDocuments ? "" : "opacity-50")">
                     <input class="form-check-input" type="checkbox" id="editCommitteeQuorumDefined"
                            @bind="_editCommitteeQuorumDefined"
+                           @bind:after="OnQuorumDefinedChanged"
                            disabled="@(!_editCommitteesDefinedByDocuments)">
                     <label class="form-check-label" for="editCommitteeQuorumDefined">
                         Определен кворум заседания комитета
@@ -427,6 +431,7 @@
                 <div class="form-check mb-2 @(_editCommitteesDefinedByDocuments ? "" : "opacity-50")">
                     <input class="form-check-input" type="checkbox" id="editJointCommitteeQuorumDefined"
                            @bind="_editJointCommitteeQuorumDefined"
+                           @bind:after="OnJointQuorumDefinedChanged"
                            disabled="@(!_editCommitteesDefinedByDocuments)">
                     <label class="form-check-label" for="editJointCommitteeQuorumDefined">
                         Определен кворум совместного заседания комитетов
@@ -1141,6 +1146,36 @@
         {
             Logger.LogWarning(ex, "Ошибка загрузки настроек комитетов");
         }
+    }
+
+    private void OnMaxPerMemberDefinedChanged()
+    {
+        if (_editMaxCommitteesPerMemberDefined && _editMaxCommitteesPerMember is null)
+            _editMaxCommitteesPerMember = 1;
+    }
+
+    private void OnMaxHeadedDefinedChanged()
+    {
+        if (_editMaxCommitteesHeadedPerMemberDefined && _editMaxCommitteesHeadedPerMember is null)
+            _editMaxCommitteesHeadedPerMember = 1;
+    }
+
+    private void OnMinMembersDefinedChanged()
+    {
+        if (_editMinCommitteeMembersDefined && _editMinCommitteeMembers is null)
+            _editMinCommitteeMembers = 2;
+    }
+
+    private void OnQuorumDefinedChanged()
+    {
+        if (_editCommitteeQuorumDefined && _editCommitteeQuorumPercent is null)
+            _editCommitteeQuorumPercent = 50;
+    }
+
+    private void OnJointQuorumDefinedChanged()
+    {
+        if (_editJointCommitteeQuorumDefined && _editJointCommitteeQuorumPercent is null)
+            _editJointCommitteeQuorumPercent = 50;
     }
 
     private class LegalEntityVm
