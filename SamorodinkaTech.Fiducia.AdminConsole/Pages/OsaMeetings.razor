@@ -342,16 +342,19 @@
                     @* ДИАГНОСТИКА — убрать после отладки *@
                     <div class="text-muted small mb-1" style="font-family:monospace;font-size:11px">
                         editHasBoard=@editHasBoard | editBoardMandatory=@editBoardMandatory | editBoardApproved=@editBoardApproved | editBoardCompositionApproved=@editBoardCompositionApproved
-                        | fieldsValid=@AreBoardMemberFieldsValid() | ldapWarning=@(ldapDuplicateWarning != null)
+                        | fieldsValid=@AreBoardMemberFieldsValid() | failReason=@GetBoardValidationFailReason() | ldapWarning=@(ldapDuplicateWarning != null)
                         | IsStepValid(3)=@IsStepValid(3) | boardRoles.Count=@boardRoles.Count
                         | memberRoleId=@(memberRoleId?.ToString() ?? "null") | rows=@boardMemberRows.Count
                         | editBoardMemberNumber=@editBoardMemberNumber | secRoleId=@(boardRoles.FirstOrDefault(r=>r.Code=="SECRETARY")?.Id.ToString()??"null")
+                        | tempChairProvided=@editTemporaryChairProvided | tempChairSel=@editTemporaryChairSelection | tempChairRoleId=@(tempChairRoleId?.ToString()??"null")
+                        | execDir=@(editExecDirectors?$"✓{editExecDirectorsCount}":"✗") | nonExec=@(editNonExecDirectors?$"✓{editNonExecDirectorsCount}":"✗") | indep=@(editIndepDirectors?$"✓{editIndepDirectorsCount}":"✗")
                         <br/>
                         @foreach (var r in boardMemberRows)
                         {
                             var roleCode = boardRoles.FirstOrDefault(x => x.Id == r.RoleId)?.Code ?? "null";
                             var nameS = string.IsNullOrWhiteSpace(r.Name) ? "(пусто)" : r.Name[..Math.Min(r.Name.Length, 15)];
-                            @: | [@roleCode] @nameS acc=@(r.Account?[..Math.Min((r.Account??"").Length,10)]??"null") ldap=@(r.LdapLogin?[..Math.Min((r.LdapLogin??"").Length,10)]??"null")
+                            var typeCode = memberTypes.FirstOrDefault(x => x.Id == r.MemberTypeId)?.Code ?? "null";
+                            @: | [@roleCode] @nameS acc=@(r.Account?[..Math.Min((r.Account??"").Length,10)]??"null") ldap=@(r.LdapLogin?[..Math.Min((r.LdapLogin??"").Length,10)]??"null") type=@typeCode
                         }
                     </div>
                     <table class="table table-sm align-middle">
@@ -906,6 +909,7 @@
     private Dictionary<string, Guid> ldapEmailToUserId = new(StringComparer.OrdinalIgnoreCase);
     private string? ldapDuplicateWarning;
     private List<BoardMemberRow> boardMemberRows = new();
+    private bool _boardInitializing;
     private List<BoardMemberType> memberTypes = new();
     private List<BoardRole> boardRoles = new();
     private List<BoardMemberAppointmentStatus> appointmentStatuses = new();
@@ -951,11 +955,22 @@
         // При переходе на вкладку «Совет директоров»: подгружаем актуальный состав из БД
         if (step == 3 && editBoardCompositionApproved)
         {
+            _boardInitializing = true;
             await LoadBoardMembersFromDb();
         }
 
         StateHasChanged();
         Logger.LogDebug("GoToStep переход выполнен: currentStep={Current}", currentStep);
+    }
+
+    protected override Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_boardInitializing)
+        {
+            _boardInitializing = false;
+            StateHasChanged();
+        }
+        return Task.CompletedTask;
     }
 
     /// <summary>Валидность контента шага (пройдена ли валидация для перехода дальше).</summary>
@@ -1038,10 +1053,13 @@
         var memberRows = boardMemberRows
             .Where(r => r.RoleId != secRoleId && r.RoleId != tempChairRoleId)
             .ToList();
+        // Когда типы директоров не настроены — MemberTypeId не обязателен
+        var typesConfigured = (editExecDirectors && editExecDirectorsCount > 0)
+            || (editNonExecDirectors && editNonExecDirectorsCount > 0)
+            || (editIndepDirectors && editIndepDirectorsCount > 0);
         if (memberRows.Any(r =>
             string.IsNullOrWhiteSpace(r.Name)
-            || !r.MemberTypeId.HasValue
-            || string.IsNullOrWhiteSpace(r.StartedAt)))
+            || (typesConfigured && !r.MemberTypeId.HasValue)))
             return false;
 
         // Дублирование ФИО среди членов СД недопустимо
@@ -1080,6 +1098,50 @@
         }
 
         return true;
+    }
+
+    private string GetBoardValidationFailReason()
+    {
+        if (!editHasBoard && !editBoardCompositionApproved) return "no-board";
+        var secRoleId = boardRoles.FirstOrDefault(r => r.Code == "SECRETARY")?.Id;
+        var nonSecretaryCount = boardMemberRows.Count(r => r.RoleId != secRoleId && r.RoleId != tempChairRoleId);
+        if (editBoardMemberNumber.HasValue && nonSecretaryCount != editBoardMemberNumber.Value)
+            return $"count-mismatch:{nonSecretaryCount}!={editBoardMemberNumber}";
+        if (editBoardMinNumber.HasValue && nonSecretaryCount < editBoardMinNumber.Value)
+            return $"below-min:{nonSecretaryCount}<{editBoardMinNumber}";
+        var memberRows = boardMemberRows.Where(r => r.RoleId != secRoleId && r.RoleId != tempChairRoleId).ToList();
+        foreach (var r in memberRows)
+        {
+            if (string.IsNullOrWhiteSpace(r.Name)) return "empty-name";
+        }
+        var typesConfigured = (editExecDirectors && editExecDirectorsCount > 0)
+            || (editNonExecDirectors && editNonExecDirectorsCount > 0)
+            || (editIndepDirectors && editIndepDirectorsCount > 0);
+        if (typesConfigured && memberRows.Any(r => !r.MemberTypeId.HasValue)) return "null-type";
+        var dupCount = memberRows.Where(r => !string.IsNullOrWhiteSpace(r.Name))
+            .GroupBy(r => r.Name.Trim()).Count(g => g.Count() > 1);
+        if (dupCount > 0) return "duplicate";
+        if (secRoleId.HasValue && staffMemberTypeId.HasValue)
+        {
+            foreach (var row in boardMemberRows)
+            {
+                var isSec = row.RoleId == secRoleId;
+                var isStaff = row.MemberTypeId == staffMemberTypeId;
+                if (isSec && !isStaff) return "sec-not-staff";
+                if (!isSec && isStaff) return "non-sec-is-staff";
+            }
+        }
+        var tcRoleId = tempChairRoleId;
+        if (tcRoleId.HasValue && boardMemberRows.Count(r => r.RoleId == tcRoleId) > 1)
+            return "multi-tempchair";
+        if (tcRoleId.HasValue && editTemporaryChairProvided && editTemporaryChairSelection == "GMS_DECISION")
+        {
+            var tcRow = boardMemberRows.FirstOrDefault(r => r.RoleId == tcRoleId.Value);
+            if (tcRow == null) return "tempchair-missing";
+            if (string.IsNullOrWhiteSpace(tcRow.Name)) return "tempchair-empty-name";
+            if (!tcRow.MemberTypeId.HasValue) return "tempchair-null-type";
+        }
+        return "OK";
     }
 
     private bool CanAdvance => IsStepValid(currentStep);
@@ -1946,8 +2008,25 @@
                     row.LdapLogin = row.Account;
             }
 
+            // Удаляем пустые строки (не секретарь, не temp chair), оставшиеся от каскада @bind:after
+            var secForCleanup = boardRoles.FirstOrDefault(r => r.Code == "SECRETARY")?.Id;
+            if (editBoardMemberNumber.HasValue)
+            {
+                var filledCount = boardMemberRows
+                    .Count(r => r.RoleId != secForCleanup && r.RoleId != tempChairRoleId && !string.IsNullOrWhiteSpace(r.Name));
+                if (filledCount >= editBoardMemberNumber.Value)
+                {
+                    boardMemberRows.RemoveAll(r =>
+                        r.RoleId != secForCleanup && r.RoleId != tempChairRoleId && string.IsNullOrWhiteSpace(r.Name));
+                }
+            }
+
+            var wasInit = _boardInitializing;
+            _boardInitializing = false; // При загрузке из БД методы работают без ограничений
             EnsureBoardMemberCount();
             ApplyTempChairRole();
+            UpdateGosaCountFromTypes();
+            _boardInitializing = wasInit; // Восстанавливаем для защиты от @bind:after каскада
             UpdateGosaCountFromTypes();
         }
         catch (Exception ex)
@@ -1960,6 +2039,7 @@
     /// <summary>Подгоняет количество строк (без секретаря и временного председательствующего) под editBoardMemberNumber.</summary>
     private void EnsureBoardMemberCount()
     {
+        if (_boardInitializing) return;
         if (!editBoardCompositionApproved || !editHasBoard || !editBoardMemberNumber.HasValue)
             return;
 
@@ -2011,6 +2091,7 @@
     /// <summary>Вычисляет editBoardMemberNumber из суммы типов директоров.</summary>
     private void ComputeBoardMemberNumber()
     {
+        if (_boardInitializing) return;
         var total = (editExecDirectors ? (editExecDirectorsCount ?? 0) : 0)
                   + (editNonExecDirectors ? (editNonExecDirectorsCount ?? 0) : 0)
                   + (editIndepDirectors ? (editIndepDirectorsCount ?? 0) : 0);
@@ -2020,6 +2101,7 @@
     /// <summary>Проставляет MemberTypeId в строках состава СД.</summary>
     private void UpdateGosaCountFromTypes()
     {
+        if (_boardInitializing) return;
         // Проставляем MemberTypeId в существующих строках (без изменения количества)
         if (!editBoardCompositionApproved || boardMemberRows.Count == 0) return;
 
