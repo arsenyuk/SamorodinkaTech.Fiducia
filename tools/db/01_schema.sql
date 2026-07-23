@@ -334,6 +334,19 @@ CREATE TABLE IF NOT EXISTS legal_entity_board_settings (
     deputy_chair_provided boolean NOT NULL DEFAULT FALSE,
     secretary_provided boolean NOT NULL DEFAULT TRUE,
     secretary_signs_protocols boolean NOT NULL DEFAULT FALSE,
+    -- Настройки комитетов Совета директоров
+    committees_mandatory boolean NOT NULL DEFAULT FALSE,
+    committees_defined_by_documents boolean NOT NULL DEFAULT FALSE,
+    max_committees_per_member_defined boolean NOT NULL DEFAULT FALSE,
+    max_committees_per_member int,
+    max_committees_headed_per_member_defined boolean NOT NULL DEFAULT FALSE,
+    max_committees_headed_per_member int,
+    min_committee_members_defined boolean NOT NULL DEFAULT FALSE,
+    min_committee_members int,
+    committee_quorum_defined boolean NOT NULL DEFAULT FALSE,
+    committee_quorum_percent int,
+    joint_committee_quorum_defined boolean NOT NULL DEFAULT FALSE,
+    joint_committee_quorum_percent int,
     CONSTRAINT ck_gosa_window_valid CHECK (
         (gosa_window_start IS NULL AND gosa_window_end IS NULL)
         OR (gosa_window_start IS NOT NULL AND gosa_window_end IS NOT NULL AND gosa_window_start <= gosa_window_end)
