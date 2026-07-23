@@ -327,10 +327,18 @@
 
             @if (_activeTab == 5)
             {
+                var isPao = _orgType == OrgType.PAO;
                 <div class="form-check mb-2">
+                    <input class="form-check-input" type="checkbox" id="editCommitteesDefinedByDocuments" @bind="_editCommitteesDefinedByDocuments">
+                    <label class="form-check-label" for="editCommitteesDefinedByDocuments">
+                        Комитеты определены документами Общества
+                    </label>
+                </div>
+                <div class="form-check mb-2 @(_editCommitteesDefinedByDocuments ? "" : "opacity-50")">
                     <input class="form-check-input" type="checkbox" id="editCommitteesMandatory"
-                           checked="@(_orgType == OrgType.PAO || _editCommitteesMandatory)"
-                           disabled>
+                           checked="@(isPao || _editCommitteesMandatory)"
+                           disabled="@(!_editCommitteesDefinedByDocuments || isPao)"
+                           @onchange="args => { if (!isPao && _editCommitteesDefinedByDocuments) _editCommitteesMandatory = (bool)(args.Value ?? false); }">
                     <label class="form-check-label" for="editCommitteesMandatory">
                         Комитеты обязательны
                     </label>
@@ -364,6 +372,7 @@
     private string editFullName = string.Empty;
     private bool editHasBoardOfDirectors;
     private bool _editCommitteesMandatory;
+    private bool _editCommitteesDefinedByDocuments;
     private OrgType _orgType = OrgType.Unknown;
 
     private int gosaStartMonth = 3;
@@ -641,6 +650,7 @@
                 }
 
                 settings.CommitteesMandatory = _orgType == OrgType.PAO || _editCommitteesMandatory;
+                settings.CommitteesDefinedByDocuments = _editCommitteesDefinedByDocuments;
 
                 // Сохраняем правила голосования в СД
                 if (_editQuorumPercent < 50)
@@ -983,6 +993,7 @@
             await using var ctx = await DbFactory.CreateDbContextAsync();
             var settings = await ctx.LegalEntityBoardSettings.FirstOrDefaultAsync();
             _editCommitteesMandatory = settings?.CommitteesMandatory ?? false;
+            _editCommitteesDefinedByDocuments = settings?.CommitteesDefinedByDocuments ?? false;
         }
         catch (Exception ex)
         {

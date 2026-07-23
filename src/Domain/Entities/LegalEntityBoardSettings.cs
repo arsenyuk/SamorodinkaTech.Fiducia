@@ -41,4 +41,9 @@ public class LegalEntityBoardSettings
     /// Комитеты СД являются обязательными для данного ЮЛ (committees_mandatory).
     /// </summary>
     public bool CommitteesMandatory { get; set; }
+
+    /// <summary>
+    /// Комитеты определены документами Общества — разрешает настройку состава и правил комитетов (committees_defined_by_documents).
+    /// </summary>
+    public bool CommitteesDefinedByDocuments { get; set; }
 }
