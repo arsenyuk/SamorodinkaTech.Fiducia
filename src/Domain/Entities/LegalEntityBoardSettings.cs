@@ -46,4 +46,10 @@ public class LegalEntityBoardSettings
     /// Комитеты определены документами Общества — разрешает настройку состава и правил комитетов (committees_defined_by_documents).
     /// </summary>
     public bool CommitteesDefinedByDocuments { get; set; }
+
+    /// <summary>Определено максимальное число комитетов для одного члена СД (max_committees_per_member_defined).</summary>
+    public bool MaxCommitteesPerMemberDefined { get; set; }
+
+    /// <summary>Максимальное число комитетов для одного члена СД (max_committees_per_member).</summary>
+    public int? MaxCommitteesPerMember { get; set; }
 }

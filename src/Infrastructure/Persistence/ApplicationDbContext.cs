@@ -115,6 +115,8 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.Property(x => x.SecretarySignsProtocols).HasColumnName("secretary_signs_protocols").HasDefaultValue(false);
             b.Property(x => x.CommitteesMandatory).HasColumnName("committees_mandatory").HasDefaultValue(false);
             b.Property(x => x.CommitteesDefinedByDocuments).HasColumnName("committees_defined_by_documents").HasDefaultValue(false);
+            b.Property(x => x.MaxCommitteesPerMemberDefined).HasColumnName("max_committees_per_member_defined").HasDefaultValue(false);
+            b.Property(x => x.MaxCommitteesPerMember).HasColumnName("max_committees_per_member");
         });
 
         modelBuilder.Entity<LegalEntityVotingRules>(b =>

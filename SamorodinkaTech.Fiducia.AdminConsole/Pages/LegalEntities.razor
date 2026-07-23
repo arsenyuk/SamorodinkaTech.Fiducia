@@ -344,6 +344,22 @@
                     </label>
                     <div class="text-muted small">Для ПАО обязателен комитет по аудиту (<a href="/admin/board-law/64">п. 3 ст. 64 208-ФЗ</a>)</div>
                 </div>
+                <div class="form-check mb-2 @(_editCommitteesDefinedByDocuments ? "" : "opacity-50")">
+                    <input class="form-check-input" type="checkbox" id="editMaxCommitteesPerMemberDefined"
+                           @bind="_editMaxCommitteesPerMemberDefined"
+                           disabled="@(!_editCommitteesDefinedByDocuments)">
+                    <label class="form-check-label" for="editMaxCommitteesPerMemberDefined">
+                        Определено максимальное число комитетов для одного члена СД
+                    </label>
+                </div>
+                @if (_editMaxCommitteesPerMemberDefined)
+                {
+                    <div class="mb-2 @(_editCommitteesDefinedByDocuments ? "" : "opacity-50")" style="max-width:200px">
+                        <label class="form-label">Максимальное число комитетов для одного члена СД</label>
+                        <input type="number" class="form-control" @bind="_editMaxCommitteesPerMember" min="1"
+                               disabled="@(!_editCommitteesDefinedByDocuments)">
+                    </div>
+                }
             }  @* end of _activeTab == 5 *@
 
             @if (!string.IsNullOrEmpty(saveError))
@@ -373,6 +389,8 @@
     private bool editHasBoardOfDirectors;
     private bool _editCommitteesMandatory;
     private bool _editCommitteesDefinedByDocuments;
+    private bool _editMaxCommitteesPerMemberDefined;
+    private int? _editMaxCommitteesPerMember;
     private OrgType _orgType = OrgType.Unknown;
 
     private int gosaStartMonth = 3;
@@ -651,6 +669,8 @@
 
                 settings.CommitteesMandatory = _orgType == OrgType.PAO || _editCommitteesMandatory;
                 settings.CommitteesDefinedByDocuments = _editCommitteesDefinedByDocuments;
+                settings.MaxCommitteesPerMemberDefined = _editMaxCommitteesPerMemberDefined;
+                settings.MaxCommitteesPerMember = _editMaxCommitteesPerMemberDefined ? _editMaxCommitteesPerMember : null;
 
                 // Сохраняем правила голосования в СД
                 if (_editQuorumPercent < 50)
@@ -994,6 +1014,8 @@
             var settings = await ctx.LegalEntityBoardSettings.FirstOrDefaultAsync();
             _editCommitteesMandatory = settings?.CommitteesMandatory ?? false;
             _editCommitteesDefinedByDocuments = settings?.CommitteesDefinedByDocuments ?? false;
+            _editMaxCommitteesPerMemberDefined = settings?.MaxCommitteesPerMemberDefined ?? false;
+            _editMaxCommitteesPerMember = settings?.MaxCommitteesPerMember;
         }
         catch (Exception ex)
         {
