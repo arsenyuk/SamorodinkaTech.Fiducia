@@ -360,6 +360,22 @@
                                disabled="@(!_editCommitteesDefinedByDocuments)">
                     </div>
                 }
+                <div class="form-check mb-2 @(_editCommitteesDefinedByDocuments ? "" : "opacity-50")">
+                    <input class="form-check-input" type="checkbox" id="editMaxCommitteesHeadedPerMemberDefined"
+                           @bind="_editMaxCommitteesHeadedPerMemberDefined"
+                           disabled="@(!_editCommitteesDefinedByDocuments)">
+                    <label class="form-check-label" for="editMaxCommitteesHeadedPerMemberDefined">
+                        Определено максимальное число комитетов, которые может возглавлять один член СД
+                    </label>
+                </div>
+                @if (_editMaxCommitteesHeadedPerMemberDefined)
+                {
+                    <div class="mb-2 @(_editCommitteesDefinedByDocuments ? "" : "opacity-50")" style="max-width:200px">
+                        <label class="form-label">Максимальное число возглавляемых комитетов для одного члена СД</label>
+                        <input type="number" class="form-control" @bind="_editMaxCommitteesHeadedPerMember" min="1"
+                               disabled="@(!_editCommitteesDefinedByDocuments)">
+                    </div>
+                }
             }  @* end of _activeTab == 5 *@
 
             @if (!string.IsNullOrEmpty(saveError))
@@ -391,6 +407,8 @@
     private bool _editCommitteesDefinedByDocuments;
     private bool _editMaxCommitteesPerMemberDefined;
     private int? _editMaxCommitteesPerMember;
+    private bool _editMaxCommitteesHeadedPerMemberDefined;
+    private int? _editMaxCommitteesHeadedPerMember;
     private OrgType _orgType = OrgType.Unknown;
 
     private int gosaStartMonth = 3;
@@ -671,6 +689,8 @@
                 settings.CommitteesDefinedByDocuments = _editCommitteesDefinedByDocuments;
                 settings.MaxCommitteesPerMemberDefined = _editMaxCommitteesPerMemberDefined;
                 settings.MaxCommitteesPerMember = _editMaxCommitteesPerMemberDefined ? _editMaxCommitteesPerMember : null;
+                settings.MaxCommitteesHeadedPerMemberDefined = _editMaxCommitteesHeadedPerMemberDefined;
+                settings.MaxCommitteesHeadedPerMember = _editMaxCommitteesHeadedPerMemberDefined ? _editMaxCommitteesHeadedPerMember : null;
 
                 // Сохраняем правила голосования в СД
                 if (_editQuorumPercent < 50)
@@ -1016,6 +1036,8 @@
             _editCommitteesDefinedByDocuments = settings?.CommitteesDefinedByDocuments ?? false;
             _editMaxCommitteesPerMemberDefined = settings?.MaxCommitteesPerMemberDefined ?? false;
             _editMaxCommitteesPerMember = settings?.MaxCommitteesPerMember;
+            _editMaxCommitteesHeadedPerMemberDefined = settings?.MaxCommitteesHeadedPerMemberDefined ?? false;
+            _editMaxCommitteesHeadedPerMember = settings?.MaxCommitteesHeadedPerMember;
         }
         catch (Exception ex)
         {

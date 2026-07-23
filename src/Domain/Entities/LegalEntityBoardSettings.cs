@@ -52,4 +52,10 @@ public class LegalEntityBoardSettings
 
     /// <summary>Максимальное число комитетов для одного члена СД (max_committees_per_member).</summary>
     public int? MaxCommitteesPerMember { get; set; }
+
+    /// <summary>Определено максимальное число комитетов, которые может возглавлять один член СД (max_committees_headed_per_member_defined).</summary>
+    public bool MaxCommitteesHeadedPerMemberDefined { get; set; }
+
+    /// <summary>Максимальное число комитетов, которые может возглавлять один член СД (max_committees_headed_per_member).</summary>
+    public int? MaxCommitteesHeadedPerMember { get; set; }
 }
