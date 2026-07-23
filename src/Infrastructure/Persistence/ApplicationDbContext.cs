@@ -476,6 +476,7 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.Property(x => x.SortOrder).HasColumnName("sort_order").HasDefaultValue(0);
             b.Property(x => x.Status).HasColumnName("status").HasMaxLength(20).HasDefaultValue("PLANNED");
             b.Property(x => x.AssignedUserId).HasColumnName("assigned_user_id");
+            b.Property(x => x.CandidateRoles).HasColumnName("candidate_roles");
             b.Property(x => x.ActualStart).HasColumnName("actual_start").HasColumnType("date");
             b.Property(x => x.ActualEnd).HasColumnName("actual_end").HasColumnType("date");
             b.Property(x => x.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("CURRENT_TIMESTAMP");
