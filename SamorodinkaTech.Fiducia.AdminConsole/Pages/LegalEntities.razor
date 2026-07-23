@@ -334,11 +334,11 @@
                         Комитеты определены документами Общества
                     </label>
                 </div>
-                <div class="form-check mb-2 @(_editCommitteesDefinedByDocuments ? "" : "opacity-50")">
+                <div class="form-check mb-2">
                     <input class="form-check-input" type="checkbox" id="editCommitteesMandatory"
                            checked="@(isPao || _editCommitteesMandatory)"
-                           disabled="@(!_editCommitteesDefinedByDocuments || isPao)"
-                           @onchange="args => { if (!isPao && _editCommitteesDefinedByDocuments) _editCommitteesMandatory = (bool)(args.Value ?? false); }">
+                           disabled="@isPao"
+                           @onchange="args => { if (!isPao) _editCommitteesMandatory = (bool)(args.Value ?? false); }">
                     <label class="form-check-label" for="editCommitteesMandatory">
                         Комитеты обязательны
                     </label>
