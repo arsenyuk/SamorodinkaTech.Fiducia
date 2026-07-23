@@ -1096,10 +1096,15 @@
                         .FirstOrDefaultAsync();
                     if (appointmentDraftId != Guid.Empty && appointmentActiveId != Guid.Empty)
                     {
+                        // Переводим DRAFT → ACTIVE всех, КРОМЕ секретаря:
+                        // секретарь утверждается только на первом заседании СД,
+                        // а не при финализации ОСА.
+                        var secRoleIdVal = secRoleId;
                         var appointmentIds = await ctx.BoardMembers
                             .Where(bm => bm.BoardOfDirectorsId == currentBoard.Id)
                             .SelectMany(bm => ctx.BoardMemberAppointments
-                                .Where(a => a.BoardMemberId == bm.Id && a.StatusId == appointmentDraftId))
+                                .Where(a => a.BoardMemberId == bm.Id && a.StatusId == appointmentDraftId
+                                    && (!secRoleIdVal.HasValue || a.RoleId != secRoleIdVal.Value)))
                             .ToListAsync();
                         foreach (var app in appointmentIds)
                             app.StatusId = appointmentActiveId;
