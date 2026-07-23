@@ -137,7 +137,7 @@
                         <div class="col-md-6">
                             <label class="form-label">Дедлайн голосования *</label>
                             <input type="datetime-local" class="form-control" @bind="_newVotingEnd">
-                            <small class="text-muted">Не менее 3 дней (ст. 68 ФЗ-208)</small>
+                            <small class="text-muted">Не менее 3 дней (<a href="/admin/board-law/68" target="_blank">ст. 68 208-ФЗ</a>)</small>
                         </div>
                     </div>
 
@@ -271,7 +271,7 @@
 
         if ((_newVotingEnd - _newVotingStart).TotalDays < 3)
         {
-            _errorMessage = "Минимальный срок голосования — 3 календарных дня (ст. 68 ФЗ-208)";
+            _errorMessage = "Минимальный срок голосования — 3 календарных дня (<a href=\"/admin/board-law/68\" target=\"_blank\">ст. 68 208-ФЗ</a>)";
             return;
         }
 
