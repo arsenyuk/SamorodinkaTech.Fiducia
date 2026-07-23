@@ -621,6 +621,11 @@
                 }
 
                 // Сохраняем правила голосования в СД
+                if (_editQuorumPercent < 50)
+                {
+                    saveError = "Кворум не может быть менее 50% (п. 2 ст. 68 208-ФЗ)";
+                    return;
+                }
                 var votingRules = await ctx.LegalEntityVotingRules
                     .FirstOrDefaultAsync(x => x.LegalEntityId == selectedEntity.Id);
                 if (votingRules is null)
