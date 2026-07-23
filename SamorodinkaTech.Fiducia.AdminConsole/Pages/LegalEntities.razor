@@ -95,6 +95,9 @@
                     <li class="nav-item">
                         <button class="nav-link @(_activeTab == 4 ? "active" : "")" @onclick="() => _activeTab = 4">Правила голосования в СД</button>
                     </li>
+                    <li class="nav-item">
+                        <button class="nav-link @(_activeTab == 5 ? "active" : "")" @onclick="() => _activeTab = 5">Комитеты</button>
+                    </li>
                 }
             </ul>
 
@@ -322,6 +325,17 @@
                 </fieldset>
             }  @* end of _activeTab == 4 *@
 
+            @if (_activeTab == 5)
+            {
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="checkbox" id="editCommitteesMandatory" @bind="_editCommitteesMandatory">
+                    <label class="form-check-label" for="editCommitteesMandatory">
+                        Комитеты обязательны
+                    </label>
+                    <div class="text-muted small">Для ПАО обязателен комитет по аудиту (<a href="/admin/board-law/64">п. 3 ст. 64 208-ФЗ</a>)</div>
+                </div>
+            }  @* end of _activeTab == 5 *@
+
             @if (!string.IsNullOrEmpty(saveError))
             {
                 <div class="alert alert-danger">@saveError</div>
@@ -347,6 +361,7 @@
     private string editPosition = "Генеральный директор";
     private string editFullName = string.Empty;
     private bool editHasBoardOfDirectors;
+    private bool _editCommitteesMandatory;
     private OrgType _orgType = OrgType.Unknown;
 
     private int gosaStartMonth = 3;
@@ -500,6 +515,9 @@
         // Загружаем правила голосования в СД (индивидуальные для ЮЛ)
         await LoadVotingRulesAsync(le.Id);
 
+        // Загружаем настройки комитетов
+        await LoadCommitteesSettingsAsync();
+
         // Загружаем кэшированные данные СПАРК
         await LoadCachedSparkAsync();
 
@@ -619,6 +637,8 @@
                         settings.GosaWindowEnd = defEnd;
                     }
                 }
+
+                settings.CommitteesMandatory = _editCommitteesMandatory;
 
                 // Сохраняем правила голосования в СД
                 if (_editQuorumPercent < 50)
@@ -951,6 +971,20 @@
         catch (Exception ex)
         {
             Logger.LogWarning(ex, "Ошибка загрузки правил голосования для ЮЛ {LegalEntityId}", legalEntityId);
+        }
+    }
+
+    private async Task LoadCommitteesSettingsAsync()
+    {
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+            var settings = await ctx.LegalEntityBoardSettings.FirstOrDefaultAsync();
+            _editCommitteesMandatory = settings?.CommitteesMandatory ?? false;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Ошибка загрузки настроек комитетов");
         }
     }
 

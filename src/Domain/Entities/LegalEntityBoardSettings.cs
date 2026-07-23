@@ -36,4 +36,9 @@ public class LegalEntityBoardSettings
     /// При наличии Секретаря: протоколы СД подписываются Секретарём.
     /// </summary>
     public bool SecretarySignsProtocols { get; set; }
+
+    /// <summary>
+    /// Комитеты СД являются обязательными для данного ЮЛ (committees_mandatory).
+    /// </summary>
+    public bool CommitteesMandatory { get; set; }
 }
