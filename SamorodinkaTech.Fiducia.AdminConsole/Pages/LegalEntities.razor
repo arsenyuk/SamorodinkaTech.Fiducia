@@ -399,7 +399,7 @@
                             <label class="col-form-label">Мин. количество членов в комитете</label>
                         </div>
                         <div class="col-auto">
-                            <input type="number" class="form-control" @bind="_editMinCommitteeMembers" min="1" style="width:100px"
+                            <input type="number" class="form-control" @bind="_editMinCommitteeMembers" min="2" style="width:100px"
                                    disabled="@(!_editCommitteesDefinedByDocuments)">
                         </div>
                     </div>
@@ -777,8 +777,8 @@
                 { saveError = "Укажите максимальное число комитетов для одного члена СД"; return; }
                 if (_editMaxCommitteesHeadedPerMemberDefined && _editMaxCommitteesHeadedPerMember is not > 0)
                 { saveError = "Укажите максимальное число возглавляемых комитетов для одного члена СД"; return; }
-                if (_editMinCommitteeMembersDefined && _editMinCommitteeMembers is not > 0)
-                { saveError = "Укажите минимальное количество членов в комитете"; return; }
+                if (_editMinCommitteeMembersDefined && _editMinCommitteeMembers is not >= 2)
+                { saveError = "Минимальное количество членов в комитете должно быть не менее 2"; return; }
                 if (_editCommitteeQuorumDefined && (_editCommitteeQuorumPercent is not > 0 || _editCommitteeQuorumPercent > 100))
                 { saveError = "Кворум комитета должен быть от 1 до 100%"; return; }
                 if (_editJointCommitteeQuorumDefined && (_editJointCommitteeQuorumPercent is not > 0 || _editJointCommitteeQuorumPercent > 100))
