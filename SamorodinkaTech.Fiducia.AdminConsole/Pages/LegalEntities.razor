@@ -354,8 +354,8 @@
                 </div>
                 @if (_editMaxCommitteesPerMemberDefined)
                 {
-                    <div class="mb-2 @(_editCommitteesDefinedByDocuments ? "" : "opacity-50")" style="max-width:200px">
-                        <label class="form-label">Максимальное число комитетов для одного члена СД</label>
+                    <div class="mb-2 @(_editCommitteesDefinedByDocuments ? "" : "opacity-50")" style="max-width:280px">
+                        <label class="form-label">Макс. число комитетов на одного члена СД</label>
                         <input type="number" class="form-control" @bind="_editMaxCommitteesPerMember" min="1"
                                disabled="@(!_editCommitteesDefinedByDocuments)">
                     </div>
@@ -365,13 +365,13 @@
                            @bind="_editMaxCommitteesHeadedPerMemberDefined"
                            disabled="@(!_editCommitteesDefinedByDocuments)">
                     <label class="form-check-label" for="editMaxCommitteesHeadedPerMemberDefined">
-                        Определено максимальное число комитетов, которые может возглавлять один член СД
+                        Определено макс. число возглавляемых комитетов для одного члена СД
                     </label>
                 </div>
                 @if (_editMaxCommitteesHeadedPerMemberDefined)
                 {
-                    <div class="mb-2 @(_editCommitteesDefinedByDocuments ? "" : "opacity-50")" style="max-width:200px">
-                        <label class="form-label">Максимальное число возглавляемых комитетов для одного члена СД</label>
+                    <div class="mb-2 @(_editCommitteesDefinedByDocuments ? "" : "opacity-50")" style="max-width:280px">
+                        <label class="form-label">Макс. число возглавляемых комитетов на одного члена СД</label>
                         <input type="number" class="form-control" @bind="_editMaxCommitteesHeadedPerMember" min="1"
                                disabled="@(!_editCommitteesDefinedByDocuments)">
                     </div>
@@ -381,13 +381,13 @@
                            @bind="_editMinCommitteeMembersDefined"
                            disabled="@(!_editCommitteesDefinedByDocuments)">
                     <label class="form-check-label" for="editMinCommitteeMembersDefined">
-                        Определено минимальное количество членов в комитете
+                        Определено мин. количество членов в комитете
                     </label>
                 </div>
                 @if (_editMinCommitteeMembersDefined)
                 {
-                    <div class="mb-2 @(_editCommitteesDefinedByDocuments ? "" : "opacity-50")" style="max-width:200px">
-                        <label class="form-label">Минимальное количество членов в комитете</label>
+                    <div class="mb-2 @(_editCommitteesDefinedByDocuments ? "" : "opacity-50")" style="max-width:280px">
+                        <label class="form-label">Мин. количество членов в комитете</label>
                         <input type="number" class="form-control" @bind="_editMinCommitteeMembers" min="1"
                                disabled="@(!_editCommitteesDefinedByDocuments)">
                     </div>
@@ -397,13 +397,13 @@
                            @bind="_editCommitteeQuorumDefined"
                            disabled="@(!_editCommitteesDefinedByDocuments)">
                     <label class="form-check-label" for="editCommitteeQuorumDefined">
-                        Определен кворум для заседания комитета
+                        Определен кворум заседания комитета
                     </label>
                 </div>
                 @if (_editCommitteeQuorumDefined)
                 {
-                    <div class="mb-2 @(_editCommitteesDefinedByDocuments ? "" : "opacity-50")" style="max-width:200px">
-                        <label class="form-label">Кворум для заседания комитета (%)</label>
+                    <div class="mb-2 @(_editCommitteesDefinedByDocuments ? "" : "opacity-50")" style="max-width:280px">
+                        <label class="form-label">Кворум заседания комитета (%)</label>
                         <input type="number" class="form-control" @bind="_editCommitteeQuorumPercent" min="1" max="100"
                                disabled="@(!_editCommitteesDefinedByDocuments)">
                     </div>
@@ -413,13 +413,13 @@
                            @bind="_editJointCommitteeQuorumDefined"
                            disabled="@(!_editCommitteesDefinedByDocuments)">
                     <label class="form-check-label" for="editJointCommitteeQuorumDefined">
-                        Определен кворум для совместного заседания двух комитетов
+                        Определен кворум совместного заседания комитетов
                     </label>
                 </div>
                 @if (_editJointCommitteeQuorumDefined)
                 {
-                    <div class="mb-2 @(_editCommitteesDefinedByDocuments ? "" : "opacity-50")" style="max-width:200px">
-                        <label class="form-label">Кворум для совместного заседания двух комитетов (%)</label>
+                    <div class="mb-2 @(_editCommitteesDefinedByDocuments ? "" : "opacity-50")" style="max-width:280px">
+                        <label class="form-label">Кворум совместного заседания комитетов (%)</label>
                         <input type="number" class="form-control" @bind="_editJointCommitteeQuorumPercent" min="1" max="100"
                                disabled="@(!_editCommitteesDefinedByDocuments)">
                     </div>
