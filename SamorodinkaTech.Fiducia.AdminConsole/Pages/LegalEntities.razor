@@ -327,12 +327,10 @@
 
             @if (_activeTab == 5)
             {
-                var isPao = _orgType == OrgType.PAO;
                 <div class="form-check mb-2">
                     <input class="form-check-input" type="checkbox" id="editCommitteesMandatory"
-                           checked="@(isPao ? true : _editCommitteesMandatory)"
-                           disabled="@isPao"
-                           @onchange="args => { if (!isPao) _editCommitteesMandatory = (bool)(args.Value ?? false); }">
+                           checked="@(_orgType == OrgType.PAO || _editCommitteesMandatory)"
+                           disabled>
                     <label class="form-check-label" for="editCommitteesMandatory">
                         Комитеты обязательны
                     </label>
