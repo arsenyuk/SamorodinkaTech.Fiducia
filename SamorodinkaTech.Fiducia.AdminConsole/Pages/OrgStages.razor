@@ -1,4 +1,4 @@
-@page "/admin/org-templates/intents/{IntentId:guid}/stages"
+@page "/org-templates/intents/{IntentId:guid}/stages"
 @using Microsoft.EntityFrameworkCore
 @inject IDbContextFactory<SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext> DbFactory
 @inject ILogger<OrgTemplates> Logger
@@ -6,7 +6,7 @@
 @attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "SYS_ADMIN")]
 
 <h3>
-    <a href="/admin/org-templates" class="text-decoration-none">Шаблоны</a> →
+    <a href="/org-templates" class="text-decoration-none">Шаблоны</a> →
     @(_intentName ?? "Этапы")
 </h3>
 
@@ -74,7 +74,7 @@
         };
         <tr>
             <td>
-                <a href="/admin/org-templates/stages/@s.Id/offers" class="text-decoration-none">@s.Name</a>
+                <a href="/org-templates/stages/@s.Id/offers" class="text-decoration-none">@s.Name</a>
             </td>
             <td>@(s.StartOffsetDays?.ToString() ?? "—")</td>
             <td>@deadlineLabel</td>

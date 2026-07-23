@@ -1,19 +1,19 @@
-@page "/admin/dictionaries"
+@page "/dictionaries"
 @attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "SYS_ADMIN")]
 
 <h3>Справочники системы</h3>
 
 <div class="list-group">
-    <a href="/admin/roles" class="list-group-item list-group-item-action">
+    <a href="/roles" class="list-group-item list-group-item-action">
         Роли
     </a>
-    <a href="/admin/board-member-appointment-statuses" class="list-group-item list-group-item-action">
+    <a href="/board-member-appointment-statuses" class="list-group-item list-group-item-action">
         Статусы назначений членов СД
     </a>
-    <a href="/admin/resignation-reasons" class="list-group-item list-group-item-action">
+    <a href="/resignation-reasons" class="list-group-item list-group-item-action">
         Причины сложения полномочий
     </a>
-    <a href="/admin/board-of-directors-statuses" class="list-group-item list-group-item-action">
+    <a href="/board-of-directors-statuses" class="list-group-item list-group-item-action">
         Статусы Совета директоров
     </a>
 </div>

@@ -1,4 +1,4 @@
-@page "/admin/org-templates/stages/{StageId:guid}/offers"
+@page "/org-templates/stages/{StageId:guid}/offers"
 @using Microsoft.EntityFrameworkCore
 @using System.Collections.Generic
 @inject IDbContextFactory<SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext> DbFactory
@@ -7,10 +7,10 @@
 @attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "SYS_ADMIN")]
 
 <h3>
-    <a href="/admin/org-templates" class="text-decoration-none">Шаблоны</a> →
+    <a href="/org-templates" class="text-decoration-none">Шаблоны</a> →
     @if (_intentId.HasValue)
     {
-        <a href="/admin/org-templates/intents/@_intentId/stages" class="text-decoration-none">@(_intentName ?? "Этапы")</a>
+        <a href="/org-templates/intents/@_intentId/stages" class="text-decoration-none">@(_intentName ?? "Этапы")</a>
     }
     <span>→ @(_stageName ?? "Оферы")</span>
 </h3>
@@ -99,7 +99,7 @@
         var roleNames = _offerRoleNames.GetValueOrDefault(s.Id, new());
         <tr>
             <td>
-                <a href="/admin/org-templates/offers/@s.Id/tasks" class="text-decoration-none">@s.Name</a>
+                <a href="/org-templates/offers/@s.Id/tasks" class="text-decoration-none">@s.Name</a>
             </td>
             <td>@(s.StartOffsetDays?.ToString() ?? "—")</td>
             <td>@deadlineLabel</td>

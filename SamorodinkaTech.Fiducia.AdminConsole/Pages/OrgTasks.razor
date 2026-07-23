@@ -1,4 +1,4 @@
-@page "/admin/org-templates/offers/{OfferId:guid}/tasks"
+@page "/org-templates/offers/{OfferId:guid}/tasks"
 @using Microsoft.EntityFrameworkCore
 @inject IDbContextFactory<SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext> DbFactory
 @inject ILogger<OrgTemplates> Logger
@@ -6,11 +6,11 @@
 @attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "SYS_ADMIN")]
 
 <h3>
-    <a href="/admin/org-templates" class="text-decoration-none">Шаблоны</a> →
+    <a href="/org-templates" class="text-decoration-none">Шаблоны</a> →
     @if (_stageId.HasValue)
     {
         <span>→ </span>
-        <a href="/admin/org-templates/stages/@_stageId/offers" class="text-decoration-none">@(_stageName ?? "Оферы")</a>
+        <a href="/org-templates/stages/@_stageId/offers" class="text-decoration-none">@(_stageName ?? "Оферы")</a>
     }
     <span>→ @(_offerName ?? "Задачи")</span>
 </h3>

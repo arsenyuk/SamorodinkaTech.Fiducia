@@ -1,4 +1,4 @@
-@page "/admin/board-of-directors/{Id:guid}"
+@page "/board-of-directors/{Id:guid}"
 @using Microsoft.EntityFrameworkCore
 @inject IDbContextFactory<SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext> DbFactory
 @inject ILogger<BoardOfDirectorsDetail> Logger
@@ -72,7 +72,7 @@ else
         </table>
     }
 
-    <a href="/admin/board-of-directors-list" class="btn btn-secondary mt-3">← Назад к списку</a>
+    <a href="/board-of-directors-list" class="btn btn-secondary mt-3">← Назад к списку</a>
 }
 
 @* Модальное окно сложения полномочий *@

@@ -258,7 +258,7 @@ app.MapPost("/api/session/login", (HttpContext http, ISessionService sessionServ
 
 // Admin: Legal Entities search (для формы ЛОСВ)
 // q: часть наименования/ИНН/ОГРН, limit: макс. записей (по умолчанию 15)
-app.MapGet("/api/admin/legal-entities/search", async (
+app.MapGet("/api/legal-entities/search", async (
     IApplicationDbContext db,
     string q,
     int? limit,
@@ -290,13 +290,13 @@ app.MapGet("/api/admin/legal-entities/search", async (
 }).RequireAuthorization(policy => policy.RequireRole("SYS_ADMIN"));
 
 // Admin: чтение/сохранение руководителя ЮЛ (influential_people — singleton, BDR‑007)
-app.MapGet("/api/admin/influential-people/list", async (IApplicationDbContext db, CancellationToken ct) =>
+app.MapGet("/api/influential-people/list", async (IApplicationDbContext db, CancellationToken ct) =>
 {
     var ip = await db.CurrentWorkplaces.FirstOrDefaultAsync(ct);
     return Results.Ok(ip is null ? new { } : new { ip.Id, ip.FullName, ip.Position });
 }).RequireAuthorization(policy => policy.RequireRole("SYS_ADMIN"));
 
-app.MapPost("/api/admin/influential-people", async (
+app.MapPost("/api/influential-people", async (
     IApplicationDbContext db,
     CurrentWorkplace dto,
     CancellationToken ct) =>
@@ -328,7 +328,7 @@ app.MapPost("/api/admin/influential-people", async (
 }).RequireAuthorization(policy => policy.RequireRole("SYS_ADMIN"));
 
 // Admin: чтение интервала ГОСА (глобальные настройки СД, BDR‑007)
-app.MapGet("/api/admin/legal-entities/{id:guid}/gosa-window", async (
+app.MapGet("/api/legal-entities/{id:guid}/gosa-window", async (
     Guid id,
     IApplicationDbContext db,
     ILegalEntityGosaIntervalService svc,
@@ -348,7 +348,7 @@ app.MapGet("/api/admin/legal-entities/{id:guid}/gosa-window", async (
 }).RequireAuthorization(policy => policy.RequireRole("SYS_ADMIN"));
 
 // Admin: сохранение интервала ГОСА (глобальные настройки СД, BDR‑007)
-app.MapPost("/api/admin/legal-entities/{id:guid}/gosa-window", async (
+app.MapPost("/api/legal-entities/{id:guid}/gosa-window", async (
     Guid id,
     IApplicationDbContext db,
     ILegalEntityGosaIntervalService svc,
@@ -387,7 +387,7 @@ app.MapPost("/api/admin/legal-entities/{id:guid}/gosa-window", async (
 }).RequireAuthorization(policy => policy.RequireRole("SYS_ADMIN"));
 
 // Admin: добавление члена Совета директоров — валидация флага на бекенде
-app.MapPost("/api/admin/board/members", (BoardMemberRequest req) =>
+app.MapPost("/api/board/members", (BoardMemberRequest req) =>
 {
     if (!req.HasBoardOfDirectors)
         return Results.BadRequest(new { message = "Для данного юрлица Совет директоров отключён" });

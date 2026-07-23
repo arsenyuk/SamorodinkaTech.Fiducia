@@ -1,4 +1,4 @@
-@page "/admin/legal-entities"
+@page "/legal-entities"
 @using Microsoft.EntityFrameworkCore
 @inject IDbContextFactory<SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext> DbFactory
 @inject SamorodinkaTech.Fiducia.Domain.Interfaces.ILegalEntityGosaIntervalService GosaSvc
@@ -214,7 +214,7 @@
                         @if (gosaIsPao)
                         {
                             <div class="col-auto align-self-center">
-                                <span class="text-muted small">Допустимый диапазон: 01.03 – 30.06 (<a href="/admin/board-law/47">ст. 47 208-ФЗ</a>)</span>
+                                <span class="text-muted small">Допустимый диапазон: 01.03 – 30.06 (<a href="/board-law/47">ст. 47 208-ФЗ</a>)</span>
                             </div>
                         }
                         else if (_orgType == OrgType.LLC)
@@ -226,7 +226,7 @@
                         else if (_orgType == OrgType.NAO_AO)
                         {
                             <div class="col-auto align-self-center">
-                                <span class="text-muted small">Для АО интервал фиксирован: 01.03 – 30.06 (<a href="/admin/board-law/47">п. 5 ст. 47 208-ФЗ</a>)</span>
+                                <span class="text-muted small">Для АО интервал фиксирован: 01.03 – 30.06 (<a href="/board-law/47">п. 5 ст. 47 208-ФЗ</a>)</span>
                             </div>
                         }
                         <div class="col-auto">
@@ -297,12 +297,12 @@
                         <div class="col-md-6">
                             <label class="form-label">Кворум (%)</label>
                             <input type="number" class="form-control" @bind="_editQuorumPercent" min="50" max="100">
-                            <small class="text-muted">Не менее 50% от числа избранных членов (<a href="/admin/board-law/68">п. 2 ст. 68 208-ФЗ</a>)</small>
+                            <small class="text-muted">Не менее 50% от числа избранных членов (<a href="/board-law/68">п. 2 ст. 68 208-ФЗ</a>)</small>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Квалифицированное большинство (%)</label>
                             <input type="number" class="form-control" @bind="_editQualifiedMajorityPercent" min="51" max="100">
-                            <small class="text-muted">Для приостановления полномочий ЕИО и иных особых решений (<a href="/admin/board-law/69">п. 3 ст. 69 208-ФЗ</a>)</small>
+                            <small class="text-muted">Для приостановления полномочий ЕИО и иных особых решений (<a href="/board-law/69">п. 3 ст. 69 208-ФЗ</a>)</small>
                         </div>
                     </div>
                 </fieldset>
@@ -320,7 +320,7 @@
                         <label class="form-check-label" for="editAbsenteeOpinions">
                             Учёт письменных мнений отсутствующих членов СД
                         </label>
-                        <div class="text-muted small">Если предусмотрено уставом (<a href="/admin/board-law/68">п. 1 ст. 68 208-ФЗ</a>)</div>
+                        <div class="text-muted small">Если предусмотрено уставом (<a href="/board-law/68">п. 1 ст. 68 208-ФЗ</a>)</div>
                     </div>
                 </fieldset>
             }  @* end of _activeTab == 4 *@
@@ -336,7 +336,7 @@
                     <label class="form-check-label" for="editCommitteesMandatory">
                         Комитеты обязательны
                     </label>
-                    <div class="text-muted small">Для ПАО обязателен комитет по аудиту (<a href="/admin/board-law/64">п. 3 ст. 64 208-ФЗ</a>)</div>
+                    <div class="text-muted small">Для ПАО обязателен комитет по аудиту (<a href="/board-law/64">п. 3 ст. 64 208-ФЗ</a>)</div>
                 </div>
                 <div class="form-check mb-2">
                     <input class="form-check-input" type="checkbox" id="editCommitteesDefinedByDocuments" @bind="_editCommitteesDefinedByDocuments">

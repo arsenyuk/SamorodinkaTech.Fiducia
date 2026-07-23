@@ -1,4 +1,4 @@
-@page "/admin/org-templates"
+@page "/org-templates"
 @using Microsoft.EntityFrameworkCore
 @inject IDbContextFactory<SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext> DbFactory
 @inject ILogger<OrgTemplates> Logger
@@ -9,7 +9,7 @@
 
 <ul class="nav nav-tabs mb-3">
     <li class="nav-item">
-        <NavLink class="nav-link" href="/admin/org-templates">Цели</NavLink>
+        <NavLink class="nav-link" href="/org-templates">Цели</NavLink>
     </li>
 </ul>
 
@@ -60,7 +60,7 @@
         <tr>
             <td><code>@(i.Code ?? "—")</code></td>
             <td>
-                <a href="/admin/org-templates/intents/@i.Id/stages" class="text-decoration-none">@i.Name</a>
+                <a href="/org-templates/intents/@i.Id/stages" class="text-decoration-none">@i.Name</a>
             </td>
             <td class="text-muted small">@i.Description</td>
             <td>

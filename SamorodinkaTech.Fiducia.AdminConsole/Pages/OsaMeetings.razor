@@ -1,4 +1,4 @@
-@page "/admin/osa-meetings"
+@page "/osa-meetings"
 @implements IDisposable
 @using Microsoft.EntityFrameworkCore
 @using SamorodinkaTech.Fiducia.Domain.Entities
@@ -151,7 +151,7 @@
                     }
                 </td>
                 <td>
-                    <a href="/admin/osa-meetings/@m.Id" class="btn btn-sm btn-outline-primary">
+                    <a href="/osa-meetings/@m.Id" class="btn btn-sm btn-outline-primary">
                         @(isApproved ? "Просмотр" : "Редактировать")
                     </a>
                     @if (!isApproved)
