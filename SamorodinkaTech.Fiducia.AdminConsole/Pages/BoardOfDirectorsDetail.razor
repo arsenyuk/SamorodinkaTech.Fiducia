@@ -104,6 +104,15 @@ else
                         <input type="date" class="form-control" @bind="_resignDate" />
                     </div>
 
+                    @if (_selectedReasonCode == "LEGAL")
+                    {
+                        <div class="mb-3">
+                            <label class="form-label">Основание (статья, закон) <span class="text-danger">*</span></label>
+                            <input class="form-control" @bind="_legalBasis"
+                                   placeholder="п. 2 ст. 10 115-ФЗ (ликвидация эмитента)" />
+                        </div>
+                    }
+
                     @if (_selectedReasonCode == "DISQUALIFICATION")
                     {
                         <div class="mb-3">
@@ -160,6 +169,7 @@ else
     private string? _resignReasonId;
     private DateOnly? _resignDate;
     private IBrowserFile? _rdlFile;
+    private string? _legalBasis;
     private bool _resignSaving;
     private string? _resignError;
     private List<ResignationReason> _resignReasons = new();
@@ -236,6 +246,7 @@ else
         _resignReasonId = null;
         _resignDate = DateOnly.FromDateTime(DateTime.Today);
         _rdlFile = null;
+        _legalBasis = null;
         _resignError = null;
         _showResignModal = true;
     }
@@ -275,6 +286,14 @@ else
                 return;
             }
 
+            // Для LEGAL — обязательно указание статьи/нормы
+            if (_selectedReasonCode == "LEGAL" && string.IsNullOrWhiteSpace(_legalBasis))
+            {
+                _resignError = "Для основания «Иные основания по ФЗ» необходимо указать статью и закон.";
+                _resignSaving = false;
+                return;
+            }
+
             await using var ctx = await DbFactory.CreateDbContextAsync();
 
             // Обновляем назначение: статус RESIGNED, даты, причина
@@ -302,6 +321,7 @@ else
             appointment.EndedAt = resignedDate;
             appointment.ResignedAt = resignedDate.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
             appointment.ResignationReasonId = reasonId;
+            appointment.LegalBasis = _selectedReasonCode == "LEGAL" ? _legalBasis?.Trim() : null;
 
             // Загружаем/создаём запись user_board_member_resignations
             Guid? rdlFileId = null;

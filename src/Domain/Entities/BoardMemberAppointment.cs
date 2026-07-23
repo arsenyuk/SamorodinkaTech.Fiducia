@@ -32,6 +32,9 @@ public class BoardMemberAppointment
     /// <summary>Причина сложения полномочий (resignation_reason_id). Заполняется только при статусе RESIGNED.</summary>
     public Guid? ResignationReasonId { get; set; }
 
+    /// <summary>Основание по федеральному закону (legal_basis). Заполняется при причине LEGAL — ссылка на статью/норму ФЗ.</summary>
+    public string? LegalBasis { get; set; }
+
     public BoardMember? BoardMember { get; set; }
     public BoardRole? Role { get; set; }
     public BoardMemberAppointmentStatus? Status { get; set; }

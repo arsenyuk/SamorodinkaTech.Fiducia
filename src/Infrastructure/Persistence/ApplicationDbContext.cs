@@ -322,6 +322,7 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.Property(x => x.StatusId).HasColumnName("status_id").IsRequired();
             b.Property(x => x.ResignedAt).HasColumnName("resigned_at");
             b.Property(x => x.ResignationReasonId).HasColumnName("resignation_reason_id");
+            b.Property(x => x.LegalBasis).HasColumnName("legal_basis");
             b.HasOne(x => x.BoardMember)
              .WithMany()
              .HasForeignKey(x => x.BoardMemberId)
