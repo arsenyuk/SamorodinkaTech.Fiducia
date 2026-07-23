@@ -2,8 +2,6 @@
 @using Microsoft.EntityFrameworkCore
 @inject IDbContextFactory<SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext> DbFactory
 @inject ILogger<BoardOfDirectorsDetail> Logger
-@inject NavigationManager Navigation
-@inject SamorodinkaTech.Fiducia.Domain.Interfaces.IFileStorage FileStorage
 @attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "SYS_ADMIN")]
 @using SamorodinkaTech.Fiducia.Domain.Entities
 
@@ -60,10 +58,10 @@ else
                         <td>
                             @if (member.RoleCode == "MEMBER" && member.AppointmentId.HasValue && member.AppointmentStatus != "Сложение полномочий")
                             {
-                                <button class="btn btn-sm btn-outline-danger"
-                                        @onclick="() => ShowResignModal(member)">
+                                <a href="/board-of-directors/@Id/resign/@member.BoardMemberId"
+                                   class="btn btn-sm btn-outline-danger">
                                     Сложение полномочий
-                                </button>
+                                </a>
                             }
                         </td>
                     </tr>
@@ -73,73 +71,6 @@ else
     }
 
     <a href="/board-of-directors-list" class="btn btn-secondary mt-3">← Назад к списку</a>
-}
-
-@* Модальное окно сложения полномочий *@
-@if (_showResignModal && _resigningMember is not null)
-{
-    <div class="modal show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Сложение полномочий</h5>
-                    <button type="button" class="btn-close" @onclick="CloseResignModal"></button>
-                </div>
-                <div class="modal-body">
-                    <p><strong>@_resigningMember.FullName</strong> (@_resigningMember.RoleName)</p>
-
-                    <div class="mb-3">
-                        <label class="form-label">Основание</label>
-                        <select class="form-select" @bind="_resignReasonId">
-                            <option value="">— выберите основание —</option>
-                            @foreach (var r in _resignReasons)
-                            {
-                                <option value="@r.Id">@r.Name</option>
-                            }
-                        </select>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">Дата прекращения полномочий</label>
-                        <input type="date" class="form-control" @bind="_resignDate" />
-                    </div>
-
-                    @if (_selectedReasonCode == "LEGAL")
-                    {
-                        <div class="mb-3">
-                            <label class="form-label">Основание (статья, закон) <span class="text-danger">*</span></label>
-                            <input class="form-control" @bind="_legalBasis"
-                                   placeholder="п. 2 ст. 10 115-ФЗ (ликвидация эмитента)" />
-                        </div>
-                    }
-
-                    @if (_selectedReasonCode == "DISQUALIFICATION")
-                    {
-                        <div class="mb-3">
-                            <label class="form-label">Выписка из РДЛ (обязательно)</label>
-                            <InputFile class="form-control form-control-sm" OnChange="OnRdlFileSelected"
-                                       accept=".pdf,.png,.jpg,.jpeg" />
-                            @if (_rdlFile is not null)
-                            {
-                                <span class="text-success small">✓ @_rdlFile.Name</span>
-                            }
-                        </div>
-                    }
-                </div>
-                <div class="modal-footer">
-                    @if (!string.IsNullOrEmpty(_resignError))
-                    {
-                        <span class="text-danger me-auto small">@_resignError</span>
-                    }
-                    <button type="button" class="btn btn-secondary" @onclick="CloseResignModal">Отмена</button>
-                    <button type="button" class="btn btn-danger" @onclick="SaveResignation"
-                            disabled="@(_resignSaving || string.IsNullOrEmpty(_resignReasonId) || !_resignDate.HasValue)">
-                        @(_resignSaving ? "Сохранение..." : "Подтвердить сложение")
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
 }
 
 @code {
@@ -163,19 +94,6 @@ else
         public bool IsMember { get; init; }
     }
 
-    // Модальное окно сложения полномочий
-    private bool _showResignModal;
-    private BoardMemberView? _resigningMember;
-    private string? _resignReasonId;
-    private DateOnly? _resignDate;
-    private IBrowserFile? _rdlFile;
-    private string? _legalBasis;
-    private bool _resignSaving;
-    private string? _resignError;
-    private List<ResignationReason> _resignReasons = new();
-
-    private string? _selectedReasonCode => _resignReasons.FirstOrDefault(r => r.Id.ToString() == _resignReasonId)?.Code;
-
     protected override async Task OnInitializedAsync()
     {
         try
@@ -191,8 +109,6 @@ else
                 Logger.LogWarning("Совет директоров {Id} не найден", Id);
                 return;
             }
-
-            _resignReasons = await ctx.Set<ResignationReason>().OrderBy(r => r.Code).ToListAsync();
 
             _members = await ctx.BoardMembers
                 .Where(m => m.BoardOfDirectorsId == Id)
@@ -237,143 +153,6 @@ else
         catch (Exception ex)
         {
             Logger.LogWarning(ex, "Ошибка загрузки данных Совета директоров {Id}", Id);
-        }
-    }
-
-    private void ShowResignModal(BoardMemberView member)
-    {
-        _resigningMember = member;
-        _resignReasonId = null;
-        _resignDate = DateOnly.FromDateTime(DateTime.Today);
-        _rdlFile = null;
-        _legalBasis = null;
-        _resignError = null;
-        _showResignModal = true;
-    }
-
-    private void CloseResignModal()
-    {
-        _showResignModal = false;
-        _resigningMember = null;
-        _rdlFile = null;
-        _resignSaving = false;
-    }
-
-    private void OnRdlFileSelected(InputFileChangeEventArgs e)
-    {
-        _rdlFile = e.File;
-        _resignError = null;
-    }
-
-    private async Task SaveResignation()
-    {
-        if (_resigningMember is null || !_resigningMember.AppointmentId.HasValue) return;
-        if (string.IsNullOrEmpty(_resignReasonId) || !_resignDate.HasValue) return;
-        var resignedDate = _resignDate.Value;
-
-        _resignSaving = true;
-        _resignError = null;
-
-        try
-        {
-            var reasonId = Guid.Parse(_resignReasonId);
-
-            // Для DISQUALIFICATION — обязательна выписка из РДЛ
-            if (_selectedReasonCode == "DISQUALIFICATION" && _rdlFile is null)
-            {
-                _resignError = "Для основания «Дисквалификация» необходимо приложить выписку из РДЛ.";
-                _resignSaving = false;
-                return;
-            }
-
-            // Для LEGAL — обязательно указание статьи/нормы
-            if (_selectedReasonCode == "LEGAL" && string.IsNullOrWhiteSpace(_legalBasis))
-            {
-                _resignError = "Для основания «Иные основания по ФЗ» необходимо указать статью и закон.";
-                _resignSaving = false;
-                return;
-            }
-
-            await using var ctx = await DbFactory.CreateDbContextAsync();
-
-            // Обновляем назначение: статус RESIGNED, даты, причина
-            var appointment = await ctx.BoardMemberAppointments
-                .FirstOrDefaultAsync(a => a.Id == _resigningMember.AppointmentId.Value);
-            if (appointment is null)
-            {
-                _resignError = "Запись назначения не найдена.";
-                _resignSaving = false;
-                return;
-            }
-
-            var resignedStatusId = await ctx.Set<BoardMemberAppointmentStatus>()
-                .Where(s => s.Code == "RESIGNED")
-                .Select(s => s.Id)
-                .FirstOrDefaultAsync();
-            if (resignedStatusId == Guid.Empty)
-            {
-                _resignError = "Статус RESIGNED не найден в справочнике.";
-                _resignSaving = false;
-                return;
-            }
-
-            appointment.StatusId = resignedStatusId;
-            appointment.EndedAt = resignedDate;
-            appointment.ResignedAt = resignedDate.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
-            appointment.ResignationReasonId = reasonId;
-            appointment.LegalBasis = _selectedReasonCode == "LEGAL" ? _legalBasis?.Trim() : null;
-
-            // Загружаем/создаём запись user_board_member_resignations
-            Guid? rdlFileId = null;
-            if (_rdlFile is not null)
-            {
-                await using var stream = _rdlFile.OpenReadStream(maxAllowedSize: 50_000_000);
-                var storageKey = await FileStorage.SaveAsync(stream, _rdlFile.Name, _rdlFile.ContentType, CancellationToken.None);
-
-                var fileEntry = new FileEntry
-                {
-                    Id = Guid.NewGuid(),
-                    OriginalName = _rdlFile.Name,
-                    ContentType = _rdlFile.ContentType,
-                    SizeBytes = _rdlFile.Size,
-                    StorageProvider = "LOCAL",
-                    StorageKeyOrPath = storageKey
-                };
-                ctx.Files.Add(fileEntry);
-                rdlFileId = fileEntry.Id;
-            }
-
-            var resignation = _resigningMember.UserId.HasValue && _resigningMember.UserId.Value != Guid.Empty
-                ? new UserBoardMemberResignation
-                {
-                    Id = Guid.NewGuid(),
-                    UserId = _resigningMember.UserId.Value,
-                    BoardMemberAppointmentId = appointment.Id,
-                    ResignedAt = appointment.ResignedAt!.Value,
-                    ResignationReasonId = reasonId,
-                    RdlExtractFileId = rdlFileId
-                }
-                : null;
-
-            if (resignation is not null)
-                ctx.Set<UserBoardMemberResignation>().Add(resignation);
-
-            await ctx.SaveChangesAsync();
-
-            Logger.LogDebug("Сложение полномочий: член {Name}, причина {Reason}, дата {Date}",
-                _resigningMember.FullName, _selectedReasonCode, resignedDate);
-
-            CloseResignModal();
-            await OnInitializedAsync();
-        }
-        catch (Exception ex)
-        {
-            Logger.LogWarning(ex, "Ошибка при сложении полномочий члена {Name}", _resigningMember.FullName);
-            _resignError = $"Ошибка: {ex.Message}";
-        }
-        finally
-        {
-            _resignSaving = false;
         }
     }
 }
