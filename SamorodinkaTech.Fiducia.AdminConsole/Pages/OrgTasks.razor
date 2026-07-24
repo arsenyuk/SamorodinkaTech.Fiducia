@@ -40,10 +40,10 @@
                     <input class="form-control" @bind="_editDesc" />
                 </div>
                 <div class="col-md-2">
-                    <label class="form-label">Роль</label>
-                    <select class="form-select" @bind="_editRoleId">
+                    <label class="form-label">Роль в СД</label>
+                    <select class="form-select" @bind="_editBoardRoleId">
                         <option value="">— нет —</option>
-                        @foreach (var r in _roles)
+                        @foreach (var r in _boardRoles)
                         {
                             <option value="@r.Id">@r.Name</option>
                         }
@@ -64,12 +64,12 @@
 
 <table class="table table-sm table-hover">
     <thead>
-        <tr><th>Название</th><th>Описание</th><th>Роль</th><th style="width:80px">Порядок</th><th style="width:100px">Действия</th></tr>
+        <tr><th>Название</th><th>Описание</th><th>Должность СД</th><th style="width:80px">Порядок</th><th style="width:100px">Действия</th></tr>
     </thead>
     <tbody>
     @foreach (var t in _items)
     {
-        var roleName = _roles.FirstOrDefault(r => r.Id == t.AssignedRoleId)?.Name ?? "—";
+        var roleName = _boardRoles.FirstOrDefault(r => r.Id == t.AssignedBoardRoleId)?.Name ?? "—";
         <tr>
             <td>@t.Name</td>
             <td class="text-muted small">@t.Description</td>
@@ -88,7 +88,7 @@
     [Parameter] public Guid OfferId { get; set; }
 
     private List<TplOrgTask> _items = new();
-    private List<Role> _roles = new();
+    private List<BoardRole> _boardRoles = new();
     private string? _offerName;
     private string? _stageName;
     private Guid? _stageId;
@@ -97,7 +97,7 @@
     private bool _showForm;
     private string _editName = "";
     private string _editDesc = "";
-    private string _editRoleId = "";
+    private string _editBoardRoleId = "";
     private int _editSort;
     private Guid? _editingId;
 
@@ -116,7 +116,7 @@
                 _stageName = offer.Stage?.Name;
             }
             _items = await ctx.TplOrgTasks.Where(x => x.OfferId == OfferId).OrderBy(x => x.SortOrder).ThenBy(x => x.Name).ToListAsync();
-            _roles = await ctx.Roles.OrderBy(x => x.Name).ToListAsync();
+            _boardRoles = await ctx.BoardRoles.OrderBy(x => x.SortOrder).ThenBy(x => x.Name).ToListAsync();
         }
         catch (Exception ex) { Logger.LogWarning(ex, "Ошибка загрузки задач"); _error = ExceptionFlattener.Unwrap(ex); }
     }
@@ -124,7 +124,7 @@
     private void Edit(TplOrgTask t)
     {
         _editingId = t.Id; _editName = t.Name; _editDesc = t.Description ?? "";
-        _editRoleId = t.AssignedRoleId?.ToString() ?? ""; _editSort = t.SortOrder; _showForm = true;
+        _editBoardRoleId = t.AssignedBoardRoleId?.ToString() ?? ""; _editSort = t.SortOrder; _showForm = true;
     }
 
     private void CancelForm() { _showForm = false; _editingId = null; }
@@ -141,13 +141,13 @@
                 if (e != null)
                 {
                     e.Name = _editName.Trim(); e.Description = (string.IsNullOrWhiteSpace(_editDesc) ? null : _editDesc.Trim());
-                    e.AssignedRoleId = string.IsNullOrWhiteSpace(_editRoleId) ? null : Guid.Parse(_editRoleId); e.SortOrder = _editSort;
+                    e.AssignedBoardRoleId = string.IsNullOrWhiteSpace(_editBoardRoleId) ? null : Guid.Parse(_editBoardRoleId); e.SortOrder = _editSort;
                 }
             }
             else
             {
                 ctx.TplOrgTasks.Add(new TplOrgTask { Id = Guid.NewGuid(), Name = _editName.Trim(), Description = (string.IsNullOrWhiteSpace(_editDesc) ? null : _editDesc.Trim()), OfferId = OfferId,
-                    AssignedRoleId = string.IsNullOrWhiteSpace(_editRoleId) ? null : Guid.Parse(_editRoleId), SortOrder = _editSort });
+                    AssignedBoardRoleId = string.IsNullOrWhiteSpace(_editBoardRoleId) ? null : Guid.Parse(_editBoardRoleId), SortOrder = _editSort });
             }
             await ctx.SaveChangesAsync();
             CancelForm(); await LoadAsync();

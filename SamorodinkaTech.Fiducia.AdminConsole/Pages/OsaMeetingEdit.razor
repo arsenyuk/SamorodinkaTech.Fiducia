@@ -11,6 +11,7 @@
 @inject NavigationManager Nav
 @inject IConfiguration Config
 @inject IServiceProvider ServiceProvider
+@inject SamorodinkaTech.Fiducia.Domain.Interfaces.ITemplateInstantiationService TemplateInstSvc
 @attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "SYS_ADMIN")]
 
 <h3>
@@ -1112,7 +1113,7 @@
                 }
 
                 // Запускаем создание задач по шаблону «Первое заседание»
-                await InstantiateFirstBoardTemplate(ctx, editLegalEntityId);
+                await InstantiateFirstBoardTemplate(ctx, editLegalEntityId, currentBoard?.Id);
                 _firstBoardTemplateCreated = true;
             }
 
@@ -2642,7 +2643,7 @@
         public string Status { get; set; } = "DRAFT";
     }
 
-    private async Task InstantiateFirstBoardTemplate(IApplicationDbContext ctx, Guid? legalEntityId)
+    private async Task InstantiateFirstBoardTemplate(IApplicationDbContext ctx, Guid? legalEntityId, Guid? boardOfDirectorsId)
     {
         if (!legalEntityId.HasValue)
         {
@@ -2650,82 +2651,7 @@
             return;
         }
 
-        var template = await ctx.TplOrgIntents
-            .Include(t => t.Stages)!.ThenInclude(s => s.Offers)!.ThenInclude(o => o.Tasks)
-            .FirstOrDefaultAsync(t => t.Code == "FIRST_BOARD");
-        if (template == null)
-        {
-            Logger.LogWarning("Пропуск инстанцирования: шаблон FIRST_BOARD не найден");
-            return;
-        }
-
-        var intent = new OrgIntent
-        {
-            Id = Guid.NewGuid(),
-            LegalEntityId = legalEntityId.Value,
-            TemplateIntentId = template.Id,
-            Name = template.Name,
-            Description = template.Description,
-            SortOrder = template.SortOrder,
-            Status = "PLANNED"
-        };
-        ctx.OrgIntents.Add(intent);
-
-        if (template.Stages != null)
-        {
-            foreach (var ts in template.Stages.OrderBy(s => s.SortOrder))
-            {
-                var stage = new OrgStage
-                {
-                    Id = Guid.NewGuid(),
-                    IntentId = intent.Id,
-                    TemplateStageId = ts.Id,
-                    Name = ts.Name,
-                    Description = ts.Description,
-                    SortOrder = ts.SortOrder,
-                    Status = "PLANNED"
-                };
-                ctx.OrgStages.Add(stage);
-
-                if (ts.Offers != null)
-                {
-                    foreach (var to in ts.Offers.OrderBy(o => o.SortOrder))
-                    {
-                        var offer = new OrgOffer
-                        {
-                            Id = Guid.NewGuid(),
-                            StageId = stage.Id,
-                            TemplateOfferId = to.Id,
-                            Name = to.Name,
-                            Description = to.Description,
-                            SortOrder = to.SortOrder,
-                            Status = "PLANNED"
-                        };
-                        ctx.OrgOffers.Add(offer);
-
-                        if (to.Tasks != null)
-                        {
-                            foreach (var tt in to.Tasks.OrderBy(t => t.SortOrder))
-                            {
-                                ctx.OrgTasks.Add(new OrgTask
-                                {
-                                    Id = Guid.NewGuid(),
-                                    OfferId = offer.Id,
-                                    TemplateTaskId = tt.Id,
-                                    Name = tt.Name,
-                                    Description = tt.Description,
-                                    SortOrder = tt.SortOrder,
-                                    Status = "PLANNED",
-                                    AssignedRoleId = tt.AssignedRoleId
-                                });
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        Logger.LogDebug("Шаблон FIRST_BOARD инстанцирован для LegalEntity {LegalEntityId}", legalEntityId);
+        await TemplateInstSvc.InstantiateFirstBoardAsync(ctx, legalEntityId.Value, boardOfDirectorsId);
     }
 
     private async Task LoadFirstBoardTemplateSummary(IApplicationDbContext ctx)

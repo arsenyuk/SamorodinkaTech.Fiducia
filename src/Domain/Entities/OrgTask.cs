@@ -44,6 +44,12 @@ public class OrgTask
     /// <summary>Роль исполнителя.</summary>
     public Role? AssignedRole { get; set; }
 
+    /// <summary>Идентификатор должности в Совете директоров (assigned_board_role_id).</summary>
+    public Guid? AssignedBoardRoleId { get; set; }
+
+    /// <summary>Должность в Совете директоров.</summary>
+    public BoardRole? AssignedBoardRole { get; set; }
+
     /// <summary>Фактическая дата начала (actual_start).</summary>
     public DateOnly? ActualStart { get; set; }
 

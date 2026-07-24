@@ -426,9 +426,11 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.Property(x => x.Description).HasColumnName("description");
             b.Property(x => x.SortOrder).HasColumnName("sort_order").HasDefaultValue(0);
             b.Property(x => x.AssignedRoleId).HasColumnName("assigned_role_id");
+            b.Property(x => x.AssignedBoardRoleId).HasColumnName("assigned_board_role_id");
             b.Property(x => x.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("CURRENT_TIMESTAMP");
             b.HasOne(x => x.Offer).WithMany(x => x.Tasks).HasForeignKey(x => x.OfferId);
             b.HasOne(x => x.AssignedRole).WithMany().HasForeignKey(x => x.AssignedRoleId);
+            b.HasOne(x => x.AssignedBoardRole).WithMany().HasForeignKey(x => x.AssignedBoardRoleId);
         });
 
         modelBuilder.Entity<OrgIntent>(b =>
@@ -501,6 +503,7 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.Property(x => x.Status).HasColumnName("status").HasMaxLength(20).HasDefaultValue("PLANNED");
             b.Property(x => x.AssignedUserId).HasColumnName("assigned_user_id");
             b.Property(x => x.AssignedRoleId).HasColumnName("assigned_role_id");
+            b.Property(x => x.AssignedBoardRoleId).HasColumnName("assigned_board_role_id");
             b.Property(x => x.ActualStart).HasColumnName("actual_start").HasColumnType("date");
             b.Property(x => x.ActualEnd).HasColumnName("actual_end").HasColumnType("date");
             b.Property(x => x.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("CURRENT_TIMESTAMP");
@@ -508,6 +511,7 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.HasOne(x => x.TemplateTask).WithMany().HasForeignKey(x => x.TemplateTaskId);
             b.HasOne(x => x.AssignedUser).WithMany().HasForeignKey(x => x.AssignedUserId);
             b.HasOne(x => x.AssignedRole).WithMany().HasForeignKey(x => x.AssignedRoleId);
+            b.HasOne(x => x.AssignedBoardRole).WithMany().HasForeignKey(x => x.AssignedBoardRoleId);
         });
 
 
