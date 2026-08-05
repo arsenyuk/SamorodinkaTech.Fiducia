@@ -90,6 +90,8 @@ else
             await using var ctx = await DbFactory.CreateDbContextAsync();
             var le = await ctx.LegalEntities
                 .Include(x => x.Okopf)
+                .Where(x => x.Okopf != null && x.Okopf.Code == "12300")
+                .Where(x => ctx.ExtSparkFounders.Any(f => f.Inn == x.Inn))
                 .FirstOrDefaultAsync();
 
             if (le is null)
