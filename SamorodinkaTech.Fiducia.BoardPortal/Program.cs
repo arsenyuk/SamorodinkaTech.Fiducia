@@ -88,6 +88,7 @@ builder.Services.AddScoped<ISecurityAuditService, SecurityAuditService>();
 
 // Notification Service (US-009)
 builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<IElectionNominationService, ElectionNominationService>();
 
 // Time provider (SOLID: DIP) — абстракция системного времени для тестируемости
 builder.Services.AddSingleton<ITimeProvider, SystemTimeProvider>();

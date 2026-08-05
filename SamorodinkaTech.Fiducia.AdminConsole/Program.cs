@@ -94,6 +94,7 @@ builder.Services.AddScoped<ISecurityAuditService, SecurityAuditService>();
 
 // Notification Service (US-009)
 builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<IElectionNominationService, ElectionNominationService>();
 builder.Services.AddSingleton<ILegalEntityGosaIntervalService, LegalEntityGosaIntervalService>();
 builder.Services.AddScoped<ITemplateInstantiationService, TemplateInstantiationService>();
 

@@ -33,6 +33,7 @@ public interface IApplicationDbContext
     DbSet<AgendaProposal> AgendaProposals { get; }
     DbSet<ElectionProposal> ElectionProposals { get; }
     DbSet<ElectionCandidacy> ElectionCandidacies { get; }
+    DbSet<ElectionConsent> ElectionConsents { get; }
     DbSet<OsaMeetingFile> OsaMeetingFiles { get; }
     DbSet<LegalEntity> LegalEntities { get; }
     DbSet<CurrentWorkplace> CurrentWorkplaces { get; }

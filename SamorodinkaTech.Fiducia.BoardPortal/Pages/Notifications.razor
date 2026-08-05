@@ -2,6 +2,7 @@
 @using SamorodinkaTech.Fiducia.Domain.Entities
 @using SamorodinkaTech.Fiducia.Domain.Interfaces
 @inject IApplicationDbContext DbContext
+@inject IJSRuntime JS
 
 <PageTitle>Fiducia — Оповещения</PageTitle>
 
@@ -26,6 +27,10 @@
                     var borderColor = notification.NotificationType switch
                     {
                         "MEETING_SUMMONS" => "border-primary",
+                        "CHAIRMAN_NOMINATION" => "border-danger",
+                        "DEPUTY_CHAIRMAN_NOMINATION" => "border-danger",
+                        "CHAIRMAN_CONSENT" => "border-success",
+                        "DEPUTY_CHAIRMAN_CONSENT" => "border-success",
                         "VOTE_REMINDER" => "border-info",
                         "PROTOCOL_SIGNED" => "border-success",
                         "COMMITTEE_PROTOCOL_SIGNED" => "border-warning",
@@ -36,6 +41,10 @@
                     var bgColor = notification.NotificationType switch
                     {
                         "MEETING_SUMMONS" => "bg-light",
+                        "CHAIRMAN_NOMINATION" => "bg-danger bg-opacity-10",
+                        "DEPUTY_CHAIRMAN_NOMINATION" => "bg-danger bg-opacity-10",
+                        "CHAIRMAN_CONSENT" => "bg-success bg-opacity-10",
+                        "DEPUTY_CHAIRMAN_CONSENT" => "bg-success bg-opacity-10",
                         "VOTE_REMINDER" => "bg-info bg-opacity-10",
                         "PROTOCOL_SIGNED" => "bg-success bg-opacity-10",
                         "COMMITTEE_PROTOCOL_SIGNED" => "bg-warning bg-opacity-10",
@@ -60,17 +69,31 @@
 
 @code {
     private List<Notification> _notifications = new();
+    private Guid? _currentUserId;
 
     protected override async Task OnInitializedAsync()
     {
+        var userIdStr = await JS.InvokeAsync<string>("localStorage.getItem", "currentUserId") ?? "";
+        if (Guid.TryParse(userIdStr, out var userId))
+            _currentUserId = userId;
+
         await LoadNotifications();
     }
 
     private async Task LoadNotifications()
     {
-        _notifications = await DbContext.Notifications
+        var query = DbContext.Notifications
             .Include(n => n.User)
             .Include(n => n.Committee)
+            .AsQueryable();
+
+        // Показываем уведомления: свои + общие (без указания получателя)
+        if (_currentUserId.HasValue)
+        {
+            query = query.Where(n => n.UserId == null || n.UserId == _currentUserId.Value);
+        }
+
+        _notifications = await query
             .OrderByDescending(n => n.CreatedAt)
             .Take(50)
             .ToListAsync();

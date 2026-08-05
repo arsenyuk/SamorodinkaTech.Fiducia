@@ -122,6 +122,10 @@
         return type switch
         {
             "MEETING_SUMMONS" => "bg-primary",
+            "CHAIRMAN_NOMINATION" => "bg-danger",
+            "DEPUTY_CHAIRMAN_NOMINATION" => "bg-warning",
+            "CHAIRMAN_CONSENT" => "bg-success",
+            "DEPUTY_CHAIRMAN_CONSENT" => "bg-info",
             "VOTE_REMINDER" => "bg-info",
             "PROTOCOL_SIGNED" => "bg-success",
             "COMMITTEE_PROTOCOL_SIGNED" => "bg-warning",
@@ -135,6 +139,10 @@
         return type switch
         {
             "MEETING_SUMMONS" => "Созыв",
+            "CHAIRMAN_NOMINATION" => "Кандидаты председателя",
+            "DEPUTY_CHAIRMAN_NOMINATION" => "Кандидаты зампреда",
+            "CHAIRMAN_CONSENT" => "Согласие председателя",
+            "DEPUTY_CHAIRMAN_CONSENT" => "Согласие зампреда",
             "VOTE_REMINDER" => "Напоминание",
             "PROTOCOL_SIGNED" => "Протокол подписан",
             "COMMITTEE_PROTOCOL_SIGNED" => "Протокол комитета",
