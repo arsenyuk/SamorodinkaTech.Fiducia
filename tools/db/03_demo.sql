@@ -166,7 +166,7 @@ VALUES (gen_random_uuid(), '7703382710',
     'Шульгин Александр Сергеевич', 'Генеральный директор', '772912345678',
     '2017-12-01', NOW());
 
--- Учредители (1 ЮЛ + 2 ФЛ)
+-- Учредители (1 ЮЛ + 2 действующих ФЛ + 1 выбывший ФЛ)
 INSERT INTO ext_spark_founder (id, inn, name, founder_inn, founder_ogrn, country, is_foreign,
     full_name, person_inn, citizenship, share_amount, share_percent,
     entry_date, exit_date, director_count, fetched_at)
@@ -186,6 +186,12 @@ VALUES
      NULL, NULL, NULL, NULL, FALSE,
      'Петрова Елена Игоревна', '773212345678', 'Россия',
      50.00, 0.005,
-     '2013-02-10', NULL, 0, NOW());
+     '2013-02-10', NULL, 0, NOW()),
+    -- Выбывший учредитель: продал долю при входе стратегического инвестора
+    (gen_random_uuid(), '7703382710',
+     NULL, NULL, NULL, NULL, FALSE,
+     'Агафонов Дмитрий Павлович', '771801234567', 'Россия',
+     50000.00, 5.00,
+     '2004-09-01', '2014-05-19', 4, NOW());
 
 COMMIT;
