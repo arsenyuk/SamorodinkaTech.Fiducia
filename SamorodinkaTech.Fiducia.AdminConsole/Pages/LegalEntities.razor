@@ -170,6 +170,10 @@
                         {
                             <div class="text-danger small mt-2">@sparkError</div>
                         }
+                        @if (!string.IsNullOrEmpty(sparkWarning))
+                        {
+                            <div class="text-warning small mt-1">@sparkWarning</div>
+                        }
                     </div>
                     @if (_sparkFounders.Count > 0)
                     {
@@ -552,6 +556,7 @@
     private string? saveSuccess;
     private bool sparkLoading;
     private string? sparkError;
+    private string? sparkWarning; // не-критичные предупреждения (например, ограничение лицензии)
 
     // Данные СПАРК для отображения в карточке «Руководитель»
     private string? _sparkManagerName;
@@ -944,6 +949,7 @@
         if (string.IsNullOrEmpty(selectedEntity?.Inn)) return;
         sparkLoading = true;
         sparkError = null;
+        sparkWarning = null;
         StateHasChanged();
 
         try
@@ -1098,6 +1104,10 @@
                 }
 
                 _sparkFounders = founders;
+            }
+            else if (company is not null || manager is not null)
+            {
+                sparkWarning = "Данные об учредителях не загружены — возможно, требуется расширенный тариф СПАРК";
             }
 
             await ctx.SaveChangesAsync();
