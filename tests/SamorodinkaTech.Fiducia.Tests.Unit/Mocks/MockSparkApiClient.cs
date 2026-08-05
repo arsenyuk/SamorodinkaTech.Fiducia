@@ -19,12 +19,15 @@ public class MockSparkApiClient : ISparkApiClient
     /// <summary>Если true, все методы выбрасывают исключение (имитация сбоя API).</summary>
     public bool SimulateFailure { get; set; }
 
+    /// <summary>Если true, GetFoundersAsync возвращает 403 Forbidden (недостаточная лицензия).</summary>
+    public bool SimulateForbiddenOnFounders { get; set; }
+
     /// <inheritdoc />
     public async Task<SparkCompany?> GetCompanyByInnAsync(
         string inn,
         CancellationToken cancellationToken = default)
     {
-        await MaybeDelay();
+        await MaybeDelay(cancellationToken);
         ThrowIfFailure();
 
         _companies.TryGetValue(inn, out var company);
@@ -36,7 +39,7 @@ public class MockSparkApiClient : ISparkApiClient
         string inn,
         CancellationToken cancellationToken = default)
     {
-        await MaybeDelay();
+        await MaybeDelay(cancellationToken);
         ThrowIfFailure();
 
         _managers.TryGetValue(inn, out var manager);
@@ -48,8 +51,12 @@ public class MockSparkApiClient : ISparkApiClient
         string inn,
         CancellationToken cancellationToken = default)
     {
-        await MaybeDelay();
+        await MaybeDelay(cancellationToken);
         ThrowIfFailure();
+
+        if (SimulateForbiddenOnFounders)
+            throw new HttpRequestException("Response status code does not indicate success: 403 (Forbidden).",
+                null, System.Net.HttpStatusCode.Forbidden);
 
         _founders.TryGetValue(inn, out var founders);
         return founders ?? new List<SparkFounder>();
@@ -79,10 +86,10 @@ public class MockSparkApiClient : ISparkApiClient
         _founders[inn] = founders;
     }
 
-    private async Task MaybeDelay()
+    private async Task MaybeDelay(CancellationToken cancellationToken = default)
     {
         if (SimulatedDelayMs > 0)
-            await Task.Delay(SimulatedDelayMs);
+            await Task.Delay(SimulatedDelayMs, cancellationToken);
     }
 
     private void ThrowIfFailure()

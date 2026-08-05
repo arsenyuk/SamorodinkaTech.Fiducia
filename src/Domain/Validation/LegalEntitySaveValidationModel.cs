@@ -12,6 +12,15 @@ public record LegalEntitySaveValidationModel
     /// <summary>Включён ли Совет директоров.</summary>
     public bool HasBoardOfDirectors { get; set; }
 
+    /// <summary>Количество акционеров (shareholders_count).</summary>
+    public int? ShareholdersCount { get; set; }
+
+    /// <summary>Минимальное количество членов СД (board_min_number).</summary>
+    public int? BoardMinNumber { get; set; }
+
+    /// <summary>Количество членов СД (board_member_number).</summary>
+    public int? BoardMemberNumber { get; set; }
+
     /// <summary>Начало окна ГОСА.</summary>
     public DateOnly? GosaWindowStart { get; set; }
 

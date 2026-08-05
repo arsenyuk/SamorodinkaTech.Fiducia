@@ -7,7 +7,7 @@ namespace SamorodinkaTech.Fiducia.Tests.Unit.Services;
 /// <summary>
 /// Unit-тесты клиента СПАРК API с использованием MockSparkApiClient.
 /// Проверяют контракт ISparkApiClient: получение карточки компании,
-/// данных о гендиректоре и обработку сбоев.
+/// данных о гендиректоре, учредителей (ООО) и обработку сбоев (403, general failure).
 /// </summary>
 public class SparkApiClientTests
 {
@@ -134,5 +134,114 @@ public class SparkApiClientTests
 
         companyResult.Should().NotBeNull();
         managerResult.Should().BeNull();
+    }
+
+    // ── GetFoundersAsync ──────────────────────────────────────────
+
+    [Fact]
+    public async Task GetFoundersAsync_ExistingCompanyWithFounders_ShouldReturnFounders()
+    {
+        _client.AddFounders("7707083893", new List<SparkFounder>
+        {
+            new() { FullName = "Иванов Иван Иванович", PersonInn = "770701234567",
+                ShareAmount = 5000, SharePercent = 50 },
+            new() { FullName = "Петров Петр Петрович", PersonInn = "770707654321",
+                ShareAmount = 5000, SharePercent = 50 }
+        });
+
+        var result = await _client.GetFoundersAsync("7707083893");
+
+        result.Should().HaveCount(2);
+        result[0].FullName.Should().Be("Иванов Иван Иванович");
+        result[0].PersonInn.Should().Be("770701234567");
+        result[0].ShareAmount.Should().Be(5000);
+        result[0].SharePercent.Should().Be(50);
+        result[1].FullName.Should().Be("Петров Петр Петрович");
+        result[1].SharePercent.Should().Be(50);
+    }
+
+    [Fact]
+    public async Task GetFoundersAsync_NoFounders_ShouldReturnEmptyList()
+    {
+        var result = await _client.GetFoundersAsync("0000000000");
+
+        result.Should().NotBeNull();
+        result.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task GetFoundersAsync_SimulateForbidden_ShouldThrowHttpRequestExceptionWith403()
+    {
+        _client.SimulateForbiddenOnFounders = true;
+
+        var act = () => _client.GetFoundersAsync("7707083893");
+
+        var ex = await act.Should().ThrowAsync<HttpRequestException>();
+        ex.And.StatusCode.Should().Be(System.Net.HttpStatusCode.Forbidden);
+    }
+
+    [Fact]
+    public async Task GetFoundersAsync_SimulateFailure_ShouldThrow()
+    {
+        _client.SimulateFailure = true;
+
+        var act = () => _client.GetFoundersAsync("7707083893");
+
+        await act.Should().ThrowAsync<HttpRequestException>()
+            .WithMessage("Simulated SPARK API failure");
+    }
+
+    [Fact]
+    public async Task GetFoundersAsync_DifferentInns_ShouldReturnDifferentFounders()
+    {
+        _client.AddFounders("1111111111", new List<SparkFounder>
+        {
+            new() { FullName = "Учредитель А", SharePercent = 100 }
+        });
+        _client.AddFounders("2222222222", new List<SparkFounder>
+        {
+            new() { Name = "ООО «Учредитель Б»", Inn = "2222222223", SharePercent = 51 },
+            new() { FullName = "Сидоров Сидор Сидорович", SharePercent = 49 }
+        });
+
+        var r1 = await _client.GetFoundersAsync("1111111111");
+        var r2 = await _client.GetFoundersAsync("2222222222");
+
+        r1.Should().HaveCount(1);
+        r1[0].FullName.Should().Be("Учредитель А");
+        r2.Should().HaveCount(2);
+        r2[0].Name.Should().Be("ООО «Учредитель Б»");
+        r2[0].Inn.Should().Be("2222222223");
+        r2[1].FullName.Should().Be("Сидоров Сидор Сидорович");
+    }
+
+    [Fact]
+    public async Task GetFoundersAsync_LegalEntityFounder_ShouldHaveNameNotFullName()
+    {
+        _client.AddFounders("3333333333", new List<SparkFounder>
+        {
+            new() { Name = "ООО «Холдинг»", Inn = "3333333334",
+                ShareAmount = 7500, SharePercent = 75 }
+        });
+
+        var result = await _client.GetFoundersAsync("3333333333");
+
+        result.Should().HaveCount(1);
+        result[0].Name.Should().Be("ООО «Холдинг»");
+        result[0].Inn.Should().Be("3333333334");
+        result[0].FullName.Should().BeNull();
+        result[0].ShareAmount.Should().Be(7500);
+        result[0].SharePercent.Should().Be(75);
+    }
+
+    [Fact]
+    public async Task GetFoundersAsync_CancellationToken_ShouldRespectToken()
+    {
+        _client.SimulatedDelayMs = 500;
+        using var cts = new CancellationTokenSource(TimeSpan.FromMilliseconds(10));
+
+        var act = () => _client.GetFoundersAsync("7707083893", cts.Token);
+
+        await act.Should().ThrowAsync<TaskCanceledException>();
     }
 }
