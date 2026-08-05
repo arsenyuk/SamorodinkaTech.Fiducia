@@ -175,6 +175,25 @@ erDiagram
         date start_date
         timestamp fetched_at
     }
+
+    ext_spark_founder {
+        uuid id PK
+        varchar inn FK
+        varchar name
+        varchar founder_inn
+        varchar founder_ogrn
+        varchar country
+        boolean is_foreign
+        varchar full_name
+        varchar person_inn
+        varchar citizenship
+        numeric share_amount
+        numeric share_percent
+        date entry_date
+        date exit_date
+        int director_count
+        timestamp fetched_at
+    }
 ```
 
 ---
@@ -480,6 +499,29 @@ CREATE INDEX idx_b_signed_at ON bulletins(signed_at);
 | `position` | VARCHAR(200) | Должность |
 | `person_inn` | VARCHAR(12) | ИНН физлица-руководителя |
 | `start_date` | DATE | Дата начала полномочий |
+| `fetched_at` | TIMESTAMPTZ | Время получения данных из API |
+
+### ext_spark_founder
+
+Кэш данных об учредителях (участниках) ООО из СПАРК (BDR-009). Не авторитетный источник.
+
+| Поле | Тип | Описание |
+|------|-----|----------|
+| `id` | UUID | Первичный ключ |
+| `inn` | VARCHAR(12) | ИНН компании |
+| `name` | VARCHAR(500) | Наименование учредителя-ЮЛ |
+| `founder_inn` | VARCHAR(12) | ИНН учредителя-ЮЛ |
+| `founder_ogrn` | VARCHAR(15) | ОГРН учредителя-ЮЛ |
+| `country` | VARCHAR(100) | Страна регистрации ЮЛ |
+| `is_foreign` | BOOLEAN | Признак иностранного ЮЛ |
+| `full_name` | VARCHAR(300) | ФИО учредителя-ФЛ |
+| `person_inn` | VARCHAR(12) | ИНН учредителя-ФЛ |
+| `citizenship` | VARCHAR(100) | Гражданство учредителя-ФЛ |
+| `share_amount` | NUMERIC(18,2) | Номинальная стоимость доли (₽) |
+| `share_percent` | NUMERIC(5,2) | Доля в процентах |
+| `entry_date` | DATE | Дата вхождения в состав участников |
+| `exit_date` | DATE | Дата выхода из состава (NULL — действующий) |
+| `director_count` | INTEGER | Количество организаций, где ФЛ — руководитель |
 | `fetched_at` | TIMESTAMPTZ | Время получения данных из API |
 
 ### security_audit_log
