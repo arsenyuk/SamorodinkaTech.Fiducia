@@ -88,15 +88,21 @@ else
         try
         {
             await using var ctx = await DbFactory.CreateDbContextAsync();
+
+            var workplace = await ctx.CurrentWorkplaces.FirstOrDefaultAsync();
+            if (workplace?.LastSelectedLegalEntityId is null)
+            {
+                _error = "Юридическое лицо не выбрано. Перейдите в Административную консоль → Юридические лица и выберите ООО.";
+                return;
+            }
+
             var le = await ctx.LegalEntities
                 .Include(x => x.Okopf)
-                .Where(x => x.Okopf != null && x.Okopf.Code == "12300")
-                .Where(x => ctx.ExtSparkFounders.Any(f => f.Inn == x.Inn))
-                .FirstOrDefaultAsync();
+                .FirstOrDefaultAsync(x => x.Id == workplace.LastSelectedLegalEntityId.Value);
 
             if (le is null)
             {
-                _error = "Юридическое лицо не настроено.";
+                _error = "Выбранное юридическое лицо не найдено.";
                 return;
             }
 
