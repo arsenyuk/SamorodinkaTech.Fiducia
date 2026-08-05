@@ -95,4 +95,30 @@ public class SparkApiClient : ISparkApiClient
 
         return managers?.FirstOrDefault();
     }
+
+    /// <inheritdoc />
+    public async Task<List<SparkFounder>> GetFoundersAsync(
+        string inn,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(_apiKey))
+            return new List<SparkFounder>();
+
+        _logger.LogDebug("Запрос учредителей из СПАРК по ИНН={Inn}", inn);
+
+        var request = new HttpRequestMessage(HttpMethod.Get,
+            $"{_baseUrl}/api/v1/companies/{inn}/founders");
+        request.Headers.Add("Authorization", $"Bearer {_apiKey}");
+
+        var response = await _http.SendAsync(request, cancellationToken);
+        if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+            return new List<SparkFounder>();
+
+        response.EnsureSuccessStatusCode();
+
+        var founders = await response.Content
+            .ReadFromJsonAsync<List<SparkFounder>>(JsonOptions, cancellationToken);
+
+        return founders ?? new List<SparkFounder>();
+    }
 }

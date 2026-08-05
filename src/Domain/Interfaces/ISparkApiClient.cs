@@ -28,4 +28,14 @@ public interface ISparkApiClient
     Task<SparkManager?> GetManagerAsync(
         string inn,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Возвращает список учредителей (участников) компании.
+    /// </summary>
+    /// <param name="inn">ИНН компании.</param>
+    /// <param name="cancellationToken">Токен отмены.</param>
+    /// <returns>Список учредителей или пустой массив.</returns>
+    Task<List<SparkFounder>> GetFoundersAsync(
+        string inn,
+        CancellationToken cancellationToken = default);
 }

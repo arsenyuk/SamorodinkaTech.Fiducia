@@ -11,6 +11,7 @@ public class MockSparkApiClient : ISparkApiClient
 {
     private readonly Dictionary<string, SparkCompany> _companies = new();
     private readonly Dictionary<string, SparkManager> _managers = new();
+    private readonly Dictionary<string, List<SparkFounder>> _founders = new();
 
     /// <summary>Задержка ответа в миллисекундах для имитации сети (по умолчанию 0).</summary>
     public int SimulatedDelayMs { get; set; }
@@ -42,6 +43,18 @@ public class MockSparkApiClient : ISparkApiClient
         return manager;
     }
 
+    /// <inheritdoc />
+    public async Task<List<SparkFounder>> GetFoundersAsync(
+        string inn,
+        CancellationToken cancellationToken = default)
+    {
+        await MaybeDelay();
+        ThrowIfFailure();
+
+        _founders.TryGetValue(inn, out var founders);
+        return founders ?? new List<SparkFounder>();
+    }
+
     /// <summary>
     /// Добавляет компанию в mock-хранилище (для настройки тестовых данных).
     /// </summary>
@@ -56,6 +69,14 @@ public class MockSparkApiClient : ISparkApiClient
     public void AddManager(string inn, SparkManager manager)
     {
         _managers[inn] = manager;
+    }
+
+    /// <summary>
+    /// Добавляет список учредителей в mock-хранилище (для настройки тестовых данных).
+    /// </summary>
+    public void AddFounders(string inn, List<SparkFounder> founders)
+    {
+        _founders[inn] = founders;
     }
 
     private async Task MaybeDelay()

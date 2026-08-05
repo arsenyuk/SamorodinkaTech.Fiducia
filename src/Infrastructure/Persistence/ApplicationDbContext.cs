@@ -47,7 +47,7 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
     public DbSet<ExtSparkCompany> ExtSparkCompanies => Set<ExtSparkCompany>();
     public DbSet<RefMeetingForm> MeetingForms => Set<RefMeetingForm>();
     public DbSet<ExtSparkManager> ExtSparkManagers => Set<ExtSparkManager>();
-
+    public DbSet<ExtSparkFounder> ExtSparkFounders => Set<ExtSparkFounder>();
 
     public DbSet<TplOrgIntent> TplOrgIntents => Set<TplOrgIntent>();
     public DbSet<TplOrgStage> TplOrgStages => Set<TplOrgStage>();
@@ -374,6 +374,21 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.Property(x => x.Position).HasColumnName("position").HasMaxLength(200);
             b.Property(x => x.PersonInn).HasColumnName("person_inn").HasMaxLength(12);
             b.Property(x => x.StartDate).HasColumnName("start_date");
+            b.Property(x => x.FetchedAt).HasColumnName("fetched_at").IsRequired();
+        });
+
+        modelBuilder.Entity<ExtSparkFounder>(b =>
+        {
+            b.ToTable("ext_spark_founder");
+            b.HasKey(x => x.Id);
+            b.Property(x => x.Id).HasColumnName("id");
+            b.Property(x => x.Inn).HasColumnName("inn").HasMaxLength(12).IsRequired();
+            b.Property(x => x.Name).HasColumnName("name").HasMaxLength(500);
+            b.Property(x => x.FounderInn).HasColumnName("founder_inn").HasMaxLength(12);
+            b.Property(x => x.FullName).HasColumnName("full_name").HasMaxLength(300);
+            b.Property(x => x.PersonInn).HasColumnName("person_inn").HasMaxLength(12);
+            b.Property(x => x.ShareAmount).HasColumnName("share_amount").HasColumnType("numeric(18,2)");
+            b.Property(x => x.SharePercent).HasColumnName("share_percent").HasColumnType("numeric(5,2)");
             b.Property(x => x.FetchedAt).HasColumnName("fetched_at").IsRequired();
         });
 

@@ -1,5 +1,6 @@
 @page "/legal-entities"
 @using Microsoft.EntityFrameworkCore
+@using SamorodinkaTech.Fiducia.Domain.Models.Spark
 @inject IDbContextFactory<SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext> DbFactory
 @inject SamorodinkaTech.Fiducia.Domain.Interfaces.ILegalEntityGosaIntervalService GosaSvc
 @inject SamorodinkaTech.Fiducia.Domain.Interfaces.ISparkApiClient SparkApi
@@ -170,6 +171,36 @@
                             <div class="text-danger small mt-2">@sparkError</div>
                         }
                     </div>
+                    @if (_sparkFounders.Count > 0)
+                    {
+                        <div class="col-md-6">
+                            <h6 class="text-muted mb-2">Учредители (участники)</h6>
+                            @foreach (var f in _sparkFounders)
+                            {
+                                var displayName = f.FullName ?? f.Name ?? "—";
+                                var displayInn = f.PersonInn ?? f.Inn;
+                                <div class="card mb-2">
+                                    <div class="card-body py-2 px-3">
+                                        <div class="fw-semibold">@displayName</div>
+                                        @if (!string.IsNullOrEmpty(displayInn))
+                                        {
+                                            <div class="small text-muted">ИНН: @displayInn</div>
+                                        }
+                                        <div class="small">
+                                            @if (f.SharePercent.HasValue)
+                                            {
+                                                <span>@f.SharePercent.Value.ToString("0.##")%</span>
+                                            }
+                                            @if (f.ShareAmount.HasValue)
+                                            {
+                                                <span class="text-muted">(@f.ShareAmount.Value.ToString("N2") ₽)</span>
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
                 </div>
             }  @* end of _activeTab == 1 *@
 
@@ -537,6 +568,9 @@
     private string? _sparkCompanyStatus;
     private DateTime? _sparkCompanyRegDate;
 
+    // Учредители из СПАРК
+    private List<SparkFounder> _sparkFounders = new();
+
     private Guid? _influentialPersonId;
     private int _activeTab;
 
@@ -885,6 +919,19 @@
                 _sparkCompanyStatus = cachedCompany.Status;
                 _sparkCompanyRegDate = cachedCompany.RegistrationDate;
             }
+
+            _sparkFounders = await ctx.ExtSparkFounders
+                .Where(x => x.Inn == selectedEntity.Inn.Trim())
+                .Select(x => new SparkFounder
+                {
+                    Name = x.Name,
+                    Inn = x.FounderInn,
+                    FullName = x.FullName,
+                    PersonInn = x.PersonInn,
+                    ShareAmount = x.ShareAmount,
+                    SharePercent = x.SharePercent
+                })
+                .ToListAsync();
         }
         catch (Exception ex)
         {
@@ -904,6 +951,7 @@
             var inn = selectedEntity.Inn.Trim();
             var company = await SparkApi.GetCompanyByInnAsync(inn);
             var manager = await SparkApi.GetManagerAsync(inn);
+            var founders = await SparkApi.GetFoundersAsync(inn);
 
             await using var ctx = await DbFactory.CreateDbContextAsync();
 
@@ -1025,6 +1073,31 @@
                 {
                     sparkError = "Руководитель не найден в СПАРК";
                 }
+            }
+
+            // Сохраняем учредителей в ext_spark_founder (BDR-009)
+            if (founders.Count > 0)
+            {
+                var existing = await ctx.ExtSparkFounders.Where(x => x.Inn == inn).ToListAsync();
+                ctx.ExtSparkFounders.RemoveRange(existing);
+
+                foreach (var f in founders)
+                {
+                    ctx.ExtSparkFounders.Add(new SamorodinkaTech.Fiducia.Domain.Entities.ExtSparkFounder
+                    {
+                        Id = Guid.NewGuid(),
+                        Inn = inn,
+                        Name = f.Name,
+                        FounderInn = f.Inn,
+                        FullName = f.FullName,
+                        PersonInn = f.PersonInn,
+                        ShareAmount = f.ShareAmount,
+                        SharePercent = f.SharePercent,
+                        FetchedAt = DateTime.UtcNow
+                    });
+                }
+
+                _sparkFounders = founders;
             }
 
             await ctx.SaveChangesAsync();

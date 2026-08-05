@@ -433,6 +433,22 @@ CREATE TABLE IF NOT EXISTS ext_spark_manager (
 CREATE INDEX IF NOT EXISTS ix_ext_spark_manager_inn ON ext_spark_manager(inn);
 CREATE INDEX IF NOT EXISTS ix_ext_spark_manager_fetched_at ON ext_spark_manager(fetched_at);
 
+-- ext_spark_founder: учредители (участники) компании из СПАРК
+CREATE TABLE IF NOT EXISTS ext_spark_founder (
+    id uuid PRIMARY KEY,
+    inn varchar(12) NOT NULL,
+    name varchar(500),
+    founder_inn varchar(12),
+    full_name varchar(300),
+    person_inn varchar(12),
+    share_amount numeric(18,2),
+    share_percent numeric(5,2),
+    fetched_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS ix_ext_spark_founder_inn ON ext_spark_founder(inn);
+CREATE INDEX IF NOT EXISTS ix_ext_spark_founder_fetched_at ON ext_spark_founder(fetched_at);
+
 
 -- ============================================================================
 -- Шаблоны организационных мероприятий (Org Templates)
