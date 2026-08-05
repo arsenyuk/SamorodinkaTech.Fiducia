@@ -191,7 +191,10 @@ erDiagram
         numeric share_percent
         date entry_date
         date exit_date
-        int director_count
+        int head_of_other
+        int founder_of_other
+        boolean is_entrepreneur
+        varchar ogrnip
         timestamp fetched_at
     }
 ```
@@ -521,7 +524,10 @@ CREATE INDEX idx_b_signed_at ON bulletins(signed_at);
 | `share_percent` | NUMERIC(5,2) | Доля в процентах |
 | `entry_date` | DATE | Дата вхождения в состав участников |
 | `exit_date` | DATE | Дата выхода из состава (NULL — действующий) |
-| `director_count` | INTEGER | Количество организаций, где ФЛ — руководитель |
+| `head_of_other` | INTEGER | Количество организаций, где ФЛ — руководитель |
+| `founder_of_other` | INTEGER | Количество организаций, где ФЛ — учредитель/участник |
+| `is_entrepreneur` | BOOLEAN | Зарегистрирован ли ФЛ как ИП |
+| `ogrnip` | VARCHAR(15) | ОГРНИП учредителя-ФЛ |
 | `fetched_at` | TIMESTAMPTZ | Время получения данных из API |
 
 ### security_audit_log
