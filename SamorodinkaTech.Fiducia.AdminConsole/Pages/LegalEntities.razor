@@ -175,7 +175,7 @@
                             <div class="text-warning small mt-1">@sparkWarning</div>
                         }
                     </div>
-                    @if (_sparkFounders.Count > 0)
+                    @if (_orgType == OrgType.LLC && _sparkFounders.Count > 0)
                     {
                         <div class="col-md-6">
                             <h6 class="text-muted mb-2">Учредители (участники)</h6>
@@ -925,18 +925,20 @@
                 _sparkCompanyRegDate = cachedCompany.RegistrationDate;
             }
 
-            _sparkFounders = await ctx.ExtSparkFounders
-                .Where(x => x.Inn == selectedEntity.Inn.Trim())
-                .Select(x => new SparkFounder
-                {
-                    Name = x.Name,
-                    Inn = x.FounderInn,
-                    FullName = x.FullName,
-                    PersonInn = x.PersonInn,
-                    ShareAmount = x.ShareAmount,
-                    SharePercent = x.SharePercent
-                })
-                .ToListAsync();
+            _sparkFounders = _orgType == OrgType.LLC
+                ? await ctx.ExtSparkFounders
+                    .Where(x => x.Inn == selectedEntity.Inn.Trim())
+                    .Select(x => new SparkFounder
+                    {
+                        Name = x.Name,
+                        Inn = x.FounderInn,
+                        FullName = x.FullName,
+                        PersonInn = x.PersonInn,
+                        ShareAmount = x.ShareAmount,
+                        SharePercent = x.SharePercent
+                    })
+                    .ToListAsync()
+                : new List<SparkFounder>();
         }
         catch (Exception ex)
         {
@@ -958,16 +960,19 @@
             var company = await SparkApi.GetCompanyByInnAsync(inn);
             var manager = await SparkApi.GetManagerAsync(inn);
 
-            List<SparkFounder> founders;
-            try
+            // Учредители — только для ООО (у АО реестр акционеров у регистратора, не в СПАРК)
+            List<SparkFounder> founders = new();
+            if (_orgType == OrgType.LLC)
             {
-                founders = await SparkApi.GetFoundersAsync(inn);
-            }
-            catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Forbidden)
-            {
-                Logger.LogWarning(ex, "Endpoint учредителей СПАРК вернул 403 (ИНН={Inn})", inn);
-                sparkWarning = ex.Message;
-                founders = new List<SparkFounder>();
+                try
+                {
+                    founders = await SparkApi.GetFoundersAsync(inn);
+                }
+                catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Forbidden)
+                {
+                    Logger.LogWarning(ex, "Endpoint учредителей СПАРК вернул 403 (ИНН={Inn})", inn);
+                    sparkWarning = ex.Message;
+                }
             }
 
             await using var ctx = await DbFactory.CreateDbContextAsync();
