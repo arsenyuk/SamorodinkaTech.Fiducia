@@ -57,3 +57,121 @@ INSERT INTO legal_entities (id, name, short_name, inn, ogrn, okopf_id) VALUES
     ('00000000-0000-0000-0000-000000000001','МУП «Водоканал» г. Екатеринбург','Водоканал Екб','6608001915','1036603485962','aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa7'),
     ('00000000-0000-0000-0000-000000000002','МУП «Горэлектротранс» г. Новосибирск','Горэлектротранс Нск','5406101424','1025401018557','aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa7')
 ON CONFLICT (id) DO NOTHING;
+
+-- ============================================================================
+-- Демонстрационные данные СПАРК для ООО (ext_spark_company, ext_spark_manager,
+-- ext_spark_founder)
+-- ============================================================================
+
+BEGIN;
+
+-- Очищаем старые демо-данные для трёх ООО
+DELETE FROM ext_spark_founder WHERE inn IN ('7736207543','7721546864','7703382710');
+DELETE FROM ext_spark_manager WHERE inn IN ('7736207543','7721546864','7703382710');
+DELETE FROM ext_spark_company WHERE inn IN ('7736207543','7721546864','7703382710');
+
+-- ----------------------------------------------------------------------------
+-- 1. ООО «Яндекс» (ИНН 7736207543)
+-- ----------------------------------------------------------------------------
+
+-- Карточка компании
+INSERT INTO ext_spark_company (id, inn, ogrn, full_name, short_name,
+    okopf_code, okopf_name, legal_address, status, registration_date,
+    employees_count, fetched_at)
+VALUES (gen_random_uuid(), '7736207543', '1027700229193',
+    'Общество с ограниченной ответственностью «Яндекс»',
+    'ООО «Яндекс»',
+    '12300', 'Общество с ограниченной ответственностью (ООО)',
+    '119021, г. Москва, ул. Льва Толстого, д. 16',
+    'Действующее', '2000-01-19', 25000, NOW());
+
+-- Руководитель
+INSERT INTO ext_spark_manager (id, inn, full_name, position, person_inn, start_date, fetched_at)
+VALUES (gen_random_uuid(), '7736207543',
+    'Кудрин Максим Львович', 'Генеральный директор', '780401234567',
+    '2023-05-15', NOW());
+
+-- Учредители (1 ЮЛ + 1 ФЛ)
+INSERT INTO ext_spark_founder (id, inn, name, founder_inn, full_name,
+    person_inn, share_amount, share_percent, fetched_at)
+VALUES
+    (gen_random_uuid(), '7736207543',
+     'Акционерное общество «Яндекс.Технологии»', '9705012345',
+     NULL, NULL, 900000.00, 90.00, NOW()),
+    (gen_random_uuid(), '7736207543',
+     NULL, NULL,
+     'Волож Аркадий Юрьевич', '772401234567',
+     100000.00, 10.00, NOW());
+
+-- ----------------------------------------------------------------------------
+-- 2. ООО «Вайлдберриз» (ИНН 7721546864)
+-- ----------------------------------------------------------------------------
+
+-- Карточка компании
+INSERT INTO ext_spark_company (id, inn, ogrn, full_name, short_name,
+    okopf_code, okopf_name, legal_address, status, registration_date,
+    employees_count, fetched_at)
+VALUES (gen_random_uuid(), '7721546864', '1067746062449',
+    'Общество с ограниченной ответственностью «Вайлдберриз»',
+    'ООО «Вайлдберриз»',
+    '12300', 'Общество с ограниченной ответственностью (ООО)',
+    '142181, Московская обл., г. Подольск, д. Коледино, тер. Индустриальная, д. 10',
+    'Действующее', '2004-04-20', 48000, NOW());
+
+-- Руководитель
+INSERT INTO ext_spark_manager (id, inn, full_name, position, person_inn, start_date, fetched_at)
+VALUES (gen_random_uuid(), '7721546864',
+    'Бакальчук Татьяна Владимировна', 'Генеральный директор', '501201234567',
+    '2004-01-16', NOW());
+
+-- Учредители (2 ФЛ)
+INSERT INTO ext_spark_founder (id, inn, name, founder_inn, full_name,
+    person_inn, share_amount, share_percent, fetched_at)
+VALUES
+    (gen_random_uuid(), '7721546864',
+     NULL, NULL,
+     'Бакальчук Татьяна Владимировна', '501201234567',
+     990000.00, 99.00, NOW()),
+    (gen_random_uuid(), '7721546864',
+     NULL, NULL,
+     'Бакальчук Владислав Сергеевич', '501208765432',
+     10000.00, 1.00, NOW());
+
+-- ----------------------------------------------------------------------------
+-- 3. ООО «Озон» (ИНН 7703382710)
+-- ----------------------------------------------------------------------------
+
+-- Карточка компании
+INSERT INTO ext_spark_company (id, inn, ogrn, full_name, short_name,
+    okopf_code, okopf_name, legal_address, status, registration_date,
+    employees_count, fetched_at)
+VALUES (gen_random_uuid(), '7703382710', '1027739013283',
+    'Общество с ограниченной ответственностью «Интернет Решения»',
+    'ООО «Интернет Решения»',
+    '12300', 'Общество с ограниченной ответственностью (ООО)',
+    '123112, г. Москва, Пресненская наб., д. 10, эт. 41, пом. I, ком. 6',
+    'Действующее', '1998-05-06', 45000, NOW());
+
+-- Руководитель
+INSERT INTO ext_spark_manager (id, inn, full_name, position, person_inn, start_date, fetched_at)
+VALUES (gen_random_uuid(), '7703382710',
+    'Шульгин Александр Сергеевич', 'Генеральный директор', '772912345678',
+    '2017-12-01', NOW());
+
+-- Учредители (1 ЮЛ + 2 ФЛ)
+INSERT INTO ext_spark_founder (id, inn, name, founder_inn, full_name,
+    person_inn, share_amount, share_percent, fetched_at)
+VALUES
+    (gen_random_uuid(), '7703382710',
+     'Общество с ограниченной ответственностью «Озон Холдинг»', '7704356731',
+     NULL, NULL, 999900.00, 99.99, NOW()),
+    (gen_random_uuid(), '7703382710',
+     NULL, NULL,
+     'Минаев Алексей Владимирович', '771501234567',
+     50.00, 0.005, NOW()),
+    (gen_random_uuid(), '7703382710',
+     NULL, NULL,
+     'Петрова Елена Игоревна', '773212345678',
+     50.00, 0.005, NOW());
+
+COMMIT;
