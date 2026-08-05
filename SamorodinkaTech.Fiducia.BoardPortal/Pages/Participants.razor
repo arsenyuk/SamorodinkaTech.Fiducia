@@ -1,0 +1,139 @@
+@page "/participants"
+@using Microsoft.EntityFrameworkCore
+@inject IDbContextFactory<SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext> DbFactory
+@inject ILogger<Participants> Logger
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+
+<PageTitle>Fiducia — Состав участников</PageTitle>
+
+<h3>Состав участников</h3>
+
+@if (_error is not null)
+{
+    <div class="alert alert-danger">@_error</div>
+}
+else if (!_isLLC)
+{
+    <div class="text-muted">Раздел доступен только для обществ с ограниченной ответственностью (ООО).</div>
+}
+else if (_founders.Count == 0)
+{
+    <div class="text-muted">
+        Данные об участниках не загружены.
+        @if (_lastFetch is not null)
+        {
+            <span>Последний запрос к СПАРК: <strong>@_lastFetch.Value.ToString("dd.MM.yyyy HH:mm")</strong> (МСК)</span>
+        }
+        else
+        {
+            <span>Загрузите данные через кнопку «СПАРК» в Административной консоли (раздел «Юридические лица»).</span>
+        }
+    </div>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Участник</th>
+                    <th>ИНН</th>
+                    <th>Доля</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var f in _founders)
+                {
+                    var displayName = f.FullName ?? f.Name ?? "—";
+                    var displayInn = f.PersonInn ?? f.Inn;
+                    <tr>
+                        <td>@displayName</td>
+                        <td>@(displayInn ?? "—")</td>
+                        <td>
+                            @if (f.SharePercent.HasValue)
+                            {
+                                <span>@f.SharePercent.Value.ToString("0.##")%</span>
+                            }
+                            @if (f.ShareAmount.HasValue)
+                            {
+                                <span class="text-muted small">(@f.ShareAmount.Value.ToString("N2") ₽)</span>
+                            }
+                            else if (!f.SharePercent.HasValue)
+                            {
+                                <span class="text-muted">—</span>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    @if (_lastFetch is not null)
+    {
+        <div class="text-muted small mt-2">
+            Данные загружены из СПАРК: <strong>@_lastFetch.Value.ToString("dd.MM.yyyy HH:mm")</strong> (МСК)
+        </div>
+    }
+}
+
+@code {
+    private bool _isLLC;
+    private DateTime? _lastFetch;
+    private string? _error;
+    private List<SparkFounderRow> _founders = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+            var le = await ctx.LegalEntities
+                .Include(x => x.Okopf)
+                .FirstOrDefaultAsync();
+
+            if (le is null)
+            {
+                _error = "Юридическое лицо не настроено.";
+                return;
+            }
+
+            _isLLC = le.Okopf?.Code == "12300";
+
+            if (!_isLLC)
+                return;
+
+            var founders = await ctx.ExtSparkFounders
+                .Where(x => x.Inn == le.Inn)
+                .OrderByDescending(x => x.SharePercent)
+                .ToListAsync();
+
+            _founders = founders.Select(f => new SparkFounderRow
+            {
+                FullName = f.FullName,
+                Name = f.Name,
+                PersonInn = f.PersonInn,
+                Inn = f.FounderInn,
+                SharePercent = f.SharePercent,
+                ShareAmount = f.ShareAmount
+            }).ToList();
+
+            _lastFetch = founders.FirstOrDefault()?.FetchedAt;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Ошибка загрузки состава участников");
+            _error = "Не удалось загрузить данные.";
+        }
+    }
+
+    private class SparkFounderRow
+    {
+        public string? FullName { get; init; }
+        public string? Name { get; init; }
+        public string? PersonInn { get; init; }
+        public string? Inn { get; init; }
+        public decimal? SharePercent { get; init; }
+        public decimal? ShareAmount { get; init; }
+    }
+}
