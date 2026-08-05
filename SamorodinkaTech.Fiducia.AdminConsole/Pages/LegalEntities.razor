@@ -957,7 +957,19 @@
             var inn = selectedEntity.Inn.Trim();
             var company = await SparkApi.GetCompanyByInnAsync(inn);
             var manager = await SparkApi.GetManagerAsync(inn);
-            var founders = await SparkApi.GetFoundersAsync(inn);
+
+            List<SparkFounder> founders;
+            try
+            {
+                founders = await SparkApi.GetFoundersAsync(inn);
+            }
+            catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Forbidden)
+            {
+                Logger.LogWarning(ex, "Endpoint учредителей СПАРК недоступен — " +
+                    "требуется тариф уровня «Расширенный» (ИНН={Inn})", inn);
+                founders = new List<SparkFounder>();
+                sparkWarning = "Данные об учредителях не загружены — требуется расширенный тариф СПАРК";
+            }
 
             await using var ctx = await DbFactory.CreateDbContextAsync();
 

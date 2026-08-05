@@ -114,14 +114,6 @@ public class SparkApiClient : ISparkApiClient
         if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
             return new List<SparkFounder>();
 
-        if (response.StatusCode == System.Net.HttpStatusCode.Forbidden
-            || response.StatusCode == System.Net.HttpStatusCode.PaymentRequired)
-        {
-            _logger.LogWarning("Endpoint учредителей СПАРК недоступен (код {StatusCode}) — " +
-                "требуется тариф уровня «Расширенный»", (int)response.StatusCode);
-            return new List<SparkFounder>();
-        }
-
         response.EnsureSuccessStatusCode();
 
         var founders = await response.Content
