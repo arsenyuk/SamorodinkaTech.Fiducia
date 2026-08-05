@@ -391,11 +391,14 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.Property(x => x.FullName).HasColumnName("full_name").HasMaxLength(300);
             b.Property(x => x.PersonInn).HasColumnName("person_inn").HasMaxLength(12);
             b.Property(x => x.Citizenship).HasColumnName("citizenship").HasMaxLength(100);
+            b.Property(x => x.HeadOfOther).HasColumnName("head_of_other");
+            b.Property(x => x.FounderOfOther).HasColumnName("founder_of_other");
+            b.Property(x => x.IsEntrepreneur).HasColumnName("is_entrepreneur").HasDefaultValue(false);
+            b.Property(x => x.Ogrnip).HasColumnName("ogrnip").HasMaxLength(15);
             b.Property(x => x.ShareAmount).HasColumnName("share_amount").HasColumnType("numeric(18,2)");
             b.Property(x => x.SharePercent).HasColumnName("share_percent").HasColumnType("numeric(5,2)");
             b.Property(x => x.EntryDate).HasColumnName("entry_date");
             b.Property(x => x.ExitDate).HasColumnName("exit_date");
-            b.Property(x => x.DirectorCount).HasColumnName("director_count");
             b.Property(x => x.FetchedAt).HasColumnName("fetched_at").IsRequired();
         });
 

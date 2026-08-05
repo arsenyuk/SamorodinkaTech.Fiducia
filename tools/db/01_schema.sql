@@ -445,11 +445,14 @@ CREATE TABLE IF NOT EXISTS ext_spark_founder (
     full_name varchar(300),
     person_inn varchar(12),
     citizenship varchar(100),
+    head_of_other integer,
+    founder_of_other integer,
+    is_entrepreneur boolean DEFAULT FALSE,
+    ogrnip varchar(15),
     share_amount numeric(18,2),
     share_percent numeric(5,2),
     entry_date date,
     exit_date date,
-    director_count integer,
     fetched_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 

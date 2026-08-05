@@ -60,9 +60,21 @@ else
                             {
                                 <span class="badge bg-warning text-dark">Иностранное ЮЛ</span>
                             }
-                            @if (f.DirectorCount is > 0)
+                            @if (f.HeadOfOther is > 0)
                             {
-                                <span class="badge bg-info">Руководитель в @f.DirectorCount орг.</span>
+                                <span class="badge bg-info">Руководит @f.HeadOfOther орг.</span>
+                            }
+                            @if (f.FounderOfOther is > 0)
+                            {
+                                <span class="badge bg-secondary">Учредитель в @f.FounderOfOther орг.</span>
+                            }
+                            @if (f.IsEntrepreneur)
+                            {
+                                <span class="badge bg-primary">ИП</span>
+                                @if (!string.IsNullOrEmpty(f.Ogrnip))
+                                {
+                                    <span class="text-muted small"> ОГРНИП @f.Ogrnip</span>
+                                }
                             }
                         </td>
                         <td>
@@ -174,11 +186,14 @@ else
                 Country = f.Country,
                 IsForeign = f.IsForeign,
                 Citizenship = f.Citizenship,
+                HeadOfOther = f.HeadOfOther,
+                FounderOfOther = f.FounderOfOther,
+                IsEntrepreneur = f.IsEntrepreneur,
+                Ogrnip = f.Ogrnip,
                 SharePercent = f.SharePercent,
                 ShareAmount = f.ShareAmount,
                 EntryDate = f.EntryDate,
-                ExitDate = f.ExitDate,
-                DirectorCount = f.DirectorCount
+                ExitDate = f.ExitDate
             }).ToList();
 
             _lastFetch = founders.FirstOrDefault()?.FetchedAt;
@@ -200,10 +215,13 @@ else
         public string? Country { get; init; }
         public bool IsForeign { get; init; }
         public string? Citizenship { get; init; }
+        public int? HeadOfOther { get; init; }
+        public int? FounderOfOther { get; init; }
+        public bool IsEntrepreneur { get; init; }
+        public string? Ogrnip { get; init; }
         public decimal? SharePercent { get; init; }
         public decimal? ShareAmount { get; init; }
         public DateTime? EntryDate { get; init; }
         public DateTime? ExitDate { get; init; }
-        public int? DirectorCount { get; init; }
     }
 }

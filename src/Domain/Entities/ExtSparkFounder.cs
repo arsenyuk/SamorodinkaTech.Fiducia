@@ -12,6 +12,8 @@ public class ExtSparkFounder
     /// <summary>ИНН компании — ключ поиска (inn).</summary>
     public string Inn { get; set; } = default!;
 
+    // ── ЮЛ ────────────────────────────────────────────────────────
+
     /// <summary>Наименование учредителя-ЮЛ (name).</summary>
     public string? Name { get; set; }
 
@@ -27,6 +29,8 @@ public class ExtSparkFounder
     /// <summary>Признак иностранного ЮЛ (is_foreign).</summary>
     public bool IsForeign { get; set; }
 
+    // ── ФЛ ────────────────────────────────────────────────────────
+
     /// <summary>ФИО учредителя-ФЛ (full_name).</summary>
     public string? FullName { get; set; }
 
@@ -36,20 +40,35 @@ public class ExtSparkFounder
     /// <summary>Гражданство учредителя-ФЛ (citizenship).</summary>
     public string? Citizenship { get; set; }
 
+    // ── Участие в других организациях (только для ФЛ) ─────────────
+
+    /// <summary>Количество организаций, где ФЛ — руководитель (head_of_other).</summary>
+    public int? HeadOfOther { get; set; }
+
+    /// <summary>Количество организаций, где ФЛ — учредитель/участник (founder_of_other).</summary>
+    public int? FounderOfOther { get; set; }
+
+    /// <summary>Зарегистрирован ли ФЛ как ИП (is_entrepreneur).</summary>
+    public bool IsEntrepreneur { get; set; }
+
+    /// <summary>ОГРНИП учредителя-ФЛ (ogrnip).</summary>
+    public string? Ogrnip { get; set; }
+
+    // ── Доля ──────────────────────────────────────────────────────
+
     /// <summary>Размер доли в рублях, номинальная стоимость (share_amount).</summary>
     public decimal? ShareAmount { get; set; }
 
     /// <summary>Размер доли в процентах (share_percent).</summary>
     public decimal? SharePercent { get; set; }
 
+    // ── Даты ──────────────────────────────────────────────────────
+
     /// <summary>Дата вхождения в состав участников (entry_date).</summary>
     public DateTime? EntryDate { get; set; }
 
     /// <summary>Дата выхода из состава (exit_date).</summary>
     public DateTime? ExitDate { get; set; }
-
-    /// <summary>Количество других организаций, где ФЛ — руководитель (director_count).</summary>
-    public int? DirectorCount { get; set; }
 
     /// <summary>Временная метка получения данных из API (fetched_at).</summary>
     public DateTime FetchedAt { get; set; } = DateTime.UtcNow;

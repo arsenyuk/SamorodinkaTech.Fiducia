@@ -938,11 +938,14 @@
                         FullName = x.FullName,
                         PersonInn = x.PersonInn,
                         Citizenship = x.Citizenship,
+                        HeadOfOther = x.HeadOfOther,
+                        FounderOfOther = x.FounderOfOther,
+                        IsEntrepreneur = x.IsEntrepreneur,
+                        Ogrnip = x.Ogrnip,
                         ShareAmount = x.ShareAmount,
                         SharePercent = x.SharePercent,
                         EntryDate = x.EntryDate,
-                        ExitDate = x.ExitDate,
-                        DirectorCount = x.DirectorCount
+                        ExitDate = x.ExitDate
                     })
                     .ToListAsync()
                 : new List<SparkFounder>();
@@ -1124,11 +1127,14 @@
                         FullName = f.FullName,
                         PersonInn = f.PersonInn,
                         Citizenship = f.Citizenship,
+                        HeadOfOther = f.HeadOfOther,
+                        FounderOfOther = f.FounderOfOther,
+                        IsEntrepreneur = f.IsEntrepreneur,
+                        Ogrnip = f.Ogrnip,
                         ShareAmount = f.ShareAmount,
                         SharePercent = f.SharePercent,
                         EntryDate = f.EntryDate,
                         ExitDate = f.ExitDate,
-                        DirectorCount = f.DirectorCount,
                         FetchedAt = DateTime.UtcNow
                     });
                 }
