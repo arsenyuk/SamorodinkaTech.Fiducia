@@ -385,10 +385,17 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.Property(x => x.Inn).HasColumnName("inn").HasMaxLength(12).IsRequired();
             b.Property(x => x.Name).HasColumnName("name").HasMaxLength(500);
             b.Property(x => x.FounderInn).HasColumnName("founder_inn").HasMaxLength(12);
+            b.Property(x => x.FounderOgrn).HasColumnName("founder_ogrn").HasMaxLength(15);
+            b.Property(x => x.Country).HasColumnName("country").HasMaxLength(100);
+            b.Property(x => x.IsForeign).HasColumnName("is_foreign").HasDefaultValue(false);
             b.Property(x => x.FullName).HasColumnName("full_name").HasMaxLength(300);
             b.Property(x => x.PersonInn).HasColumnName("person_inn").HasMaxLength(12);
+            b.Property(x => x.Citizenship).HasColumnName("citizenship").HasMaxLength(100);
             b.Property(x => x.ShareAmount).HasColumnName("share_amount").HasColumnType("numeric(18,2)");
             b.Property(x => x.SharePercent).HasColumnName("share_percent").HasColumnType("numeric(5,2)");
+            b.Property(x => x.EntryDate).HasColumnName("entry_date");
+            b.Property(x => x.ExitDate).HasColumnName("exit_date");
+            b.Property(x => x.DirectorCount).HasColumnName("director_count");
             b.Property(x => x.FetchedAt).HasColumnName("fetched_at").IsRequired();
         });
 

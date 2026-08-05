@@ -932,10 +932,17 @@
                     {
                         Name = x.Name,
                         Inn = x.FounderInn,
+                        Ogrn = x.FounderOgrn,
+                        Country = x.Country,
+                        IsForeign = x.IsForeign,
                         FullName = x.FullName,
                         PersonInn = x.PersonInn,
+                        Citizenship = x.Citizenship,
                         ShareAmount = x.ShareAmount,
-                        SharePercent = x.SharePercent
+                        SharePercent = x.SharePercent,
+                        EntryDate = x.EntryDate,
+                        ExitDate = x.ExitDate,
+                        DirectorCount = x.DirectorCount
                     })
                     .ToListAsync()
                 : new List<SparkFounder>();
@@ -1111,10 +1118,17 @@
                         Inn = inn,
                         Name = f.Name,
                         FounderInn = f.Inn,
+                        FounderOgrn = f.Ogrn,
+                        Country = f.Country,
+                        IsForeign = f.IsForeign,
                         FullName = f.FullName,
                         PersonInn = f.PersonInn,
+                        Citizenship = f.Citizenship,
                         ShareAmount = f.ShareAmount,
                         SharePercent = f.SharePercent,
+                        EntryDate = f.EntryDate,
+                        ExitDate = f.ExitDate,
+                        DirectorCount = f.DirectorCount,
                         FetchedAt = DateTime.UtcNow
                     });
                 }

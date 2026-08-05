@@ -33,34 +33,84 @@ else if (_founders.Count == 0)
 else
 {
     <div class="table-responsive">
-        <table class="table table-striped">
+        <table class="table table-striped align-middle">
             <thead>
                 <tr>
                     <th>Участник</th>
-                    <th>ИНН</th>
+                    <th>ИНН / ОГРН</th>
                     <th>Доля</th>
+                    <th>Гражданство</th>
+                    <th>В составе с</th>
+                    <th></th>
                 </tr>
             </thead>
             <tbody>
                 @foreach (var f in _founders)
                 {
+                    var isExited = f.ExitDate.HasValue;
                     var displayName = f.FullName ?? f.Name ?? "—";
-                    var displayInn = f.PersonInn ?? f.Inn;
-                    <tr>
-                        <td>@displayName</td>
-                        <td>@(displayInn ?? "—")</td>
+
+                    <tr class="@(isExited ? "text-muted text-decoration-line-through" : "")">
+                        <td>
+                            <div class="fw-semibold @(isExited ? "" : "")">@displayName</div>
+                            @if (f.IsForeign)
+                            {
+                                <span class="badge bg-warning text-dark">Иностранное ЮЛ</span>
+                            }
+                            @if (f.DirectorCount is > 0)
+                            {
+                                <span class="badge bg-info">Руководитель в @f.DirectorCount орг.</span>
+                            }
+                            @if (isExited)
+                            {
+                                <span class="badge bg-secondary">Выбыл @f.ExitDate?.ToString("dd.MM.yyyy")</span>
+                            }
+                        </td>
+                        <td class="small">
+                            @{
+                                var displayInn = f.PersonInn ?? f.Inn;
+                            }
+                            @if (!string.IsNullOrEmpty(displayInn))
+                            {
+                                <div>ИНН: @displayInn</div>
+                            }
+                            @if (!string.IsNullOrEmpty(f.Ogrn))
+                            {
+                                <div>ОГРН: @f.Ogrn</div>
+                            }
+                            @if (string.IsNullOrEmpty(displayInn) && string.IsNullOrEmpty(f.Ogrn))
+                            {
+                                <span class="text-muted">—</span>
+                            }
+                        </td>
                         <td>
                             @if (f.SharePercent.HasValue)
                             {
-                                <span>@f.SharePercent.Value.ToString("0.##")%</span>
+                                <span class="fw-bold">@f.SharePercent.Value.ToString("0.##")%</span>
                             }
                             @if (f.ShareAmount.HasValue)
                             {
-                                <span class="text-muted small">(@f.ShareAmount.Value.ToString("N2") ₽)</span>
+                                <span class="text-muted small d-block">@f.ShareAmount.Value.ToString("N2") ₽</span>
                             }
                             else if (!f.SharePercent.HasValue)
                             {
                                 <span class="text-muted">—</span>
+                            }
+                        </td>
+                        <td class="small">
+                            @(f.Citizenship ?? (f.IsForeign ? f.Country : "Россия"))
+                        </td>
+                        <td class="small">
+                            @f.EntryDate?.ToString("dd.MM.yyyy")
+                        </td>
+                        <td>
+                            @if (isExited)
+                            {
+                                <span class="text-muted small">до @f.ExitDate?.ToString("dd.MM.yyyy")</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-success">Действующий</span>
                             }
                         </td>
                     </tr>
@@ -122,8 +172,15 @@ else
                 Name = f.Name,
                 PersonInn = f.PersonInn,
                 Inn = f.FounderInn,
+                Ogrn = f.FounderOgrn,
+                Country = f.Country,
+                IsForeign = f.IsForeign,
+                Citizenship = f.Citizenship,
                 SharePercent = f.SharePercent,
-                ShareAmount = f.ShareAmount
+                ShareAmount = f.ShareAmount,
+                EntryDate = f.EntryDate,
+                ExitDate = f.ExitDate,
+                DirectorCount = f.DirectorCount
             }).ToList();
 
             _lastFetch = founders.FirstOrDefault()?.FetchedAt;
@@ -141,7 +198,14 @@ else
         public string? Name { get; init; }
         public string? PersonInn { get; init; }
         public string? Inn { get; init; }
+        public string? Ogrn { get; init; }
+        public string? Country { get; init; }
+        public bool IsForeign { get; init; }
+        public string? Citizenship { get; init; }
         public decimal? SharePercent { get; init; }
         public decimal? ShareAmount { get; init; }
+        public DateTime? EntryDate { get; init; }
+        public DateTime? ExitDate { get; init; }
+        public int? DirectorCount { get; init; }
     }
 }

@@ -92,16 +92,21 @@ VALUES (gen_random_uuid(), '7736207543',
     '2023-05-15', NOW());
 
 -- Учредители (1 ЮЛ + 1 ФЛ)
-INSERT INTO ext_spark_founder (id, inn, name, founder_inn, full_name,
-    person_inn, share_amount, share_percent, fetched_at)
+INSERT INTO ext_spark_founder (id, inn, name, founder_inn, founder_ogrn, country, is_foreign,
+    full_name, person_inn, citizenship, share_amount, share_percent,
+    entry_date, exit_date, director_count, fetched_at)
 VALUES
     (gen_random_uuid(), '7736207543',
-     'Акционерное общество «Яндекс.Технологии»', '9705012345',
-     NULL, NULL, 900000.00, 90.00, NOW()),
+     'Акционерное общество «Яндекс.Технологии»', '9705012345', '1207700420500',
+     'Россия', FALSE,
+     NULL, NULL, NULL,
+     900000.00, 90.00,
+     '2019-12-18', NULL, NULL, NOW()),
     (gen_random_uuid(), '7736207543',
-     NULL, NULL,
-     'Волож Аркадий Юрьевич', '772401234567',
-     100000.00, 10.00, NOW());
+     NULL, NULL, NULL, NULL, FALSE,
+     'Волож Аркадий Юрьевич', '772401234567', 'Мальта',
+     100000.00, 10.00,
+     '2000-01-19', NULL, 3, NOW());
 
 -- ----------------------------------------------------------------------------
 -- 2. ООО «Вайлдберриз» (ИНН 7721546864)
@@ -125,17 +130,20 @@ VALUES (gen_random_uuid(), '7721546864',
     '2004-01-16', NOW());
 
 -- Учредители (2 ФЛ)
-INSERT INTO ext_spark_founder (id, inn, name, founder_inn, full_name,
-    person_inn, share_amount, share_percent, fetched_at)
+INSERT INTO ext_spark_founder (id, inn, name, founder_inn, founder_ogrn, country, is_foreign,
+    full_name, person_inn, citizenship, share_amount, share_percent,
+    entry_date, exit_date, director_count, fetched_at)
 VALUES
     (gen_random_uuid(), '7721546864',
-     NULL, NULL,
-     'Бакальчук Татьяна Владимировна', '501201234567',
-     990000.00, 99.00, NOW()),
+     NULL, NULL, NULL, NULL, FALSE,
+     'Бакальчук Татьяна Владимировна', '501201234567', 'Россия',
+     990000.00, 99.00,
+     '2004-04-20', NULL, 1, NOW()),
     (gen_random_uuid(), '7721546864',
-     NULL, NULL,
-     'Бакальчук Владислав Сергеевич', '501208765432',
-     10000.00, 1.00, NOW());
+     NULL, NULL, NULL, NULL, FALSE,
+     'Бакальчук Владислав Сергеевич', '501208765432', 'Россия',
+     10000.00, 1.00,
+     '2004-04-20', NULL, 0, NOW());
 
 -- ----------------------------------------------------------------------------
 -- 3. ООО «Озон» (ИНН 7703382710)
@@ -159,19 +167,25 @@ VALUES (gen_random_uuid(), '7703382710',
     '2017-12-01', NOW());
 
 -- Учредители (1 ЮЛ + 2 ФЛ)
-INSERT INTO ext_spark_founder (id, inn, name, founder_inn, full_name,
-    person_inn, share_amount, share_percent, fetched_at)
+INSERT INTO ext_spark_founder (id, inn, name, founder_inn, founder_ogrn, country, is_foreign,
+    full_name, person_inn, citizenship, share_amount, share_percent,
+    entry_date, exit_date, director_count, fetched_at)
 VALUES
     (gen_random_uuid(), '7703382710',
-     'Общество с ограниченной ответственностью «Озон Холдинг»', '7704356731',
-     NULL, NULL, 999900.00, 99.99, NOW()),
+     'Общество с ограниченной ответственностью «Озон Холдинг»', '7704356731', '5147746215061',
+     'Россия', FALSE,
+     NULL, NULL, NULL,
+     999900.00, 99.99,
+     '2014-05-20', NULL, NULL, NOW()),
     (gen_random_uuid(), '7703382710',
-     NULL, NULL,
-     'Минаев Алексей Владимирович', '771501234567',
-     50.00, 0.005, NOW()),
+     NULL, NULL, NULL, NULL, FALSE,
+     'Минаев Алексей Владимирович', '771501234567', 'Россия',
+     50.00, 0.005,
+     '2013-02-10', NULL, 2, NOW()),
     (gen_random_uuid(), '7703382710',
-     NULL, NULL,
-     'Петрова Елена Игоревна', '773212345678',
-     50.00, 0.005, NOW());
+     NULL, NULL, NULL, NULL, FALSE,
+     'Петрова Елена Игоревна', '773212345678', 'Россия',
+     50.00, 0.005,
+     '2013-02-10', NULL, 0, NOW());
 
 COMMIT;
