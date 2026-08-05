@@ -37,22 +37,25 @@ else
             <thead>
                 <tr>
                     <th>Участник</th>
-                    <th>ИНН / ОГРН</th>
+                    <th>Тип</th>
+                    <th>ИНН</th>
+                    <th>ОГРН</th>
+                    <th>Страна</th>
                     <th>Доля</th>
-                    <th>Гражданство</th>
                     <th>В составе с</th>
-                    <th></th>
+                    <th>Статус</th>
                 </tr>
             </thead>
             <tbody>
                 @foreach (var f in _founders)
                 {
                     var isExited = f.ExitDate.HasValue;
+                    var isUL = !string.IsNullOrEmpty(f.Name);
                     var displayName = f.FullName ?? f.Name ?? "—";
 
                     <tr class="@(isExited ? "text-muted text-decoration-line-through" : "")">
                         <td>
-                            <div class="fw-semibold @(isExited ? "" : "")">@displayName</div>
+                            <div class="fw-semibold">@displayName</div>
                             @if (f.IsForeign)
                             {
                                 <span class="badge bg-warning text-dark">Иностранное ЮЛ</span>
@@ -61,26 +64,24 @@ else
                             {
                                 <span class="badge bg-info">Руководитель в @f.DirectorCount орг.</span>
                             }
-                            @if (isExited)
-                            {
-                                <span class="badge bg-secondary">Выбыл @f.ExitDate?.ToString("dd.MM.yyyy")</span>
-                            }
+                        </td>
+                        <td>
+                            @(isUL ? "ЮЛ" : "ФЛ")
+                        </td>
+                        <td class="small font-monospace">
+                            @(f.PersonInn ?? f.Inn ?? "—")
+                        </td>
+                        <td class="small font-monospace">
+                            @(f.Ogrn ?? "—")
                         </td>
                         <td class="small">
-                            @{
-                                var displayInn = f.PersonInn ?? f.Inn;
-                            }
-                            @if (!string.IsNullOrEmpty(displayInn))
+                            @if (isUL)
                             {
-                                <div>ИНН: @displayInn</div>
+                                @(f.Country ?? "—")
                             }
-                            @if (!string.IsNullOrEmpty(f.Ogrn))
+                            else
                             {
-                                <div>ОГРН: @f.Ogrn</div>
-                            }
-                            @if (string.IsNullOrEmpty(displayInn) && string.IsNullOrEmpty(f.Ogrn))
-                            {
-                                <span class="text-muted">—</span>
+                                @(f.Citizenship ?? "—")
                             }
                         </td>
                         <td>
@@ -98,15 +99,12 @@ else
                             }
                         </td>
                         <td class="small">
-                            @(f.Citizenship ?? (f.IsForeign ? f.Country : "Россия"))
-                        </td>
-                        <td class="small">
                             @f.EntryDate?.ToString("dd.MM.yyyy")
                         </td>
                         <td>
                             @if (isExited)
                             {
-                                <span class="text-muted small">до @f.ExitDate?.ToString("dd.MM.yyyy")</span>
+                                <span class="badge bg-secondary">Выбыл @f.ExitDate?.ToString("dd.MM.yyyy")</span>
                             }
                             else
                             {
