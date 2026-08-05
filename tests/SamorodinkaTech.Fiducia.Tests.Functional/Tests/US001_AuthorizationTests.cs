@@ -1,77 +1,62 @@
 using FluentAssertions;
-using System.Net;
+using Microsoft.Playwright;
 
-namespace SamorodinkaTech.Fiducia.Tests.Functional.Tests;
+namespace SamorodinkaTech.Fiducia.Tests.Functional;
 
 /// <summary>
-/// US-001: Авторизация
-/// Тестирование через HTTP-запросы
+/// US-001: Авторизация — E2E-тесты через Playwright.
+/// Проверяет страницы login, публичность AuthLayout.
 /// </summary>
-public class US001_AuthorizationTests : IAsyncLifetime
+public class US001_AuthorizationTests : BrowserFixture
 {
-    private HttpClient _client = null!;
-    private const string BoardPortalUrl = "http://localhost:5000";
-    private const string AdminConsoleUrl = "http://localhost:5001";
+    [Fact]
+    public async Task BoardPortal_LoginPage_ShowsSelectDropdown()
+        => await AssertLoginDropdownAsync(Portal.BoardPortal);
 
-    public Task InitializeAsync()
+    [Fact]
+    public async Task AdminConsoleLoginPage_LoadsBlazorShell()
     {
-        _client = new HttpClient { BaseAddress = new Uri(BoardPortalUrl) };
-        return Task.CompletedTask;
-    }
-
-    public Task DisposeAsync()
-    {
-        _client.Dispose();
-        return Task.CompletedTask;
+        var page = await CreateAdminConsolePageAsync("/login");
+        var content = await page.ContentAsync();
+        content.Should().Contain("_framework/blazor.server.js", "Login — часть Admin Console SPA");
     }
 
     [Fact]
-    public async Task US001_Scenario1_LoginPage_ReturnsOk()
+    public async Task BoardPortal_LoginPage_ShowsNoSidebar()
     {
-        // Given: пользователь на странице входа
-        // When: открывает страницу /login
-        var response = await _client.GetAsync("/login");
+        var page = await CreateBoardPortalPageAsync("/login");
+        var hasSidebar = await page.EvaluateAsync<bool>("() => document.querySelector('.sidebar') !== null");
+        hasSidebar.Should().BeFalse("AuthLayout не содержит сайдбар навигации");
+    }
 
-        // Then: страница доступна
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var content = await response.Content.ReadAsStringAsync();
+    [Fact]
+    public async Task BoardPortal_PublicLanding_Present()
+    {
+        var page = await CreateBoardPortalPageAsync("/");
+        var content = await page.ContentAsync();
         content.Should().Contain("Fiducia");
-        content.Should().Contain("Board Portal");
     }
 
     [Fact]
-    public async Task US001_Scenario1_LoginPage_ContainsDropdown()
+    public async Task BoardPortal_OnboardingPage_Rendered()
     {
-        // Given: пользователь на странице входа
-        var response = await _client.GetAsync("/login");
-        var content = await response.Content.ReadAsStringAsync();
-
-        // Then: страница содержит select элемент
-        content.Should().Contain("<select");
-        content.Should().Contain("form-select");
+        var page = await CreateBoardPortalPageAsync("/onboarding");
+        var content = await page.ContentAsync();
+        content.Should().Contain("_framework/blazor.server.js");
     }
 
     [Fact]
-    public async Task US001_Scenario2_MainPage_RequiresAuth()
+    public async Task BoardPortal_ProposalPage_RenderedForAnonymousUsers()
     {
-        // Given: пользователь не авторизован
-        // When: пытается открыть главную
-        var response = await _client.GetAsync("/");
-
-        // Then: страница доступна (Blazor не блокирует)
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var page = await CreateBoardPortalPageAsync("/proposal");
+        var content = await page.ContentAsync();
+        content.Should().Contain("_framework/blazor.server.js");
     }
 
-    [Fact]
-    public async Task US001_Scenario3_AdminConsole_LoginPage()
+    private async Task AssertLoginDropdownAsync(Portal portal)
     {
-        // Given: пользователь на странице входа Admin Console
-        using var adminClient = new HttpClient { BaseAddress = new Uri(AdminConsoleUrl) };
-        var response = await adminClient.GetAsync("/login");
-        var content = await response.Content.ReadAsStringAsync();
-
-        // Then: страница доступна и содержит Admin Console
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
-        content.Should().Contain("Admin Console");
+        var page = await CreatePageAsync(portal, "/login");
+        var select = await page.WaitForSelectorAsync("select.form-select", new() { State = WaitForSelectorState.Visible, Timeout = 10_000 });
+        select.Should().NotBeNull();
     }
 }

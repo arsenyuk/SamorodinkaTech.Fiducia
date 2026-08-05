@@ -32,6 +32,27 @@ else if (_founders.Count == 0)
 }
 else
 {
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div></div>
+        <div class="d-flex align-items-center gap-3 text-nowrap">
+            @if (_treasuryShare > 0m)
+            {
+                <span class="fw-semibold text-success">@(((decimal)_treasuryShare).ToString("0.##"))<text>%</text></span>
+                <span class="text-muted small ms-1 me-2">казначейская доля</span>
+                <span class="text-muted small">|</span>
+            }
+            <label class="form-label mb-0" for="status-filter">Статус:</label>
+            <select id="status-filter" class="form-select form-select-sm" style="width: auto;" @bind="_statusFilter">
+                <option value="active">Действующий</option>
+                <option value="exited">Выбывший</option>
+                <option value="all">Все</option>
+            </select>
+            @if (_lastFetch is not null)
+            {
+                <span class="text-muted small text-end">(обновлено @_lastFetch.Value.ToString("dd.MM.yyyy hh:mm")</span>
+            }
+        </div>
+    </div>
     <div class="table-responsive">
         <table class="table table-striped align-middle">
             <thead>
@@ -47,7 +68,7 @@ else
                 </tr>
             </thead>
             <tbody>
-                @foreach (var f in _founders)
+                @foreach (var f in _filteredFounders)
                 {
                     var isExited = f.ExitDate.HasValue;
                     var isUL = !string.IsNullOrEmpty(f.Name);
@@ -144,7 +165,18 @@ else
     private bool _isLLC;
     private DateTime? _lastFetch;
     private string? _error;
+    private string _statusFilter = "active";
     private List<SparkFounderRow> _founders = new();
+
+    // Казначейская доля = остаток от 100% минуса суммарная доля всех участников (для текущего фильтра)
+    private decimal _treasuryShare => Math.Max(0m, 100m - _filteredFounders.Where(f => f.SharePercent.HasValue).Sum(f => f.SharePercent!.Value));
+
+    private List<SparkFounderRow> _filteredFounders => _statusFilter switch
+    {
+        "active" => _founders.Where(f => !f.ExitDate.HasValue).ToList(),
+        "exited" => _founders.Where(f => f.ExitDate.HasValue).ToList(),
+        _ => _founders
+    };
 
     protected override async Task OnInitializedAsync()
     {

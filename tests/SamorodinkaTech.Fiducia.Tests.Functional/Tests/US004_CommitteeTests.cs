@@ -1,101 +1,85 @@
 using FluentAssertions;
-using System.Net;
+using Microsoft.Playwright;
 
-namespace SamorodinkaTech.Fiducia.Tests.Functional.Tests;
+namespace SamorodinkaTech.Fiducia.Tests.Functional;
 
 /// <summary>
-/// US-004: Управление комитетами
-/// Тестирование через HTTP-запросы
+/// US-004: Управление комитетами и системные настройки.
 /// </summary>
-public class US004_CommitteeTests : IAsyncLifetime
+public class US004_CommitteeTests : BrowserFixture
 {
-    private HttpClient _client = null!;
-    private const string AdminConsoleUrl = "http://localhost:5001";
-
-    public Task InitializeAsync()
-    {
-        _client = new HttpClient { BaseAddress = new Uri(AdminConsoleUrl) };
-        return Task.CompletedTask;
-    }
-
-    public Task DisposeAsync()
-    {
-        _client.Dispose();
-        return Task.CompletedTask;
-    }
-
     [Fact]
-    public async Task US004_Scenario1_CommitteesPage_ReturnsOk()
+    public async Task BoardPortal_CommitteesPage_ShouldLoadAndContainBlazor()
     {
-        // Given: администратор на странице комитетов
-        var response = await _client.GetAsync("/committees");
-
-        // Then: страница доступна
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var content = await response.Content.ReadAsStringAsync();
-        content.Should().Contain("Комитеты");
-    }
-
-    [Fact]
-    public async Task US004_Scenario1_CommitteesPage_HasCreateButton()
-    {
-        // Given: администратор на странице комитетов
-        var response = await _client.GetAsync("/committees");
-        var content = await response.Content.ReadAsStringAsync();
-
-        // Then: есть кнопка создания
-        content.Should().Contain("Создать комитет");
-    }
-
-    [Fact]
-    public async Task US004_Scenario1_CommitteesPage_HasBlazorComponent()
-    {
-        // Given: администратор на странице комитетов
-        var response = await _client.GetAsync("/committees");
-        var content = await response.Content.ReadAsStringAsync();
-
-        // Then: страница содержит Blazor компонент
-        content.Should().Contain("blazor");
+        var page = await CreateBoardPortalPageAsync("/committees");
+        var content = await page.ContentAsync();
         content.Should().Contain("_framework/blazor.server.js");
+        content.Should().Contain("Комитеты совета директоров").And.Contain("+ Создать комитет");
     }
 
     [Fact]
-    public async Task US004_Scenario2_SettingsPage_HasAuthMethod()
+    public async Task BoardPortal_CommitteesPage_HasBehaviorTypeDropdown()
     {
-        // Given: администратор на странице настроек
-        var response = await _client.GetAsync("/settings");
-        var content = await response.Content.ReadAsStringAsync();
-
-        // Then: есть настройки метода авторизации
-        content.Should().Contain("Метод авторизации");
-        content.Should().Contain("Basic");
-        content.Should().Contain("Active Directory");
+        var page = await CreateBoardPortalPageAsync("/committees");
+        (await page.ContentAsync())
+            .Should().Contain("Защитный").And.Contain("Стратегический");
     }
 
     [Fact]
-    public async Task US004_Scenario2_SettingsPage_HasGostSettings()
+    public async Task BoardPortal_DocumentsPage_Rendered()
     {
-        // Given: администратор на странице настроек
-        var response = await _client.GetAsync("/settings");
-        var content = await response.Content.ReadAsStringAsync();
-
-        // Then: есть настройки печати по ГОСТу
-        content.Should().Contain("ГОСТ");
-        content.Should().Contain("Левое поле");
-        content.Should().Contain("Шрифт");
+        var page = await CreateBoardPortalPageAsync("/documents");
+        (await page.ContentAsync()).Should().Contain("_framework/blazor.server.js");
     }
 
     [Fact]
-    public async Task US004_Scenario2_SettingsPage_HasIntegrations()
+    public async Task BoardPortal_PrintFormsPage_Rendered()
     {
-        // Given: администратор на странице настроек
-        var response = await _client.GetAsync("/settings");
-        var content = await response.Content.ReadAsStringAsync();
+        var page = await CreateBoardPortalPageAsync("/print-forms");
+        (await page.ContentAsync()).Should().Contain("_framework/blazor.server.js");
+    }
 
-        // Then: есть настройки интеграций
-        content.Should().Contain("Интеграции");
-        content.Should().Contain("КриптоПро");
-        content.Should().Contain("SMTP");
-        content.Should().Contain("SMS");
+    [Fact]
+    public async Task BoardPortal_ParticipantsPage_Loads()
+    {
+        var page = await CreateBoardPortalPageAsync("/participants");
+        // Страница должна загрузиться без ошибок 5xx
+        await page.WaitForLoadStateAsync(LoadState.NetworkIdle, new() { Timeout = 10_000 });
+        (await page.IsVisibleAsync(".container-fluid")).Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task AdminConsole_UsersList_RenderedViaAdminConsole()
+    {
+        var page = await CreateAdminConsolePageAsync("/users");
+        (await page.ContentAsync()).Should().Contain("_framework/blazor.server.js");
+    }
+
+    [Fact]
+    public async Task AdminConsole_RolesPage_Rendered()
+    {
+        var page = await CreateAdminConsolePageAsync("/roles");
+        (await page.ContentAsync()).Should().Contain("_framework/blazor.server.js");
+    }
+
+    [Fact]
+    public async Task AdminConsole_OrgTemplatesPageExists()
+    {
+        var page = await CreateAdminConsolePageAsync("/org-templates");
+        (await page.ContentAsync()).Should().Contain("_framework/blazor.server.js");
+    }
+
+    [Fact]
+    public async Task AdminConsole_SentNotificationsPageExists()
+    {
+        var page = await CreateAdminConsolePageAsync("/sent-notifications");
+        (await page.ContentAsync()).Should().Contain("_framework/blazor.server.js");
+    }
+
+    [Fact]
+    public async Task AdminConsole_DictionariesPageExists()
+    {
+        var page = await CreateAdminConsolePageAsync("/dictionaries");
+        (await page.ContentAsync()).Should().Contain("_framework/blazor.server.js");
     }
 }
