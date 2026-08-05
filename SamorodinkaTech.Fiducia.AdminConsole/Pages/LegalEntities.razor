@@ -965,10 +965,9 @@
             }
             catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Forbidden)
             {
-                Logger.LogWarning(ex, "Endpoint учредителей СПАРК недоступен — " +
-                    "требуется тариф уровня «Расширенный» (ИНН={Inn})", inn);
+                Logger.LogWarning(ex, "Endpoint учредителей СПАРК вернул 403 (ИНН={Inn})", inn);
+                sparkWarning = ex.Message;
                 founders = new List<SparkFounder>();
-                sparkWarning = "Данные об учредителях не загружены — требуется расширенный тариф СПАРК";
             }
 
             await using var ctx = await DbFactory.CreateDbContextAsync();
