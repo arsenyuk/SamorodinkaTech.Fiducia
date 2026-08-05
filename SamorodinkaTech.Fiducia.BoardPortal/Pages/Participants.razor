@@ -39,7 +39,7 @@ else
                     <th>Участник</th>
                     <th>Тип</th>
                     <th>ИНН</th>
-                    <th>ОГРН</th>
+                    <th>ОГРН(ИП)</th>
                     <th>Страна</th>
                     <th>Доля</th>
                     <th>В составе с</th>
@@ -68,23 +68,26 @@ else
                             {
                                 <span class="badge bg-secondary">Учредитель в @f.FounderOfOther орг.</span>
                             }
-                            @if (f.IsEntrepreneur)
-                            {
-                                <span class="badge bg-primary">ИП</span>
-                                @if (!string.IsNullOrEmpty(f.Ogrnip))
-                                {
-                                    <span class="text-muted small"> ОГРНИП @f.Ogrnip</span>
-                                }
-                            }
                         </td>
                         <td>
-                            @(isUL ? "ЮЛ" : "ФЛ")
+                            @if (isUL)
+                            {
+                                @("ЮЛ")
+                            }
+                            else if (f.IsEntrepreneur)
+                            {
+                                @("ФЛ (ИП)")
+                            }
+                            else
+                            {
+                                @("ФЛ")
+                            }
                         </td>
                         <td class="small font-monospace">
                             @(f.PersonInn ?? f.Inn ?? "—")
                         </td>
                         <td class="small font-monospace">
-                            @(f.Ogrn ?? "—")
+                            @(f.Ogrn ?? f.Ogrnip ?? "—")
                         </td>
                         <td class="small">
                             @if (isUL)
