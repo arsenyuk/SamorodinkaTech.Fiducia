@@ -16,7 +16,7 @@
 
 <h3>
     @{
-        var headerTitle = editIsGosa ? BuildGosaTitle(editGosaStart) : editTitle;
+        var headerTitle = (!string.IsNullOrWhiteSpace(editTitle)) ? editTitle : (editIsGosa ? BuildGosaTitle(editGosaStart) : editTitle);
     }
     @if (!string.IsNullOrEmpty(headerTitle))
     {
@@ -72,13 +72,11 @@
             {
             <div class="mb-3">
                 <label class="form-label">Название</label>
-                <input class="form-control"
-                       value="@(editIsGosa ? BuildGosaTitle(editGosaStart) : editTitle)"
-                       @onchange="@(e => { if (!editIsGosa) editTitle = e.Value?.ToString() ?? string.Empty; })"
+                <input class="form-control" @bind="editTitle"
                        disabled="@(isFinalized || editIsGosa)" />
                 @if (editIsGosa)
                 {
-                    <div class="text-muted small mt-1">Заполняется автоматически по шаблону из настроек</div>
+                    <div class="text-muted small mt-1">Название сохранено при создании</div>
                 }
             </div>
 
@@ -141,11 +139,11 @@
             <div class="mb-3">
                 <div class="form-check mb-2">
                     <input class="form-check-input" type="checkbox" id="editShareholdersList" @bind="editShareholdersListReceived" disabled="@isFinalized" />
-                    <label class="form-check-label" for="editShareholdersList">Список акционеров получен</label>
+                    <label class="form-check-label" for="editShareholdersList">Список участников получен</label>
                 </div>
                 <div class="row g-3 align-items-end mb-2">
                     <div class="col-12 col-md-4 col-lg-3 text-md-end text-muted">
-                        <label class="form-label mb-0">Количество акционеров</label>
+                        <label class="form-label mb-0">Количество участников</label>
                     </div>
                     <div class="col-12 col-md-4 col-lg-4 d-flex justify-content-md-center">
                         <input class="form-control" style="max-width:110px" type="number" min="0" step="1" @bind="editShareholdersCount" disabled="@(isFinalized || !editShareholdersListReceived)" />
@@ -154,11 +152,11 @@
                         <div class="text-danger small">
                             @if (editShareholdersCount.HasValue && editShareholdersCount.Value <= 0)
                             {
-                                <span>Укажите количество акционеров</span>
+                                <span>Укажите количество участников</span>
                             }
                             else if (!editIsPao && editShareholdersCount.HasValue && editShareholdersCount.Value > 50)
                             {
-                                <span>Максимум 50 акционеров</span>
+                                <span>Максимум 50 участников</span>
                             }
                         </div>
                     </div>
@@ -477,7 +475,7 @@
                 else if (editIsGosa)
                 {
                     <div class="alert alert-warning py-2 mb-2 small">
-                        ⚠️ Для ГОСА обязателен юридически значимый документ (ЮЗД) с информацией о составе СД.
+                        ⚠️ Для очередного собрания обязателен юридически значимый документ (ЮЗД) с информацией о составе СД.
                     </div>
                 }
                 @if (meetingFiles.Any())
@@ -566,7 +564,7 @@
                         </div>
                         <div class="row small mt-1">
                             <div class="col-md-4">
-                                <strong>Акционеров:</strong> @(editShareholdersCount?.ToString() ?? "—")
+                                <strong>Участников:</strong> @(editShareholdersCount?.ToString() ?? "—")
                                 | <strong>Членов СД:</strong> @(editBoardMemberNumber?.ToString() ?? "—")
                             </div>
                             <div class="col-md-4">
@@ -1144,7 +1142,7 @@
             if (m is null) return;
 
             if (editIsGosa) { m.GosaWindowStart = editGosaStart; m.GosaWindowEnd = editGosaEnd; m.GosaYear = editGosaYear; }
-            m.Title = editIsGosa ? BuildGosaTitle(editGosaStart) : (string.IsNullOrWhiteSpace(editTitle) ? null : editTitle.Trim());
+            if (!editIsGosa) m.Title = string.IsNullOrWhiteSpace(editTitle) ? null : editTitle.Trim();
             m.AbsenteeVoting = editAbsenteeVoting;
             m.BallotDeadline = editAbsenteeVoting && editBallotDeadline.HasValue ? ((DateTime)editBallotDeadline).ToUniversalTime() : null;
             m.ShareholdersListReceived = editShareholdersListReceived;
@@ -1807,10 +1805,10 @@
         _ => editTemporaryChairSelection ?? "—"
     };
 
-    private string GosaTitleTemplate => Config["Osa:GosaTitleTemplate"] ?? "Годовое за {YYYY} год";
+    private string OosuTitleTemplate => Config["Osu:OosuTitleTemplate"] ?? "Очередное за {YYYY} год";
 
     private string BuildGosaTitle(DateOnly start) =>
-        GosaTitleTemplate.Replace("{YYYY}", start.Year.ToString());
+        OosuTitleTemplate.Replace("{YYYY}", start.Year.ToString());
 
     private void OnSecretaryChanged()
     {
@@ -2296,7 +2294,7 @@
                 m.GosaYear = editGosaYear;
             }
 
-            m.Title = editIsGosa ? BuildGosaTitle(editGosaStart) : (string.IsNullOrWhiteSpace(editTitle) ? null : editTitle.Trim());
+            if (!editIsGosa) m.Title = string.IsNullOrWhiteSpace(editTitle) ? null : editTitle.Trim();
             m.ShareholdersCount = editHasBoard ? editShareholdersCount : null;
             m.BoardMemberNumber = editHasBoard ? editBoardMemberNumber : null;
             m.ExecutiveDirectorsParticipate = editExecDirectors;

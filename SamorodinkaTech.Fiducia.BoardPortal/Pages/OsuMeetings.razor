@@ -55,7 +55,7 @@
                         <div class="col-auto">
                             <label class="form-label">Дата проведения</label>
                             <InputDate @bind-Value="gosaStart" class="form-control" style="width:200px"
-                                       @bind-Value:after="() => { gosaYear = gosaStart.Year; gosaEnd = gosaStart; }" />
+                                       @bind-Value:after="() => { gosaYear = gosaStart.Year; gosaEnd = gosaStart; ValidateDate(); }" />
                         </div>
                         <div class="col-auto">
                             <input type="hidden" @bind="gosaYear" />
@@ -288,14 +288,21 @@
         gosaError = null;
         if (selectedFormCode == "OOSU")
         {
-            gosaStart = new DateOnly(DateTime.UtcNow.Year, 3, 1);
-            gosaEnd = new DateOnly(DateTime.UtcNow.Year, 4, 30);
+            gosaStart = _allowedStart;
+            gosaEnd = _allowedEnd;
             createTitle = BuildGosaTitle(gosaStart);
         }
         else
         {
             createTitle = string.Empty;
         }
+    }
+
+    private void ValidateDate()
+    {
+        _dateWarning = null;
+        if (gosaStart < _allowedStart || gosaStart > _allowedEnd)
+            _dateWarning = $"Дата выходит за разрешённый интервал ({_allowedStart:dd.MM} – {_allowedEnd:dd.MM}). Собрание может быть признано недействительным.";
     }
 
     private async Task Save()

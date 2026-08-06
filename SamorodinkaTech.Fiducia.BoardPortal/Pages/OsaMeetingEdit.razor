@@ -16,7 +16,7 @@
 
 <h3>
     @{
-        var headerTitle = editIsGosa ? BuildGosaTitle(editGosaStart) : editTitle;
+        var headerTitle = (!string.IsNullOrWhiteSpace(editTitle)) ? editTitle : (editIsGosa ? BuildGosaTitle(editGosaStart) : editTitle);
     }
     @if (!string.IsNullOrEmpty(headerTitle))
     {
@@ -72,13 +72,11 @@
             {
             <div class="mb-3">
                 <label class="form-label">Название</label>
-                <input class="form-control"
-                       value="@(editIsGosa ? BuildGosaTitle(editGosaStart) : editTitle)"
-                       @onchange="@(e => { if (!editIsGosa) editTitle = e.Value?.ToString() ?? string.Empty; })"
+                <input class="form-control" @bind="editTitle"
                        disabled="@(isFinalized || editIsGosa)" />
                 @if (editIsGosa)
                 {
-                    <div class="text-muted small mt-1">Заполняется автоматически по шаблону из настроек</div>
+                    <div class="text-muted small mt-1">Название сохранено при создании</div>
                 }
             </div>
 
@@ -1144,7 +1142,7 @@
             if (m is null) return;
 
             if (editIsGosa) { m.GosaWindowStart = editGosaStart; m.GosaWindowEnd = editGosaEnd; m.GosaYear = editGosaYear; }
-            m.Title = editIsGosa ? BuildGosaTitle(editGosaStart) : (string.IsNullOrWhiteSpace(editTitle) ? null : editTitle.Trim());
+            if (!editIsGosa) m.Title = string.IsNullOrWhiteSpace(editTitle) ? null : editTitle.Trim();
             m.AbsenteeVoting = editAbsenteeVoting;
             m.BallotDeadline = editAbsenteeVoting && editBallotDeadline.HasValue ? ((DateTime)editBallotDeadline).ToUniversalTime() : null;
             m.ShareholdersListReceived = editShareholdersListReceived;
@@ -2296,7 +2294,7 @@
                 m.GosaYear = editGosaYear;
             }
 
-            m.Title = editIsGosa ? BuildGosaTitle(editGosaStart) : (string.IsNullOrWhiteSpace(editTitle) ? null : editTitle.Trim());
+            if (!editIsGosa) m.Title = string.IsNullOrWhiteSpace(editTitle) ? null : editTitle.Trim();
             m.ShareholdersCount = editHasBoard ? editShareholdersCount : null;
             m.BoardMemberNumber = editHasBoard ? editBoardMemberNumber : null;
             m.ExecutiveDirectorsParticipate = editExecDirectors;
