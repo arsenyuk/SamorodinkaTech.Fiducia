@@ -5,6 +5,7 @@
 @using SamorodinkaTech.Fiducia.Domain.Interfaces
 @using SamorodinkaTech.Fiducia.Domain.Models.Ldap
 @inject IDbContextFactory<SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext> DbFactory
+@inject ILegalEntityGosaIntervalService GosaSvc
 @inject ILogger<OsaMeetings> Logger
 @inject NavigationManager Nav
 @inject IConfiguration Config
@@ -43,15 +44,18 @@
             @if (selectedFormCode == "GOSA")
             {
                 <div class="mb-3">
+                    <div class="text-muted small mb-2">
+                        Разрешённый интервал: <strong>@_allowedGosaStart.ToString("dd.MM.yyyy") – @_allowedGosaEnd.ToString("dd.MM.yyyy")</strong>
+                        @if (!string.IsNullOrEmpty(_dateWarning))
+                        {
+                            <br><span class="text-warning">⚠ @_dateWarning</span>
+                        }
+                    </div>
                     <div class="row g-3 align-items-end">
                         <div class="col-auto">
-                            <label class="form-label">Начало ОСА</label>
-                            <InputDate @bind-Value="gosaStart" class="form-control"
-                                       @bind-Value:after="() => gosaYear = gosaStart.Year" />
-                        </div>
-                        <div class="col-auto">
-                            <label class="form-label">Завершение ОСА</label>
-                            <InputDate @bind-Value="gosaEnd" class="form-control" />
+                            <label class="form-label">Дата проведения</label>
+                            <InputDate @bind-Value="gosaStart" class="form-control" style="width:200px"
+                                       @bind-Value:after="() => { gosaYear = gosaStart.Year; gosaEnd = gosaStart; ValidateGosaWindow(); }" />
                         </div>
                         <div class="col-auto">
                             <input type="hidden" @bind="gosaYear" />
@@ -70,7 +74,12 @@
             {
                 <div class="mb-3">
                     <label class="form-label">Дата собрания</label>
-                    <InputDate @bind-Value="gosaStart" class="form-control" style="width:200px" />
+                    <InputDate @bind-Value="gosaStart" class="form-control" style="width:200px"
+                               @bind-Value:after="ValidateVosaDate" />
+                    @if (!string.IsNullOrEmpty(_dateWarning))
+                    {
+                        <div class="text-warning small mt-1">⚠ @_dateWarning</div>
+                    }
                     <div class="text-muted small mt-1">Законодательный срок созыва — не позднее 40 дней с даты предъявления требования (<a href="/board-law/article-55">ст. 55 208-ФЗ</a>). При включении в повестку вопроса об избрании СД — не позднее 75 дней.</div>
                 </div>
                 <div class="form-check mb-2">
@@ -186,6 +195,9 @@
     private string? saveError;
     private string? saveSuccess;
     private Guid _currentLegalEntityId;
+    private DateOnly _allowedGosaStart;
+    private DateOnly _allowedGosaEnd;
+    private string? _dateWarning;
 
     protected override async Task OnInitializedAsync()
     {
@@ -214,6 +226,15 @@
             await using var ctx = await DbFactory.CreateDbContextAsync();
             var workplace = await ctx.CurrentWorkplaces.FirstOrDefaultAsync();
             _currentLegalEntityId = workplace?.LastSelectedLegalEntityId ?? Guid.Empty;
+
+            if (_currentLegalEntityId != Guid.Empty)
+            {
+                var le = await ctx.LegalEntities
+                    .Where(x => x.Id == _currentLegalEntityId)
+                    .Select(x => new { x.Okopf!.Code })
+                    .FirstOrDefaultAsync();
+                (_allowedGosaStart, _allowedGosaEnd) = GosaSvc.GetWindowForOkopf(le?.Code);
+            }
 
             osaForms = await ctx.OsaForms
                 .Where(x => x.Code == "GOSA" || x.Code == "VOSA")
@@ -246,12 +267,13 @@
         selectedOsaFormId = Guid.Empty;
         selectedFormCode = null;
         createTitle = string.Empty;
-        gosaStart = new DateOnly(DateTime.UtcNow.Year, 3, 1);
-        gosaEnd = new DateOnly(DateTime.UtcNow.Year, 6, 30);
+        gosaStart = _allowedGosaStart;
+        gosaEnd = _allowedGosaEnd;
         gosaYear = null;
         createAbsenteeVoting = false;
         createBallotDeadline = DateTime.UtcNow.AddDays(20);
         gosaError = null;
+        _dateWarning = null;
         saveError = null;
         saveSuccess = null;
     }
@@ -269,17 +291,44 @@
         selectedOsaFormId = id;
         selectedFormCode = osaForms.FirstOrDefault(f => f.Id == id)?.Code;
         gosaError = null;
+        _dateWarning = null;
         if (selectedFormCode == "GOSA")
         {
-            gosaStart = new DateOnly(DateTime.UtcNow.Year, 3, 1);
-            gosaEnd = new DateOnly(DateTime.UtcNow.Year, 6, 30);
+            gosaStart = _allowedGosaStart;
+            gosaEnd = _allowedGosaEnd;
             gosaYear = gosaStart.Year;
             createTitle = BuildGosaTitle(gosaStart);
         }
         else
         {
             createTitle = string.Empty;
+            gosaStart = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(40));
+            gosaEnd = gosaStart;
         }
+    }
+
+    private void ValidateGosaWindow()
+    {
+        _dateWarning = null;
+        if (gosaStart < _allowedGosaStart || gosaStart > _allowedGosaEnd)
+            _dateWarning = $"Начало выходит за разрешённый интервал ({_allowedGosaStart:dd.MM} – {_allowedGosaEnd:dd.MM}). Собрание может быть признано недействительным.";
+        else if (gosaEnd < _allowedGosaStart || gosaEnd > _allowedGosaEnd)
+            _dateWarning = $"Завершение выходит за разрешённый интервал ({_allowedGosaStart:dd.MM} – {_allowedGosaEnd:dd.MM}). Запись не заблокирована, но рекомендуется исправить.";
+        else if (gosaStart > gosaEnd)
+            _dateWarning = null; // handled by gosaError in Save
+    }
+
+    private void ValidateVosaDate()
+    {
+        _dateWarning = null;
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var minDate = today.AddDays(20); // absolute minimum for notification (ст. 52: 20 дней)
+        var recDate = today.AddDays(40); // recommended: full созыв deadline
+
+        if (gosaStart < minDate)
+            _dateWarning = $"Дата менее чем через 20 дней от сегодня — нарушение срока уведомления (ст. 52 208-ФЗ). Собрание может быть оспорено.";
+        else if (gosaStart < recDate)
+            _dateWarning = $"Дата менее чем через 40 дней — уведомление акционеров должно быть направлено немедленно. Рекомендуется перенести.";
     }
 
     private async Task Save()

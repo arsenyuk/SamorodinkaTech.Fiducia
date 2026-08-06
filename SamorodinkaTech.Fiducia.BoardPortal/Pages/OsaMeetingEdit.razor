@@ -95,15 +95,18 @@
             @if (editIsGosa && !editAbsenteeVoting)
             {
                 <div class="mb-3">
+                    <div class="text-muted small mb-2">
+                        Разрешённый интервал: <strong>@_allowedStart.ToString("dd.MM.yyyy") – @_allowedEnd.ToString("dd.MM.yyyy")</strong>
+                        @if (!string.IsNullOrEmpty(_dateWarning))
+                        {
+                            <br><span class="text-warning">⚠ @_dateWarning</span>
+                        }
+                    </div>
                     <div class="row g-3 align-items-end">
                         <div class="col-auto">
-                            <label class="form-label">Начало ОСА</label>
-                            <InputDate @bind-Value="editGosaStart" class="form-control" disabled="@isFinalized"
-                                       @bind-Value:after="() => { if (editIsGosa) editGosaYear = editGosaStart.Year; }" />
-                        </div>
-                        <div class="col-auto">
-                            <label class="form-label">Завершение ОСА</label>
-                            <InputDate @bind-Value="editGosaEnd" class="form-control" disabled="@isFinalized" />
+                            <label class="form-label">Дата проведения</label>
+                            <InputDate @bind-Value="editGosaStart" class="form-control" style="width:200px" disabled="@isFinalized"
+                                       @bind-Value:after="() => { if (editIsGosa) { editGosaYear = editGosaStart.Year; editGosaEnd = editGosaStart; } }" />
                         </div>
                         <div class="col-auto">
                             @if (!string.IsNullOrEmpty(gosaError))
@@ -716,6 +719,9 @@
     private bool editIsGosa;
     private DateOnly editGosaStart;
     private DateOnly editGosaEnd;
+    private DateOnly _allowedStart;
+    private DateOnly _allowedEnd;
+    private string? _dateWarning;
     private string editTitle = string.Empty;
     private int? editGosaYear;
     private int? editShareholdersCount;
@@ -1491,7 +1497,16 @@
         editTitle = m.Title ?? (editIsGosa ? BuildGosaTitle(editGosaStart) : string.Empty);
         editGosaEnd = m.GosaWindowEnd ?? new DateOnly(DateTime.UtcNow.Year, 6, 30);
         editGosaYear = m.GosaYear ?? (editIsGosa ? DateTime.UtcNow.Year : null);
-        editGosaEnd = m.GosaWindowEnd ?? new DateOnly(DateTime.UtcNow.Year, 6, 30);
+
+        if (m.LegalEntityId != Guid.Empty)
+        {
+            var leOkopf = await ctx.LegalEntities
+                .Where(x => x.Id == m.LegalEntityId)
+                .Select(x => new { x.Okopf!.Code })
+                .FirstOrDefaultAsync();
+            (_allowedStart, _allowedEnd) = GosaSvc.GetWindowForOkopf(leOkopf?.Code);
+        }
+
         editShareholdersCount = m.ShareholdersCount;
         editBoardMemberNumber = m.BoardMemberNumber;
         editExecDirectors = m.ExecutiveDirectorsParticipate;
