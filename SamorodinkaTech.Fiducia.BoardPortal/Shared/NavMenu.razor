@@ -58,6 +58,7 @@
 @code {
     private bool collapseNavMenu = true;
     private bool _isLlc;
+    private string _legalEntityName = "Fiducia";
 
     private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
 
@@ -72,9 +73,10 @@
             {
                 var le = await ctx.LegalEntities
                     .Where(x => x.Id == leId.Value)
-                    .Select(x => new { x.Okopf!.Code })
+                    .Select(x => new { x.Name, x.Okopf!.Code })
                     .FirstOrDefaultAsync();
                 _isLlc = GosaSvc.IsLlc(le?.Code);
+                _legalEntityName = le?.Name ?? "Fiducia";
             }
         }
         catch { /* fallback: показываем ОСА */ }

@@ -1,6 +1,9 @@
-@page "/board-law/{*articlePath}"
+@page "/board-law/{articlePath}"
 @using Markdig
-@inject IWebHostEnvironment Env
+@inject HttpClient Http
+@inject NavigationManager Nav
+@inject ILogger<BoardLaw> Logger
+@inject ILogger<BoardLaw> Logger
 
 @if (_html is not null)
 {
@@ -31,31 +34,30 @@ else
 
     protected override async Task OnParametersSetAsync()
     {
+        _html = null;
+        _error = null;
+
         if (string.IsNullOrWhiteSpace(ArticlePath))
         {
             _error = "Не указан путь к статье закона.";
             return;
         }
 
-        var path = Path.Combine(Env.ContentRootPath, "..", "docs", "laws", $"{ArticlePath}.md");
-        if (!File.Exists(path))
-        {
-            _error = $"Статья не найдена: {ArticlePath}";
-            return;
-        }
-
         try
         {
-            var md = await File.ReadAllTextAsync(path);
-            var pipeline = new MarkdownPipelineBuilder()
-                .UseAdvancedExtensions()
-                .DisableHtml()         // sanitize HTML from markdown source
-                .Build();
-            _html = Markdown.ToHtml(md, pipeline);
+            var url = $"{Nav.BaseUri}laws/{ArticlePath}.txt";
+            var md = await Http.GetStringAsync(url);
+            _html = Markdown.ToHtml(md, new MarkdownPipelineBuilder().UseAdvancedExtensions().Build());
+        }
+        catch (HttpRequestException ex)
+        {
+            Logger.LogWarning(ex, "Закон не найден: {ArticlePath}", ArticlePath);
+            _error = ex.Message;
         }
         catch (Exception ex)
         {
-            _error = $"Ошибка загрузки статьи: {ex.Message}";
+            Logger.LogWarning(ex, "Ошибка загрузки: {ArticlePath}", ArticlePath);
+            _error = ex.Message;
         }
     }
 }

@@ -1,6 +1,7 @@
 @inherits LayoutComponentBase
 @inject IJSRuntime JS
 @inject HttpClient Http
+@inject IDbContextFactory<SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext> DbFactory
 
 <PageTitle>Fiducia — Board Portal</PageTitle>
 
@@ -19,7 +20,7 @@ else
 
         <main>
             <div class="top-row px-4 d-flex justify-content-between align-items-center">
-                <h5 class="mb-0">Fiducia Board Portal</h5>
+                <h5 class="mb-0">@_legalEntityName</h5>
                 <div class="d-flex align-items-center gap-3">
                     <span>@_userName</span>
                     <a href="/logout" class="btn btn-sm btn-outline-secondary">Выход</a>
@@ -46,6 +47,7 @@ else
 
 @code {
     private string _userName = "Гость";
+    private string _legalEntityName = "Fiducia Board Portal";
     private bool _isInitialized;
     private ErrorBoundary? _errorBoundary;
     [Inject] private NavigationManager NavigationManager { get; set; } = default!;
@@ -83,6 +85,22 @@ else
         {
             _isInitialized = true;
             _userName = await JS.InvokeAsync<string>("localStorage.getItem", "currentUserName") ?? "Гость";
+
+            try
+            {
+                await using var ctx = await DbFactory.CreateDbContextAsync();
+                var workplace = await ctx.CurrentWorkplaces.FirstOrDefaultAsync();
+                if (workplace?.LastSelectedLegalEntityId is not null && workplace.LastSelectedLegalEntityId != Guid.Empty)
+                {
+                    var le = await ctx.LegalEntities
+                        .Where(x => x.Id == workplace.LastSelectedLegalEntityId.Value)
+                        .Select(x => x.Name)
+                        .FirstOrDefaultAsync();
+                    if (!string.IsNullOrWhiteSpace(le))
+                        _legalEntityName = le;
+                }
+            }
+            catch { /* fallback: Fiducia Board Portal */ }
 
             try
             {
