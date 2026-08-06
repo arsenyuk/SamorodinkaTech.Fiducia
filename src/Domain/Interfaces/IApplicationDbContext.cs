@@ -39,6 +39,7 @@ public interface IApplicationDbContext
     DbSet<CurrentWorkplace> CurrentWorkplaces { get; }
     DbSet<LegalEntityBoardSettings> LegalEntityBoardSettings { get; }
     DbSet<LegalEntityVotingRules> LegalEntityVotingRules { get; }
+    DbSet<LegalEntityEmailSettings> LegalEntityEmailSettings { get; }
     DbSet<FileEntry> Files { get; }
     DbSet<ExtSparkCompany> ExtSparkCompanies { get; }
     DbSet<RefMeetingForm> MeetingForms { get; }

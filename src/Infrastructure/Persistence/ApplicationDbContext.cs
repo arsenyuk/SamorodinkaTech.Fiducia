@@ -38,6 +38,7 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
     public DbSet<CurrentWorkplace> CurrentWorkplaces => Set<CurrentWorkplace>();
     public DbSet<LegalEntityBoardSettings> LegalEntityBoardSettings => Set<LegalEntityBoardSettings>();
     public DbSet<LegalEntityVotingRules> LegalEntityVotingRules => Set<LegalEntityVotingRules>();
+    public DbSet<LegalEntityEmailSettings> LegalEntityEmailSettings => Set<LegalEntityEmailSettings>();
     public DbSet<AgendaItem> AgendaItems => Set<AgendaItem>();
     public DbSet<AgendaProposal> AgendaProposals => Set<AgendaProposal>();
     public DbSet<ElectionProposal> ElectionProposals => Set<ElectionProposal>();
@@ -149,6 +150,22 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.Property(x => x.SpotByElection).HasColumnName("spot_by_election").HasDefaultValue(false);
             b.Property(x => x.FirstMeetingDeadlineDays).HasColumnName("first_meeting_deadline_days").HasDefaultValue(30);
             b.Property(x => x.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("CURRENT_TIMESTAMP");
+            b.HasOne(x => x.LegalEntity)
+             .WithMany()
+             .HasForeignKey(x => x.LegalEntityId);
+        });
+
+        modelBuilder.Entity<LegalEntityEmailSettings>(b =>
+        {
+            b.ToTable("legal_entity_email_settings");
+            b.HasKey(x => x.Id);
+            b.Property(x => x.Id).HasColumnName("id");
+            b.Property(x => x.LegalEntityId).HasColumnName("legal_entity_id").IsRequired();
+            b.Property(x => x.HeaderEnabled).HasColumnName("header_enabled").HasDefaultValue(false);
+            b.Property(x => x.HeaderMarkdown).HasColumnName("header_markdown").HasColumnType("text");
+            b.Property(x => x.FooterEnabled).HasColumnName("footer_enabled").HasDefaultValue(false);
+            b.Property(x => x.FooterMarkdown).HasColumnName("footer_markdown").HasColumnType("text");
+            b.Property(x => x.UpdatedAt).HasColumnName("updated_at").HasDefaultValueSql("CURRENT_TIMESTAMP");
             b.HasOne(x => x.LegalEntity)
              .WithMany()
              .HasForeignKey(x => x.LegalEntityId);
