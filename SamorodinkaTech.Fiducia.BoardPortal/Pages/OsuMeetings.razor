@@ -32,8 +32,7 @@
             <div class="mb-3">
                 <label class="form-label">Название</label>
                 <input class="form-control"
-                       value="@(selectedFormCode == "OOSU" ? BuildGosaTitle(gosaStart) : createTitle)"
-                       @onchange="@(e => { if (selectedFormCode != "OOSU") createTitle = e.Value?.ToString() ?? string.Empty; })"
+                       @bind="createTitle"
                        disabled="@(selectedFormCode == "OOSU")" />
                 @if (selectedFormCode == "OOSU")
                 {
@@ -46,12 +45,12 @@
                 <div class="mb-3">
                     <div class="row g-3 align-items-end">
                         <div class="col-auto">
-                            <label class="form-label">Начало ОСА</label>
+                            <label class="form-label">Начало собрания</label>
                             <InputDate @bind-Value="gosaStart" class="form-control"
                                        @bind-Value:after="() => gosaYear = gosaStart.Year" />
                         </div>
                         <div class="col-auto">
-                            <label class="form-label">Завершение ОСА</label>
+                            <label class="form-label">Завершение собрания</label>
                             <InputDate @bind-Value="gosaEnd" class="form-control" />
                         </div>
                         <div class="col-auto">
@@ -67,8 +66,13 @@
                 </div>
             }
 
-            @if (selectedFormCode == "VOSA")
+            @if (selectedFormCode == "VOSU")
             {
+                <div class="mb-3">
+                    <label class="form-label">Дата собрания</label>
+                    <InputDate @bind-Value="gosaStart" class="form-control" style="width:200px" />
+                    <div class="text-muted small mt-1">Законодательный срок созыва — не позднее 45 дней с даты получения требования (<a href="/board-law/article-14fz-35">ст. 35 14-ФЗ</a>). Уведомление участников — не менее чем за 30 дней.</div>
+                </div>
                 <div class="form-check mb-2">
                     <input class="form-check-input" type="checkbox" id="createAbsentee" @bind="createAbsenteeVoting" />
                     <label class="form-check-label" for="createAbsentee">Заочное голосование</label>
@@ -270,7 +274,11 @@
         {
             gosaStart = new DateOnly(DateTime.UtcNow.Year, 3, 1);
             gosaEnd = new DateOnly(DateTime.UtcNow.Year, 4, 30);
-            gosaYear = gosaStart.Year;
+            createTitle = BuildGosaTitle(gosaStart);
+        }
+        else
+        {
+            createTitle = string.Empty;
         }
     }
 
@@ -335,7 +343,7 @@
         }
     }
 
-    private string OosuTitleTemplate => Config["Osu:OosuTitleTemplate"] ?? "Годовое за {YYYY} год";
+    private string OosuTitleTemplate => Config["Osu:OosuTitleTemplate"] ?? "Очередное за {YYYY} год";
 
     private string BuildGosaTitle(DateOnly start) =>
         OosuTitleTemplate.Replace("{YYYY}", start.Year.ToString());

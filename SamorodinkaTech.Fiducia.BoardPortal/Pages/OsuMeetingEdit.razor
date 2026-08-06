@@ -24,7 +24,7 @@
     }
     else
     {
-        <span>Редактирование ОСА — @osaForms.FirstOrDefault(f => f.Id == editingFormId)?.Name</span>
+        <span>Редактирование собрания — @osaForms.FirstOrDefault(f => f.Id == editingFormId)?.Name</span>
     }
 </h3>
             <div class="d-flex justify-content-between align-items-center mb-3">
@@ -97,12 +97,12 @@
                 <div class="mb-3">
                     <div class="row g-3 align-items-end">
                         <div class="col-auto">
-                            <label class="form-label">Начало ОСА</label>
+                            <label class="form-label">Начало собрания</label>
                             <InputDate @bind-Value="editGosaStart" class="form-control" disabled="@isFinalized"
                                        @bind-Value:after="() => { if (editIsGosa) editGosaYear = editGosaStart.Year; }" />
                         </div>
                         <div class="col-auto">
-                            <label class="form-label">Завершение ОСА</label>
+                            <label class="form-label">Завершение собрания</label>
                             <InputDate @bind-Value="editGosaEnd" class="form-control" disabled="@isFinalized" />
                         </div>
                         <div class="col-auto">
@@ -188,7 +188,7 @@
             {
             <div class="form-check mb-2">
                 <input class="form-check-input" type="checkbox" id="editOsaHeld" @bind="editOsaHeld" @bind:after="OnOsaHeldChanged" disabled="@isFinalized" />
-                <label class="form-check-label" for="editOsaHeld">ОСА проведено</label>
+                <label class="form-check-label" for="editOsaHeld">Собрание проведено</label>
             </div>
             <div class="form-check mb-2">
                 <input class="form-check-input" type="checkbox" id="editProtocolSigned" @bind="editProtocolSigned" disabled="@(isFinalized || !editOsaHeld)" />
@@ -297,7 +297,7 @@
                             value="@editTemporaryChairSelection"
                             @onchange="HandleTempChairSelection"
                             disabled="@isFinalized">
-                        <option value="GMS_DECISION">По решению ОСА</option>
+                        <option value="GMS_DECISION">По решению собрания</option>
                         <option value="CHARTER_SENIOR">По уставу — старший по возрасту</option>
                         <option value="BOARD_ELECTION">По решению СД</option>
                     </select>
@@ -533,7 +533,7 @@
             @if (currentStep == 5)
             {
                 <div class="alert alert-info mb-3">
-                    ℹ️ <strong>Финализация ОСА.</strong> После нажатия «Завершить» редактирование будет заблокировано.
+                    ℹ️ <strong>Финализация собрания.</strong> После нажатия «Завершить» редактирование будет заблокировано.
                     Действия сотрудника основаны на юридически значимых документах (ЮЗД), переданных для ввода информации.
                 </div>
                 <div class="card bg-light mb-3">
@@ -648,7 +648,7 @@
                 @if (isFinalized)
                 {
                     <div class="alert alert-success py-2">
-                        <div>✅ <strong>ОСА зафиксирована</strong></div>
+                        <div>✅ <strong>Собрание зафиксирована</strong></div>
                         <div class="small mt-1">Дата: @finalizedAt?.ToString("dd.MM.yyyy HH:mm") | Кем: Администратор</div>
                         @if (_firstBoardTemplateCreated)
                         {
@@ -1422,7 +1422,7 @@
             }
             if (gosaEnd < gosaStart)
             {
-                gosaError = "Завершение ОСА не может быть раньше начала ОСА";
+                gosaError = "Завершение собрания не может быть раньше начала ОСА";
                 Logger.LogWarning("Валидация не пройдена для ОСА тип {OsaFormCode}: {Errors}", form.Code, gosaError);
                 return;
             }
@@ -1460,7 +1460,7 @@
             ctx.OsaMeetings.Add(meeting);
             await ctx.SaveChangesAsync();
 
-            saveSuccess = "Запись ОСА добавлена.";
+            saveSuccess = "Запись собрания добавлена.";
             showForm = false;
             await LoadData();
 
@@ -1786,7 +1786,7 @@
     private Guid? tempChairRoleId => boardRoles.FirstOrDefault(r => r.Code == "TEMP_CHAIR")?.Id;
     private string TempChairLabel => editTemporaryChairSelection switch
     {
-        "GMS_DECISION" => "По решению ОСА",        // GMS = General Meeting of Shareholders
+        "GMS_DECISION" => "По решению собрания",        // GMS = General Meeting of Shareholders
         "CHARTER_SENIOR" => "По уставу — старший по возрасту",
         "BOARD_ELECTION" => "По решению СД",        // BOARD = Совет директоров
         _ => editTemporaryChairSelection ?? "—"
@@ -2112,7 +2112,7 @@
             }
             if (editGosaEnd < editGosaStart)
             {
-                gosaError = "Завершение ОСА не может быть раньше начала ОСА";
+                gosaError = "Завершение собрания не может быть раньше начала ОСА";
                 Logger.LogWarning("Валидация не пройдена для ОСА {OsaMeetingId}: {Errors}", editingMeetingId.Value, gosaError);
                 return;
             }

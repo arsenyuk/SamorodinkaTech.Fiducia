@@ -1,0 +1,61 @@
+@page "/board-law/{*articlePath}"
+@using Markdig
+@inject IWebHostEnvironment Env
+
+@if (_html is not null)
+{
+    <div class="container mt-3">
+        <div class="mb-3">
+            <a href="javascript:history.back()" class="btn btn-sm btn-outline-secondary">← Назад</a>
+        </div>
+        <div class="law-content">
+            @((MarkupString)_html)
+        </div>
+    </div>
+}
+else if (_error is not null)
+{
+    <div class="alert alert-danger m-3">@_error</div>
+}
+else
+{
+    <div class="text-muted m-3">Загрузка...</div>
+}
+
+@code {
+    private string? _html;
+    private string? _error;
+
+    [Parameter]
+    public string? ArticlePath { get; set; }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (string.IsNullOrWhiteSpace(ArticlePath))
+        {
+            _error = "Не указан путь к статье закона.";
+            return;
+        }
+
+        var path = Path.Combine(Env.ContentRootPath, "..", "docs", "laws", $"{ArticlePath}.md");
+        if (!File.Exists(path))
+        {
+            _error = $"Статья не найдена: {ArticlePath}";
+            return;
+        }
+
+        try
+        {
+            var md = await File.ReadAllTextAsync(path);
+            var pipeline = new MarkdownPipelineBuilder()
+                .UseAdvancedExtensions()
+                .DisableHtml()         // sanitize HTML from markdown source
+                .Build();
+            _html = Markdown.ToHtml(md, pipeline);
+        }
+        catch (Exception ex)
+        {
+            _error = $"Ошибка загрузки статьи: {ex.Message}";
+        }
+    }
+}

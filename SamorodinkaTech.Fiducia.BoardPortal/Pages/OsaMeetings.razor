@@ -32,8 +32,7 @@
             <div class="mb-3">
                 <label class="form-label">Название</label>
                 <input class="form-control"
-                       value="@(selectedFormCode == "GOSA" ? BuildGosaTitle(gosaStart) : createTitle)"
-                       @onchange="@(e => { if (selectedFormCode != "GOSA") createTitle = e.Value?.ToString() ?? string.Empty; })"
+                       @bind="createTitle"
                        disabled="@(selectedFormCode == "GOSA")" />
                 @if (selectedFormCode == "GOSA")
                 {
@@ -69,6 +68,11 @@
 
             @if (selectedFormCode == "VOSA")
             {
+                <div class="mb-3">
+                    <label class="form-label">Дата собрания</label>
+                    <InputDate @bind-Value="gosaStart" class="form-control" style="width:200px" />
+                    <div class="text-muted small mt-1">Законодательный срок созыва — не позднее 40 дней с даты предъявления требования (<a href="/board-law/article-55">ст. 55 208-ФЗ</a>). При включении в повестку вопроса об избрании СД — не позднее 75 дней.</div>
+                </div>
                 <div class="form-check mb-2">
                     <input class="form-check-input" type="checkbox" id="createAbsentee" @bind="createAbsenteeVoting" />
                     <label class="form-check-label" for="createAbsentee">Заочное голосование</label>
@@ -270,6 +274,11 @@
             gosaStart = new DateOnly(DateTime.UtcNow.Year, 3, 1);
             gosaEnd = new DateOnly(DateTime.UtcNow.Year, 6, 30);
             gosaYear = gosaStart.Year;
+            createTitle = BuildGosaTitle(gosaStart);
+        }
+        else
+        {
+            createTitle = string.Empty;
         }
     }
 
