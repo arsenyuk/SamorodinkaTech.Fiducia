@@ -1589,11 +1589,16 @@
         boardOfDirectorsStatuses = await ctx.BoardOfDirectorsStatuses.OrderBy(x => x.Code).ToListAsync();
         editTemporaryChairSelection = m.TemporaryChairSelection ?? "CHARTER_SENIOR";
 
-        // Загружаем ОКОПФ первого ЮЛ для валидации
-        var le = await ctx.LegalEntities.Include(x => x.Okopf).OrderBy(x => x.Name).FirstOrDefaultAsync();
-        editLegalEntityId = le?.Id;
-        editOkopfCode = le?.Okopf?.Code;
-        editIsPao = le?.Okopf?.Code == "12247";
+        // Загружаем ОКОПФ ЮЛ, к которому привязано это ОСА
+        editLegalEntityId = m.LegalEntityId != Guid.Empty ? m.LegalEntityId : null;
+        editOkopfCode = null;
+        editIsPao = false;
+        if (m.LegalEntityId != Guid.Empty)
+        {
+            var le = await ctx.LegalEntities.Include(x => x.Okopf).FirstOrDefaultAsync(x => x.Id == m.LegalEntityId);
+            editOkopfCode = le?.Okopf?.Code;
+            editIsPao = le?.Okopf?.Code == "12247";
+        }
         editHasBoard = await ctx.LegalEntityBoardSettings.AnyAsync();
         editBoardMandatory = editIsPao
             || (editOkopfCode is "12267" or "12260" && (editShareholdersCount ?? 1) >= 50);
