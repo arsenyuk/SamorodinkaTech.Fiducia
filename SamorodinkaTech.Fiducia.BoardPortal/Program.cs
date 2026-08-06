@@ -96,6 +96,12 @@ builder.Services.AddSingleton<ITimeProvider, SystemTimeProvider>();
 // File Storage (ADR-020)
 builder.Services.AddFileStorage(builder.Configuration);
 
+// GOSA interval service — расчёт интервала ГОСА (BDR-007)
+builder.Services.AddSingleton<ILegalEntityGosaIntervalService, LegalEntityGosaIntervalService>();
+
+// Template instantiation — подстановка данных в шаблоны документов
+builder.Services.AddScoped<ITemplateInstantiationService, TemplateInstantiationService>();
+
 // LDAP — корпоративный каталог для синхронизации состава СД (опционально)
 if (builder.Configuration.GetValue<bool>("Ldap:Enabled"))
 {
