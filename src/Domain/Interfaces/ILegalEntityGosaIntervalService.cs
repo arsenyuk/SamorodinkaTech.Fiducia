@@ -11,6 +11,11 @@ public interface ILegalEntityGosaIntervalService
     bool IsPao(string? okopfCode);
 
     /// <summary>
+    /// Возвращает, является ли ОПФ ООО.
+    /// </summary>
+    bool IsLlc(string? okopfCode);
+
+    /// <summary>
     /// Возвращает стандартный интервал ГОСА по бизнес-правилу: 01.03–30.06.
     /// </summary>
     (DateOnly start, DateOnly end) GetDefaultWindow();

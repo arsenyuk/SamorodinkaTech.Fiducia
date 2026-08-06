@@ -149,6 +149,8 @@ erDiagram
     users ||--o{ bulletins : casts
     legal_entities ||--o{ ref_okopf : "classified by"
     legal_entities ||--o{ influential_people : has
+    legal_entities ||--o{ osa_meetings : "organises"
+    ref_osa_form ||--o{ osa_meetings : "categorises"
 
     ext_spark_company {
         uuid id PK
@@ -196,6 +198,51 @@ erDiagram
         boolean is_entrepreneur
         varchar ogrnip
         timestamp fetched_at
+    }
+
+    ref_osa_form {
+        uuid id PK
+        varchar code UK
+        varchar name
+        varchar short_name
+    }
+
+    osa_meetings {
+        uuid id PK
+        uuid legal_entity_id FK
+        uuid osa_form_id FK
+        varchar title
+        date gosa_window_start
+        date gosa_window_end
+        int gosa_year
+        int shareholders_count
+        int board_min_number
+        int board_member_number
+        boolean executive_directors_participate
+        int executive_directors_count
+        boolean non_executive_directors_participate
+        int non_executive_directors_count
+        boolean independent_directors_participate
+        int independent_directors_count
+        boolean shareholders_list_received
+        boolean absentee_voting
+        boolean osa_held
+        boolean protocol_signed
+        boolean deputy_chair_provided
+        boolean secretary_provided
+        boolean secretary_signs_protocols
+        boolean temporary_chair_provided
+        boolean board_composition_approved
+        boolean board_mandatory
+        boolean board_approved
+        varchar temporary_chair_selection
+        varchar temporary_chair_name
+        timestamp protocol_signed_at
+        timestamp ballot_deadline
+        timestamp created_at
+        varchar status
+        uuid finalized_by
+        timestamp finalized_at
     }
 ```
 

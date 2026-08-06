@@ -8,6 +8,12 @@ public class OsaMeeting
     /// <summary>Идентификатор (id).</summary>
     public Guid Id { get; set; }
 
+    /// <summary>Идентификатор юридического лица (legal_entity_id).</summary>
+    public Guid LegalEntityId { get; set; }
+
+    /// <summary>Юридическое лицо.</summary>
+    public LegalEntity? LegalEntity { get; set; }
+
     /// <summary>Форма проведения ОСА (osa_form_id).</summary>
     public Guid OsaFormId { get; set; }
 

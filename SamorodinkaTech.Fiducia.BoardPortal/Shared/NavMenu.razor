@@ -1,4 +1,6 @@
 @inject NavigationManager Navigation
+@inject IDbContextFactory<SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext> DbFactory
+@inject SamorodinkaTech.Fiducia.Domain.Interfaces.ILegalEntityGosaIntervalService GosaSvc
 
 <div class="top-row ps-3 navbar navbar-dark">
     <div class="container-fluid">
@@ -17,9 +19,18 @@
             </NavLink>
         </div>
         <div class="nav-item px-3">
-            <NavLink class="nav-link" href="osa-meetings">
-                <span class="oi oi-calendar" aria-hidden="true"></span> ОСА
-            </NavLink>
+            @if (_isLlc)
+            {
+                <NavLink class="nav-link" href="osu-meetings">
+                    <span class="oi oi-calendar" aria-hidden="true"></span> ОСУ
+                </NavLink>
+            }
+            else
+            {
+                <NavLink class="nav-link" href="osa-meetings">
+                    <span class="oi oi-calendar" aria-hidden="true"></span> ОСА
+                </NavLink>
+            }
         </div>
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="committees">
@@ -46,8 +57,28 @@
 
 @code {
     private bool collapseNavMenu = true;
+    private bool _isLlc;
 
     private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+            var workplace = await ctx.CurrentWorkplaces.FirstOrDefaultAsync();
+            var leId = workplace?.LastSelectedLegalEntityId;
+            if (leId is not null && leId != Guid.Empty)
+            {
+                var le = await ctx.LegalEntities
+                    .Where(x => x.Id == leId.Value)
+                    .Select(x => new { x.Okopf!.Code })
+                    .FirstOrDefaultAsync();
+                _isLlc = GosaSvc.IsLlc(le?.Code);
+            }
+        }
+        catch { /* fallback: показываем ОСА */ }
+    }
 
     private void ToggleNavMenu()
     {

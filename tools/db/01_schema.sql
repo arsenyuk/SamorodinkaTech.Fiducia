@@ -168,16 +168,18 @@ CREATE TABLE IF NOT EXISTS ref_month (
     name varchar(20) NOT NULL
 );
 
--- Справочник: ref_osa_form (Форма проведения ОСА)
+-- Справочник: ref_osa_form (Форма проведения ОСА/ОСУ)
 CREATE TABLE IF NOT EXISTS ref_osa_form (
     id uuid PRIMARY KEY,
     code varchar(10) UNIQUE NOT NULL,
-    name varchar(200) NOT NULL
+    name varchar(200) NOT NULL,
+    short_name varchar(50)
 );
 
--- Таблица: osa_meetings (записи общих собраний акционеров)
+-- Таблица: osa_meetings (записи общих собраний акционеров/участников)
 CREATE TABLE IF NOT EXISTS osa_meetings (
     id uuid PRIMARY KEY,
+    legal_entity_id uuid NOT NULL REFERENCES legal_entities(id) ON DELETE CASCADE,
     osa_form_id uuid NOT NULL REFERENCES ref_osa_form(id) ON DELETE RESTRICT,
     gosa_window_start date,
     gosa_window_end date,

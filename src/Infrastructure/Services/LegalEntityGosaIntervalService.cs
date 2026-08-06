@@ -26,7 +26,7 @@ public class LegalEntityGosaIntervalService : ILegalEntityGosaIntervalService
 
     public bool IsPao(string? okopfCode) => string.Equals(okopfCode?.Trim(), PaoOkopfCode, StringComparison.Ordinal);
 
-    private static bool IsLlc(string? okopfCode) => string.Equals(okopfCode?.Trim(), LlcOkopfCode, StringComparison.Ordinal);
+    public bool IsLlc(string? okopfCode) => string.Equals(okopfCode?.Trim(), LlcOkopfCode, StringComparison.Ordinal);
 
     public (DateOnly start, DateOnly end) GetDefaultWindow() =>
         (new DateOnly(_timeProvider.UtcNow.Year, 3, 1), new DateOnly(_timeProvider.UtcNow.Year, 6, 30));

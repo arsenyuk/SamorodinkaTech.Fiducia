@@ -198,6 +198,7 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.ToTable("osa_meetings");
             b.HasKey(x => x.Id);
             b.Property(x => x.Id).HasColumnName("id");
+            b.Property(x => x.LegalEntityId).HasColumnName("legal_entity_id").IsRequired();
             b.Property(x => x.OsaFormId).HasColumnName("osa_form_id").IsRequired();
             b.Property(x => x.Title).HasColumnName("title").HasMaxLength(500);
             b.Property(x => x.GosaWindowStart).HasColumnName("gosa_window_start").HasColumnType("date");
@@ -235,6 +236,9 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
              .WithMany()
              .HasForeignKey(x => x.OsaFormId)
              .HasPrincipalKey(o => o.Id);
+            b.HasOne(x => x.LegalEntity)
+             .WithMany()
+             .HasForeignKey(x => x.LegalEntityId);
         });
 
         modelBuilder.Entity<OsaMeetingFile>(b =>

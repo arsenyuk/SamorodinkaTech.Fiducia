@@ -1,23 +1,23 @@
-@page "/osa-meetings"
+@page "/osu-meetings"
 @implements IDisposable
 @using Microsoft.EntityFrameworkCore
 @using SamorodinkaTech.Fiducia.Domain.Entities
 @using SamorodinkaTech.Fiducia.Domain.Interfaces
 @using SamorodinkaTech.Fiducia.Domain.Models.Ldap
 @inject IDbContextFactory<SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext> DbFactory
-@inject ILogger<OsaMeetings> Logger
+@inject ILogger<OsuMeetings> Logger
 @inject NavigationManager Nav
 @inject IConfiguration Config
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 
-<h3>Общие собрания акционеров</h3>
+<h3>Общие собрания участников</h3>
 
 @* === Режим создания === *@
 @if (showForm)
 {
     <div class="card mb-3">
         <div class="card-body">
-            <h5 class="card-title">Новое ОСА</h5>
+            <h5 class="card-title">Новое собрание участников</h5>
             <div class="mb-3">
                 <label class="form-label">Тип</label>
                 <select class="form-select" @onchange="OnOsaTypeChanged">
@@ -32,16 +32,16 @@
             <div class="mb-3">
                 <label class="form-label">Название</label>
                 <input class="form-control"
-                       value="@(selectedFormCode == "GOSA" ? BuildGosaTitle(gosaStart) : createTitle)"
-                       @onchange="@(e => { if (selectedFormCode != "GOSA") createTitle = e.Value?.ToString() ?? string.Empty; })"
-                       disabled="@(selectedFormCode == "GOSA")" />
-                @if (selectedFormCode == "GOSA")
+                       value="@(selectedFormCode == "OOSU" ? BuildGosaTitle(gosaStart) : createTitle)"
+                       @onchange="@(e => { if (selectedFormCode != "OOSU") createTitle = e.Value?.ToString() ?? string.Empty; })"
+                       disabled="@(selectedFormCode == "OOSU")" />
+                @if (selectedFormCode == "OOSU")
                 {
                     <div class="text-muted small mt-1">Заполняется автоматически по шаблону из настроек</div>
                 }
             </div>
 
-            @if (selectedFormCode == "GOSA")
+            @if (selectedFormCode == "OOSU")
             {
                 <div class="mb-3">
                     <div class="row g-3 align-items-end">
@@ -109,7 +109,7 @@
     <thead>
         <tr>
             <th>Название</th>
-            <th>Тип ОСА</th>
+            <th>Тип собрания</th>
             <th>Дата проведения заседания</th>
             <th>Статус</th>
             <th></th>
@@ -118,7 +118,7 @@
     <tbody>
     @if (!osaMeetings.Any())
     {
-        <tr><td colspan="5" class="text-muted">Записей ОСА пока нет.</td></tr>
+        <tr><td colspan="5" class="text-muted">Записей собраний пока нет.</td></tr>
     }
     else
     {
@@ -151,7 +151,7 @@
                     }
                 </td>
                 <td>
-                    <a href="/osa-meetings/@m.Id" class="btn btn-sm btn-outline-primary">
+                    <a href="/osu-meetings/@m.Id" class="btn btn-sm btn-outline-primary">
                         @(isApproved ? "Просмотр" : "Редактировать")
                     </a>
                     @if (!isApproved)
@@ -211,8 +211,9 @@
             var workplace = await ctx.CurrentWorkplaces.FirstOrDefaultAsync();
             _currentLegalEntityId = workplace?.LastSelectedLegalEntityId ?? Guid.Empty;
 
+            var osuCodes = new[] { "OOSU", "VOSU" };
             osaForms = await ctx.OsaForms
-                .Where(x => x.Code == "GOSA" || x.Code == "VOSA")
+                .Where(x => osuCodes.Contains(x.Code))
                 .OrderBy(x => x.Name).ToListAsync();
             var meetings = await ctx.OsaMeetings
                 .Where(x => x.LegalEntityId == _currentLegalEntityId)
@@ -232,7 +233,7 @@
         }
         catch (Exception ex)
         {
-            Logger.LogWarning(ex, "Ошибка загрузки списка ОСА");
+            Logger.LogWarning(ex, "Ошибка загрузки списка собраний");
         }
     }
 
@@ -243,7 +244,7 @@
         selectedFormCode = null;
         createTitle = string.Empty;
         gosaStart = new DateOnly(DateTime.UtcNow.Year, 3, 1);
-        gosaEnd = new DateOnly(DateTime.UtcNow.Year, 6, 30);
+        gosaEnd = new DateOnly(DateTime.UtcNow.Year, 4, 30);
         gosaYear = null;
         createAbsenteeVoting = false;
         createBallotDeadline = DateTime.UtcNow.AddDays(20);
@@ -265,10 +266,10 @@
         selectedOsaFormId = id;
         selectedFormCode = osaForms.FirstOrDefault(f => f.Id == id)?.Code;
         gosaError = null;
-        if (selectedFormCode == "GOSA")
+        if (selectedFormCode == "OOSU")
         {
             gosaStart = new DateOnly(DateTime.UtcNow.Year, 3, 1);
-            gosaEnd = new DateOnly(DateTime.UtcNow.Year, 6, 30);
+            gosaEnd = new DateOnly(DateTime.UtcNow.Year, 4, 30);
             gosaYear = gosaStart.Year;
         }
     }
@@ -279,7 +280,7 @@
         saveError = null;
         saveSuccess = null;
 
-        if (selectedFormCode == "GOSA" && gosaStart > gosaEnd)
+        if (selectedFormCode == "OOSU" && gosaStart > gosaEnd)
         {
             gosaError = "Дата начала не может быть позже даты завершения";
             return;
@@ -293,7 +294,7 @@
                 Id = Guid.NewGuid(),
                 LegalEntityId = _currentLegalEntityId,
                 OsaFormId = selectedOsaFormId,
-                Title = selectedFormCode == "GOSA" ? BuildGosaTitle(gosaStart) : createTitle.Trim(),
+                Title = selectedFormCode == "OOSU" ? BuildGosaTitle(gosaStart) : createTitle.Trim(),
                 GosaWindowStart = gosaStart,
                 GosaWindowEnd = gosaEnd,
                 GosaYear = gosaYear,
@@ -305,13 +306,13 @@
             ctx.OsaMeetings.Add(meeting);
             await ctx.SaveChangesAsync();
 
-            saveSuccess = "ОСА создано";
+            saveSuccess = "Собрание участников создано";
             showForm = false;
             await LoadData();
         }
         catch (Exception ex)
         {
-            Logger.LogWarning(ex, "Ошибка создания ОСА");
+            Logger.LogWarning(ex, "Ошибка создания собрания");
             saveError = $"Ошибка: {ExceptionFlattener.Unwrap(ex)}";
         }
     }
@@ -329,15 +330,15 @@
         }
         catch (Exception ex)
         {
-            Logger.LogWarning(ex, "Ошибка удаления ОСА {Id}", meetingId);
+            Logger.LogWarning(ex, "Ошибка удаления собрания {Id}", meetingId);
             saveError = $"Ошибка удаления: {ExceptionFlattener.Unwrap(ex)}";
         }
     }
 
-    private string GosaTitleTemplate => Config["Osa:GosaTitleTemplate"] ?? "Годовое за {YYYY} год";
+    private string OosuTitleTemplate => Config["Osu:OosuTitleTemplate"] ?? "Годовое за {YYYY} год";
 
     private string BuildGosaTitle(DateOnly start) =>
-        GosaTitleTemplate.Replace("{YYYY}", start.Year.ToString());
+        OosuTitleTemplate.Replace("{YYYY}", start.Year.ToString());
 
     private class OsaMeetingVm
     {
