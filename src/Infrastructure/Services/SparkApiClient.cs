@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Text;
 using System.Xml.Linq;
 using Microsoft.Extensions.Logging;
@@ -10,7 +9,8 @@ namespace SamorodinkaTech.Fiducia.Infrastructure.Services;
 /// <summary>
 /// Клиент СПАРК API (Интерфакс) через SOAP/XML — сервис ifaborern.asmx.
 /// Аутентификация: Authmethod(Login, Password) → сессия через CookieContainer.
-/// Сессия закрывается вызовом End() при Dispose.
+/// Отвечает только за SOAP-коммуникацию и управление сессией.
+/// Парсинг XML-ответов делегирован в SparkXmlParser.
 /// </summary>
 public class SparkApiClient : ISparkApiClient, IAsyncDisposable
 {
@@ -30,7 +30,7 @@ public class SparkApiClient : ISparkApiClient, IAsyncDisposable
     /// </summary>
     /// <param name="httpClient">HttpClient (должен иметь CookieContainer для сессионной аутентификации).</param>
     /// <param name="logger">Логгер.</param>
-    /// <param name="baseUrl">URL SOAP-сервиса (например, http://sparkgatetest.interfax.ru/iFaxWebService/ifaborern.asmx).</param>
+    /// <param name="baseUrl">URL SOAP-сервиса. Задаётся в конфигурации.</param>
     /// <param name="login">Логин для Authmethod.</param>
     /// <param name="password">Пароль для Authmethod.</param>
     public SparkApiClient(
@@ -58,21 +58,13 @@ public class SparkApiClient : ISparkApiClient, IAsyncDisposable
         if (string.IsNullOrWhiteSpace(_login))
             return null;
 
-        await EnsureAuthenticatedAsync(cancellationToken);
-
         _logger.LogDebug("Запрос GetCompanyShortReport из СПАРК по ИНН={Inn}", inn);
 
-        var body = new XElement(Tns + "GetCompanyShortReport",
-            new XElement(Tns + "inn", inn));
-
-        var response = await SendSoapAsync(body, cancellationToken);
-        var data = GetXmlData(response);
+        var data = await CallSoapMethodAsync("GetCompanyShortReport",
+            new XElement(Tns + "inn", inn), cancellationToken);
 
         var report = data?.Descendants("Report").FirstOrDefault();
-        if (report is null)
-            return null;
-
-        return ParseCompany(report);
+        return report is null ? null : SparkXmlParser.ParseCompany(report);
     }
 
     /// <inheritdoc />
@@ -83,21 +75,13 @@ public class SparkApiClient : ISparkApiClient, IAsyncDisposable
         if (string.IsNullOrWhiteSpace(_login))
             return null;
 
-        await EnsureAuthenticatedAsync(cancellationToken);
-
         _logger.LogDebug("Запрос руководителя из GetCompanyShortReport СПАРК по ИНН={Inn}", inn);
 
-        var body = new XElement(Tns + "GetCompanyShortReport",
-            new XElement(Tns + "inn", inn));
-
-        var response = await SendSoapAsync(body, cancellationToken);
-        var data = GetXmlData(response);
+        var data = await CallSoapMethodAsync("GetCompanyShortReport",
+            new XElement(Tns + "inn", inn), cancellationToken);
 
         var leader = data?.Descendants("Leader").FirstOrDefault();
-        if (leader is null)
-            return null;
-
-        return ParseManager(leader);
+        return leader is null ? null : SparkXmlParser.ParseManager(leader);
     }
 
     /// <inheritdoc />
@@ -108,33 +92,28 @@ public class SparkApiClient : ISparkApiClient, IAsyncDisposable
         if (string.IsNullOrWhiteSpace(_login))
             return new List<SparkFounder>();
 
-        await EnsureAuthenticatedAsync(cancellationToken);
-
         _logger.LogDebug("Запрос совладельцев GetCompanyCoowners из СПАРК по ИНН={Inn}", inn);
 
-        var body = new XElement(Tns + "GetCompanyCoowners",
-            new XElement(Tns + "inn", inn));
-
-        var response = await SendSoapAsync(body, cancellationToken);
-        var data = GetXmlData(response);
+        var data = await CallSoapMethodAsync("GetCompanyCoowners",
+            new XElement(Tns + "inn", inn), cancellationToken);
 
         if (data?.Root is null)
             return new List<SparkFounder>();
 
-        // Структура ответа GetCompanyCoowners неизвестна — реализован best-effort парсинг.
-        // Пытаемся распарсить по известной структуре: Data > Coowner (или Owner).
         var coowners = data.Descendants("Coowner").ToList();
         if (coowners.Count == 0)
-        {
             coowners = data.Descendants("Owner").ToList();
-            if (coowners.Count == 0)
-            {
-                _logger.LogWarning("GetCompanyCoowners: не удалось найти элементы Coowner/Owner в ответе для ИНН={Inn}", inn);
-                return new List<SparkFounder>();
-            }
+
+        if (coowners.Count == 0)
+        {
+            _logger.LogWarning("GetCompanyCoowners: не удалось найти элементы Coowner/Owner в ответе для ИНН={Inn}", inn);
+            return new List<SparkFounder>();
         }
 
-        return coowners.Select(ParseFounder).Where(f => f is not null).Cast<SparkFounder>().ToList();
+        return coowners.Select(SparkXmlParser.ParseFounder)
+            .Where(f => f is not null)
+            .Cast<SparkFounder>()
+            .ToList();
     }
 
     /// <summary>
@@ -159,7 +138,7 @@ public class SparkApiClient : ISparkApiClient, IAsyncDisposable
         }
     }
 
-    // ── Приватные методы ──────────────────────────────────────────
+    // ── SOAP-коммуникация ─────────────────────────────────────────
 
     private async Task EnsureAuthenticatedAsync(CancellationToken ct)
     {
@@ -180,6 +159,37 @@ public class SparkApiClient : ISparkApiClient, IAsyncDisposable
 
         _authenticated = true;
         _logger.LogDebug("Аутентификация в СПАРК выполнена успешно");
+    }
+
+    /// <summary>
+    /// Выполняет вызов SOAP-метода: аутентификация → запрос → извлечение xmlData.
+    /// </summary>
+    private async Task<XDocument?> CallSoapMethodAsync(
+        string methodName,
+        XElement argument,
+        CancellationToken ct)
+    {
+        await EnsureAuthenticatedAsync(ct);
+
+        var body = new XElement(Tns + methodName, argument);
+        var response = await SendSoapAsync(body, ct);
+
+        var xmlDataElement = response.Descendants(Tns + "xmlData").FirstOrDefault();
+        if (xmlDataElement is null)
+            return null;
+
+        var xmlData = xmlDataElement.Value;
+        if (string.IsNullOrWhiteSpace(xmlData))
+            return null;
+
+        try
+        {
+            return XDocument.Parse(xmlData);
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     private async Task<XDocument> SendSoapAsync(XElement bodyElement, CancellationToken ct)
@@ -203,127 +213,5 @@ public class SparkApiClient : ISparkApiClient, IAsyncDisposable
 
         var xml = await response.Content.ReadAsStringAsync(ct);
         return XDocument.Parse(xml);
-    }
-
-    /// <summary>
-    /// Извлекает xmlData из SOAP-ответа и парсит как отдельный XDocument.
-    /// </summary>
-    private static XDocument? GetXmlData(XDocument soapResponse)
-    {
-        var xmlDataElement = soapResponse.Descendants(Tns + "xmlData").FirstOrDefault();
-        if (xmlDataElement is null)
-            return null;
-
-        var xmlData = xmlDataElement.Value;
-        if (string.IsNullOrWhiteSpace(xmlData))
-            return null;
-
-        try
-        {
-            return XDocument.Parse(xmlData);
-        }
-        catch
-        {
-            return null;
-        }
-    }
-
-    // ── Парсеры ───────────────────────────────────────────────────
-
-    private static SparkCompany ParseCompany(XElement report)
-    {
-        var okopf = report.Element("OKOPF");
-        var status = report.Element("Status");
-
-        return new SparkCompany
-        {
-            SparkId = ParseInt(report.Element("SparkID")?.Value) ?? 0,
-            CompanyType = ParseInt(report.Element("CompanyType")?.Value) ?? 1,
-            Inn = report.Element("INN")?.Value ?? "",
-            Kpp = report.Element("KPP")?.Value,
-            Ogrn = report.Element("OGRN")?.Value,
-            Okpo = report.Element("OKPO")?.Value,
-            FullName = report.Element("FullNameRus")?.Value ?? "",
-            ShortName = report.Element("ShortNameRus")?.Value,
-            OkopfCode = okopf?.Attribute("Code")?.Value,
-            OkopfName = okopf?.Attribute("Name")?.Value,
-            LegalAddress = report.Element("LegalAddresses")
-                ?.Element("Address")
-                ?.Attribute("Address")?.Value,
-            IsActing = status?.Attribute("IsActing")?.Value == "true",
-            Status = status?.Attribute("Type")?.Value,
-            RegistrationDate = ParseDate(report.Element("DateFirstReg")?.Value),
-            CharterCapital = ParseDecimal(report.Element("CharterCapital")?.Value)
-        };
-    }
-
-    private static SparkManager ParseManager(XElement leader)
-    {
-        return new SparkManager
-        {
-            FullName = leader.Attribute("FIO")?.Value ?? "",
-            Position = leader.Attribute("Position")?.Value,
-            Inn = leader.Attribute("INN")?.Value,
-            ActualDate = ParseDate(leader.Attribute("ActualDate")?.Value),
-            LegalCapacityEndDate = ParseDate(leader.Attribute("LegalCapacityEndDate")?.Value),
-            ManagementCompany = leader.Attribute("ManagementCompany")?.Value,
-            ManagementCompanyINN = leader.Attribute("ManagementCompanyINN")?.Value
-        };
-    }
-
-    /// <summary>
-    /// Парсит элемент Coowner/Owner из GetCompanyCoowners.
-    /// Структура точно не известна — реализован best-effort парсинг.
-    /// </summary>
-    private static SparkFounder? ParseFounder(XElement coowner)
-    {
-        var type = ParseInt(coowner.Attribute("Type")?.Value ?? coowner.Element("Type")?.Value);
-        var name = coowner.Attribute("Name")?.Value ?? coowner.Element("Name")?.Value;
-        var inn = coowner.Attribute("INN")?.Value ?? coowner.Element("INN")?.Value;
-        var ogrn = coowner.Attribute("OGRN")?.Value ?? coowner.Element("OGRN")?.Value;
-        var fullName = coowner.Attribute("FullName")?.Value ?? coowner.Element("FullName")?.Value;
-        var personInn = coowner.Attribute("PersonINN")?.Value ?? coowner.Element("PersonINN")?.Value;
-        var shareAmount = ParseDecimal(coowner.Attribute("ShareAmount")?.Value ?? coowner.Element("ShareAmount")?.Value);
-        var sharePercent = ParseDecimal(coowner.Attribute("SharePercent")?.Value ?? coowner.Element("SharePercent")?.Value);
-        var country = coowner.Attribute("Country")?.Value ?? coowner.Element("Country")?.Value;
-        var entryDate = ParseDate(coowner.Attribute("EntryDate")?.Value ?? coowner.Element("EntryDate")?.Value);
-        var exitDate = ParseDate(coowner.Attribute("ExitDate")?.Value ?? coowner.Element("ExitDate")?.Value);
-        var citizenship = coowner.Attribute("Citizenship")?.Value ?? coowner.Element("Citizenship")?.Value;
-
-        // CoownerType: 0=российское ЮЛ, 1=иностранное ЮЛ, 2=ФЛ
-        var isForeign = type == 1;
-
-        return new SparkFounder
-        {
-            Name = name,
-            Inn = inn,
-            Ogrn = ogrn,
-            Country = country ?? (isForeign ? "Иностранное" : null),
-            IsForeign = isForeign,
-            FullName = fullName,
-            PersonInn = personInn,
-            Citizenship = citizenship,
-            ShareAmount = shareAmount,
-            SharePercent = sharePercent,
-            EntryDate = entryDate,
-            ExitDate = exitDate
-        };
-    }
-
-    // ── Вспомогательные методы парсинга ───────────────────────────
-
-    private static int? ParseInt(string? value)
-    {
-        return int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var result) ? result : null;
-    }
-
-    private static DateTime? ParseDate(string? value)
-    {
-        return DateTime.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.None, out var result) ? result : null;
-    }
-
-    private static decimal? ParseDecimal(string? value)
-    {
-        return decimal.TryParse(value, NumberStyles.Any, CultureInfo.InvariantCulture, out var result) ? result : null;
     }
 }
