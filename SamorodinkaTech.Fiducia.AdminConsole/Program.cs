@@ -104,14 +104,20 @@ builder.Services.AddSingleton<ITimeProvider, SystemTimeProvider>();
 // File Storage (ADR-020)
 builder.Services.AddFileStorage(builder.Configuration);
 
-// SPARK API — проверка ЮЛ по ИНН, карточка компании и данные о гендиректоре
+// SPARK SOAP API — проверка ЮЛ по ИНН, карточка компании, руководитель, учредители
+// Протокол: SOAP/XML (ifaborern.asmx), аутентификация: Authmethod(Login, Password)
 // Все настройки — в appsettings.json, секция Spark (ADR-022)
 builder.Services.Configure<SparkOptions>(builder.Configuration.GetSection("Spark"));
 builder.Services.AddScoped<ISparkApiClient>(sp =>
 {
     var options = sp.GetRequiredService<IOptions<SparkOptions>>().Value;
     var logger = sp.GetRequiredService<ILogger<SparkApiClient>>();
-    return new SparkApiClient(new HttpClient(), logger, options.BaseUrl, options.ApiKey);
+
+    // HttpClient с CookieContainer для сессионной аутентификации SOAP
+    var handler = new HttpClientHandler { UseCookies = true };
+    var httpClient = new HttpClient(handler);
+
+    return new SparkApiClient(httpClient, logger, options.BaseUrl, options.Login, options.Password);
 });
 
 // TrueConf Server API — видеоконференцсвязь для заседаний СД (опционально)

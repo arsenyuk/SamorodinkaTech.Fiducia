@@ -978,9 +978,9 @@
                 {
                     founders = await SparkApi.GetFoundersAsync(inn);
                 }
-                catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Forbidden)
+                catch (HttpRequestException ex)
                 {
-                    Logger.LogWarning(ex, "Endpoint учредителей СПАРК вернул 403 (ИНН={Inn})", inn);
+                    Logger.LogWarning(ex, "Endpoint учредителей СПАРК вернул ошибку (ИНН={Inn}): {Error}", inn, ex.Message);
                     sparkWarning = ex.Message;
                 }
             }
@@ -1005,8 +1005,6 @@
                         LegalAddress = company.LegalAddress,
                         Status = company.Status,
                         RegistrationDate = company.RegistrationDate,
-                        ShareholdersCount = company.ShareholdersCount,
-                        EmployeesCount = company.EmployeesCount,
                         FetchedAt = DateTime.UtcNow
                     });
                 }
@@ -1020,8 +1018,6 @@
                     existing.LegalAddress = company.LegalAddress;
                     existing.Status = company.Status;
                     existing.RegistrationDate = company.RegistrationDate;
-                    existing.ShareholdersCount = company.ShareholdersCount;
-                    existing.EmployeesCount = company.EmployeesCount;
                     existing.FetchedAt = DateTime.UtcNow;
                 }
                 _sparkCompanyFullName = company.FullName;
@@ -1068,7 +1064,7 @@
                         FullName = manager.FullName,
                         Position = manager.Position,
                         PersonInn = manager.Inn,
-                        StartDate = manager.StartDate,
+                        StartDate = manager.ActualDate,
                         FetchedAt = DateTime.UtcNow
                     });
                 }
@@ -1077,7 +1073,7 @@
                     existing.FullName = manager.FullName;
                     existing.Position = manager.Position;
                     existing.PersonInn = manager.Inn;
-                    existing.StartDate = manager.StartDate;
+                    existing.StartDate = manager.ActualDate;
                     existing.FetchedAt = DateTime.UtcNow;
                 }
 
@@ -1086,7 +1082,7 @@
                 _sparkManagerName = manager.FullName;
                 _sparkManagerPosition = manager.Position;
                 _sparkManagerInn = manager.Inn;
-                _sparkManagerStartDate = manager.StartDate;
+                _sparkManagerStartDate = manager.ActualDate;
             }
             else
             {

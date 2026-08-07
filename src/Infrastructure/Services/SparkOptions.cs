@@ -1,14 +1,17 @@
 namespace SamorodinkaTech.Fiducia.Infrastructure.Services;
 
 /// <summary>
-/// Настройки интеграции с СПАРК (Интерфакс).
+/// Настройки интеграции с СПАРК (Интерфакс) через SOAP API (ifaborern.asmx).
 /// Все значения — из конфигурационного файла (ADR-022).
 /// </summary>
 public class SparkOptions
 {
-    /// <summary>Базовый URL API СПАРК.</summary>
-    public string BaseUrl { get; init; } = "https://api.spark-interfax.ru";
+    /// <summary>URL SOAP-сервиса СПАРК (например, http://sparkgatetest.interfax.ru/iFaxWebService/ifaborern.asmx). Задаётся в конфигурации.</summary>
+    public string BaseUrl { get; init; } = "";
 
-    /// <summary>API-ключ (пустая строка — интеграция отключена).</summary>
-    public string ApiKey { get; init; } = "";
+    /// <summary>Логин для аутентификации в SOAP-сервисе (Authmethod).</summary>
+    public string Login { get; init; } = "";
+
+    /// <summary>Пароль для аутентификации в SOAP-сервисе (Authmethod).</summary>
+    public string Password { get; init; } = "";
 }

@@ -18,6 +18,7 @@ public class SparkApiClientTests
     {
         var company = new SparkCompany
         {
+            SparkId = 12345,
             Inn = "7707083893",
             Ogrn = "1027700132195",
             FullName = "Публичное акционерное общество «Сбербанк России»",
@@ -25,9 +26,9 @@ public class SparkApiClientTests
             OkopfCode = "12247",
             OkopfName = "Публичные акционерные общества",
             LegalAddress = "117312, г. Москва, ул. Вавилова, д. 19",
+            IsActing = true,
             Status = "Действующая",
-            RegistrationDate = new DateTime(1991, 6, 20),
-            ShareholdersCount = 50000
+            RegistrationDate = new DateTime(1991, 6, 20)
         };
         _client.AddCompany(company);
 
@@ -43,7 +44,7 @@ public class SparkApiClientTests
         result.Status.Should().Be("Действующая");
         result.LegalAddress.Should().NotBeNullOrEmpty();
         result.RegistrationDate.Should().HaveValue();
-        result.ShareholdersCount.Should().Be(50000);
+        result.IsActing.Should().BeTrue();
     }
 
     [Fact]
@@ -62,7 +63,7 @@ public class SparkApiClientTests
             FullName = "Греф Герман Оскарович",
             Position = "Президент, Председатель Правления",
             Inn = "772706789012",
-            StartDate = new DateTime(2007, 11, 28)
+            ActualDate = new DateTime(2007, 11, 28)
         };
         _client.AddManager("7707083893", manager);
 
@@ -72,7 +73,7 @@ public class SparkApiClientTests
         result!.FullName.Should().Be("Греф Герман Оскарович");
         result.Position.Should().Contain("Президент");
         result.Inn.Should().Be("772706789012");
-        result.StartDate.Should().HaveValue();
+        result.ActualDate.Should().HaveValue();
     }
 
     [Fact]
@@ -108,8 +109,8 @@ public class SparkApiClientTests
     [Fact]
     public async Task GetCompanyByInnAsync_DifferentInns_ShouldReturnDifferentCompanies()
     {
-        var c1 = new SparkCompany { Inn = "1111111111", FullName = "Компания А", Status = "Действующая" };
-        var c2 = new SparkCompany { Inn = "2222222222", FullName = "Компания Б", Status = "Ликвидирована" };
+        var c1 = new SparkCompany { SparkId = 1, Inn = "1111111111", FullName = "Компания А", Status = "Действующая" };
+        var c2 = new SparkCompany { SparkId = 2, Inn = "2222222222", FullName = "Компания Б", Status = "Ликвидирована" };
         _client.AddCompany(c1);
         _client.AddCompany(c2);
 
@@ -125,7 +126,7 @@ public class SparkApiClientTests
     [Fact]
     public async Task GetCompanyByInnAsync_ManagerNotSet_ShouldReturnNull()
     {
-        var company = new SparkCompany { Inn = "3333333333", FullName = "Компания В" };
+        var company = new SparkCompany { SparkId = 3, Inn = "3333333333", FullName = "Компания В" };
         _client.AddCompany(company);
         // Manager не добавлен
 
