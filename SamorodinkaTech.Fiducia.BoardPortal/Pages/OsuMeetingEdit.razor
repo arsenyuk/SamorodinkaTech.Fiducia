@@ -12,6 +12,8 @@
 @inject IConfiguration Config
 @inject IServiceProvider ServiceProvider
 @inject SamorodinkaTech.Fiducia.Domain.Interfaces.ITemplateInstantiationService TemplateInstSvc
+@inject SamorodinkaTech.Fiducia.Domain.Interfaces.IMeetingSaveService MeetingSaveSvc
+@inject SamorodinkaTech.Fiducia.Domain.Interfaces.IMeetingLoadService MeetingLoadSvc
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 
 <h3>
@@ -2283,117 +2285,54 @@
 
         try
         {
-            await using var ctx = await DbFactory.CreateDbContextAsync();
-            var m = await ctx.OsaMeetings.FirstOrDefaultAsync(x => x.Id == editingMeetingId.Value);
-            if (m is null) return;
-
-            if (editIsGosa)
-            {
-                // Проверка уникальности года ГОСА (исключая текущую запись)
-                if (editGosaYear.HasValue && m.GosaYear != editGosaYear)
-                {
-                    var duplicate = await ctx.OsaMeetings
-                        .AnyAsync(x => x.Id != editingMeetingId.Value && x.GosaYear == editGosaYear.Value);
-                    if (duplicate)
-                    {
-                        saveError = $"ГОСА за {editGosaYear.Value} год уже существует. Нельзя создать более одного ГОСА в году.";
-                        Logger.LogWarning("Валидация не пройдена для ОСА {OsaMeetingId}: {Errors}", editingMeetingId.Value, saveError);
-                        return;
-                    }
-                }
-
-                m.GosaWindowStart = editGosaStart;
-                m.GosaWindowEnd = editGosaEnd;
-                m.GosaYear = editGosaYear;
-            }
-
-            if (!editIsGosa) m.Title = string.IsNullOrWhiteSpace(editTitle) ? null : editTitle.Trim();
-            m.ShareholdersCount = editHasBoard ? editShareholdersCount : null;
-            m.BoardMemberNumber = editHasBoard ? editBoardMemberNumber : null;
-            m.ExecutiveDirectorsParticipate = editExecDirectors;
-            m.ExecutiveDirectorsCount = editExecDirectors ? editExecDirectorsCount : null;
-            m.NonExecutiveDirectorsParticipate = editNonExecDirectors;
-            m.NonExecutiveDirectorsCount = editNonExecDirectors ? editNonExecDirectorsCount : null;
-            m.IndependentDirectorsParticipate = editIndepDirectors;
-            m.IndependentDirectorsCount = editIndepDirectors ? editIndepDirectorsCount : null;
-            m.ShareholdersListReceived = editShareholdersListReceived;
-            m.AbsenteeVoting = editAbsenteeVoting;
-            m.BallotDeadline = editAbsenteeVoting && editBallotDeadline.HasValue
-                ? ((DateTime)editBallotDeadline).ToUniversalTime() : null;
-            m.OsaHeld = editOsaHeld;
-            m.ProtocolSigned = editProtocolSigned && editOsaHeld;
-            m.DeputyChairProvided = editDeputyChairProvided;
-            m.SecretaryProvided = editSecretaryProvided;
-            m.SecretarySignsProtocols = editSecretaryProvided && editSecretarySignsProtocols;
-            m.TemporaryChairProvided = editTemporaryChairProvided;
-            m.TemporaryChairSelection = editTemporaryChairProvided ? editTemporaryChairSelection : null;
-            m.BoardCompositionApproved = editBoardCompositionApproved;
-            m.BoardMandatory = editBoardMandatory;
-            m.BoardApproved = editBoardApproved;
-            m.ProtocolSignedAt = editProtocolSigned && editProtocolSignedAt.HasValue
-                ? ((DateTime)editProtocolSignedAt).ToUniversalTime() : null;
-
             // Привязываем строки без UserId к справочнику пользователей (LDAP)
-            await EnsureUserIds(ctx, validateExisting: true);
+            await using (var userCtx = await DbFactory.CreateDbContextAsync())
+                await EnsureUserIds(userCtx, validateExisting: true);
 
-            // Создаём/обновляем запись Совета директоров
-            var board = await ctx.BoardsOfDirectors.FirstOrDefaultAsync(x => x.OsaMeetingId == editingMeetingId.Value);
-            if (board == null)
+            var saveModel = new MeetingSaveModel
             {
-                var draftStatusId = boardOfDirectorsStatuses.FirstOrDefault(s => s.Code == "DRAFT")?.Id ?? Guid.Empty;
-                board = new SamorodinkaTech.Fiducia.Domain.Entities.BoardOfDirectors
+                MeetingId = editingMeetingId.Value,
+                IsGosa = editIsGosa,
+                GosaYear = editGosaYear,
+                GosaStart = editGosaStart,
+                GosaEnd = editGosaEnd,
+                Title = editTitle,
+                ShareholdersCount = editShareholdersCount,
+                BoardMemberNumber = editBoardMemberNumber,
+                ExecutiveDirectorsParticipate = editExecDirectors,
+                ExecutiveDirectorsCount = editExecDirectorsCount,
+                NonExecutiveDirectorsParticipate = editNonExecDirectors,
+                NonExecutiveDirectorsCount = editNonExecDirectorsCount,
+                IndependentDirectorsParticipate = editIndepDirectors,
+                IndependentDirectorsCount = editIndepDirectorsCount,
+                ShareholdersListReceived = editShareholdersListReceived,
+                AbsenteeVoting = editAbsenteeVoting,
+                BallotDeadline = editAbsenteeVoting ? ((DateTime?)editBallotDeadline) : null,
+                OsaHeld = editOsaHeld,
+                ProtocolSigned = editProtocolSigned,
+                ProtocolSignedAt = editProtocolSignedAt.HasValue ? ((DateTime?)editProtocolSignedAt) : null,
+                DeputyChairProvided = editDeputyChairProvided,
+                SecretaryProvided = editSecretaryProvided,
+                SecretarySignsProtocols = editSecretarySignsProtocols,
+                TemporaryChairProvided = editTemporaryChairProvided,
+                TemporaryChairSelection = editTemporaryChairSelection,
+                BoardCompositionApproved = editBoardCompositionApproved,
+                BoardMandatory = editHasBoard,
+                BoardApproved = editBoardApproved,
+                BoardMembers = boardMemberRows.Select(r => new BoardMemberRowModel
                 {
-                    Id = Guid.NewGuid(),
-                    OsaMeetingId = editingMeetingId.Value,
-                    GosaYear = editGosaYear,
-                    StatusId = draftStatusId
-                };
-                ctx.BoardsOfDirectors.Add(board);
-            }
-            else
-            {
-                board.GosaYear = editGosaYear;
-            }
-            editBoardOfDirectorsId = board.Id;
-
-            // Обновляем состав СД: удаляем старых, создаём новых
-            var oldMembers = await ctx.BoardMembers.Where(x => x.OsaMeetingId == editingMeetingId.Value).ToListAsync();
-            var oldMemberIds = oldMembers.Select(x => x.Id).ToList();
-            var oldAppointments = await ctx.BoardMemberAppointments.Where(x => oldMemberIds.Contains(x.BoardMemberId)).ToListAsync();
-            ctx.BoardMemberAppointments.RemoveRange(oldAppointments);
-            ctx.BoardMembers.RemoveRange(oldMembers);
-            var _secRoleId = boardRoles.FirstOrDefault(r => r.Code == "SECRETARY")?.Id;
-            var _tcRoleId = tempChairRoleId;
-            foreach (var row in boardMemberRows.Where(x => !string.IsNullOrWhiteSpace(x.Name) || x.RoleId == _secRoleId || x.RoleId == _tcRoleId))
-            {
-                var member = new BoardMember
-                {
-                    Id = Guid.NewGuid(),
-                    OsaMeetingId = editingMeetingId.Value,
-                    BoardOfDirectorsId = editBoardOfDirectorsId,
-                    FullName = row.Name.Trim(),
-                    BoardMemberTypeId = row.MemberTypeId,
-                    Account = string.IsNullOrWhiteSpace(row.Account) ? null : row.Account.Trim(),
-                    Email = string.IsNullOrWhiteSpace(row.Email) ? null : row.Email.Trim(),
-                    UserId = row.UserId
-                };
-                ctx.BoardMembers.Add(member);
-
-                if (row.RoleId.HasValue && row.StartedAt is not null && DateOnly.TryParse(row.StartedAt, out var startedAt))
-                {
-                    ctx.BoardMemberAppointments.Add(new BoardMemberAppointment
-                    {
-                        Id = Guid.NewGuid(),
-                        BoardMemberId = member.Id,
-                        RoleId = row.RoleId.Value,
-                        RoleCode = boardRoles.FirstOrDefault(r => r.Id == row.RoleId.Value)?.Code ?? "",
-                        StartedAt = startedAt,
-                        StatusId = appointmentStatuses.FirstOrDefault(s => s.Code == "DRAFT")?.Id ?? Guid.Empty
-                    });
-                }
-            }
-
-            await ctx.SaveChangesAsync();
+                    Name = r.Name ?? "",
+                    MemberTypeId = r.MemberTypeId,
+                    RoleId = r.RoleId,
+                    Account = r.Account,
+                    Email = r.Email,
+                    UserId = r.UserId,
+                    StartedAt = r.StartedAt
+                }).ToList()
+            };
+            var result = await MeetingSaveSvc.SaveAsync(saveModel);
+            if (!result.Success) { saveError = result.Error; return; }
+            editBoardOfDirectorsId = result.BoardOfDirectorsId;
             saveSuccess = "Изменения сохранены.";
             await LoadData();
         }

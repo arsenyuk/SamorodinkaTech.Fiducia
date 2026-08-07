@@ -102,6 +102,10 @@ builder.Services.AddSingleton<ILegalEntityGosaIntervalService, LegalEntityGosaIn
 // Template instantiation — подстановка данных в шаблоны документов
 builder.Services.AddScoped<ITemplateInstantiationService, TemplateInstantiationService>();
 
+// Meeting services — сохранение и загрузка данных собраний (OsaMeeting + BoardOfDirectors + BoardMembers)
+builder.Services.AddScoped<IMeetingSaveService, MeetingSaveService>();
+builder.Services.AddScoped<IMeetingLoadService, MeetingLoadService>();
+
 // LDAP — корпоративный каталог для синхронизации состава СД (опционально)
 if (builder.Configuration.GetValue<bool>("Ldap:Enabled"))
 {
