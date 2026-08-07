@@ -3,7 +3,7 @@
 @using SamorodinkaTech.Fiducia.Domain.Models.Spark
 @inject IDbContextFactory<SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext> DbFactory
 @inject SamorodinkaTech.Fiducia.Domain.Interfaces.ILegalEntityGosaIntervalService GosaSvc
-@inject SamorodinkaTech.Fiducia.Domain.Interfaces.ISparkApiClient SparkApi
+@inject SamorodinkaTech.Fiducia.Domain.Interfaces.ISparkDataService SparkDataSvc
 @inject ILogger<LegalEntities> Logger
 @attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "SYS_ADMIN")]
 
@@ -903,52 +903,20 @@
         if (string.IsNullOrEmpty(selectedEntity?.Inn)) return;
         try
         {
-            await using var ctx = await DbFactory.CreateDbContextAsync();
-            var cached = await ctx.ExtSparkManagers.FirstOrDefaultAsync(x => x.Inn == selectedEntity.Inn.Trim());
-            if (cached is not null)
-            {
-                _sparkManagerName = cached.FullName;
-                _sparkManagerPosition = cached.Position;
-                _sparkManagerInn = cached.PersonInn;
-                _sparkManagerStartDate = cached.StartDate;
-            }
+            var view = await SparkDataSvc.LoadCachedAsync(selectedEntity.Inn.Trim(), _orgType == OrgType.LLC);
 
-            var cachedCompany = await ctx.ExtSparkCompanies.FirstOrDefaultAsync(x => x.Inn == selectedEntity.Inn.Trim());
-            if (cachedCompany is not null)
-            {
-                _sparkCompanyFullName = cachedCompany.FullName;
-                _sparkCompanyShortName = cachedCompany.ShortName;
-                _sparkCompanyOgrn = cachedCompany.Ogrn;
-                _sparkCompanyOkopfName = cachedCompany.OkopfName;
-                _sparkCompanyAddress = cachedCompany.LegalAddress;
-                _sparkCompanyStatus = cachedCompany.Status;
-                _sparkCompanyRegDate = cachedCompany.RegistrationDate;
-            }
-
-            _sparkFounders = _orgType == OrgType.LLC
-                ? await ctx.ExtSparkFounders
-                    .Where(x => x.Inn == selectedEntity.Inn.Trim())
-                    .Select(x => new SparkFounder
-                    {
-                        Name = x.Name,
-                        Inn = x.FounderInn,
-                        Ogrn = x.FounderOgrn,
-                        Country = x.Country,
-                        IsForeign = x.IsForeign,
-                        FullName = x.FullName,
-                        PersonInn = x.PersonInn,
-                        Citizenship = x.Citizenship,
-                        HeadOfOther = x.HeadOfOther,
-                        FounderOfOther = x.FounderOfOther,
-                        IsEntrepreneur = x.IsEntrepreneur,
-                        Ogrnip = x.Ogrnip,
-                        ShareAmount = x.ShareAmount,
-                        SharePercent = x.SharePercent,
-                        EntryDate = x.EntryDate,
-                        ExitDate = x.ExitDate
-                    })
-                    .ToListAsync()
-                : new List<SparkFounder>();
+            _sparkManagerName = view.ManagerName;
+            _sparkManagerPosition = view.ManagerPosition;
+            _sparkManagerInn = view.ManagerInn;
+            _sparkManagerStartDate = view.ManagerStartDate;
+            _sparkCompanyFullName = view.CompanyFullName;
+            _sparkCompanyShortName = view.CompanyShortName;
+            _sparkCompanyOgrn = view.CompanyOgrn;
+            _sparkCompanyOkopfName = view.CompanyOkopfName;
+            _sparkCompanyAddress = view.CompanyAddress;
+            _sparkCompanyStatus = view.CompanyStatus;
+            _sparkCompanyRegDate = view.CompanyRegDate;
+            _sparkFounders = view.Founders;
         }
         catch (Exception ex)
         {
@@ -967,182 +935,57 @@
         try
         {
             var inn = selectedEntity.Inn.Trim();
-            var company = await SparkApi.GetCompanyByInnAsync(inn);
-            var manager = await SparkApi.GetManagerAsync(inn);
+            var result = await SparkDataSvc.FetchAndSaveAsync(inn, _orgType == OrgType.LLC, selectedEntity.Id);
 
-            // Учредители — только для ООО (у АО реестр акционеров у регистратора, не в СПАРК)
-            List<SparkFounder> founders = new();
-            if (_orgType == OrgType.LLC)
+            // ОКОПФ — обновляем локальное состояние, если найден в СПАРК
+            if (result.OkopfCode is not null)
             {
-                try
+                await using var ctx = await DbFactory.CreateDbContextAsync();
+                var okopf = await ctx.Okopf.FirstOrDefaultAsync(o => o.Code == result.OkopfCode);
+                if (okopf is not null)
                 {
-                    founders = await SparkApi.GetFoundersAsync(inn);
-                }
-                catch (HttpRequestException ex)
-                {
-                    Logger.LogWarning(ex, "Endpoint учредителей СПАРК вернул ошибку (ИНН={Inn}): {Error}", inn, ex.Message);
-                    sparkWarning = ex.Message;
+                    selectedEntity.Okopf = new OkopfVm { Code = okopf.Code, Name = okopf.Name };
+                    _orgType = ResolveOrgTypeFromCode(okopf.Code);
+                    editHasBoardOfDirectors = _orgType != OrgType.Unknown;
                 }
             }
 
-            await using var ctx = await DbFactory.CreateDbContextAsync();
-
-            // Сохраняем карточку компании в ext_spark_company (BDR-009)
-            if (company is not null)
+            // Карточка компании
+            if (result.Company is not null)
             {
-                var existing = await ctx.ExtSparkCompanies.FirstOrDefaultAsync(x => x.Inn == inn);
-                if (existing is null)
-                {
-                    ctx.ExtSparkCompanies.Add(new SamorodinkaTech.Fiducia.Domain.Entities.ExtSparkCompany
-                    {
-                        Id = Guid.NewGuid(),
-                        Inn = company.Inn,
-                        Ogrn = company.Ogrn,
-                        FullName = company.FullName,
-                        ShortName = company.ShortName,
-                        OkopfCode = company.OkopfCode,
-                        OkopfName = company.OkopfName,
-                        LegalAddress = company.LegalAddress,
-                        Status = company.Status,
-                        RegistrationDate = company.RegistrationDate,
-                        FetchedAt = DateTime.UtcNow
-                    });
-                }
-                else
-                {
-                    existing.Ogrn = company.Ogrn;
-                    existing.FullName = company.FullName;
-                    existing.ShortName = company.ShortName;
-                    existing.OkopfCode = company.OkopfCode;
-                    existing.OkopfName = company.OkopfName;
-                    existing.LegalAddress = company.LegalAddress;
-                    existing.Status = company.Status;
-                    existing.RegistrationDate = company.RegistrationDate;
-                    existing.FetchedAt = DateTime.UtcNow;
-                }
-                _sparkCompanyFullName = company.FullName;
-                _sparkCompanyShortName = company.ShortName;
-                _sparkCompanyOgrn = company.Ogrn;
-                _sparkCompanyOkopfName = company.OkopfName;
-                _sparkCompanyAddress = company.LegalAddress;
-                _sparkCompanyStatus = company.Status;
-                _sparkCompanyRegDate = company.RegistrationDate;
-
-                // Обновляем ОКОПФ в legal_entities, если найден в СПАРК
-                if (!string.IsNullOrEmpty(company.OkopfCode))
-                {
-                    var normalizedCode = new string(company.OkopfCode.Where(char.IsDigit).ToArray());
-                    var okopf = await ctx.Okopf.FirstOrDefaultAsync(o => o.Code == normalizedCode);
-                    if (okopf is not null)
-                    {
-                        var le = await ctx.LegalEntities.FirstOrDefaultAsync(x => x.Id == selectedEntity.Id);
-                        if (le is not null)
-                        {
-                            le.OkopfId = okopf.Id;
-                            selectedEntity.Okopf = new OkopfVm { Code = okopf.Code, Name = okopf.Name };
-                            _orgType = ResolveOrgTypeFromCode(okopf.Code);
-                            editHasBoardOfDirectors = _orgType != OrgType.Unknown;
-                        }
-                    }
-                    else
-                    {
-                        Logger.LogWarning("Код ОКОПФ из СПАРК не найден в справочнике: {OkopfCode}", company.OkopfCode);
-                    }
-                }
+                var c = result.Company;
+                _sparkCompanyFullName = c.FullName;
+                _sparkCompanyShortName = c.ShortName;
+                _sparkCompanyOgrn = c.Ogrn;
+                _sparkCompanyOkopfName = c.OkopfName;
+                _sparkCompanyAddress = c.LegalAddress;
+                _sparkCompanyStatus = c.Status;
+                _sparkCompanyRegDate = c.RegistrationDate;
             }
 
-            // Сохраняем руководителя в ext_spark_manager (BDR-009)
-            if (manager is not null)
+            // Руководитель
+            if (result.Manager is not null)
             {
-                var existing = await ctx.ExtSparkManagers.FirstOrDefaultAsync(x => x.Inn == inn);
-                if (existing is null)
-                {
-                    ctx.ExtSparkManagers.Add(new SamorodinkaTech.Fiducia.Domain.Entities.ExtSparkManager
-                    {
-                        Id = Guid.NewGuid(),
-                        Inn = inn,
-                        FullName = manager.FullName,
-                        Position = manager.Position,
-                        PersonInn = manager.Inn,
-                        StartDate = manager.ActualDate,
-                        FetchedAt = DateTime.UtcNow
-                    });
-                }
-                else
-                {
-                    existing.FullName = manager.FullName;
-                    existing.Position = manager.Position;
-                    existing.PersonInn = manager.Inn;
-                    existing.StartDate = manager.ActualDate;
-                    existing.FetchedAt = DateTime.UtcNow;
-                }
-
-                editFullName = manager.FullName;
-                editPosition = manager.Position ?? "Генеральный директор";
-                _sparkManagerName = manager.FullName;
-                _sparkManagerPosition = manager.Position;
-                _sparkManagerInn = manager.Inn;
-                _sparkManagerStartDate = manager.ActualDate;
+                var m = result.Manager;
+                editFullName = m.FullName;
+                editPosition = m.Position ?? "Генеральный директор";
+                _sparkManagerName = m.FullName;
+                _sparkManagerPosition = m.Position;
+                _sparkManagerInn = m.Inn;
+                _sparkManagerStartDate = m.ActualDate;
             }
             else
             {
-                // Если руководитель не найден в API, пробуем загрузить из кэша ext_spark_manager
-                var cachedManager = await ctx.ExtSparkManagers.FirstOrDefaultAsync(x => x.Inn == inn);
-                if (cachedManager is not null)
-                {
-                    editFullName = cachedManager.FullName;
-                    editPosition = cachedManager.Position ?? "Генеральный директор";
-                    _sparkManagerName = cachedManager.FullName;
-                    _sparkManagerPosition = cachedManager.Position;
-                    _sparkManagerInn = cachedManager.PersonInn;
-                    _sparkManagerStartDate = cachedManager.StartDate;
-                }
-                else
-                {
-                    sparkError = "Руководитель не найден в СПАРК";
-                }
+                sparkError = "Руководитель не найден в СПАРК";
             }
 
-            // Сохраняем учредителей в ext_spark_founder (BDR-009)
-            if (founders.Count > 0)
-            {
-                var existing = await ctx.ExtSparkFounders.Where(x => x.Inn == inn).ToListAsync();
-                ctx.ExtSparkFounders.RemoveRange(existing);
-
-                foreach (var f in founders)
-                {
-                    ctx.ExtSparkFounders.Add(new SamorodinkaTech.Fiducia.Domain.Entities.ExtSparkFounder
-                    {
-                        Id = Guid.NewGuid(),
-                        Inn = inn,
-                        Name = f.Name,
-                        FounderInn = f.Inn,
-                        FounderOgrn = f.Ogrn,
-                        Country = f.Country,
-                        IsForeign = f.IsForeign,
-                        FullName = f.FullName,
-                        PersonInn = f.PersonInn,
-                        Citizenship = f.Citizenship,
-                        HeadOfOther = f.HeadOfOther,
-                        FounderOfOther = f.FounderOfOther,
-                        IsEntrepreneur = f.IsEntrepreneur,
-                        Ogrnip = f.Ogrnip,
-                        ShareAmount = f.ShareAmount,
-                        SharePercent = f.SharePercent,
-                        EntryDate = f.EntryDate,
-                        ExitDate = f.ExitDate,
-                        FetchedAt = DateTime.UtcNow
-                    });
-                }
-
-                _sparkFounders = founders;
-            }
-            else if (company is not null || manager is not null)
-            {
+            // Учредители
+            if (result.Founders.Count > 0)
+                _sparkFounders = result.Founders;
+            else if (result.Company is not null || result.Manager is not null)
                 sparkWarning = "Данные об учредителях не загружены — возможно, требуется расширенный тариф СПАРК";
-            }
 
-            await ctx.SaveChangesAsync();
+            sparkWarning ??= result.Warning;
         }
         catch (Exception ex)
         {

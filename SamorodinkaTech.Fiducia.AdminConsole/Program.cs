@@ -120,6 +120,9 @@ builder.Services.AddScoped<ISparkApiClient>(sp =>
     return new SparkApiClient(httpClient, logger, options.BaseUrl, options.Login, options.Password);
 });
 
+// Сервис кэширования данных СПАРК — загрузка из API, сохранение в ext_spark_*, чтение кэша
+builder.Services.AddScoped<ISparkDataService, SparkDataService>();
+
 // TrueConf Server API — видеоконференцсвязь для заседаний СД (опционально)
 // Все настройки — в appsettings.json, секция TrueConf (ADR-022)
 builder.Services.Configure<TrueConfOptions>(builder.Configuration.GetSection("TrueConf"));
