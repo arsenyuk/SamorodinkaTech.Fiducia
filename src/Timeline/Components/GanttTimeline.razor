@@ -17,37 +17,33 @@
                 <div style="display:flex;flex-direction:row;border-bottom:1px solid #999;background:#e0e0e0">
                     @foreach (var y in _years)
                     {
-                        <div style="width:@(y.Span * _dayWidth)px;height:22px;flex-shrink:0;display:flex;align-items:center;border-right:1px solid #999;box-sizing:border-box;font-size:12px;font-weight:600;color:#222">
-                            <span style="position:sticky;left:50%;transform:translateX(-50%);background:#e0e0e0;padding:0 6px;border-radius:2px">@y.Label</span>
+                        <div style="width:@(y.Span * _dayWidth)px;height:22px;flex-shrink:0;display:flex;align-items:center;border-right:1px solid #999;box-sizing:border-box">
+                            <span style="position:sticky;left:50%;transform:translateX(-50%);background:#e0e0e0;padding:0 6px;border-radius:2px;font-size:12px;font-weight:600;color:#222">@y.Label</span>
                         </div>
                     }
                 </div>
                 @if (_showQuarters)
                 {
                 <div style="display:flex;flex-direction:row;border-bottom:1px solid #aaa;background:#e8e8e8">
-                    @{
-                    var qi = _quarters.Count;
-                    foreach (var q in _quarters)
+                    @{ var qi = _quarters.Count; }
+                    @foreach (var q in _quarters)
                     {
                         var z = qi--;
-                        <div style="width:@(q.Span * _dayWidth)px;height:22px;flex-shrink:0;display:flex;align-items:center;border-right:1px solid #aaa;box-sizing:border-box;font-size:12px;font-weight:600;color:#333">
-                            <span style="position:sticky;left:50%;transform:translateX(-50%);z-index:@z;background:#e8e8e8;padding:0 6px;border-radius:2px">@q.Label</span>
+                        <div style="width:@(q.Span * _dayWidth)px;height:22px;flex-shrink:0;display:flex;align-items:center;border-right:1px solid #aaa;box-sizing:border-box">
+                            <span style="position:sticky;left:50%;transform:translateX(-50%);z-index:@z;background:#e8e8e8;padding:0 6px;border-radius:2px;font-size:12px;font-weight:600;color:#333">@q.Label</span>
                         </div>
                     }
-                }
                 </div>
                 }
                 <div style="display:flex;flex-direction:row;border-bottom:1px solid #ccc;background:#f0f0f0">
-                    @{
-                    var mi = _months.Count;
-                    foreach (var m in _months)
+                    @{ var mi = _months.Count; }
+                    @foreach (var m in _months)
                     {
                         var z = mi--;
-                        <div style="width:@(m.Span * _dayWidth)px;height:20px;flex-shrink:0;display:flex;align-items:center;border-right:1px solid #ccc;box-sizing:border-box;font-size:11px;font-weight:500;color:#444">
-                            <span style="position:sticky;left:50%;transform:translateX(-50%);z-index:@z;background:#f0f0f0;padding:0 4px;border-radius:2px">@m.Label</span>
+                        <div style="width:@(m.Span * _dayWidth)px;height:20px;flex-shrink:0;display:flex;align-items:center;border-right:1px solid #ccc;box-sizing:border-box">
+                            <span style="position:sticky;left:50%;transform:translateX(-50%);z-index:@z;background:#f0f0f0;padding:0 4px;border-radius:2px;font-size:11px;font-weight:500;color:#444">@m.Label</span>
                         </div>
                     }
-                }
                 </div>
                 @if (_showWeeks)
                 {
