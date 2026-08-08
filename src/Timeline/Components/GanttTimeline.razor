@@ -2,22 +2,70 @@
 @inherits GanttTimelineBase
 
 <div style="width:100%;overflow:hidden;border:1px solid #e0e0e0;border-radius:4px;background:#fff">
-    <div style="width:100%;overflow-x:auto;overflow-y:hidden">
-        <div style="width:@(_totalWidthPx)px;display:flex;flex-direction:row">
+    <div style="display:flex;align-items:center;gap:16px;padding:4px 8px;border-bottom:1px solid #e0e0e0;font-size:11px">
+        <label style="display:flex;align-items:center;gap:4px;cursor:pointer;margin:0">
+            <input type="checkbox" @bind="_showQuarters" style="margin:0" /> Кварталы
+        </label>
+        <label style="display:flex;align-items:center;gap:4px;cursor:pointer;margin:0">
+            <input type="checkbox" @bind="_showWeeks" style="margin:0" /> Недели
+        </label>
+    </div>
+    <div style="width:100%;overflow-x:auto;overflow-y:hidden" @ref="_scrollRef">
+        <div style="width:@(_totalWidthPx)px">
             @if (_days != null)
             {
-                @foreach (var d in _days)
+                <div style="display:flex;flex-direction:row;border-bottom:1px solid #999;background:#e0e0e0">
+                    @foreach (var y in _years)
+                    {
+                        <div style="width:@(y.Span * _dayWidth)px;height:22px;flex-shrink:0;display:flex;align-items:center;justify-content:center;border-right:1px solid #999;box-sizing:border-box;font-size:12px;font-weight:600;color:#222">
+                            @y.Label
+                        </div>
+                    }
+                </div>
+                @if (_showQuarters)
                 {
-                    var bg = d.IsHoliday ? "#fff0f0"
-                           : d.IsWeekend ? "#fef7f0"
-                           : d.Date == _today ? "#e8f5e9"
-                           : "#fff";
-                    var fw = d.Date == _today ? "font-weight:600" : "";
-
-                    <div style="width:@(_dayWidth)px;height:24px;flex-shrink:0;display:flex;align-items:center;justify-content:center;border-right:1px solid #e8e8e8;box-sizing:border-box;font-size:10px;background:@bg;@fw">
-                        @d.Date.Day
-                    </div>
+                <div style="display:flex;flex-direction:row;border-bottom:1px solid #aaa;background:#e8e8e8">
+                    @foreach (var q in _quarters)
+                    {
+                        <div style="width:@(q.Span * _dayWidth)px;height:22px;flex-shrink:0;display:flex;align-items:center;justify-content:center;border-right:1px solid #aaa;box-sizing:border-box;font-size:12px;font-weight:600;color:#333">
+                            @q.Label
+                        </div>
+                    }
+                </div>
                 }
+                <div style="display:flex;flex-direction:row;border-bottom:1px solid #ccc;background:#f0f0f0">
+                    @foreach (var m in _months)
+                    {
+                        <div style="width:@(m.Span * _dayWidth)px;height:20px;flex-shrink:0;display:flex;align-items:center;justify-content:center;border-right:1px solid #ccc;box-sizing:border-box;font-size:11px;font-weight:500;color:#444">
+                            @m.Label
+                        </div>
+                    }
+                </div>
+                @if (_showWeeks)
+                {
+                <div style="display:flex;flex-direction:row;border-bottom:1px solid #d0d0d0;background:#f5f5f5">
+                    @foreach (var w in _weeks)
+                    {
+                        <div style="width:@(w.Span * _dayWidth)px;height:20px;flex-shrink:0;display:flex;align-items:center;justify-content:center;border-right:1px solid #d0d0d0;box-sizing:border-box;font-size:10px;color:#555">
+                            Неделя @w.WeekNumber
+                        </div>
+                    }
+                </div>
+                }
+                <div style="display:flex;flex-direction:row">
+                    @foreach (var d in _days)
+                    {
+                        var bg = d.IsHoliday ? "#fff0f0"
+                               : d.IsWeekend ? "#fef7f0"
+                               : d.Date == _today ? "#e8f5e9"
+                               : "#fff";
+                        var fw = d.Date == _today ? "font-weight:600" : "";
+
+                        <div style="width:@(_dayWidth)px;height:24px;flex-shrink:0;display:flex;align-items:center;justify-content:center;border-right:1px solid #e8e8e8;box-sizing:border-box;font-size:10px;background:@bg;@fw">
+                            @d.Date.Day
+                        </div>
+                    }
+                </div>
             }
         </div>
     </div>
