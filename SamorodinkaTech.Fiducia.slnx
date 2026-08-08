@@ -6,6 +6,9 @@
   <Folder Name="/src/Infrastructure/">
     <Project Path="src/Infrastructure/SamorodinkaTech.Fiducia.Infrastructure.csproj" />
   </Folder>
+  <Folder Name="/src/Timeline/">
+    <Project Path="src/Timeline/SamorodinkaTech.Fiducia.Timeline.csproj" />
+  </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/SamorodinkaTech.Fiducia.Tests.Functional/SamorodinkaTech.Fiducia.Tests.Functional.csproj" />
     <Project Path="tests/SamorodinkaTech.Fiducia.Tests.Integration/SamorodinkaTech.Fiducia.Tests.Integration.csproj" />
