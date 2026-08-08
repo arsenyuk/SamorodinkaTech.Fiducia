@@ -161,6 +161,19 @@ CREATE TABLE IF NOT EXISTS ref_okopf (
 
 CREATE INDEX IF NOT EXISTS ix_ref_okopf_name ON ref_okopf(name);
 
+-- Справочник: ref_standard_charter (типовые уставы ООО, Приказ № 411 от 01.08.2018)
+CREATE TABLE IF NOT EXISTS ref_standard_charter (
+    id uuid PRIMARY KEY,
+    number varchar(2) UNIQUE NOT NULL CHECK (number::int >= 1 AND number::int <= 36),
+    exit_allowed boolean NOT NULL DEFAULT false,
+    transfer_to_participants_without_consent boolean NOT NULL DEFAULT false,
+    transfer_to_third_parties_without_consent boolean NOT NULL DEFAULT false,
+    preemptive_right boolean NOT NULL DEFAULT true,
+    inheritance_without_consent boolean NOT NULL DEFAULT true,
+    executive_body char(1) NOT NULL DEFAULT 'A' CHECK (executive_body IN ('A', 'B', 'C')),
+    decision_confirmation_by_all_sign boolean NOT NULL DEFAULT false
+);
+
 -- Справочник: ref_month (месяцы)
 CREATE TABLE IF NOT EXISTS ref_month (
     id uuid PRIMARY KEY,
@@ -291,7 +304,8 @@ CREATE TABLE IF NOT EXISTS legal_entities (
     short_name varchar(255),
     inn varchar(12),
     ogrn varchar(15),
-    okopf_id uuid REFERENCES ref_okopf(id) ON DELETE RESTRICT
+    okopf_id uuid REFERENCES ref_okopf(id) ON DELETE RESTRICT,
+    standard_charter_id uuid REFERENCES ref_standard_charter(id) ON DELETE SET NULL
 );
 CREATE INDEX IF NOT EXISTS ix_legal_entities_name ON legal_entities(name);
 CREATE INDEX IF NOT EXISTS ix_legal_entities_inn ON legal_entities(inn);
@@ -596,3 +610,17 @@ CREATE TABLE IF NOT EXISTS tpl_org_offer_roles (
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_tpl_offer_roles ON tpl_org_offer_roles(tpl_offer_id, role_id);
 CREATE INDEX IF NOT EXISTS ix_tpl_offer_roles_role ON tpl_org_offer_roles(role_id);
+
+-- Справочник: ref_board_member_appointment_statuses (статусы назначения членов СД)
+CREATE TABLE IF NOT EXISTS ref_board_member_appointment_statuses (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    code varchar(20) UNIQUE NOT NULL,
+    name varchar(200) NOT NULL
+);
+
+-- Справочник: ref_resignation_reasons (причины сложения полномочий)
+CREATE TABLE IF NOT EXISTS ref_resignation_reasons (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    code varchar(20) UNIQUE NOT NULL,
+    name varchar(200) NOT NULL
+);

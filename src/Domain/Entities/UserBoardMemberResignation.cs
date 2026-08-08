@@ -29,5 +29,5 @@ public class UserBoardMemberResignation
 
     public User? User { get; set; }
     public BoardMemberAppointment? BoardMemberAppointment { get; set; }
-    public ResignationReason? ResignationReason { get; set; }
+    public RefResignationReason? RefResignationReason { get; set; }
 }

@@ -1,6 +1,6 @@
 namespace SamorodinkaTech.Fiducia.Domain.Entities;
 
-public class Role
+public class RefRole
 {
     /// <summary>Уникальный идентификатор (id).</summary>
     public Guid Id { get; set; }

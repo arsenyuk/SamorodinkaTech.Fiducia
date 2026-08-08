@@ -3,7 +3,7 @@ namespace SamorodinkaTech.Fiducia.Domain.Entities;
 /// <summary>
 /// Справочник ОКОПФ (ref_okopf). UUID PK + код и наименование.
 /// </summary>
-public class Okopf
+public class RefOkopf
 {
     public Guid Id { get; set; }
     public string Code { get; set; } = default!; // Например: 12247

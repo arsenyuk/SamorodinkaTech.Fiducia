@@ -73,7 +73,7 @@
             {
                 var le = await ctx.LegalEntities
                     .Where(x => x.Id == leId.Value)
-                    .Select(x => new { x.Name, x.Okopf!.Code })
+                    .Select(x => new { x.Name, x.RefOkopf!.Code })
                     .FirstOrDefaultAsync();
                 _isLlc = GosaSvc.IsLlc(le?.Code);
                 _legalEntityName = le?.Name ?? "Fiducia";

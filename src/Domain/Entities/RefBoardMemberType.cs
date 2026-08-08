@@ -1,14 +1,14 @@
 namespace SamorodinkaTech.Fiducia.Domain.Entities;
 
 /// <summary>
-/// Статус назначения члена Совета директоров (ref_board_member_appointment_statuses).
+/// Тип участника Совета директоров (ref_board_member_types).
 /// </summary>
-public class BoardMemberAppointmentStatus
+public class RefBoardMemberType
 {
     /// <summary>Идентификатор (id).</summary>
     public Guid Id { get; set; }
 
-    /// <summary>Код статуса (code).</summary>
+    /// <summary>Код типа (code).</summary>
     public string Code { get; set; } = default!;
 
     /// <summary>Наименование (name).</summary>

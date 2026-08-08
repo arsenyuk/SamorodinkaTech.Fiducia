@@ -36,7 +36,7 @@ public class BoardMemberAppointment
     public string? LegalBasis { get; set; }
 
     public BoardMember? BoardMember { get; set; }
-    public BoardRole? Role { get; set; }
-    public BoardMemberAppointmentStatus? Status { get; set; }
-    public ResignationReason? ResignationReason { get; set; }
+    public RefBoardRole? Role { get; set; }
+    public RefBoardMemberAppointmentStatus? Status { get; set; }
+    public RefResignationReason? RefResignationReason { get; set; }
 }

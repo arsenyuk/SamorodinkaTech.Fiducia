@@ -113,5 +113,5 @@ public class OsaMeeting
     /// <summary>Дата фиксации ОСА (finalized_at).</summary>
     public DateTime? FinalizedAt { get; set; }
 
-    public OsaForm? OsaForm { get; set; }
+    public RefOsaForm? RefOsaForm { get; set; }
 }

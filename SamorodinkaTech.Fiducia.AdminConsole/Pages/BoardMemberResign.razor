@@ -171,7 +171,7 @@ else if (_step == 2)
     }
 
     private MemberInfo? _member;
-    private List<ResignationReason> _reasons = new();
+    private List<RefResignationReason> _reasons = new();
     private int? _gosaYear;
     private int _step = 1;
 
@@ -204,7 +204,7 @@ else if (_step == 2)
             if (board is null) { _error = "Совет директоров не найден."; return; }
             _gosaYear = board.GosaYear;
 
-            _reasons = await ctx.Set<ResignationReason>().OrderBy(r => r.Code).ToListAsync();
+            _reasons = await ctx.Set<RefResignationReason>().OrderBy(r => r.Code).ToListAsync();
 
             var member = await ctx.BoardMembers
                 .Where(m => m.Id == MemberId && m.BoardOfDirectorsId == BoardId)
@@ -342,7 +342,7 @@ else if (_step == 2)
                 .FirstOrDefaultAsync(a => a.Id == _member.AppointmentId);
             if (appointment is null) { _error = "Запись назначения не найдена."; _saving = false; return; }
 
-            var resignedStatusId = await ctx.Set<BoardMemberAppointmentStatus>()
+            var resignedStatusId = await ctx.Set<RefBoardMemberAppointmentStatus>()
                 .Where(s => s.Code == "RESIGNED")
                 .Select(s => s.Id)
                 .FirstOrDefaultAsync();

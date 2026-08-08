@@ -1,14 +1,14 @@
 namespace SamorodinkaTech.Fiducia.Domain.Entities;
 
 /// <summary>
-/// Причина сложения полномочий члена Совета директоров (ref_resignation_reasons).
+/// Статус Совета директоров (ref_board_of_directors_statuses).
 /// </summary>
-public class ResignationReason
+public class RefBoardOfDirectorsStatus
 {
     /// <summary>Идентификатор (id).</summary>
     public Guid Id { get; set; }
 
-    /// <summary>Код причины (code).</summary>
+    /// <summary>Код статуса (code).</summary>
     public string Code { get; set; } = default!;
 
     /// <summary>Наименование (name).</summary>

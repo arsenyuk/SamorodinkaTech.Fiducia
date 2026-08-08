@@ -179,7 +179,7 @@
 </table>
 
 @code {
-    private List<OsaForm> osaForms = new();
+    private List<RefOsaForm> osaForms = new();
     private List<OsaMeetingVm> osaMeetings = new();
 
     private bool showForm;
@@ -231,7 +231,7 @@
             {
                 var le = await ctx.LegalEntities
                     .Where(x => x.Id == _currentLegalEntityId)
-                    .Select(x => new { x.Okopf!.Code })
+                    .Select(x => new { x.RefOkopf!.Code })
                     .FirstOrDefaultAsync();
                 (_allowedGosaStart, _allowedGosaEnd) = GosaSvc.GetWindowForOkopf(le?.Code);
             }

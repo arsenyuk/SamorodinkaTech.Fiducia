@@ -75,7 +75,7 @@ public class LdapAuthProvider : IAuthProvider
             var role = ResolveRole(user.MemberOf);
 
             _logger.LogInformation(
-                "LDAP SSO: вход выполнен {Username} ({DisplayName}), роль={Role}",
+                "LDAP SSO: вход выполнен {Username} ({DisplayName}), роль={RefRole}",
                 username, user.DisplayName, role);
 
             return new AuthResult

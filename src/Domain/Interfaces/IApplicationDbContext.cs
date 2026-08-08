@@ -6,7 +6,7 @@ namespace SamorodinkaTech.Fiducia.Domain.Interfaces;
 public interface IApplicationDbContext
 {
     DbSet<User> Users { get; }
-    DbSet<Role> Roles { get; }
+    DbSet<RefRole> Roles { get; }
     DbSet<UserRole> UserRoles { get; }
     DbSet<Committee> Committees { get; }
     DbSet<CommitteeMember> CommitteeMembers { get; }
@@ -16,18 +16,18 @@ public interface IApplicationDbContext
     DbSet<Bulletin> Bulletins { get; }
     DbSet<SecurityAuditLog> SecurityAuditLogs { get; }
     DbSet<Notification> Notifications { get; }
-    DbSet<Okopf> Okopf { get; }
+    DbSet<RefOkopf> RefOkopf { get; }
     DbSet<RefMonth> RefMonths { get; }
-    DbSet<OsaForm> OsaForms { get; }
+    DbSet<RefOsaForm> OsaForms { get; }
     DbSet<OsaMeeting> OsaMeetings { get; }
     DbSet<BoardMember> BoardMembers { get; }
     DbSet<BoardOfDirectors> BoardsOfDirectors { get; }
-    DbSet<BoardOfDirectorsStatus> BoardOfDirectorsStatuses { get; }
-    DbSet<BoardMemberType> BoardMemberTypes { get; }
-    DbSet<BoardRole> BoardRoles { get; }
+    DbSet<RefBoardOfDirectorsStatus> BoardOfDirectorsStatuses { get; }
+    DbSet<RefBoardMemberType> BoardMemberTypes { get; }
+    DbSet<RefBoardRole> BoardRoles { get; }
     DbSet<BoardMemberAppointment> BoardMemberAppointments { get; }
-    DbSet<BoardMemberAppointmentStatus> BoardMemberAppointmentStatuses { get; }
-    DbSet<ResignationReason> ResignationReasons { get; }
+    DbSet<RefBoardMemberAppointmentStatus> BoardMemberAppointmentStatuses { get; }
+    DbSet<RefResignationReason> ResignationReasons { get; }
     DbSet<UserBoardMemberResignation> UserBoardMemberResignations { get; }
     DbSet<AgendaItem> AgendaItems { get; }
     DbSet<AgendaProposal> AgendaProposals { get; }

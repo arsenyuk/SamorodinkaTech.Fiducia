@@ -7,9 +7,9 @@ namespace SamorodinkaTech.Fiducia.Infrastructure.Persistence.Configurations;
 /// <summary>
 /// Конфигурация справочника ОКОПФ.
 /// </summary>
-public class OkopfConfiguration : IEntityTypeConfiguration<Okopf>
+public class RefOkopfConfiguration : IEntityTypeConfiguration<RefOkopf>
 {
-    public void Configure(EntityTypeBuilder<Okopf> builder)
+    public void Configure(EntityTypeBuilder<RefOkopf> builder)
     {
         builder.ToTable("ref_okopf");
         builder.HasKey(x => x.Id);

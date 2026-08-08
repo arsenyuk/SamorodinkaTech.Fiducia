@@ -12,5 +12,5 @@ public class UserRole
     /// <summary>Идентификатор роли (role_id).</summary>
     public Guid RoleId { get; set; }
     /// <summary>Роль.</summary>
-    public Role Role { get; set; } = null!;
+    public RefRole Role { get; set; } = null!;
 }

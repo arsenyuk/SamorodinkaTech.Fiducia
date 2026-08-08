@@ -161,7 +161,7 @@
             // (серверный HttpClient не доставляет Set-Cookie до браузера)
             var role = result.Claims.GetValueOrDefault("role", "MEMBER_BOARD");
             var token = SessionService.GenerateToken(result.UserId!.Value, role);
-            Logger.LogDebug("[LOGIN] JWT сгенерирован: UserId={UserId}, Role={Role}, TokenLength={Len}",
+            Logger.LogDebug("[LOGIN] JWT сгенерирован: UserId={UserId}, Role ={RefRole}, TokenLength={Len}",
                 result.UserId, role, token.Length);
 
             await JS.InvokeAsync<object>("fetch", "/api/session/login", new

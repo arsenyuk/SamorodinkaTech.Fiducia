@@ -4,9 +4,9 @@ using SamorodinkaTech.Fiducia.Domain.Entities;
 
 namespace SamorodinkaTech.Fiducia.Infrastructure.Persistence.Configurations;
 
-public class RoleConfiguration : IEntityTypeConfiguration<Role>
+public class RoleConfiguration : IEntityTypeConfiguration<RefRole>
 {
-    public void Configure(EntityTypeBuilder<Role> builder)
+    public void Configure(EntityTypeBuilder<RefRole> builder)
     {
         builder.ToTable("ref_roles");
 

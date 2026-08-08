@@ -188,7 +188,7 @@
 
         var resignations = await DbContext.UserBoardMemberResignations
             .AsNoTracking()
-            .Include(r => r.ResignationReason)
+            .Include(r => r.RefResignationReason)
             .OrderByDescending(r => r.ResignedAt)
             .ToListAsync();
 
@@ -208,7 +208,7 @@
             if (latestResignationByUser.TryGetValue(u.Id, out var r))
             {
                 var date = r.ResignedAt.ToString("dd.MM.yyyy");
-                var reason = r.ResignationReason?.Name ?? r.ResignationReason?.Code ?? "—";
+                var reason = r.RefResignationReason?.Name ?? r.RefResignationReason?.Code ?? "—";
                 resignationStatus = $"Выбыл: {reason}, {date}";
             }
 

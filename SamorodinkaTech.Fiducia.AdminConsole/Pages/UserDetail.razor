@@ -146,7 +146,7 @@
                                         <td>@appt.StartedAt.ToString("dd.MM.yyyy")</td>
                                         <td>@(appt.EndedAt?.ToString("dd.MM.yyyy") ?? "—")</td>
                                         <td>@(appt.Status?.Name ?? "—")</td>
-                                        <td>@(appt.ResignationReason?.Name ?? "—")</td>
+                                        <td>@(appt.RefResignationReason?.Name ?? "—")</td>
                                         <td>@(appt.ResignedAt?.ToString("dd.MM.yyyy") ?? "—")</td>
                                     </tr>
                                 }
@@ -196,7 +196,7 @@
                 .Include(a => a.BoardMember)
                 .Include(a => a.Role)
                 .Include(a => a.Status)
-                .Include(a => a.ResignationReason)
+                .Include(a => a.RefResignationReason)
                 .Where(a => a.BoardMember!.UserId == UserId)
                 .OrderByDescending(a => a.StartedAt)
                 .ToListAsync();

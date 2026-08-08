@@ -189,7 +189,7 @@ else
             }
 
             var le = await ctx.LegalEntities
-                .Include(x => x.Okopf)
+                .Include(x => x.RefOkopf)
                 .FirstOrDefaultAsync(x => x.Id == workplace.LastSelectedLegalEntityId.Value);
 
             if (le is null)
@@ -198,7 +198,7 @@ else
                 return;
             }
 
-            _isLLC = le.Okopf?.Code == "12300";
+            _isLLC = le.RefOkopf?.Code == "12300";
 
             if (!_isLLC)
                 return;

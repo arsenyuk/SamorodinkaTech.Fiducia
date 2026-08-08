@@ -306,7 +306,7 @@ app.MapGet("/api/legal-entities/search", async (
             le.ShortName,
             le.Inn,
             le.Ogrn,
-            Okopf = le.Okopf != null ? new { le.Okopf.Code, le.Okopf.Name } : null
+            RefOkopf = le.RefOkopf != null ? new { le.RefOkopf.Code, le.RefOkopf.Name } : null
         });
 
     var list = await query.ToListAsync(ct);
@@ -358,7 +358,7 @@ app.MapGet("/api/legal-entities/{id:guid}/gosa-window", async (
     ILegalEntityGosaIntervalService svc,
     CancellationToken ct) =>
 {
-    var le = await db.LegalEntities.Include(x => x.Okopf).FirstOrDefaultAsync(x => x.Id == id, ct);
+    var le = await db.LegalEntities.Include(x => x.RefOkopf).FirstOrDefaultAsync(x => x.Id == id, ct);
     if (le == null) return Results.NotFound(new { message = "LegalEntity not found" });
 
     var settings = await db.LegalEntityBoardSettings.FirstOrDefaultAsync(ct);
@@ -366,7 +366,7 @@ app.MapGet("/api/legal-entities/{id:guid}/gosa-window", async (
 
     var start = settings?.GosaWindowStart ?? defStart;
     var end = settings?.GosaWindowEnd ?? defEnd;
-    var isPao = svc.IsPao(le.Okopf?.Code);
+    var isPao = svc.IsPao(le.RefOkopf?.Code);
 
     return Results.Ok(new { start, end, isPao });
 }).RequireAuthorization(policy => policy.RequireRole("SYS_ADMIN"));
@@ -379,12 +379,12 @@ app.MapPost("/api/legal-entities/{id:guid}/gosa-window", async (
     GosaWindowDto dto,
     CancellationToken ct) =>
 {
-    var le = await db.LegalEntities.Include(x => x.Okopf).FirstOrDefaultAsync(x => x.Id == id, ct);
+    var le = await db.LegalEntities.Include(x => x.RefOkopf).FirstOrDefaultAsync(x => x.Id == id, ct);
     if (le == null) return Results.NotFound(new { message = "LegalEntity not found" });
 
     var start = dto.Start;
     var end = dto.End;
-    if (!svc.ValidateForOkopf(le.Okopf?.Code, start, end))
+    if (!svc.ValidateForOkopf(le.RefOkopf?.Code, start, end))
         return Results.BadRequest(new { message = "Недопустимый интервал ГОСА для данной ОПФ" });
 
     var settings = await db.LegalEntityBoardSettings.FirstOrDefaultAsync(ct);

@@ -23,6 +23,7 @@ public static class LegalEntityValidator
 
         ValidateGosaWindow(model, orgType, result);
         ValidateDirector(model, result);
+        ValidateStandardCharter(model, orgType, result);
 
         return result;
     }
@@ -70,6 +71,26 @@ public static class LegalEntityValidator
 
         if (string.IsNullOrWhiteSpace(model.Position))
             result.AddError("Укажите должность руководителя.");
+    }
+
+    private static void ValidateStandardCharter(
+        LegalEntitySaveValidationModel model,
+        OrgValidationType orgType,
+        LegalEntitySaveValidationResult result)
+    {
+        if (string.IsNullOrEmpty(model.StandardCharterNumber))
+            return;
+
+        var num = model.StandardCharterNumber;
+
+        if (num.Length != 2 || !int.TryParse(num, out var parsed) || parsed < 1 || parsed > 36)
+        {
+            result.AddError("Номер типового устава должен быть от 01 до 36.");
+            return;
+        }
+
+        if (orgType != OrgValidationType.LLC)
+            result.AddError("Типовой устав применим только для ООО.");
     }
 
     /// <summary>

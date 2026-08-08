@@ -18,7 +18,7 @@ public class TplOrgOfferRole
     public Guid RoleId { get; set; }
 
     /// <summary>Роль.</summary>
-    public Role? Role { get; set; }
+    public RefRole? Role { get; set; }
 
     /// <summary>Дата и время создания записи (created_at).</summary>
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

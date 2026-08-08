@@ -1,19 +1,19 @@
 namespace SamorodinkaTech.Fiducia.Domain.Entities;
 
 /// <summary>
-/// Справочник форм проведения ОСА (ref_osa_form).
+/// Должность в Совете директоров (ref_board_roles).
 /// </summary>
-public class OsaForm
+public class RefBoardRole
 {
     /// <summary>Идентификатор (id).</summary>
     public Guid Id { get; set; }
 
-    /// <summary>Код формы (code).</summary>
+    /// <summary>Код должности (code).</summary>
     public string Code { get; set; } = default!;
 
     /// <summary>Наименование (name).</summary>
     public string Name { get; set; } = default!;
 
-    /// <summary>Сокращённое наименование для отображения в списках (short_name).</summary>
-    public string? ShortName { get; set; }
+    /// <summary>Порядок сортировки (sort_order).</summary>
+    public int SortOrder { get; set; }
 }

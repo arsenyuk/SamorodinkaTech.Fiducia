@@ -16,7 +16,7 @@ using var reader = new StreamReader(path);
 using var csv = new CsvReader(reader, CultureInfo.InvariantCulture);
 var records = csv.GetRecords<dynamic>().ToList();
 
-Console.WriteLine($"Importing {records.Count} PAO names with Okopf (ref_okopf.code=12247)...");
+Console.WriteLine($"Importing {records.Count} PAO names with RefOkopf (ref_okopf.code=12247)...");
 
 // Здесь вместо реальной БД — генерация SQL для наглядности
 foreach (var rec in records)

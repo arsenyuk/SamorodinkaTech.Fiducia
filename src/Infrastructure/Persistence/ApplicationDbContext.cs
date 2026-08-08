@@ -10,7 +10,7 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
     public FiduciaDbContext(DbContextOptions<FiduciaDbContext> options) : base(options) { }
 
     public DbSet<User> Users => Set<User>();
-    public DbSet<Role> Roles => Set<Role>();
+    public DbSet<RefRole> Roles => Set<RefRole>();
     public DbSet<UserRole> UserRoles => Set<UserRole>();
     public DbSet<Committee> Committees => Set<Committee>();
     public DbSet<CommitteeMember> CommitteeMembers => Set<CommitteeMember>();
@@ -20,18 +20,18 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
     public DbSet<Bulletin> Bulletins => Set<Bulletin>();
     public DbSet<SecurityAuditLog> SecurityAuditLogs => Set<SecurityAuditLog>();
     public DbSet<Notification> Notifications => Set<Notification>();
-    public DbSet<Okopf> Okopf => Set<Okopf>();
+    public DbSet<RefOkopf> RefOkopf => Set<RefOkopf>();
     public DbSet<RefMonth> RefMonths => Set<RefMonth>();
-    public DbSet<OsaForm> OsaForms => Set<OsaForm>();
+    public DbSet<RefOsaForm> OsaForms => Set<RefOsaForm>();
     public DbSet<OsaMeeting> OsaMeetings => Set<OsaMeeting>();
     public DbSet<BoardMember> BoardMembers => Set<BoardMember>();
     public DbSet<BoardOfDirectors> BoardsOfDirectors => Set<BoardOfDirectors>();
-    public DbSet<BoardOfDirectorsStatus> BoardOfDirectorsStatuses => Set<BoardOfDirectorsStatus>();
-    public DbSet<BoardMemberType> BoardMemberTypes => Set<BoardMemberType>();
-    public DbSet<BoardRole> BoardRoles => Set<BoardRole>();
+    public DbSet<RefBoardOfDirectorsStatus> BoardOfDirectorsStatuses => Set<RefBoardOfDirectorsStatus>();
+    public DbSet<RefBoardMemberType> BoardMemberTypes => Set<RefBoardMemberType>();
+    public DbSet<RefBoardRole> BoardRoles => Set<RefBoardRole>();
     public DbSet<BoardMemberAppointment> BoardMemberAppointments => Set<BoardMemberAppointment>();
-    public DbSet<BoardMemberAppointmentStatus> BoardMemberAppointmentStatuses => Set<BoardMemberAppointmentStatus>();
-    public DbSet<ResignationReason> ResignationReasons => Set<ResignationReason>();
+    public DbSet<RefBoardMemberAppointmentStatus> BoardMemberAppointmentStatuses => Set<RefBoardMemberAppointmentStatus>();
+    public DbSet<RefResignationReason> ResignationReasons => Set<RefResignationReason>();
     public DbSet<UserBoardMemberResignation> UserBoardMemberResignations => Set<UserBoardMemberResignation>();
     public DbSet<OsaMeetingFile> OsaMeetingFiles => Set<OsaMeetingFile>();
     public DbSet<LegalEntity> LegalEntities => Set<LegalEntity>();
@@ -39,6 +39,7 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
     public DbSet<LegalEntityBoardSettings> LegalEntityBoardSettings => Set<LegalEntityBoardSettings>();
     public DbSet<LegalEntityVotingRules> LegalEntityVotingRules => Set<LegalEntityVotingRules>();
     public DbSet<LegalEntityEmailSettings> LegalEntityEmailSettings => Set<LegalEntityEmailSettings>();
+    public DbSet<RefStandardCharter> RefStandardCharters => Set<RefStandardCharter>();
     public DbSet<AgendaItem> AgendaItems => Set<AgendaItem>();
     public DbSet<AgendaProposal> AgendaProposals => Set<AgendaProposal>();
     public DbSet<ElectionProposal> ElectionProposals => Set<ElectionProposal>();
@@ -75,13 +76,34 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.Property(x => x.Inn).HasColumnName("inn").HasMaxLength(12);
             b.Property(x => x.Ogrn).HasColumnName("ogrn").HasMaxLength(15);
             b.Property(x => x.OkopfId).HasColumnName("okopf_id");
+            b.Property(x => x.StandardCharterId).HasColumnName("standard_charter_id");
             b.HasIndex(x => x.Name).HasDatabaseName("ix_legal_entities_name");
             b.HasIndex(x => x.Inn).HasDatabaseName("ix_legal_entities_inn");
             b.HasIndex(x => x.Ogrn).HasDatabaseName("ix_legal_entities_ogrn");
-            b.HasOne(x => x.Okopf)
+            b.HasOne(x => x.RefOkopf)
              .WithMany()
              .HasForeignKey(x => x.OkopfId)
              .HasPrincipalKey(o => o.Id);
+            b.HasOne(x => x.StandardCharter)
+             .WithMany()
+             .HasForeignKey(x => x.StandardCharterId)
+             .HasPrincipalKey(c => c.Id);
+        });
+
+        modelBuilder.Entity<RefStandardCharter>(b =>
+        {
+            b.ToTable("ref_standard_charter");
+            b.HasKey(x => x.Id);
+            b.Property(x => x.Id).HasColumnName("id");
+            b.Property(x => x.Number).HasColumnName("number").HasMaxLength(2).IsRequired();
+            b.HasIndex(x => x.Number).IsUnique().HasDatabaseName("ux_ref_standard_charter_number");
+            b.Property(x => x.ExitAllowed).HasColumnName("exit_allowed");
+            b.Property(x => x.TransferToParticipantsWithoutConsent).HasColumnName("transfer_to_participants_without_consent");
+            b.Property(x => x.TransferToThirdPartiesWithoutConsent).HasColumnName("transfer_to_third_parties_without_consent");
+            b.Property(x => x.PreemptiveRight).HasColumnName("preemptive_right");
+            b.Property(x => x.InheritanceWithoutConsent).HasColumnName("inheritance_without_consent");
+            b.Property(x => x.ExecutiveBody).HasColumnName("executive_body").HasMaxLength(1);
+            b.Property(x => x.DecisionConfirmationByAllSign).HasColumnName("decision_confirmation_by_all_sign");
         });
 
         modelBuilder.Entity<RefMonth>(b =>
@@ -182,7 +204,7 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.HasIndex(x => x.Code).IsUnique().HasDatabaseName("ux_ref_meeting_form_code");
         });
 
-        modelBuilder.Entity<OsaForm>(b =>
+        modelBuilder.Entity<RefOsaForm>(b =>
         {
             b.ToTable("ref_osa_form");
             b.HasKey(x => x.Id);
@@ -232,7 +254,7 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.Property(x => x.Status).HasColumnName("status").HasMaxLength(20).HasDefaultValue("DRAFT");
             b.Property(x => x.FinalizedBy).HasColumnName("finalized_by");
             b.Property(x => x.FinalizedAt).HasColumnName("finalized_at");
-            b.HasOne(x => x.OsaForm)
+            b.HasOne(x => x.RefOsaForm)
              .WithMany()
              .HasForeignKey(x => x.OsaFormId)
              .HasPrincipalKey(o => o.Id);
@@ -279,7 +301,7 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
              .HasForeignKey(x => x.StatusId);
         });
 
-        modelBuilder.Entity<BoardOfDirectorsStatus>(b =>
+        modelBuilder.Entity<RefBoardOfDirectorsStatus>(b =>
         {
             b.ToTable("ref_board_of_directors_statuses");
             b.HasKey(x => x.Id);
@@ -301,7 +323,7 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.Property(x => x.Email).HasColumnName("email").HasMaxLength(200);
             b.Property(x => x.UserId).HasColumnName("user_id");
             b.Property(x => x.BoardOfDirectorsId).HasColumnName("board_of_directors_id");
-            b.HasOne(x => x.BoardMemberType)
+            b.HasOne(x => x.RefBoardMemberType)
              .WithMany()
              .HasForeignKey(x => x.BoardMemberTypeId);
             b.HasOne(x => x.OsaMeeting)
@@ -316,7 +338,7 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
              .HasForeignKey(x => x.BoardOfDirectorsId);
         });
 
-        modelBuilder.Entity<BoardMemberType>(b =>
+        modelBuilder.Entity<RefBoardMemberType>(b =>
         {
             b.ToTable("ref_board_member_types");
             b.HasKey(x => x.Id);
@@ -326,7 +348,7 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.HasIndex(x => x.Code).IsUnique();
         });
 
-        modelBuilder.Entity<BoardRole>(b =>
+        modelBuilder.Entity<RefBoardRole>(b =>
         {
             b.ToTable("ref_board_roles");
             b.HasKey(x => x.Id);
@@ -361,7 +383,7 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.HasOne(x => x.Status)
              .WithMany()
              .HasForeignKey(x => x.StatusId);
-            b.HasOne(x => x.ResignationReason)
+            b.HasOne(x => x.RefResignationReason)
              .WithMany()
              .HasForeignKey(x => x.ResignationReasonId);
         });
@@ -578,7 +600,7 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.HasOne(x => x.Role).WithMany().HasForeignKey(x => x.RoleId);
         });
 
-        modelBuilder.Entity<BoardMemberAppointmentStatus>(b =>
+        modelBuilder.Entity<RefBoardMemberAppointmentStatus>(b =>
         {
             b.ToTable("ref_board_member_appointment_statuses");
             b.HasKey(x => x.Id);
@@ -588,7 +610,7 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.HasIndex(x => x.Code).IsUnique();
         });
 
-        modelBuilder.Entity<ResignationReason>(b =>
+        modelBuilder.Entity<RefResignationReason>(b =>
         {
             b.ToTable("ref_resignation_reasons");
             b.HasKey(x => x.Id);
@@ -617,7 +639,7 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
              .WithMany()
              .HasForeignKey(x => x.BoardMemberAppointmentId)
              .OnDelete(DeleteBehavior.Cascade);
-            b.HasOne(x => x.ResignationReason)
+            b.HasOne(x => x.RefResignationReason)
              .WithMany()
              .HasForeignKey(x => x.ResignationReasonId);
         });

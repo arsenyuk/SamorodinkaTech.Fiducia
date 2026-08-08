@@ -250,7 +250,7 @@ public class SparkDataService : ISparkDataService
             return null;
 
         var normalizedCode = new string(company.OkopfCode.Where(char.IsDigit).ToArray());
-        var okopf = await ctx.Okopf.FirstOrDefaultAsync(o => o.Code == normalizedCode, ct);
+        var okopf = await ctx.RefOkopf.FirstOrDefaultAsync(o => o.Code == normalizedCode, ct);
         if (okopf is null)
         {
             _logger.LogWarning("Код ОКОПФ из СПАРК не найден в справочнике: {OkopfCode}", company.OkopfCode);

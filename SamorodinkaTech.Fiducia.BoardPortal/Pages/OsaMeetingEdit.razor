@@ -698,7 +698,7 @@
 
 @code {
     [Parameter] public Guid Id { get; set; }
-    private List<OsaForm> osaForms = new();
+    private List<RefOsaForm> osaForms = new();
     private List<OsaMeetingVm> osaMeetings = new();
 
     // Режим создания
@@ -758,10 +758,10 @@
     private string? ldapDuplicateWarning;
     private List<BoardMemberRow> boardMemberRows = new();
     private bool _boardInitializing;
-    private List<BoardMemberType> memberTypes = new();
-    private List<BoardRole> boardRoles = new();
-    private List<BoardMemberAppointmentStatus> appointmentStatuses = new();
-    private List<BoardOfDirectorsStatus> boardOfDirectorsStatuses = new();
+    private List<RefBoardMemberType> memberTypes = new();
+    private List<RefBoardRole> boardRoles = new();
+    private List<RefBoardMemberAppointmentStatus> appointmentStatuses = new();
+    private List<RefBoardOfDirectorsStatus> boardOfDirectorsStatuses = new();
     private string? _firstBoardTemplateSummary;
     private bool _firstBoardTemplateCreated;
     private string? _boardActivationSummary;
@@ -1333,15 +1333,15 @@
             await using var ctx = await DbFactory.CreateDbContextAsync();
             osaForms = await ctx.OsaForms.OrderBy(f => f.Code).ToListAsync();
             osaMeetings = await ctx.OsaMeetings
-                .Include(m => m.OsaForm)
+                .Include(m => m.RefOsaForm)
                 .OrderByDescending(m => m.CreatedAt)
                 .Select(m => new OsaMeetingVm
                 {
                     Id = m.Id,
                     OsaFormId = m.OsaFormId,
-                    FormCode = m.OsaForm!.Code,
-                    FormName = m.OsaForm!.Name,
-                    FormShortName = m.OsaForm!.ShortName,
+                    FormCode = m.RefOsaForm!.Code,
+                    FormName = m.RefOsaForm!.Name,
+                    FormShortName = m.RefOsaForm!.ShortName,
                     Title = m.Title,
                     GosaWindowStart = m.GosaWindowStart,
                     GosaWindowEnd = m.GosaWindowEnd,
@@ -1502,7 +1502,7 @@
         {
             var leOkopf = await ctx.LegalEntities
                 .Where(x => x.Id == m.LegalEntityId)
-                .Select(x => new { x.Okopf!.Code })
+                .Select(x => new { x.RefOkopf!.Code })
                 .FirstOrDefaultAsync();
             (_allowedStart, _allowedEnd) = GosaSvc.GetWindowForOkopf(leOkopf?.Code);
         }
@@ -1589,9 +1589,9 @@
         editIsPao = false;
         if (m.LegalEntityId != Guid.Empty)
         {
-            var le = await ctx.LegalEntities.Include(x => x.Okopf).FirstOrDefaultAsync(x => x.Id == m.LegalEntityId);
-            editOkopfCode = le?.Okopf?.Code;
-            editIsPao = le?.Okopf?.Code == "12247";
+            var le = await ctx.LegalEntities.Include(x => x.RefOkopf).FirstOrDefaultAsync(x => x.Id == m.LegalEntityId);
+            editOkopfCode = le?.RefOkopf?.Code;
+            editIsPao = le?.RefOkopf?.Code == "12247";
         }
         editHasBoard = await ctx.LegalEntityBoardSettings.AnyAsync();
         editBoardMandatory = editIsPao
@@ -1738,7 +1738,7 @@
                 {
                     var lastMembers = await ctx.BoardMembers
                         .Where(x => x.OsaMeetingId == lastOsaWithMembers.Id)
-                        .Include(x => x.BoardMemberType)
+                        .Include(x => x.RefBoardMemberType)
                         .OrderBy(x => x.FullName)
                         .ToListAsync();
 

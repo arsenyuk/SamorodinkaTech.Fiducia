@@ -148,11 +148,11 @@
             }
 
             var role = result.Claims.GetValueOrDefault("role", "MEMBER_BOARD");
-            Logger.LogDebug("[LOGIN] Роль из Claims: {Role}, проверка на SYS_ADMIN", role);
+            Logger.LogDebug("[LOGIN] Роль из Claims: {RefRole}, проверка на SYS_ADMIN", role);
             if (role != "SYS_ADMIN")
             {
                 _errorMessage = "Доступ только для системных администраторов";
-                Logger.LogDebug("[LOGIN] Доступ запрещён: роль {Role} != SYS_ADMIN", role);
+                Logger.LogDebug("[LOGIN] Доступ запрещён: роль {RefRole} != SYS_ADMIN", role);
                 await SecurityAuditService.LogEventAsync("ACCESS_DENIED", userIp,
                     $"Попытка входа с ролью {role} (требуется SYS_ADMIN)",
                     userId: result.UserId, entityName: "User", cancellationToken: default);
@@ -168,7 +168,7 @@
             // Установка HttpOnly JWT cookie через браузерный fetch
             // (серверный HttpClient не доставляет Set-Cookie до браузера)
             var token = SessionService.GenerateToken(result.UserId!.Value, role);
-            Logger.LogDebug("[LOGIN] JWT сгенерирован: UserId={UserId}, Role={Role}, TokenLength={Len}, Expires={Expires}",
+            Logger.LogDebug("[LOGIN] JWT сгенерирован: UserId={UserId}, Role ={RefRole}, TokenLength={Len}, Expires={Expires}",
                 result.UserId, role, token.Length, DateTime.UtcNow.AddMinutes(SessionService.GetIdleTimeoutMinutes()));
 
             var fetchArgs = new

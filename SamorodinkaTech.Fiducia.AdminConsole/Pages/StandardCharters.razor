@@ -1,0 +1,78 @@
+@page "/standard-charters"
+@using Microsoft.EntityFrameworkCore
+@inject IDbContextFactory<SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext> DbFactory
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "SYS_ADMIN")]
+
+<h3>Типовые уставы ООО</h3>
+
+<p class="text-muted">
+    36 типовых уставов, утверждённых Приказом Минэкономразвития России от 01.08.2018 № 411.
+    Номера 01–09 указаны с ведущим нулём в соответствии с форматом ФНС для форм Р11001 и Р13014.
+</p>
+
+@if (_charters is null)
+{
+    <p><em>Загрузка...</em></p>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-sm table-hover">
+            <thead class="table-light">
+                <tr>
+                    <th style="min-width:3em">№</th>
+                    <th>Выход участника<br>из общества</th>
+                    <th>Переход доли<br>к участникам</th>
+                    <th>Переход доли<br>к третьим лицам</th>
+                    <th>Преимущественное<br>право покупки</th>
+                    <th>Переход доли<br>к наследникам</th>
+                    <th>Исполнительный<br>орган общества</th>
+                    <th>Срок<br>полномочий</th>
+                    <th>Подтверждение<br>решений собрания</th>
+                </tr>
+            </thead>
+            <tbody>
+            @foreach (var c in _charters!)
+            {
+                <tr>
+                    <td><strong>@c.Number</strong></td>
+                    <td><span class="badge @(c.ExitAllowed ? "bg-success" : "bg-secondary")">@(c.ExitAllowed ? "Да" : "Нет")</span></td>
+                    <td>@(c.TransferToParticipantsWithoutConsent ? "Без согласия" : "С согласия")</td>
+                    <td>@(c.TransferToThirdPartiesWithoutConsent ? "Без согласия" : "С согласия")</td>
+                    <td>@(c.PreemptiveRight ? "Есть" : "Нет")</td>
+                    <td>@(c.InheritanceWithoutConsent ? "Без согласия" : "С согласия")</td>
+                    <td>@ExecBodyLabel(c.ExecutiveBody)</td>
+                    <td>@DirectorTermLabel(c.ExecutiveBody)</td>
+                    <td>@(c.DecisionConfirmationByAllSign ? "Подписание всеми" : "Нотариальное")</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+}
+
+@code {
+    private List<SamorodinkaTech.Fiducia.Domain.Entities.RefStandardCharter>? _charters;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await using var ctx = await DbFactory.CreateDbContextAsync();
+        _charters = await ctx.RefStandardCharters.OrderBy(x => x.Number).ToListAsync();
+    }
+
+    private static string ExecBodyLabel(char body) => body switch
+    {
+        'A' => "Генеральный директор",
+        'B' => "Каждый участник — директор",
+        'C' => "Все участники совместно",
+        _ => "—"
+    };
+
+    private static string DirectorTermLabel(char body) => body switch
+    {
+        'A' => "5 лет",
+        'B' => "Бессрочно",
+        'C' => "Бессрочно",
+        _ => "—"
+    };
+}

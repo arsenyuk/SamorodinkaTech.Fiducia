@@ -29,7 +29,7 @@ public class MeetingLoadService : IMeetingLoadService
         if (meeting is null) return null;
 
         var le = await ctx.LegalEntities
-            .Include(x => x.Okopf)
+            .Include(x => x.RefOkopf)
             .FirstOrDefaultAsync(x => x.Id == meeting.LegalEntityId, cancellationToken);
 
         var board = await ctx.BoardsOfDirectors
@@ -63,8 +63,8 @@ public class MeetingLoadService : IMeetingLoadService
         {
             Meeting = meeting,
             LegalEntity = le!,
-            OkopfCode = le?.Okopf?.Code ?? "",
-            IsPao = le?.Okopf?.Code == "12247",
+            OkopfCode = le?.RefOkopf?.Code ?? "",
+            IsPao = le?.RefOkopf?.Code == "12247",
             BoardOfDirectors = board,
             BoardMembers = boardMembers
         };

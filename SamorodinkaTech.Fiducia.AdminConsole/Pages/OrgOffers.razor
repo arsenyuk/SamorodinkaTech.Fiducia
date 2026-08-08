@@ -118,7 +118,7 @@
     [Parameter] public Guid StageId { get; set; }
 
     private List<TplOrgOffer> _items = new();
-    private List<SamorodinkaTech.Fiducia.Domain.Entities.Role> _roles = new();
+    private List<SamorodinkaTech.Fiducia.Domain.Entities.RefRole> _roles = new();
     private Dictionary<Guid, List<string>> _offerRoleNames = new();
     private string? _stageName;
     private string? _intentName;

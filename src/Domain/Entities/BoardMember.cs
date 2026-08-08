@@ -32,6 +32,6 @@ public class BoardMember
 
     public OsaMeeting? OsaMeeting { get; set; }
     public BoardOfDirectors? BoardOfDirectors { get; set; }
-    public BoardMemberType? BoardMemberType { get; set; }
+    public RefBoardMemberType? RefBoardMemberType { get; set; }
     public User? User { get; set; }
 }

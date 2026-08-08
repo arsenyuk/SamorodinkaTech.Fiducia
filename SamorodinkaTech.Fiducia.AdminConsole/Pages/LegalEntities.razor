@@ -1,6 +1,7 @@
 @page "/legal-entities"
 @using Microsoft.EntityFrameworkCore
 @using SamorodinkaTech.Fiducia.Domain.Models.Spark
+@using SamorodinkaTech.Fiducia.Domain.Models
 @inject IDbContextFactory<SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext> DbFactory
 @inject SamorodinkaTech.Fiducia.Domain.Interfaces.ILegalEntityGosaIntervalService GosaSvc
 @inject SamorodinkaTech.Fiducia.Domain.Interfaces.ISparkDataService SparkDataSvc
@@ -35,7 +36,7 @@
                             <td>@le.ShortName</td>
                             <td>@le.Inn</td>
                             <td>@le.Ogrn</td>
-                            <td>@(le.Okopf is null ? string.Empty : $"{le.Okopf.Code} · {le.Okopf.Name}")</td>
+                            <td>@(le.RefOkopf is null ? string.Empty : $"{le.RefOkopf.Code} · {le.RefOkopf.Name}")</td>
                         </tr>
                     }
                     </tbody>
@@ -100,6 +101,12 @@
                         <button class="nav-link @(_activeTab == 5 ? "active" : "")" @onclick="() => _activeTab = 5">Комитеты</button>
                     </li>
                 }
+                @if (_orgType == OrgType.LLC)
+                {
+                    <li class="nav-item">
+                        <button class="nav-link @(_activeTab == 6 ? "active" : "")" @onclick="() => _activeTab = 6">Устав</button>
+                    </li>
+                }
             </ul>
 
             @if (_activeTab == 0)
@@ -120,7 +127,7 @@
                             <dd class="col-sm-8">@(_sparkCompanyOgrn ?? selectedEntity.Ogrn ?? "—")</dd>
 
                             <dt class="col-sm-4 text-muted fw-normal">ОКОПФ</dt>
-                            <dd class="col-sm-8">@(_sparkCompanyOkopfName ?? selectedEntity.Okopf?.Name ?? "—")</dd>
+                            <dd class="col-sm-8">@(_sparkCompanyOkopfName ?? selectedEntity.RefOkopf?.Name ?? "—")</dd>
                         </dl>
                     </div>
                     <div class="col-md-6">
@@ -504,6 +511,68 @@
                 }
             }  @* end of _activeTab == 5 *@
 
+            @if (_activeTab == 6)
+            {
+                <div class="mb-3">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Тип устава</label>
+                            <select class="form-select" @bind="_editCharterNumber" @bind:after="OnCharterNumberChanged">
+                                <option value="">Нетиповой (индивидуальный) устав</option>
+                                @for (int i = 1; i <= 36; i++)
+                                {
+                                    var num = i.ToString("D2");
+                                    <option value="@num">Типовой устав № @num</option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+
+                    @if (_editCharterNumber is not null && _charterSettings is not null)
+                    {
+                        <div class="mt-3">
+                            <h6>Настройки типового устава № @_editCharterNumber</h6>
+                            <div class="mb-2">
+                                <a href="@($"/charters/{_editCharterNumber}.pdf")" target="_blank" class="btn btn-sm btn-outline-secondary">
+                                    📄 Открыть текст типового устава № @_editCharterNumber (PDF)
+                                </a>
+                            </div>
+                            <div class="alert alert-info small py-2">
+                                Настройки определены типовым уставом и не могут быть изменены. Чтобы изменить любое положение — перейдите на индивидуальный устав.
+                            </div>
+                            <dl class="row">
+                                <dt class="col-sm-5 text-muted fw-normal">1. Выход участника из общества</dt>
+                                <dd class="col-sm-7">@_charterSettings.ExitLabel</dd>
+
+                                <dt class="col-sm-5 text-muted fw-normal">2. Переход доли к участникам</dt>
+                                <dd class="col-sm-7">@_charterSettings.TransferToParticipantsLabel</dd>
+
+                                <dt class="col-sm-5 text-muted fw-normal">3. Переход доли к третьим лицам</dt>
+                                <dd class="col-sm-7">@_charterSettings.TransferToThirdPartiesLabel</dd>
+
+                                <dt class="col-sm-5 text-muted fw-normal">4. Преимущественное право</dt>
+                                <dd class="col-sm-7">@_charterSettings.PreemptiveRightLabel</dd>
+
+                                <dt class="col-sm-5 text-muted fw-normal">5. Переход доли наследникам</dt>
+                                <dd class="col-sm-7">@_charterSettings.InheritanceLabel</dd>
+
+                                <dt class="col-sm-5 text-muted fw-normal">6. Исполнительный орган</dt>
+                                <dd class="col-sm-7">@_charterSettings.ExecutiveBodyLabel</dd>
+
+                                <dt class="col-sm-5 text-muted fw-normal">7. Подтверждение решений</dt>
+                                <dd class="col-sm-7">@_charterSettings.DecisionConfirmationLabel</dd>
+                            </dl>
+                        </div>
+                    }
+                    else if (_editCharterNumber is null)
+                    {
+                        <div class="alert alert-light mt-3">
+                            Для нетипового (индивидуального) устава настройки определяются текстом устава и не ограничены типовыми рамками.
+                        </div>
+                    }
+                </div>
+            }  @* end of _activeTab == 6 *@
+
             @if (!string.IsNullOrEmpty(saveError))
             {
                 <div class="alert alert-danger">@saveError</div>
@@ -576,6 +645,10 @@
     // Учредители из СПАРК
     private List<SparkFounder> _sparkFounders = new();
 
+    // Устав
+    private string? _editCharterNumber;
+    private StandardCharterInfo? _charterSettings;
+
     private Guid? _influentialPersonId;
     private int _activeTab;
 
@@ -612,7 +685,7 @@
                     ShortName = x.ShortName,
                     Inn = x.Inn,
                     Ogrn = x.Ogrn,
-                    Okopf = x.Okopf != null ? new OkopfVm { Code = x.Okopf.Code, Name = x.Okopf.Name } : null
+                    RefOkopf = x.RefOkopf != null ? new OkopfVm { Code = x.RefOkopf.Code, Name = x.RefOkopf.Name } : null
                 })
                 .FirstOrDefaultAsync();
 
@@ -658,7 +731,7 @@
                     ShortName = le.ShortName,
                     Inn = le.Inn,
                     Ogrn = le.Ogrn,
-                    Okopf = le.Okopf != null ? new OkopfVm { Code = le.Okopf.Code, Name = le.Okopf.Name } : null
+                    RefOkopf = le.RefOkopf != null ? new OkopfVm { Code = le.RefOkopf.Code, Name = le.RefOkopf.Name } : null
                 })
                 .ToListAsync();
         }
@@ -706,6 +779,9 @@
         // Загружаем кэшированные данные СПАРК
         await LoadCachedSparkAsync();
 
+        // Загружаем настройки устава
+        await LoadCharterAsync(le.Id);
+
         // Сохраняем последнее выбранное ЮЛ для авто-открытия
         if (ip != null)
         {
@@ -731,9 +807,9 @@
         _ => "данного типа общества"
     };
 
-    private string EntityTypeLabel => selectedEntity?.Okopf is null
+    private string EntityTypeLabel => selectedEntity?.RefOkopf is null
         ? "ОКОПФ не указан"
-        : $"{selectedEntity.Okopf.Code} — {selectedEntity.Okopf.Name}";
+        : $"{selectedEntity.RefOkopf.Code} — {selectedEntity.RefOkopf.Name}";
 
     private async Task Save()
     {
@@ -747,12 +823,13 @@
 
         var validationModel = new SamorodinkaTech.Fiducia.Domain.Validation.LegalEntitySaveValidationModel
         {
-            OkopfCode = selectedEntity.Okopf?.Code,
+            OkopfCode = selectedEntity.RefOkopf?.Code,
             HasBoardOfDirectors = editHasBoardOfDirectors,
             GosaWindowStart = GosaStart,
             GosaWindowEnd = GosaEnd,
             Position = editPosition,
-            FullName = editFullName
+            FullName = editFullName,
+            StandardCharterNumber = _editCharterNumber
         };
         var validation = SamorodinkaTech.Fiducia.Domain.Validation.LegalEntityValidator.Validate(validationModel);
         if (!validation.IsValid)
@@ -801,13 +878,13 @@
                 }
 
                 // ГОСА
-                var leForGosa = await ctx.LegalEntities.Include(x => x.Okopf).FirstOrDefaultAsync(x => x.Id == selectedEntity.Id);
+                var leForGosa = await ctx.LegalEntities.Include(x => x.RefOkopf).FirstOrDefaultAsync(x => x.Id == selectedEntity.Id);
                 if (leForGosa != null)
                 {
-                    var isPao = GosaSvc.IsPao(leForGosa.Okopf?.Code);
+                    var isPao = GosaSvc.IsPao(leForGosa.RefOkopf?.Code);
                     if (isPao)
                     {
-                        if (!GosaSvc.ValidateForOkopf(leForGosa.Okopf?.Code, GosaStart, GosaEnd))
+                        if (!GosaSvc.ValidateForOkopf(leForGosa.RefOkopf?.Code, GosaStart, GosaEnd))
                         {
                             saveError = "Недопустимый интервал ГОСА для данной ОПФ";
                             return;
@@ -817,7 +894,7 @@
                     }
                     else
                     {
-                        var (defStart, defEnd) = GosaSvc.GetWindowForOkopf(leForGosa.Okopf?.Code);
+                        var (defStart, defEnd) = GosaSvc.GetWindowForOkopf(leForGosa.RefOkopf?.Code);
                         settings.GosaWindowStart = defStart;
                         settings.GosaWindowEnd = defEnd;
                     }
@@ -888,6 +965,25 @@
                 }
             }
 
+            // Сохраняем номер типового устава (только для ООО)
+            if (_orgType == OrgType.LLC)
+            {
+                var leForCharter = await ctx.LegalEntities.FirstOrDefaultAsync(x => x.Id == selectedEntity.Id);
+                if (leForCharter != null)
+                {
+                    if (_editCharterNumber is not null)
+                    {
+                        var charter = await ctx.RefStandardCharters
+                            .FirstOrDefaultAsync(x => x.Number == _editCharterNumber);
+                        leForCharter.StandardCharterId = charter?.Id;
+                    }
+                    else
+                    {
+                        leForCharter.StandardCharterId = null;
+                    }
+                }
+            }
+
             await ctx.SaveChangesAsync();
             saveSuccess = "Изменения сохранены.";
         }
@@ -941,10 +1037,10 @@
             if (result.OkopfCode is not null)
             {
                 await using var ctx = await DbFactory.CreateDbContextAsync();
-                var okopf = await ctx.Okopf.FirstOrDefaultAsync(o => o.Code == result.OkopfCode);
+                var okopf = await ctx.RefOkopf.FirstOrDefaultAsync(o => o.Code == result.OkopfCode);
                 if (okopf is not null)
                 {
-                    selectedEntity.Okopf = new OkopfVm { Code = okopf.Code, Name = okopf.Name };
+                    selectedEntity.RefOkopf = new OkopfVm { Code = okopf.Code, Name = okopf.Name };
                     _orgType = ResolveOrgTypeFromCode(okopf.Code);
                     editHasBoardOfDirectors = _orgType != OrgType.Unknown;
                 }
@@ -1017,8 +1113,8 @@
         try
         {
             await using var ctx = await DbFactory.CreateDbContextAsync();
-            var le = await ctx.LegalEntities.Include(x => x.Okopf).FirstOrDefaultAsync(x => x.Id == legalEntityId);
-            var codeRaw = le?.Okopf?.Code ?? string.Empty;
+            var le = await ctx.LegalEntities.Include(x => x.RefOkopf).FirstOrDefaultAsync(x => x.Id == legalEntityId);
+            var codeRaw = le?.RefOkopf?.Code ?? string.Empty;
             var normalized = new string(codeRaw.Where(char.IsDigit).ToArray());
             _orgType = normalized switch
             {
@@ -1041,17 +1137,17 @@
         {
             gosaError = null;
             await using var ctx = await DbFactory.CreateDbContextAsync();
-            var le = await ctx.LegalEntities.Include(x => x.Okopf).FirstOrDefaultAsync(x => x.Id == legalEntityId);
+            var le = await ctx.LegalEntities.Include(x => x.RefOkopf).FirstOrDefaultAsync(x => x.Id == legalEntityId);
             if (le is null) { gosaError = "ЮЛ не найдено"; return; }
             var settings = await ctx.LegalEntityBoardSettings.FirstOrDefaultAsync();
-            var (defStart, defEnd) = GosaSvc.GetWindowForOkopf(le.Okopf?.Code);
+            var (defStart, defEnd) = GosaSvc.GetWindowForOkopf(le.RefOkopf?.Code);
             var s = settings?.GosaWindowStart ?? defStart;
             var e = settings?.GosaWindowEnd ?? defEnd;
             gosaStartMonth = s.Month;
             gosaStartDay = s.Day;
             gosaEndMonth = e.Month;
             gosaEndDay = e.Day;
-            gosaIsPao = GosaSvc.IsPao(le.Okopf?.Code);
+            gosaIsPao = GosaSvc.IsPao(le.RefOkopf?.Code);
         }
         catch (Exception ex)
         {
@@ -1134,6 +1230,49 @@
         }
     }
 
+    private async Task LoadCharterAsync(Guid legalEntityId)
+    {
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+            var le = await ctx.LegalEntities
+                .Include(x => x.StandardCharter)
+                .FirstOrDefaultAsync(x => x.Id == legalEntityId);
+            _editCharterNumber = le?.StandardCharter?.Number;
+            _charterSettings = le?.StandardCharter is not null
+                ? StandardCharterInfo.FromEntity(le.StandardCharter)
+                : null;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Ошибка загрузки настроек устава для ЮЛ {LegalEntityId}", legalEntityId);
+        }
+    }
+
+    private async Task OnCharterNumberChanged()
+    {
+        if (_editCharterNumber is null)
+        {
+            _charterSettings = null;
+            return;
+        }
+
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+            var charter = await ctx.RefStandardCharters
+                .FirstOrDefaultAsync(x => x.Number == _editCharterNumber);
+            _charterSettings = charter is not null
+                ? StandardCharterInfo.FromEntity(charter)
+                : null;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Ошибка загрузки данных типового устава №{Number}", _editCharterNumber);
+            _charterSettings = null;
+        }
+    }
+
     private void OnMaxPerMemberDefinedChanged()
     {
         if (_editMaxCommitteesPerMemberDefined && _editMaxCommitteesPerMember is null)
@@ -1171,7 +1310,7 @@
         public string? ShortName { get; set; }
         public string? Inn { get; set; }
         public string? Ogrn { get; set; }
-        public OkopfVm? Okopf { get; set; }
+        public OkopfVm? RefOkopf { get; set; }
     }
     private class OkopfVm { public string? Code { get; set; } public string? Name { get; set; } }
 

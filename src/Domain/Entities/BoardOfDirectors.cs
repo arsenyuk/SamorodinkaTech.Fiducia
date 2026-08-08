@@ -25,5 +25,5 @@ public class BoardOfDirectors
     public Guid StatusId { get; set; }
 
     public OsaMeeting? OsaMeeting { get; set; }
-    public BoardOfDirectorsStatus? Status { get; set; }
+    public RefBoardOfDirectorsStatus? Status { get; set; }
 }
