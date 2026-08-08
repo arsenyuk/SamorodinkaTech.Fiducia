@@ -3,6 +3,7 @@
   <ItemGroup>
     <ProjectReference Include="..\src\Infrastructure\SamorodinkaTech.Fiducia.Infrastructure.csproj" />
     <ProjectReference Include="..\src\Domain\SamorodinkaTech.Fiducia.Domain.csproj" />
+    <ProjectReference Include="..\src\Timeline\SamorodinkaTech.Fiducia.Timeline.csproj" />
   </ItemGroup>
 
   <ItemGroup>

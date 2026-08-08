@@ -17,4 +17,7 @@ public sealed record TimelineInput
 
     /// <summary>Множество праздничных дат (опционально).</summary>
     public IReadOnlySet<DateOnly> Holidays { get; init; } = new HashSet<DateOnly>();
+
+    /// <summary>Предвычисленный календарь дней с атрибутами (год, квартал, месяц, неделя, рабочий/выходной/праздничный).</summary>
+    public IReadOnlyList<CalendarDay> CalendarDays { get; init; } = [];
 }

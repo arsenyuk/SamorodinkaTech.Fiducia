@@ -1,61 +1,22 @@
 @namespace SamorodinkaTech.Fiducia.Timeline.Components
 @inherits GanttTimelineBase
 
-<div class="gt-container">
-    <div class="gt-controls">
-        <button class="gt-btn" @onclick="ZoomIn" disabled="@(_scale == TimelineScale.Days)" title="Приблизить">
-            <span class="gt-btn-icon">+</span>
-        </button>
-        <select class="gt-select" value="@_scale.ToString()" @onchange="OnScaleSelectChanged">
-            <option value="Days">Дни</option>
-            <option value="Weeks">Недели</option>
-            <option value="Months">Месяцы</option>
-            <option value="Quarters">Кварталы</option>
-            <option value="Years">Годы</option>
-        </select>
-        <button class="gt-btn" @onclick="ZoomOut" disabled="@(_scale == TimelineScale.Years)" title="Отдалить">
-            <span class="gt-btn-icon">–</span>
-        </button>
-    </div>
-
-    <div class="gt-scroll" @ref="_scrollRef">
-        <div class="gt-inner" style="width: @(_totalWidthPx)px">
-            @if (_result != null)
+<div style="width:100%;overflow:hidden;border:1px solid #e0e0e0;border-radius:4px;background:#fff">
+    <div style="width:100%;overflow-x:auto;overflow-y:hidden">
+        <div style="width:@(_totalWidthPx)px;display:flex;flex-direction:row">
+            @if (_days != null)
             {
-                <!-- Upper row -->
-                <div class="gt-row gt-row-upper">
-                    @foreach (var div in _result.Upper)
-                    {
-                        var w = div.Span * _cellWidthPx;
-                        <div class="gt-cell gt-cell-upper" style="width: @(w)px" title="@div.Tooltip">
-                            <span class="gt-label">@div.Label</span>
-                        </div>
-                    }
-                </div>
-
-                <!-- Lower row -->
-                <div class="gt-row gt-row-lower">
-                    @foreach (var div in _result.Lower)
-                    {
-                        var cls = "gt-cell gt-cell-lower";
-                        if (div.IsWeekend) cls += " gt-weekend";
-                        if (div.IsHoliday) cls += " gt-holiday";
-                        if (div.IsToday) cls += " gt-today";
-
-                        <div class="@cls"
-                             style="width: @(_cellWidthPx)px"
-                             title="@div.Tooltip"
-                             @onclick="() => OnCellClicked(div)"
-                             @onclick:stopPropagation="true">
-                            <span class="gt-label">@div.Label</span>
-                        </div>
-                    }
-                </div>
-
-                <!-- Today marker line -->
-                @if (_todayLinePx >= 0)
+                @foreach (var d in _days)
                 {
-                    <div class="gt-today-line" style="left: @(_todayLinePx)px"></div>
+                    var bg = d.IsHoliday ? "#fff0f0"
+                           : d.IsWeekend ? "#fef7f0"
+                           : d.Date == _today ? "#e8f5e9"
+                           : "#fff";
+                    var fw = d.Date == _today ? "font-weight:600" : "";
+
+                    <div style="width:@(_dayWidth)px;height:24px;flex-shrink:0;display:flex;align-items:center;justify-content:center;border-right:1px solid #e8e8e8;box-sizing:border-box;font-size:10px;background:@bg;@fw">
+                        @d.Date.Day
+                    </div>
                 }
             }
         </div>

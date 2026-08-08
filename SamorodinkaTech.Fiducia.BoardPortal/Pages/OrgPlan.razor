@@ -5,6 +5,8 @@
 
 <h3>План организационных мероприятий</h3>
 
+<GanttTimeline Data="@_timelineData" />
+
 @if (_intents.Count == 0)
 {
     <div class="text-muted">План мероприятий не создан. Завершите первое заседание СД для формирования плана.</div>
@@ -137,6 +139,7 @@ else
 }
 
 @code {
+    private TimelineInput? _timelineData;
     private List<OrgIntent> _intents = new();
     private Dictionary<Guid, List<OrgStage>> _stagesByIntent = new();
     private Dictionary<Guid, List<OrgOffer>> _offersByStage = new();
@@ -165,11 +168,28 @@ else
 
             if (_intents.Count > 0)
                 _expandedIntents.Add(_intents[0].Id);
+
+            InitTimeline();
         }
         catch (Exception ex)
         {
             Logger.LogWarning(ex, "Ошибка загрузки плана");
         }
+    }
+
+    private void InitTimeline()
+    {
+        var start = new DateOnly(2026, 1, 1);
+        var end = new DateOnly(2027, 12, 31);
+
+        _timelineData = new TimelineInput
+        {
+            StartDate = start,
+            EndDate = end,
+            Today = DateOnly.FromDateTime(DateTime.Today),
+            Scale = TimelineScale.Days,
+            CalendarDays = WorkCalendar.GenerateCalendar(2026, 2027)
+        };
     }
 
     private void ToggleIntent(Guid id)

@@ -12,11 +12,103 @@ public static class TimelineCalculator
     {
         var lower = ComputeLower(input);
         var upperScale = ResolveUpperScale(input.Scale, input.StartDate, input.EndDate);
-        var upper = ComputeUpper(lower, upperScale);
+        var upper = upperScale == input.Scale ? [] : ComputeUpper(lower, upperScale);
         var todayPos = ComputeTodayPosition(lower, input.Today);
 
         return new TimelineResult(upper, lower, todayPos);
     }
+
+    /// <summary>Вычисляет все пять уровней одновременно (годы → кварталы → месяцы → недели → дни).</summary>
+    public static MultiLevelResult ComputeAllLevels(TimelineInput input)
+    {
+        var days = input.CalendarDays.Count > 0
+            ? ComputeDaysFromCalendar(input.CalendarDays, input.Today)
+            : ComputeLowerDays(input);
+        if (days.Count == 0)
+            return new MultiLevelResult();
+
+        var weeks = GroupAndLabel(days, WeekGroupKey, LabelWeek);
+        var months = GroupAndLabel(weeks, d => d.Start.Year * 100 + d.Start.Month, LabelMonth);
+        var quarters = GroupAndLabel(months, d => d.Start.Year * 10 + ((d.Start.Month - 1) / 3 + 1), LabelQuarter);
+        var years = GroupAndLabel(quarters, d => d.Start.Year, LabelYear);
+
+        var todayPos = ComputeTodayPixel(days, input.Today, 30);
+
+        return new MultiLevelResult
+        {
+            Years = years,
+            Quarters = quarters,
+            Months = months,
+            Weeks = weeks,
+            Days = days,
+            TodayPixel = todayPos
+        };
+    }
+
+    private static int WeekGroupKey(TimelineDivision d) => d.Start.Year * 100 + WeekNumberOf(d.Start);
+
+    private static string LabelWeek(TimelineDivision group)
+    {
+        var end = group.End;
+        if (group.Start.Month == end.Month)
+            return $"{group.Start.Day}–{end.Day} {MonthShort[group.Start.Month - 1]}";
+        return $"{group.Start.Day} {MonthShort[group.Start.Month - 1]} – {end.Day} {MonthShort[end.Month - 1]}";
+    }
+
+    private static string LabelMonth(TimelineDivision group) => MonthShort[group.Start.Month - 1];
+    private static string LabelQuarter(TimelineDivision group) => $"Q{(group.Start.Month - 1) / 3 + 1}";
+    private static string LabelYear(TimelineDivision group) => group.Start.Year.ToString();
+
+    private static string TooltipWeek(TimelineDivision group) =>
+        $"{group.Start.Day} {MonthFull[group.Start.Month - 1]} – {group.End.Day} {MonthFull[group.End.Month - 1]} {group.End.Year}";
+
+    private static List<TimelineDivision> GroupAndLabel(
+        List<TimelineDivision> source,
+        Func<TimelineDivision, int> keySelector,
+        Func<TimelineDivision, string> labelSelector)
+    {
+        var result = new List<TimelineDivision>();
+        TimelineDivision? current = null;
+        var span = 0;
+
+        foreach (var div in source)
+        {
+            var key = keySelector(div);
+
+            if (current == null || keySelector(current) != key)
+            {
+                if (current != null)
+                    result.Add(current with
+                    {
+                        Span = span,
+                        Label = labelSelector(current),
+                        Tooltip = labelSelector(current)
+                    });
+
+                current = div with { Span = 0 };
+                span = 0;
+            }
+            else
+            {
+                // Extend the group end date
+                current = current with { End = div.End };
+            }
+
+            span += div.Span;
+        }
+
+        if (current != null)
+            result.Add(current with
+            {
+                Span = span,
+                Label = labelSelector(current),
+                Tooltip = labelSelector(current)
+            });
+
+        return result;
+    }
+
+    /// <summary>Группирует деления нижнего уровня в деления верхнего уровня по ключу.</summary>
 
     /// <summary>Подбирает масштаб верхнего ряда по правилам из ТЗ.</summary>
     private static TimelineScale ResolveUpperScale(TimelineScale lowerScale, DateOnly start, DateOnly end)
@@ -64,6 +156,26 @@ public static class TimelineCalculator
                 IsWeekend = d.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday,
                 IsHoliday = input.Holidays.Contains(d),
                 IsToday = d == input.Today
+            });
+        }
+        return list;
+    }
+
+    private static List<TimelineDivision> ComputeDaysFromCalendar(IReadOnlyList<CalendarDay> calendarDays, DateOnly today)
+    {
+        var list = new List<TimelineDivision>(calendarDays.Count);
+        foreach (var cd in calendarDays)
+        {
+            list.Add(new TimelineDivision
+            {
+                Start = cd.Date,
+                End = cd.Date,
+                Span = 1,
+                Label = $"{cd.Date.Day} {MonthShort[cd.MonthNumber - 1]}",
+                Tooltip = $"{cd.Date.Day} {MonthFull[cd.MonthNumber - 1]} {cd.Year}",
+                IsWeekend = cd.IsWeekend,
+                IsHoliday = cd.IsHoliday,
+                IsToday = cd.Date == today
             });
         }
         return list;
@@ -216,7 +328,7 @@ public static class TimelineCalculator
                 span = 0;
             }
 
-            span++;
+            span += div.Span;
         }
 
         if (current != null)
@@ -327,6 +439,18 @@ public static class TimelineCalculator
             }
         }
 
+        return -1;
+    }
+
+    // ── Multi-level helpers ────────────────────────────────────────────
+
+    private static double ComputeTodayPixel(List<TimelineDivision> days, DateOnly today, int dayCellWidth)
+    {
+        for (var i = 0; i < days.Count; i++)
+        {
+            if (days[i].Start <= today && days[i].End >= today)
+                return i * dayCellWidth + dayCellWidth / 2.0;
+        }
         return -1;
     }
 }
