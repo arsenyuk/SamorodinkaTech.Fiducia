@@ -12,8 +12,8 @@ public class BoardOfDirectors
     /// <summary>Ссылка на ОСА, в рамках которого утверждён данный состав СД (osa_meeting_id).</summary>
     public Guid OsaMeetingId { get; set; }
 
-    /// <summary>Год проведения ГОСА (gosa_year). Денормализовано из OsaMeeting.GosaYear для отображения.</summary>
-    public int? GosaYear { get; set; }
+    /// <summary>Год избрания состава СД (election_year).</summary>
+    public int? ElectionYear { get; set; }
 
     /// <summary>Дата начала полномочий состава СД (started_at).</summary>
     public DateOnly? StartedAt { get; set; }

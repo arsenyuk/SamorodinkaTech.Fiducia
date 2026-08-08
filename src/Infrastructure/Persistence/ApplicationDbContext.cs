@@ -225,7 +225,7 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.Property(x => x.Title).HasColumnName("title").HasMaxLength(500);
             b.Property(x => x.GosaWindowStart).HasColumnName("gosa_window_start").HasColumnType("date");
             b.Property(x => x.GosaWindowEnd).HasColumnName("gosa_window_end").HasColumnType("date");
-            b.Property(x => x.GosaYear).HasColumnName("gosa_year");
+            b.Property(x => x.ElectionYear).HasColumnName("election_year");
             b.Property(x => x.ShareholdersCount).HasColumnName("shareholders_count");
             b.Property(x => x.BoardMinNumber).HasColumnName("board_min_number");
             b.Property(x => x.BoardMemberNumber).HasColumnName("board_member_number");
@@ -288,7 +288,7 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.HasKey(x => x.Id);
             b.Property(x => x.Id).HasColumnName("id");
             b.Property(x => x.OsaMeetingId).HasColumnName("osa_meeting_id").IsRequired();
-            b.Property(x => x.GosaYear).HasColumnName("gosa_year");
+            b.Property(x => x.ElectionYear).HasColumnName("election_year");
             b.Property(x => x.StartedAt).HasColumnName("started_at");
             b.Property(x => x.EndedAt).HasColumnName("ended_at");
             b.Property(x => x.StatusId).HasColumnName("status_id").IsRequired();

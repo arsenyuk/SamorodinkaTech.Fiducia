@@ -8,21 +8,21 @@ using SamorodinkaTech.Fiducia.Domain.Validation;
 namespace SamorodinkaTech.Fiducia.Tests.Unit.Validation;
 
 /// <summary>
-/// Тесты DB-валидатора уникальности года ГОСА.
-/// Проверяют бизнес-правило «не более 1 ГОСА в году»
+/// Тесты DB-валидатора уникальности года избрания состава СД.
+/// Проверяют бизнес-правило «не более 1 состава в год»
 /// через Moq-мок IApplicationDbContext (Clean Architecture / Dependency Inversion).
 /// </summary>
 public class OsaMeetingBusinessRulesTests
 {
     /// <summary>
-    /// Нет существующих записей — создание нового ГОСА должно пройти успешно.
+    /// Нет существующих записей — создание нового состава СД должно пройти успешно.
     /// </summary>
     [Fact]
     public void CreateGosa_NoExisting_ShouldSucceed()
     {
         var mockDb = MockDb(Array.Empty<OsaMeeting>());
 
-        var result = OsaMeetingValidator.ValidateUniqueGosaYear(mockDb.Object, null, 2025);
+        var result = OsaMeetingValidator.ValidateUniqueElectionYear(mockDb.Object, null, 2025);
 
         result.IsValid.Should().BeTrue();
     }
@@ -35,7 +35,7 @@ public class OsaMeetingBusinessRulesTests
     {
         var mockDb = MockDb(new[] { Gosa(2025) });
 
-        var result = OsaMeetingValidator.ValidateUniqueGosaYear(mockDb.Object, null, 2025);
+        var result = OsaMeetingValidator.ValidateUniqueElectionYear(mockDb.Object, null, 2025);
 
         result.IsValid.Should().BeFalse();
         result.Errors.Should().Contain(e => e.Contains("2025") && e.Contains("уже существует"));
@@ -49,7 +49,7 @@ public class OsaMeetingBusinessRulesTests
     {
         var mockDb = MockDb(new[] { Gosa(2025) });
 
-        var result = OsaMeetingValidator.ValidateUniqueGosaYear(mockDb.Object, null, 2026);
+        var result = OsaMeetingValidator.ValidateUniqueElectionYear(mockDb.Object, null, 2026);
 
         result.IsValid.Should().BeTrue();
     }
@@ -63,7 +63,7 @@ public class OsaMeetingBusinessRulesTests
         var meetingId = Guid.NewGuid();
         var mockDb = MockDb(new[] { Gosa(2025, meetingId) });
 
-        var result = OsaMeetingValidator.ValidateUniqueGosaYear(mockDb.Object, meetingId, 2025);
+        var result = OsaMeetingValidator.ValidateUniqueElectionYear(mockDb.Object, meetingId, 2025);
 
         result.IsValid.Should().BeTrue();
     }
@@ -83,7 +83,7 @@ public class OsaMeetingBusinessRulesTests
         });
 
         // Редактируем встречу 2026 → 2025 (уже занято)
-        var result = OsaMeetingValidator.ValidateUniqueGosaYear(mockDb.Object, meeting2Id, 2025);
+        var result = OsaMeetingValidator.ValidateUniqueElectionYear(mockDb.Object, meeting2Id, 2025);
 
         result.IsValid.Should().BeFalse();
         result.Errors.Should().Contain(e => e.Contains("2025") && e.Contains("уже существует"));
@@ -97,7 +97,7 @@ public class OsaMeetingBusinessRulesTests
     {
         var mockDb = MockDb(Array.Empty<OsaMeeting>());
 
-        var result = OsaMeetingValidator.ValidateUniqueGosaYear(mockDb.Object, null, null);
+        var result = OsaMeetingValidator.ValidateUniqueElectionYear(mockDb.Object, null, null);
 
         result.IsValid.Should().BeTrue();
     }
@@ -110,7 +110,7 @@ public class OsaMeetingBusinessRulesTests
     {
         var mockDb = MockDb(new[] { Gosa(0) });
 
-        var result = OsaMeetingValidator.ValidateUniqueGosaYear(mockDb.Object, null, 0);
+        var result = OsaMeetingValidator.ValidateUniqueElectionYear(mockDb.Object, null, 0);
 
         result.IsValid.Should().BeTrue();
     }
@@ -127,7 +127,7 @@ public class OsaMeetingBusinessRulesTests
             Gosa(2023), Gosa(2024)
         });
 
-        var result = OsaMeetingValidator.ValidateUniqueGosaYear(mockDb.Object, null, 2025);
+        var result = OsaMeetingValidator.ValidateUniqueElectionYear(mockDb.Object, null, 2025);
 
         result.IsValid.Should().BeTrue();
     }
@@ -144,7 +144,7 @@ public class OsaMeetingBusinessRulesTests
             Gosa(2023), Gosa(2024)
         });
 
-        var result = OsaMeetingValidator.ValidateUniqueGosaYear(mockDb.Object, null, 2022);
+        var result = OsaMeetingValidator.ValidateUniqueElectionYear(mockDb.Object, null, 2022);
 
         result.IsValid.Should().BeFalse();
         result.Errors.Should().Contain(e => e.Contains("2022") && e.Contains("уже существует"));
@@ -159,7 +159,7 @@ public class OsaMeetingBusinessRulesTests
         var meetingId = Guid.NewGuid();
         var mockDb = MockDb(new[] { Gosa(2025, meetingId) });
 
-        var result = OsaMeetingValidator.ValidateUniqueGosaYear(mockDb.Object, meetingId, null);
+        var result = OsaMeetingValidator.ValidateUniqueElectionYear(mockDb.Object, meetingId, null);
 
         result.IsValid.Should().BeTrue();
     }
@@ -173,13 +173,13 @@ public class OsaMeetingBusinessRulesTests
         var meetingId = Guid.NewGuid();
         var mockDb = MockDb(new[] { Gosa(2025, meetingId) });
 
-        var result = OsaMeetingValidator.ValidateUniqueGosaYear(mockDb.Object, meetingId, 0);
+        var result = OsaMeetingValidator.ValidateUniqueElectionYear(mockDb.Object, meetingId, 0);
 
         result.IsValid.Should().BeTrue();
     }
 
     /// <summary>
-    /// Создание ГОСА на год, который уже занят, с отличающимися полями — всё равно дубликат.
+    /// Создание состава СД на год, который уже занят, с отличающимися полями — всё равно дубликат.
     /// </summary>
     [Fact]
     public void CreateGosa_SameYearDifferentFileds_ShouldBeDetected()
@@ -189,20 +189,20 @@ public class OsaMeetingBusinessRulesTests
             new OsaMeeting
             {
                 Id = Guid.NewGuid(),
-                GosaYear = 2025,
-                Title = "Совсем другое ГОСА",
+                ElectionYear = 2025,
+                Title = "Совсем другой состав СД",
                 GosaWindowStart = new DateOnly(2025, 4, 1),
                 GosaWindowEnd = new DateOnly(2025, 5, 15)
             }
         });
 
-        var result = OsaMeetingValidator.ValidateUniqueGosaYear(mockDb.Object, null, 2025);
+        var result = OsaMeetingValidator.ValidateUniqueElectionYear(mockDb.Object, null, 2025);
 
         result.IsValid.Should().BeFalse();
     }
 
     /// <summary>
-    /// После удаления ГОСА (запись исключена из БД) год свободен — создание разрешено.
+    /// После удаления состава (запись исключена из БД) год свободен — создание разрешено.
     /// </summary>
     [Fact]
     public void DeleteGosa_ThenRecreateSameYear_ShouldBeAllowed()
@@ -210,7 +210,7 @@ public class OsaMeetingBusinessRulesTests
         // Удалённая запись не передаётся в mockDb — год свободен
         var mockDb = MockDb(Array.Empty<OsaMeeting>());
 
-        var result = OsaMeetingValidator.ValidateUniqueGosaYear(mockDb.Object, null, 2025);
+        var result = OsaMeetingValidator.ValidateUniqueElectionYear(mockDb.Object, null, 2025);
 
         result.IsValid.Should().BeTrue();
     }
@@ -246,10 +246,10 @@ public class OsaMeetingBusinessRulesTests
         {
             Id = id ?? Guid.NewGuid(),
             OsaFormId = Guid.NewGuid(),
-            GosaYear = year,
+            ElectionYear = year,
             Title = year.HasValue && year > 0
-                ? $"ГОСА {year}"
-                : "ГОСА без года"
+                ? $"Состав СД {year}"
+                : "Состав СД без года"
         };
     }
 }

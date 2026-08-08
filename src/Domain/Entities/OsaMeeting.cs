@@ -26,8 +26,8 @@ public class OsaMeeting
     /// <summary>Дата окончания окна ГОСА (gosa_window_end).</summary>
     public DateOnly? GosaWindowEnd { get; set; }
 
-    /// <summary>Год проведения ГОСА (gosa_year).</summary>
-    public int? GosaYear { get; set; }
+    /// <summary>Год избрания состава СД (election_year).</summary>
+    public int? ElectionYear { get; set; }
 
     /// <summary>Количество акционеров (shareholders_count).</summary>
     public int? ShareholdersCount { get; set; }

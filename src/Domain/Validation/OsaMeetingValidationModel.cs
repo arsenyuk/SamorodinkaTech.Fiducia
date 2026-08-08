@@ -12,8 +12,8 @@ public record OsaMeetingValidationModel
     public bool HasGosaInterval { get; set; }
     public bool IsAbsentee { get; set; }
 
-    /// <summary>Год проведения ГОСА для проверки уникальности.</summary>
-    public int? GosaYear { get; set; }
+    /// <summary>Год избрания для проверки уникальности.</summary>
+    public int? ElectionYear { get; set; }
 
     // Директора по типам
     public bool ExecutiveDirectorsParticipate { get; set; }

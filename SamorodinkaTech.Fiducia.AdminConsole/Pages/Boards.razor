@@ -21,7 +21,7 @@ else
     <table class="table table-striped">
         <thead>
             <tr>
-                <th>Год ГОСА</th>
+                <th>Год избрания</th>
                 <th>Дата начала полномочий</th>
                 <th>Дата окончания полномочий</th>
                 <th>Статус</th>
@@ -32,7 +32,7 @@ else
             @foreach (var item in _items)
             {
                 <tr>
-                    <td>@(item.GosaYear?.ToString() ?? "—")</td>
+                    <td>@(item.ElectionYear?.ToString() ?? "—")</td>
                     <td>@(item.StartedAt?.ToString("dd.MM.yyyy") ?? "—")</td>
                     <td>@(item.EndedAt?.ToString("dd.MM.yyyy") ?? "—")</td>
                     <td>@(item.Status?.Name ?? "—")</td>
@@ -55,7 +55,7 @@ else
             await using var ctx = await DbFactory.CreateDbContextAsync();
             _items = await ctx.BoardsOfDirectors
                 .Include(b => b.Status)
-                .OrderByDescending(b => b.GosaYear)
+                .OrderByDescending(b => b.ElectionYear)
                 .ThenByDescending(b => b.StartedAt)
                 .ToListAsync();
         }

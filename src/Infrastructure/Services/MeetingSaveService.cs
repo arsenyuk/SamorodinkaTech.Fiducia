@@ -31,22 +31,22 @@ public class MeetingSaveService : IMeetingSaveService
 
         if (model.IsGosa)
         {
-            // Проверка уникальности года ГОСА
-            if (model.GosaYear.HasValue && meeting.GosaYear != model.GosaYear)
+            // Проверка уникальности года избрания
+            if (model.ElectionYear.HasValue && meeting.ElectionYear != model.ElectionYear)
             {
                 var duplicate = await ctx.OsaMeetings.AnyAsync(
-                    x => x.Id != model.MeetingId && x.GosaYear == model.GosaYear.Value,
+                    x => x.Id != model.MeetingId && x.ElectionYear == model.ElectionYear.Value,
                     cancellationToken);
                 if (duplicate)
                     return new MeetingSaveResult
                     {
-                        Error = $"ГОСА за {model.GosaYear.Value} год уже существует. Нельзя создать более одного ГОСА в году."
+                        Error = $"Состав СД за {model.ElectionYear.Value} год уже существует. Нельзя создать более одного состава в году."
                     };
             }
 
             meeting.GosaWindowStart = model.GosaStart;
             meeting.GosaWindowEnd = model.GosaEnd;
-            meeting.GosaYear = model.GosaYear;
+            meeting.ElectionYear = model.ElectionYear;
         }
 
         if (!model.IsGosa)
@@ -89,14 +89,14 @@ public class MeetingSaveService : IMeetingSaveService
             {
                 Id = Guid.NewGuid(),
                 OsaMeetingId = model.MeetingId,
-                GosaYear = model.GosaYear,
+                ElectionYear = model.ElectionYear,
                 StatusId = draftStatus?.Id ?? Guid.Empty
             };
             ctx.BoardsOfDirectors.Add(board);
         }
         else
         {
-            board.GosaYear = model.GosaYear;
+            board.ElectionYear = model.ElectionYear;
         }
         boardId = board.Id;
 

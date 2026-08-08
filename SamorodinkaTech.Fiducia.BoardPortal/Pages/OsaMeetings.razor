@@ -55,10 +55,10 @@
                         <div class="col-auto">
                             <label class="form-label">Дата проведения</label>
                             <InputDate @bind-Value="gosaStart" class="form-control" style="width:200px"
-                                       @bind-Value:after="() => { gosaYear = gosaStart.Year; gosaEnd = gosaStart; ValidateGosaWindow(); }" />
+                                       @bind-Value:after="() => { electionYear = gosaStart.Year; gosaEnd = gosaStart; ValidateGosaWindow(); }" />
                         </div>
                         <div class="col-auto">
-                            <input type="hidden" @bind="gosaYear" />
+                            <input type="hidden" @bind="electionYear" />
                         </div>
                         <div class="col-auto">
                             @if (!string.IsNullOrEmpty(gosaError))
@@ -187,7 +187,7 @@
     private string? selectedFormCode;
     private DateOnly gosaStart;
     private DateOnly gosaEnd;
-    private int? gosaYear;
+    private int? electionYear;
     private bool createAbsenteeVoting;
     private DateTime createBallotDeadline = DateTime.UtcNow.AddDays(20);
     private string createTitle = string.Empty;
@@ -251,7 +251,7 @@
                 FormName = osaForms.FirstOrDefault(f => f.Id == x.OsaFormId)?.Name ?? "—",
                 FormShortName = osaForms.FirstOrDefault(f => f.Id == x.OsaFormId)?.ShortName,
                 Status = x.Status ?? "DRAFT",
-                GosaYear = x.GosaYear,
+                ElectionYear = x.ElectionYear,
                 GosaWindowStart = x.GosaWindowStart,
             }).ToList();
         }
@@ -269,7 +269,7 @@
         createTitle = string.Empty;
         gosaStart = _allowedGosaStart;
         gosaEnd = _allowedGosaEnd;
-        gosaYear = null;
+        electionYear = null;
         createAbsenteeVoting = false;
         createBallotDeadline = DateTime.UtcNow.AddDays(20);
         gosaError = null;
@@ -296,7 +296,7 @@
         {
             gosaStart = _allowedGosaStart;
             gosaEnd = _allowedGosaEnd;
-            gosaYear = gosaStart.Year;
+            electionYear = gosaStart.Year;
             createTitle = BuildGosaTitle(gosaStart);
         }
         else
@@ -354,7 +354,7 @@
                 Title = selectedFormCode == "GOSA" ? BuildGosaTitle(gosaStart) : createTitle.Trim(),
                 GosaWindowStart = gosaStart,
                 GosaWindowEnd = gosaEnd,
-                GosaYear = gosaYear,
+                ElectionYear = electionYear,
                 AbsenteeVoting = createAbsenteeVoting,
                 BallotDeadline = createAbsenteeVoting ? createBallotDeadline.ToUniversalTime() : null,
                 Status = "DRAFT",
@@ -405,7 +405,7 @@
         public string? FormName { get; set; }
         public string? FormShortName { get; set; }
         public string? Status { get; set; }
-        public int? GosaYear { get; set; }
+        public int? ElectionYear { get; set; }
         public DateOnly? GosaWindowStart { get; set; }
     }
 }

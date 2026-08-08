@@ -84,9 +84,9 @@
 
             @if (editIsGosa)
             {
-                @* Год проведения ГОСА — скрытое поле, вычисляется из даты начала *@
-                <input type="hidden" @bind="editGosaYear" />
-                @if (editGosaYear.HasValue && editGosaYear.Value < DateTime.Now.Year - 1)
+                @* Год избрания — скрытое поле, вычисляется из даты начала *@
+                <input type="hidden" @bind="editElectionYear" />
+                @if (editElectionYear.HasValue && editElectionYear.Value < DateTime.Now.Year - 1)
                 {
                     <div class="text-warning small mt-1">Год в прошлом</div>
                 }
@@ -106,7 +106,7 @@
                         <div class="col-auto">
                             <label class="form-label">Дата проведения</label>
                             <InputDate @bind-Value="editGosaStart" class="form-control" style="width:200px" disabled="@isFinalized"
-                                       @bind-Value:after="() => { if (editIsGosa) { editGosaYear = editGosaStart.Year; editGosaEnd = editGosaStart; } }" />
+                                       @bind-Value:after="() => { if (editIsGosa) { editElectionYear = editGosaStart.Year; editGosaEnd = editGosaStart; } }" />
                         </div>
                         <div class="col-auto">
                             @if (!string.IsNullOrEmpty(gosaError))
@@ -332,7 +332,7 @@
 
                 <div class="mb-3">
                     <div class="d-flex justify-content-between align-items-center mb-1">
-                        <span class="fw-bold">Готовимся к первому заседанию @(editGosaYear.HasValue ? $"(Совет директоров {editGosaYear.Value})" : "")</span>
+                        <span class="fw-bold">Готовимся к первому заседанию @(editElectionYear.HasValue ? $"(Совет директоров {editElectionYear.Value})" : "")</span>
                     </div>
                     <div class="text-muted small mb-2">Заполните все разрешённые поля для каждого члена СД (ФИО, учётная запись, эл. почта).</div>
                     @if (!string.IsNullOrEmpty(ldapDuplicateWarning))
@@ -707,7 +707,7 @@
     private string? selectedFormCode;
     private DateOnly gosaStart;
     private DateOnly gosaEnd;
-    private int? gosaYear;
+    private int? electionYear;
     private bool createAbsenteeVoting;
     private DateTime createBallotDeadline = DateTime.UtcNow.AddDays(20);
     private DateTime? editBallotDeadline;
@@ -723,7 +723,7 @@
     private DateOnly _allowedEnd;
     private string? _dateWarning;
     private string editTitle = string.Empty;
-    private int? editGosaYear;
+    private int? editElectionYear;
     private int? editShareholdersCount;
     private int? editBoardMemberNumber;
     private bool editExecDirectors;
@@ -1143,7 +1143,7 @@
             var m = await ctx.OsaMeetings.FirstOrDefaultAsync(x => x.Id == editingMeetingId.Value);
             if (m is null) return;
 
-            if (editIsGosa) { m.GosaWindowStart = editGosaStart; m.GosaWindowEnd = editGosaEnd; m.GosaYear = editGosaYear; }
+            if (editIsGosa) { m.GosaWindowStart = editGosaStart; m.GosaWindowEnd = editGosaEnd; m.ElectionYear = editElectionYear; }
             if (!editIsGosa) m.Title = string.IsNullOrWhiteSpace(editTitle) ? null : editTitle.Trim();
             m.AbsenteeVoting = editAbsenteeVoting;
             m.BallotDeadline = editAbsenteeVoting && editBallotDeadline.HasValue ? ((DateTime)editBallotDeadline).ToUniversalTime() : null;
@@ -1180,14 +1180,14 @@
                 {
                     Id = Guid.NewGuid(),
                     OsaMeetingId = editingMeetingId.Value,
-                    GosaYear = editGosaYear,
+                    ElectionYear = editElectionYear,
                     StatusId = draftStatusId
                 };
                 ctx.BoardsOfDirectors.Add(board);
             }
             else
             {
-                board.GosaYear = editGosaYear;
+                board.ElectionYear = editElectionYear;
             }
             editBoardOfDirectorsId = board.Id;
 
@@ -1389,7 +1389,7 @@
             {
                 if (gosaStart.Year <= 1)
                     gosaStart = new DateOnly(DateTime.UtcNow.Year, 3, 1);
-                gosaYear = gosaStart.Year;
+                electionYear = gosaStart.Year;
                 createTitle = BuildGosaTitle(gosaStart);
             }
         }
@@ -1438,14 +1438,14 @@
         {
             await using var ctx = await DbFactory.CreateDbContextAsync();
 
-            // Проверка: не более 1 ГОСА в году
-            if (form.Code == "GOSA" && gosaYear.HasValue)
+            // Проверка: не более 1 состава в год
+            if (form.Code == "GOSA" && electionYear.HasValue)
             {
                 var existing = await ctx.OsaMeetings
-                    .AnyAsync(m => m.GosaYear == gosaYear.Value);
+                    .AnyAsync(m => m.ElectionYear == electionYear.Value);
                 if (existing)
                 {
-                    gosaError = $"ГОСА за {gosaYear.Value} год уже существует. Нельзя создать более одного ГОСА в году.";
+                    gosaError = $"Состав СД за {electionYear.Value} год уже существует. Нельзя создать более одного состава в год.";
                     Logger.LogWarning("Валидация не пройдена для ОСА тип {OsaFormCode}: {Errors}", form.Code, gosaError);
                     return;
                 }
@@ -1457,7 +1457,7 @@
                 OsaFormId = form.Id,
                 GosaWindowStart = form.Code == "GOSA" ? gosaStart : null,
                 GosaWindowEnd = form.Code == "GOSA" ? gosaEnd : null,
-                GosaYear = form.Code == "GOSA" ? gosaYear : null,
+                ElectionYear = form.Code == "GOSA" ? electionYear : null,
                 AbsenteeVoting = form.Code == "VOSA" && createAbsenteeVoting,
                 BallotDeadline = form.Code == "VOSA" && createAbsenteeVoting
                     ? createBallotDeadline.ToUniversalTime() : null,
@@ -1496,7 +1496,7 @@
         editGosaStart = m.GosaWindowStart ?? new DateOnly(DateTime.UtcNow.Year, 3, 1);
         editTitle = m.Title ?? (editIsGosa ? BuildGosaTitle(editGosaStart) : string.Empty);
         editGosaEnd = m.GosaWindowEnd ?? new DateOnly(DateTime.UtcNow.Year, 6, 30);
-        editGosaYear = m.GosaYear ?? (editIsGosa ? DateTime.UtcNow.Year : null);
+        editElectionYear = m.ElectionYear ?? (editIsGosa ? DateTime.UtcNow.Year : null);
 
         if (m.LegalEntityId != Guid.Empty)
         {
@@ -1559,7 +1559,7 @@
 
         // Загружаем или создаём запись Совета директоров
         var board = await ctx.BoardsOfDirectors.FirstOrDefaultAsync(x => x.OsaMeetingId == meetingId);
-        if (board == null && editGosaYear.HasValue)
+        if (board == null && editElectionYear.HasValue)
         {
             var draftStatusId = await ctx.BoardOfDirectorsStatuses
                 .Where(s => s.Code == "DRAFT")
@@ -1569,7 +1569,7 @@
             {
                 Id = Guid.NewGuid(),
                 OsaMeetingId = meetingId,
-                GosaYear = editGosaYear.Value,
+                ElectionYear = editElectionYear.Value,
                 StatusId = draftStatusId
             };
             ctx.BoardsOfDirectors.Add(board);
@@ -2103,7 +2103,7 @@
                 BoardMemberNumber = editBoardMemberNumber,
                 HasGosaInterval = editIsGosa && !editAbsenteeVoting,
                 IsAbsentee = editAbsenteeVoting,
-                GosaYear = editGosaYear,
+                ElectionYear = editElectionYear,
                 ExecutiveDirectorsParticipate = editExecDirectors,
                 ExecutiveDirectorsCount = editExecDirectorsCount,
                 NonExecutiveDirectorsParticipate = editNonExecDirectors,
@@ -2285,7 +2285,7 @@
             {
                 MeetingId = editingMeetingId.Value,
                 IsGosa = editIsGosa,
-                GosaYear = editGosaYear,
+                ElectionYear = editElectionYear,
                 GosaStart = editGosaStart,
                 GosaEnd = editGosaEnd,
                 Title = editTitle,
@@ -2633,7 +2633,7 @@
         // Сводка по активации/деактивации СД
         _boardActivationSummary = null;
         var boardDate = editGosaStart;
-        var newBoardName = editGosaYear.HasValue ? $"Совет директоров {editGosaYear.Value}" : "новый состав";
+        var newBoardName = editElectionYear.HasValue ? $"Совет директоров {editElectionYear.Value}" : "новый состав";
 
         var prevBoard = await ctx.BoardsOfDirectors
             .Where(b => b.Status.Code == "ACTIVE")
@@ -2641,7 +2641,7 @@
             .FirstOrDefaultAsync();
         if (prevBoard != null)
         {
-            var prevName = prevBoard.GosaYear.HasValue ? $"Совет директоров {prevBoard.GosaYear.Value}" : "предыдущий состав";
+            var prevName = prevBoard.ElectionYear.HasValue ? $"Совет директоров {prevBoard.ElectionYear.Value}" : "предыдущий состав";
             _boardActivationSummary = $"Состав «{prevName}» будет деактивирован (окончание полномочий: {boardDate.AddDays(-1):dd.MM.yyyy}). ";
         }
         _boardActivationSummary += $"«{newBoardName}» будет активирован (дата начала полномочий: {boardDate:dd.MM.yyyy}).";

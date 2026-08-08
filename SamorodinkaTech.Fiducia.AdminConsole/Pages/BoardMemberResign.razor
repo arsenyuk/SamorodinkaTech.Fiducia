@@ -14,7 +14,7 @@
 else if (_step == 1)
 {
     <h3>Сложение полномочий</h3>
-    <p class="text-muted">Совет директоров @_gosaYear — @_member.FullName (@_member.RoleName)</p>
+    <p class="text-muted">Совет директоров @_electionYear — @_member.FullName (@_member.RoleName)</p>
 
     <div class="row">
         <div class="col-md-6">
@@ -172,7 +172,7 @@ else if (_step == 2)
 
     private MemberInfo? _member;
     private List<RefResignationReason> _reasons = new();
-    private int? _gosaYear;
+    private int? _electionYear;
     private int _step = 1;
 
     private string? _reasonId;
@@ -202,7 +202,7 @@ else if (_step == 2)
             var board = await ctx.BoardsOfDirectors
                 .FirstOrDefaultAsync(b => b.Id == BoardId);
             if (board is null) { _error = "Совет директоров не найден."; return; }
-            _gosaYear = board.GosaYear;
+            _electionYear = board.ElectionYear;
 
             _reasons = await ctx.Set<RefResignationReason>().OrderBy(r => r.Code).ToListAsync();
 

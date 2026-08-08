@@ -21,7 +21,7 @@ public static class OsaMeetingValidator
         ValidateShareholdersCount(model, orgType, result);
         ValidateBoardMembers(model, orgType, result);
         ValidateBoardMandatory(model, orgType, result);
-        ValidateGosaYear(model, result);
+        ValidateElectionYear(model, result);
         ValidateDirectorTypes(model, result);
 
         return result;
@@ -84,17 +84,17 @@ public static class OsaMeetingValidator
         }
     }
 
-    private static void ValidateGosaYear(
+    private static void ValidateElectionYear(
         OsaMeetingValidationModel model,
         LegalEntitySaveValidationResult result)
     {
-        if (!model.GosaYear.HasValue || model.GosaYear.Value <= 0)
+        if (!model.ElectionYear.HasValue || model.ElectionYear.Value <= 0)
             return;
 
-        // Проверка: год должен быть разумным (не раньше основания АО и не в далёком будущем)
-        if (model.GosaYear.Value < 1990 || model.GosaYear.Value > DateTime.UtcNow.Year + 5)
+        // Проверка: год должен быть разумным (не раньше 1990 и не в далёком будущем)
+        if (model.ElectionYear.Value < 1990 || model.ElectionYear.Value > DateTime.UtcNow.Year + 5)
             result.AddError(
-                $"Год проведения ГОСА ({model.GosaYear.Value}) вне допустимого диапазона.");
+                $"Год избрания ({model.ElectionYear.Value}) вне допустимого диапазона.");
     }
 
     private static void ValidateDirectorTypes(
@@ -117,7 +117,7 @@ public static class OsaMeetingValidator
     }
 
     /// <summary>
-    /// DB-валидатор: проверяет, что ГОСА с указанным годом ещё не существует.
+    /// DB-валидатор: проверяет, что состав СД с указанным годом избрания ещё не существует.
     /// Принимает IApplicationDbContext (порт) для инверсии зависимостей.
     /// </summary>
     /// <param name="db">Контекст БД (абстракция).</param>
@@ -125,25 +125,25 @@ public static class OsaMeetingValidator
     ///   Идентификатор редактируемой записи при редактировании.
     ///   При создании новой записи передаётся null.
     /// </param>
-    /// <param name="gosaYear">Предлагаемый год ГОСА.</param>
+    /// <param name="electionYear">Предлагаемый год избрания.</param>
     /// <returns>Результат валидации с ошибкой при обнаружении дубликата.</returns>
-    public static LegalEntitySaveValidationResult ValidateUniqueGosaYear(
+    public static LegalEntitySaveValidationResult ValidateUniqueElectionYear(
         IApplicationDbContext db,
         Guid? currentMeetingId,
-        int? gosaYear)
+        int? electionYear)
     {
         var result = new LegalEntitySaveValidationResult();
 
-        if (!gosaYear.HasValue || gosaYear.Value <= 0)
+        if (!electionYear.HasValue || electionYear.Value <= 0)
             return result;
 
         var duplicate = currentMeetingId.HasValue
-            ? db.OsaMeetings.Any(m => m.Id != currentMeetingId.Value && m.GosaYear == gosaYear.Value)
-            : db.OsaMeetings.Any(m => m.GosaYear == gosaYear.Value);
+            ? db.OsaMeetings.Any(m => m.Id != currentMeetingId.Value && m.ElectionYear == electionYear.Value)
+            : db.OsaMeetings.Any(m => m.ElectionYear == electionYear.Value);
 
         if (duplicate)
             result.AddError(
-                $"ГОСА за {gosaYear.Value} год уже существует. Нельзя создать более одного ГОСА в году.");
+                $"Состав СД за {electionYear.Value} год уже существует. Нельзя создать более одного состава в году.");
 
         return result;
     }

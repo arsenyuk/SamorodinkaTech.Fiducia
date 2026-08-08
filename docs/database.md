@@ -214,7 +214,7 @@ erDiagram
         varchar title
         date gosa_window_start
         date gosa_window_end
-        int gosa_year
+        int election_year
         int shareholders_count
         int board_min_number
         int board_member_number

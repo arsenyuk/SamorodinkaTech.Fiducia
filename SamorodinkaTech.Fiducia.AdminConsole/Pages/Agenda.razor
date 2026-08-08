@@ -38,7 +38,7 @@ else
                     <td>@item.Reason</td>
                     <td>
                         <a href="/board-of-directors/@item.BoardOfDirectorsId" class="text-decoration-none">
-                            СД @(item.BoardGosaYear?.ToString() ?? "—")
+                            СД @(item.BoardElectionYear?.ToString() ?? "—")
                         </a>
                     </td>
                     <td>
@@ -62,7 +62,7 @@ else
         public string Status { get; init; } = default!;
         public DateTime CreatedAt { get; init; }
         public Guid BoardOfDirectorsId { get; init; }
-        public int? BoardGosaYear { get; init; }
+        public int? BoardElectionYear { get; init; }
     }
 
     protected override async Task OnInitializedAsync()
@@ -82,9 +82,9 @@ else
                     Status = a.Status,
                     CreatedAt = a.CreatedAt,
                     BoardOfDirectorsId = a.BoardOfDirectorsId,
-                    BoardGosaYear = ctx.BoardsOfDirectors
+                    BoardElectionYear = ctx.BoardsOfDirectors
                         .Where(b => b.Id == a.BoardOfDirectorsId)
-                        .Select(b => b.GosaYear)
+                        .Select(b => b.ElectionYear)
                         .FirstOrDefault()
                 })
                 .ToListAsync();

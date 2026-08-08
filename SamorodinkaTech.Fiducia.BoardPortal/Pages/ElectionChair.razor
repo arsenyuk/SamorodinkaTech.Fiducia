@@ -134,7 +134,7 @@
 
         var board = await ctx.BoardsOfDirectors
             .FirstOrDefaultAsync(b => b.Id == proposal.BoardOfDirectorsId);
-        _boardName = board is not null ? $"Состав СД" + (board.GosaYear.HasValue ? $" за {board.GosaYear.Value} год" : "") : "";
+        _boardName = board is not null ? $"Состав СД" + (board.ElectionYear.HasValue ? $" за {board.ElectionYear.Value} год" : "") : "";
 
         var members = await ctx.BoardMembers
             .Where(m => m.BoardOfDirectorsId == proposal.BoardOfDirectorsId)

@@ -196,7 +196,7 @@ CREATE TABLE IF NOT EXISTS osa_meetings (
     osa_form_id uuid NOT NULL REFERENCES ref_osa_form(id) ON DELETE RESTRICT,
     gosa_window_start date,
     gosa_window_end date,
-    gosa_year int,
+    election_year int,
     shareholders_count int,
     board_min_number int,
     board_member_number int,
@@ -250,7 +250,7 @@ CREATE TABLE IF NOT EXISTS board_of_directors (
     id uuid PRIMARY KEY,
     osa_meeting_id uuid NOT NULL REFERENCES osa_meetings(id) ON DELETE CASCADE,
     status_id uuid NOT NULL REFERENCES ref_board_of_directors_statuses(id),
-    gosa_year integer,
+    election_year integer,
     started_at date,
     ended_at date
 );

@@ -195,7 +195,7 @@ public class OsaMeetingValidatorTests
             BoardMemberNumber = 7,
             HasGosaInterval = false,
             IsAbsentee = false,
-            GosaYear = DateTime.UtcNow.Year,
+            ElectionYear = DateTime.UtcNow.Year,
             ExecutiveDirectorsParticipate = true,
             ExecutiveDirectorsCount = 3,
             NonExecutiveDirectorsParticipate = true,
@@ -428,13 +428,13 @@ public class OsaMeetingValidatorTests
         result.IsValid.Should().BeTrue();
     }
 
-    // ── GosaYear ────────────────────────────────────────────────────────
+    // ── ElectionYear ────────────────────────────────────────────────────────
 
     /// <summary>
-    /// Год ГОСА равен текущему году — валидация успешна.
+    /// Год избрания равен текущему году — валидация успешна.
     /// </summary>
     [Fact]
-    public void GosaYear_ValidCurrentYear_ShouldPass()
+    public void ElectionYear_ValidCurrentYear_ShouldPass()
     {
         var model = new OsaMeetingValidationModel
         {
@@ -442,7 +442,7 @@ public class OsaMeetingValidatorTests
             ShareholdersCount = 100,
             BoardMinNumber = 5,
             BoardMemberNumber = 7,
-            GosaYear = DateTime.UtcNow.Year
+            ElectionYear = DateTime.UtcNow.Year
         };
 
         var result = OsaMeetingValidator.Validate(model);
@@ -451,10 +451,10 @@ public class OsaMeetingValidatorTests
     }
 
     /// <summary>
-    /// Год ГОСА равен следующему году — валидация успешна.
+    /// Год избрания равен следующему году — валидация успешна.
     /// </summary>
     [Fact]
-    public void GosaYear_NextYear_ShouldPass()
+    public void ElectionYear_NextYear_ShouldPass()
     {
         var model = new OsaMeetingValidationModel
         {
@@ -462,7 +462,7 @@ public class OsaMeetingValidatorTests
             ShareholdersCount = 100,
             BoardMinNumber = 5,
             BoardMemberNumber = 7,
-            GosaYear = DateTime.UtcNow.Year + 1
+            ElectionYear = DateTime.UtcNow.Year + 1
         };
 
         var result = OsaMeetingValidator.Validate(model);
@@ -471,10 +471,10 @@ public class OsaMeetingValidatorTests
     }
 
     /// <summary>
-    /// Год ГОСА равен текущему году + 2 — валидация успешна.
+    /// Год избрания равен текущему году + 2 — валидация успешна.
     /// </summary>
     [Fact]
-    public void GosaYear_TwoYearsAhead_ShouldPass()
+    public void ElectionYear_TwoYearsAhead_ShouldPass()
     {
         var model = new OsaMeetingValidationModel
         {
@@ -482,7 +482,7 @@ public class OsaMeetingValidatorTests
             ShareholdersCount = 100,
             BoardMinNumber = 5,
             BoardMemberNumber = 7,
-            GosaYear = DateTime.UtcNow.Year + 2
+            ElectionYear = DateTime.UtcNow.Year + 2
         };
 
         var result = OsaMeetingValidator.Validate(model);
@@ -491,10 +491,10 @@ public class OsaMeetingValidatorTests
     }
 
     /// <summary>
-    /// Год ГОСА меньше 1990 — ошибка валидации (выход за нижнюю границу диапазона).
+    /// Год избрания меньше 1990 — ошибка валидации (выход за нижнюю границу диапазона).
     /// </summary>
     [Fact]
-    public void GosaYear_Below1990_ShouldFail()
+    public void ElectionYear_Below1990_ShouldFail()
     {
         var model = new OsaMeetingValidationModel
         {
@@ -502,7 +502,7 @@ public class OsaMeetingValidatorTests
             ShareholdersCount = 100,
             BoardMinNumber = 5,
             BoardMemberNumber = 7,
-            GosaYear = 1989
+            ElectionYear = 1989
         };
 
         var result = OsaMeetingValidator.Validate(model);
@@ -512,10 +512,10 @@ public class OsaMeetingValidatorTests
     }
 
     /// <summary>
-    /// Год ГОСА равен ровно 1990 (нижняя граница) — валидация успешна.
+    /// Год избрания равен ровно 1990 (нижняя граница) — валидация успешна.
     /// </summary>
     [Fact]
-    public void GosaYear_Exactly1990_ShouldPass()
+    public void ElectionYear_Exactly1990_ShouldPass()
     {
         var model = new OsaMeetingValidationModel
         {
@@ -523,7 +523,7 @@ public class OsaMeetingValidatorTests
             ShareholdersCount = 100,
             BoardMinNumber = 5,
             BoardMemberNumber = 7,
-            GosaYear = 1990
+            ElectionYear = 1990
         };
 
         var result = OsaMeetingValidator.Validate(model);
@@ -532,10 +532,10 @@ public class OsaMeetingValidatorTests
     }
 
     /// <summary>
-    /// Год ГОСА равен текущему + 10 (слишком далеко в будущем) — ошибка валидации.
+    /// Год избрания равен текущему + 10 (слишком далеко в будущем) — ошибка валидации.
     /// </summary>
     [Fact]
-    public void GosaYear_FarFuture_ShouldFail()
+    public void ElectionYear_FarFuture_ShouldFail()
     {
         var model = new OsaMeetingValidationModel
         {
@@ -543,7 +543,7 @@ public class OsaMeetingValidatorTests
             ShareholdersCount = 100,
             BoardMinNumber = 5,
             BoardMemberNumber = 7,
-            GosaYear = DateTime.UtcNow.Year + 10
+            ElectionYear = DateTime.UtcNow.Year + 10
         };
 
         var result = OsaMeetingValidator.Validate(model);
@@ -552,10 +552,10 @@ public class OsaMeetingValidatorTests
     }
 
     /// <summary>
-    /// Год ГОСА не указан (null) — проверка пропускается.
+    /// Год избрания не указан (null) — проверка пропускается.
     /// </summary>
     [Fact]
-    public void GosaYear_Null_ShouldSkipCheck()
+    public void ElectionYear_Null_ShouldSkipCheck()
     {
         var model = new OsaMeetingValidationModel
         {
@@ -563,7 +563,7 @@ public class OsaMeetingValidatorTests
             ShareholdersCount = 100,
             BoardMinNumber = 5,
             BoardMemberNumber = 7,
-            GosaYear = null
+            ElectionYear = null
         };
 
         var result = OsaMeetingValidator.Validate(model);
@@ -572,10 +572,10 @@ public class OsaMeetingValidatorTests
     }
 
     /// <summary>
-    /// Год ГОСА равен нулю — проверка пропускается (ноль эквивалентен отсутствию).
+    /// Год избрания равен нулю — проверка пропускается (ноль эквивалентен отсутствию).
     /// </summary>
     [Fact]
-    public void GosaYear_Zero_ShouldSkipCheck()
+    public void ElectionYear_Zero_ShouldSkipCheck()
     {
         var model = new OsaMeetingValidationModel
         {
@@ -583,7 +583,7 @@ public class OsaMeetingValidatorTests
             ShareholdersCount = 100,
             BoardMinNumber = 5,
             BoardMemberNumber = 7,
-            GosaYear = 0
+            ElectionYear = 0
         };
 
         var result = OsaMeetingValidator.Validate(model);
@@ -592,10 +592,10 @@ public class OsaMeetingValidatorTests
     }
 
     /// <summary>
-    /// Год ГОСА равен текущему + 5 (граница допустимого) — валидация успешна.
+    /// Год избрания равен текущему + 5 (граница допустимого) — валидация успешна.
     /// </summary>
     [Fact]
-    public void GosaYear_BoundaryPlus5_ShouldPass()
+    public void ElectionYear_BoundaryPlus5_ShouldPass()
     {
         var model = new OsaMeetingValidationModel
         {
@@ -603,7 +603,7 @@ public class OsaMeetingValidatorTests
             ShareholdersCount = 100,
             BoardMinNumber = 5,
             BoardMemberNumber = 7,
-            GosaYear = DateTime.UtcNow.Year + 5
+            ElectionYear = DateTime.UtcNow.Year + 5
         };
 
         var result = OsaMeetingValidator.Validate(model);
@@ -612,10 +612,10 @@ public class OsaMeetingValidatorTests
     }
 
     /// <summary>
-    /// Год ГОСА равен текущему + 6 (за границей допустимого) — ошибка валидации.
+    /// Год избрания равен текущему + 6 (за границей допустимого) — ошибка валидации.
     /// </summary>
     [Fact]
-    public void GosaYear_BoundaryPlus6_ShouldFail()
+    public void ElectionYear_BoundaryPlus6_ShouldFail()
     {
         var model = new OsaMeetingValidationModel
         {
@@ -623,7 +623,7 @@ public class OsaMeetingValidatorTests
             ShareholdersCount = 100,
             BoardMinNumber = 5,
             BoardMemberNumber = 7,
-            GosaYear = DateTime.UtcNow.Year + 6
+            ElectionYear = DateTime.UtcNow.Year + 6
         };
 
         var result = OsaMeetingValidator.Validate(model);
@@ -634,10 +634,10 @@ public class OsaMeetingValidatorTests
     }
 
     /// <summary>
-    /// Год ГОСА равен прошлому году — валидация успешна.
+    /// Год избрания равен прошлому году — валидация успешна.
     /// </summary>
     [Fact]
-    public void GosaYear_PastYear_ShouldPass()
+    public void ElectionYear_PastYear_ShouldPass()
     {
         var model = new OsaMeetingValidationModel
         {
@@ -645,7 +645,7 @@ public class OsaMeetingValidatorTests
             ShareholdersCount = 100,
             BoardMinNumber = 5,
             BoardMemberNumber = 7,
-            GosaYear = DateTime.UtcNow.Year - 1
+            ElectionYear = DateTime.UtcNow.Year - 1
         };
 
         var result = OsaMeetingValidator.Validate(model);
@@ -675,10 +675,10 @@ public class OsaMeetingValidatorTests
     }
 
     /// <summary>
-    /// Комбинация ошибок по году ГОСА и числу членов СД — обе ошибки попадают в результат.
+    /// Комбинация ошибок по году избрания и числу членов СД — обе ошибки попадают в результат.
     /// </summary>
     [Fact]
-    public void Combined_GosaYearPlusBoardMembers_ShouldReportAllErrors()
+    public void Combined_ElectionYearPlusBoardMembers_ShouldReportAllErrors()
     {
         var model = new OsaMeetingValidationModel
         {
@@ -686,7 +686,7 @@ public class OsaMeetingValidatorTests
             ShareholdersCount = 100,
             BoardMinNumber = 5,
             BoardMemberNumber = 2,
-            GosaYear = DateTime.UtcNow.Year + 10
+            ElectionYear = DateTime.UtcNow.Year + 10
         };
 
         var result = OsaMeetingValidator.Validate(model);
@@ -855,7 +855,7 @@ public class OsaMeetingValidatorTests
             BoardMemberNumber = 9,
             HasGosaInterval = true,
             IsAbsentee = false,
-            GosaYear = DateTime.UtcNow.Year,
+            ElectionYear = DateTime.UtcNow.Year,
             ExecutiveDirectorsParticipate = true,
             ExecutiveDirectorsCount = 3,
             NonExecutiveDirectorsParticipate = true,
@@ -885,7 +885,7 @@ public class OsaMeetingValidatorTests
             BoardMemberNumber = 5,
             HasGosaInterval = true,
             IsAbsentee = false,
-            GosaYear = DateTime.UtcNow.Year + 1,
+            ElectionYear = DateTime.UtcNow.Year + 1,
             ExecutiveDirectorsParticipate = true,
             ExecutiveDirectorsCount = 2,
             NonExecutiveDirectorsParticipate = true,
@@ -1097,10 +1097,10 @@ public class OsaMeetingValidatorTests
     }
 
     /// <summary>
-    /// Сумма директоров по типам превышает лимит + год ГОСА вне диапазона — обе ошибки в результате.
+    /// Сумма директоров по типам превышает лимит + год избрания вне диапазона — обе ошибки в результате.
     /// </summary>
     [Fact]
-    public void Combined_DirectorTypesPlusGosaYear_ShouldReportBoth()
+    public void Combined_DirectorTypesPlusElectionYear_ShouldReportBoth()
     {
         var model = new OsaMeetingValidationModel
         {
@@ -1113,7 +1113,7 @@ public class OsaMeetingValidatorTests
             NonExecutiveDirectorsParticipate = true,
             NonExecutiveDirectorsCount = 3,
             IndependentDirectorsParticipate = false,
-            GosaYear = DateTime.UtcNow.Year + 6
+            ElectionYear = DateTime.UtcNow.Year + 6
         };
 
         var result = OsaMeetingValidator.Validate(model);

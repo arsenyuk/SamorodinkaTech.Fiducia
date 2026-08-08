@@ -10,9 +10,9 @@ public class MeetingSaveModel
 {
     public Guid MeetingId { get; init; }
 
-    // ── GOsa ──────────────────────────────────────────────────────
+    // ── Год избрания ──────────────────────────────────────────────
     public bool IsGosa { get; init; }
-    public int? GosaYear { get; init; }
+    public int? ElectionYear { get; init; }
     public DateOnly GosaStart { get; init; }
     public DateOnly GosaEnd { get; init; }
     public string? Title { get; init; }
@@ -80,7 +80,7 @@ public interface IMeetingSaveService
     /// <summary>
     /// Сохраняет собрание: обновляет сущность OsaMeeting, создаёт/обновляет BoardOfDirectors,
     /// заменяет состав BoardMembers + BoardMemberAppointments.
-    /// Проверяет уникальность года ГОСА (DB-валидация).
+    /// Проверяет уникальность года избрания (DB-валидация).
     /// </summary>
     Task<MeetingSaveResult> SaveAsync(
         MeetingSaveModel model,
