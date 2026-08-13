@@ -90,7 +90,7 @@ builder.Services.AddSingleton<ISessionService, SessionService>();
 
 // Security Audit Service (РСБ.2 + РСБ.3)
 // Файловая запись аудита — через Serilog sub-logger (фильтр по SourceContext)
-builder.Services.AddScoped<ISecurityAuditService, SecurityAuditService>();
+builder.Services.AddSingleton<ISecurityAuditService, SecurityAuditService>();
 
 // Notification Service (US-009)
 builder.Services.AddScoped<INotificationService, NotificationService>();

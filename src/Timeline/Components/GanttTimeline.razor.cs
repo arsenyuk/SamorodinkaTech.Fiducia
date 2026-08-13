@@ -201,6 +201,10 @@ public abstract class GanttTimelineBase : ComponentBase
         _years.Clear();
         if (_days == null || _days.Count == 0) return;
 
+        // Минимальная доля полного года для отображения неполного года (1/3).
+        const double minYearFraction = 1.0 / 3.0;
+        var minSpan = (int)(365 * minYearFraction);
+
         var currentYear = _days[0].Year;
         var span = 0;
 
@@ -208,13 +212,13 @@ public abstract class GanttTimelineBase : ComponentBase
         {
             if (d.Year != currentYear)
             {
-                _years.Add((currentYear, $"{currentYear} год", span));
+                _years.Add((currentYear, $"{currentYear} год", Math.Max(span, minSpan)));
                 currentYear = d.Year;
                 span = 0;
             }
             span++;
         }
-        _years.Add((currentYear, $"{currentYear} год", span));
+        _years.Add((currentYear, $"{currentYear} год", Math.Max(span, minSpan)));
     }
 
     private void ComputeTodayOffset()
