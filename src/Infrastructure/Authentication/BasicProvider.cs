@@ -49,6 +49,14 @@ public class BasicProvider : IAuthProvider
             ?? user.UserRoles.Select(ur => ur.Role?.Code).FirstOrDefault()
             ?? "MEMBER_BOARD";
 
+        // Проверяем наличие подписанного ПЭП для внешнего директора
+        var hasPep = false;
+        if (user.IsExternal && user.PersonId.HasValue)
+        {
+            hasPep = await _dbContext.PepAgreements
+                .AnyAsync(a => a.PersonId == user.PersonId.Value && a.AgreementSigned);
+        }
+
         return new AuthResult
         {
             Success = true,
@@ -58,7 +66,8 @@ public class BasicProvider : IAuthProvider
             {
                 ["role"] = roleName,
                 ["email"] = user.Email,
-                ["is_external"] = user.IsExternal.ToString()
+                ["is_external"] = user.IsExternal.ToString(),
+                ["pep_signed"] = hasPep.ToString()
             }
         };
     }

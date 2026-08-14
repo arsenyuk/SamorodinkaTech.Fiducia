@@ -242,10 +242,17 @@
                 _user = null;
             }
 
-            // Если уже завершил онбординг
-            if (_user?.DeclarationCompleted == true && _user?.PepAgreementSigned == true)
+            // Если уже завершил онбординг (анкета заполнена + ПЭП подписан)
+            if (_user?.PersonId.HasValue == true)
             {
-                _isCompleted = true;
+                var hasDeclaration = await DbContext.IndependenceDeclarations
+                    .AnyAsync(d => d.PersonId == _user.PersonId.Value && d.Completed);
+                var hasPep = await DbContext.PepAgreements
+                    .AnyAsync(a => a.PersonId == _user.PersonId.Value && a.AgreementSigned);
+                if (hasDeclaration && hasPep)
+                {
+                    _isCompleted = true;
+                }
             }
         }
     }
@@ -262,20 +269,23 @@
 
     private async Task SaveDeclaration()
     {
-        if (_user == null) return;
+        if (_user == null || !_user.PersonId.HasValue) return;
 
-        var declaration = new
+        var declaration = new IndependenceDeclaration
         {
+            Id = Guid.NewGuid(),
+            PersonId = _user.PersonId.Value,
             HiddenShares = _hiddenShares,
             FamilyConnections = _familyConnections,
             OtherBoards = _otherBoards,
             NoCriminalRecord = _noCriminalRecord,
-            NoBankruptcy = _noBankruptcy
+            NoBankruptcy = _noBankruptcy,
+            Completed = true,
+            CompletedAt = DateTime.UtcNow,
+            CreatedAt = DateTime.UtcNow
         };
 
-        _user.DeclarationData = System.Text.Json.JsonSerializer.Serialize(declaration);
-        _user.DeclarationCompleted = true;
-
+        DbContext.IndependenceDeclarations.Add(declaration);
         await DbContext.SaveChangesAsync();
         _currentStep = 3;
     }
@@ -295,10 +305,32 @@
         {
             if (_user != null)
             {
-                _user.PepAgreementSigned = true;
-                _user.PepSignedAt = DateTime.UtcNow;
-                _user.PdnConsentGiven = _pdnConsentGiven;
-                _user.PdnConsentAt = DateTime.UtcNow;
+                // Создаём запись ПЭП, привязанную к ФЛ
+                if (_user.PersonId.HasValue)
+                {
+                    var pepAgreement = new PepAgreement
+                    {
+                        Id = Guid.NewGuid(),
+                        PersonId = _user.PersonId.Value,
+                        AgreementSigned = true,
+                        SignedAt = DateTime.UtcNow,
+                        CreatedAt = DateTime.UtcNow
+                    };
+                    DbContext.PepAgreements.Add(pepAgreement);
+
+                    // Создаём запись согласия на обработку ПДн, привязанную к ФЛ
+                    var consent = new PdnConsent
+                    {
+                        Id = Guid.NewGuid(),
+                        PersonId = _user.PersonId.Value,
+                        ConsentGiven = _pdnConsentGiven,
+                        ConsentAt = DateTime.UtcNow,
+                        ConsentIp = null, // TODO: получить IP из HttpContext
+                        CreatedAt = DateTime.UtcNow
+                    };
+                    DbContext.PdnConsents.Add(consent);
+                }
+
                 await DbContext.SaveChangesAsync();
                 _isCompleted = true;
             }

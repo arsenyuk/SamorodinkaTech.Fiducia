@@ -4,29 +4,93 @@
 -- CREATE EXTENSION IF NOT EXISTS pgcrypto; -- не требуется для явной генерации UUID на стороне приложения/скриптов
 
 -- ============================================================================
--- Пользователи (создаются первыми — ref_* ссылаются на users)
+-- Физические лица (создаются первыми — users и pdn_consents ссылаются на persons)
+-- ============================================================================
+
+-- Таблица: persons (физические лица)
+CREATE TABLE IF NOT EXISTS persons (
+    id uuid PRIMARY KEY,
+    last_name varchar(150) NOT NULL,
+    first_name varchar(150) NOT NULL,
+    middle_name varchar(150),
+    email varchar(255) UNIQUE NOT NULL,
+    phone varchar(20),
+    inn varchar(12),
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    created_by uuid NOT NULL REFERENCES users(id)
+);
+
+CREATE INDEX IF NOT EXISTS ix_persons_inn ON persons(inn);
+
+-- ============================================================================
+-- Согласия на обработку ПДн (привязаны к ФЛ, а не к пользователю)
+-- ============================================================================
+
+-- Таблица: pdn_consents (согласия на обработку персональных данных)
+CREATE TABLE IF NOT EXISTS pdn_consents (
+    id uuid PRIMARY KEY,
+    person_id uuid NOT NULL REFERENCES persons(id) ON DELETE RESTRICT,
+    consent_given boolean DEFAULT FALSE NOT NULL,
+    consent_at timestamp with time zone,
+    consent_ip varchar(45),
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS ix_pdn_consents_person_id ON pdn_consents(person_id);
+
+-- ============================================================================
+-- ПЭП: соглашение о Politically Exposed Person (привязано к ФЛ)
+-- ============================================================================
+
+-- Таблица: pep_agreements (соглашения о ПЭП)
+CREATE TABLE IF NOT EXISTS pep_agreements (
+    id uuid PRIMARY KEY,
+    person_id uuid NOT NULL REFERENCES persons(id) ON DELETE RESTRICT,
+    agreement_signed boolean DEFAULT FALSE NOT NULL,
+    signed_at timestamp with time zone,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS ix_pep_agreements_person_id ON pep_agreements(person_id);
+
+-- ============================================================================
+-- Анкета соответствия критериям независимости (привязана к ФЛ)
+-- ============================================================================
+
+-- Таблица: independence_declarations (анкеты независимости)
+CREATE TABLE IF NOT EXISTS independence_declarations (
+    id uuid PRIMARY KEY,
+    person_id uuid NOT NULL REFERENCES persons(id) ON DELETE RESTRICT,
+    hidden_shares text,
+    family_connections text,
+    other_boards text,
+    no_criminal_record boolean DEFAULT FALSE NOT NULL,
+    no_bankruptcy boolean DEFAULT FALSE NOT NULL,
+    completed boolean DEFAULT FALSE NOT NULL,
+    completed_at timestamp with time zone,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS ix_independence_declarations_person_id ON independence_declarations(person_id);
+
+-- ============================================================================
+-- Пользователи (создаются после persons — ссылаются на persons)
 -- ============================================================================
 
 -- Таблица: users
 CREATE TABLE IF NOT EXISTS users (
     id uuid PRIMARY KEY,
+    person_id uuid REFERENCES persons(id) ON DELETE SET NULL,
     last_name varchar(150) NOT NULL,
     first_name varchar(150) NOT NULL,
     middle_name varchar(150),
     email varchar(255) UNIQUE NOT NULL,
     phone varchar(20) UNIQUE NOT NULL,
     is_external boolean DEFAULT FALSE NOT NULL,
-    pep_agreement_signed boolean DEFAULT FALSE NOT NULL,
-    pep_signed_at timestamp with time zone,
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    -- онбординг внешних директоров и согласия ПДн
+    -- онбординг внешних директоров
     invitation_token varchar(255),
     invitation_expires_at timestamp with time zone,
-    declaration_completed boolean DEFAULT FALSE NOT NULL,
-    declaration_data text,
-    pdn_consent_given boolean DEFAULT FALSE NOT NULL,
-    pdn_consent_at timestamp with time zone,
-    pdn_consent_ip varchar(45),
     -- управление учётной записью
     is_active boolean DEFAULT TRUE NOT NULL,
     account_expires_at timestamp with time zone,
@@ -37,6 +101,7 @@ CREATE TABLE IF NOT EXISTS users (
 CREATE INDEX IF NOT EXISTS ix_users_is_external ON users(is_external);
 CREATE INDEX IF NOT EXISTS ix_users_is_active ON users(is_active);
 CREATE INDEX IF NOT EXISTS ix_users_is_system ON users(is_system);
+CREATE INDEX IF NOT EXISTS ix_users_person_id ON users(person_id);
 
 -- ============================================================================
 -- Справочники (ref_*): не зависят от других таблиц

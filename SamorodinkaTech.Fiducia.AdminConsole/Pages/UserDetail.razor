@@ -99,11 +99,11 @@
                         <dd class="col-sm-9">
                             @if (_user.IsExternal)
                             {
-                                if (_user.PepAgreementSigned)
+                                if (_pepAgreement?.AgreementSigned == true)
                                 {
                                     <span class="badge bg-success">ПЭП подписан</span>
                                 }
-                                else if (_user.DeclarationCompleted)
+                                else if (_independenceDeclaration?.Completed == true)
                                 {
                                     <span class="badge bg-info">Анкета заполнена</span>
                                 }
@@ -168,6 +168,8 @@
     private string _tab = "info";
     private bool _loaded;
     private List<BoardMemberAppointment> _appointments = new();
+    private PepAgreement? _pepAgreement;
+    private IndependenceDeclaration? _independenceDeclaration;
 
     protected override async Task OnInitializedAsync()
     {
@@ -190,6 +192,18 @@
             _fullName = string.Join(" ",
                 new[] { _user.LastName, _user.FirstName, _user.MiddleName }
                 .Where(s => !string.IsNullOrWhiteSpace(s)));
+
+            // Загружаем записи, привязанные к ФЛ
+            if (_user.PersonId.HasValue)
+            {
+                _pepAgreement = await DbContext.PepAgreements
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(a => a.PersonId == _user.PersonId.Value);
+
+                _independenceDeclaration = await DbContext.IndependenceDeclarations
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(d => d.PersonId == _user.PersonId.Value);
+            }
 
             _appointments = await DbContext.BoardMemberAppointments
                 .AsNoTracking()

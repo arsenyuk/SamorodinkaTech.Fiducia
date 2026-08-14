@@ -9,6 +9,10 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
 {
     public FiduciaDbContext(DbContextOptions<FiduciaDbContext> options) : base(options) { }
 
+    public DbSet<Person> Persons => Set<Person>();
+    public DbSet<PdnConsent> PdnConsents => Set<PdnConsent>();
+    public DbSet<PepAgreement> PepAgreements => Set<PepAgreement>();
+    public DbSet<IndependenceDeclaration> IndependenceDeclarations => Set<IndependenceDeclaration>();
     public DbSet<User> Users => Set<User>();
     public DbSet<RefRole> Roles => Set<RefRole>();
     public DbSet<UserRole> UserRoles => Set<UserRole>();

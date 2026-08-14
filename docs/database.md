@@ -12,24 +12,60 @@
 
 ```mermaid
 erDiagram
+    persons {
+        uuid id PK
+        varchar last_name
+        varchar first_name
+        varchar middle_name
+        varchar email UK
+        varchar phone
+        varchar inn
+        timestamp created_at
+        uuid created_by FK
+    }
+
+    pdn_consents {
+        uuid id PK
+        uuid person_id FK
+        boolean consent_given
+        timestamp consent_at
+        varchar consent_ip
+        timestamp created_at
+    }
+
+    pep_agreements {
+        uuid id PK
+        uuid person_id FK
+        boolean agreement_signed
+        timestamp signed_at
+        timestamp created_at
+    }
+
+    independence_declarations {
+        uuid id PK
+        uuid person_id FK
+        text hidden_shares
+        text family_connections
+        text other_boards
+        boolean no_criminal_record
+        boolean no_bankruptcy
+        boolean completed
+        timestamp completed_at
+        timestamp created_at
+    }
+
     users {
         uuid id PK
+        uuid person_id FK
         varchar last_name
         varchar first_name
         varchar middle_name
         varchar email UK
         varchar phone UK
         boolean is_external
-        boolean pep_agreement_signed
-        timestamp pep_signed_at
         timestamp created_at
         varchar invitation_token
         timestamp invitation_expires_at
-        boolean declaration_completed
-        text declaration_data
-        boolean pdn_consent_given
-        timestamp pdn_consent_at
-        varchar pdn_consent_ip
         boolean is_active
         timestamp account_expires_at
         timestamp ldap_created_at
@@ -71,12 +107,6 @@ erDiagram
     }
 
     ref_okopf {
-        uuid id PK
-        varchar code UK
-        varchar name
-    }
-
-    okopf {
         uuid id PK
         varchar code UK
         varchar name
@@ -153,13 +183,11 @@ erDiagram
         timestamp log_timestamp
     }
 
-    influential_people {
-        uuid id PK
-        uuid legal_entity_id FK
-        varchar full_name
-        varchar position
-    }
-
+    persons ||--o{ pdn_consents : has
+    persons ||--o{ pep_agreements : has
+    persons ||--o{ independence_declarations : has
+    persons ||--o{ users : has
+    users ||--o{ persons : creates
     users ||--o{ user_roles : has
     ref_roles ||--o{ user_roles : has
     users ||--o{ committees : chairs
@@ -293,29 +321,139 @@ erDiagram
 
 ## Описание таблиц
 
-### users
+### persons
 
-Основная таблица пользователей.
+Физические лица (ФЛ). Хранит данные ФИО, ИНН, контактные данные.
 
 | Поле | Тип | Описание |
 |------|-----|----------|
 | `id` | UUID | Первичный ключ |
-| `last_name` | VARCHAR(150) | Фамилия (Им. падеж) |
+| `last_name` | VARCHAR(150) | Фамилия |
+| `first_name` | VARCHAR(150) | Имя |
+| `middle_name` | VARCHAR(150) | Отчество (nullable) |
+| `email` | VARCHAR(255) | Email (уникальный) |
+| `phone` | VARCHAR(20) | Телефон (nullable) |
+| `inn` | VARCHAR(12) | ИНН (nullable) |
+| `created_at` | TIMESTAMP WITH TIME ZONE | Дата создания |
+| `created_by` | UUID | Внешний ключ на users (кто создал) |
+
+```sql
+CREATE TABLE persons (
+    id UUID PRIMARY KEY,
+    last_name VARCHAR(150) NOT NULL,
+    first_name VARCHAR(150) NOT NULL,
+    middle_name VARCHAR(150),
+    email VARCHAR(255) UNIQUE NOT NULL,
+    phone VARCHAR(20),
+    inn VARCHAR(12),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    created_by UUID NOT NULL REFERENCES users(id)
+);
+
+CREATE INDEX ix_persons_inn ON persons(inn);
+```
+
+### pdn_consents
+
+Согласия на обработку персональных данных. Привязаны к физическому лицу, а не к учётной записи.
+
+| Поле | Тип | Описание |
+|------|-----|----------|
+| `id` | UUID | Первичный ключ |
+| `person_id` | UUID | Внешний ключ на persons |
+| `consent_given` | BOOLEAN | Факт выдачи согласия |
+| `consent_at` | TIMESTAMP WITH TIME ZONE | Дата и время выдачи согласия (nullable) |
+| `consent_ip` | VARCHAR(45) | IP-адрес при даче согласия (nullable) |
+| `created_at` | TIMESTAMP WITH TIME ZONE | Дата создания |
+
+```sql
+CREATE TABLE pdn_consents (
+    id UUID PRIMARY KEY,
+    person_id UUID NOT NULL REFERENCES persons(id) ON DELETE RESTRICT,
+    consent_given BOOLEAN DEFAULT FALSE NOT NULL,
+    consent_at TIMESTAMP WITH TIME ZONE,
+    consent_ip VARCHAR(45),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+CREATE INDEX ix_pdn_consents_person_id ON pdn_consents(person_id);
+```
+
+### pep_agreements
+
+Соглашения о ПЭП (Politically Exposed Person). Привязаны к физическому лицу.
+
+| Поле | Тип | Описание |
+|------|-----|----------|
+| `id` | UUID | Первичный ключ |
+| `person_id` | UUID | Внешний ключ на persons |
+| `agreement_signed` | BOOLEAN | Факт подписания соглашения |
+| `signed_at` | TIMESTAMP WITH TIME ZONE | Дата и время подписания (nullable) |
+| `created_at` | TIMESTAMP WITH TIME ZONE | Дата создания |
+
+```sql
+CREATE TABLE pep_agreements (
+    id UUID PRIMARY KEY,
+    person_id UUID NOT NULL REFERENCES persons(id) ON DELETE RESTRICT,
+    agreement_signed BOOLEAN DEFAULT FALSE NOT NULL,
+    signed_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+CREATE INDEX ix_pep_agreements_person_id ON pep_agreements(person_id);
+```
+
+### independence_declarations
+
+Анкета соответствия критериям независимости. Привязана к физическому лицу.
+
+| Поле | Тип | Описание |
+|------|-----|----------|
+| `id` | UUID | Первичный ключ |
+| `person_id` | UUID | Внешний ключ на persons |
+| `hidden_shares` | TEXT | Скрытые доли в других организациях (nullable) |
+| `family_connections` | TEXT | Родственные связи с топ-менеджментом (nullable) |
+| `other_boards` | TEXT | Участие в других советах директоров (nullable) |
+| `no_criminal_record` | BOOLEAN | Подтверждение отсутствия судимости |
+| `no_bankruptcy` | BOOLEAN | Подтверждение отсутствия банкротства |
+| `completed` | BOOLEAN | Анкета заполнена |
+| `completed_at` | TIMESTAMP WITH TIME ZONE | Дата заполнения (nullable) |
+| `created_at` | TIMESTAMP WITH TIME ZONE | Дата создания |
+
+```sql
+CREATE TABLE independence_declarations (
+    id UUID PRIMARY KEY,
+    person_id UUID NOT NULL REFERENCES persons(id) ON DELETE RESTRICT,
+    hidden_shares TEXT,
+    family_connections TEXT,
+    other_boards TEXT,
+    no_criminal_record BOOLEAN DEFAULT FALSE NOT NULL,
+    no_bankruptcy BOOLEAN DEFAULT FALSE NOT NULL,
+    completed BOOLEAN DEFAULT FALSE NOT NULL,
+    completed_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+CREATE INDEX ix_independence_declarations_person_id ON independence_declarations(person_id);
+```
+
+### users
+
+Основная таблица пользователей системы. Учётная запись привязана к физическому лицу (persons).
+
+| Поле | Тип | Описание |
+|------|-----|----------|
+| `id` | UUID | Первичный ключ |
+| `person_id` | UUID | Внешний ключ на persons (nullable) |
+| `last_name` | VARCHAR(150) | Фамилия |
 | `first_name` | VARCHAR(150) | Имя |
 | `middle_name` | VARCHAR(150) | Отчество (nullable) |
 | `email` | VARCHAR(255) | Email (уникальный, OAuth2 ID) |
-| `phone` | VARCHAR(20) | Телефон (уникальный, для 2FA и ПЭП) |
+| `phone` | VARCHAR(20) | Телефон (уникальный, для 2FA) |
 | `is_external` | BOOLEAN | Флаг: Внешнее лицо / Внутренний сотрудник |
-| `pep_agreement_signed` | BOOLEAN | Подписано ли Соглашение о ПЭП |
-| `pep_signed_at` | TIMESTAMP WITH TIME ZONE | Точное UTC-время подписания Соглашения |
 | `created_at` | TIMESTAMP WITH TIME ZONE | Дата создания |
 | `invitation_token` | VARCHAR(255) | Токен приглашения (nullable) |
 | `invitation_expires_at` | TIMESTAMP WITH TIME ZONE | Срок действия приглашения (nullable) |
-| `declaration_completed` | BOOLEAN | Пройден ли онбординг (анкета) |
-| `declaration_data` | TEXT | JSON с данными анкеты (nullable) |
-| `pdn_consent_given` | BOOLEAN | Согласие на обработку ПДн |
-| `pdn_consent_at` | TIMESTAMP WITH TIME ZONE | Дата согласия на обработку ПДн (nullable) |
-| `pdn_consent_ip` | VARCHAR(45) | IP-адрес при даче согласия на ПДн (nullable) |
 | `is_active` | BOOLEAN | Активна ли учётная запись |
 | `account_expires_at` | TIMESTAMP WITH TIME ZONE | Дата окончания действия учётной записи (nullable) |
 | `ldap_created_at` | TIMESTAMP WITH TIME ZONE | Дата создания учётной записи в LDAP-каталоге (nullable) |
@@ -324,22 +462,16 @@ erDiagram
 ```sql
 CREATE TABLE users (
     id UUID PRIMARY KEY,
+    person_id UUID REFERENCES persons(id) ON DELETE SET NULL,
     last_name VARCHAR(150) NOT NULL,
     first_name VARCHAR(150) NOT NULL,
     middle_name VARCHAR(150),
     email VARCHAR(255) UNIQUE NOT NULL,
     phone VARCHAR(20) UNIQUE NOT NULL,
     is_external BOOLEAN DEFAULT FALSE NOT NULL,
-    pep_agreement_signed BOOLEAN DEFAULT FALSE NOT NULL,
-    pep_signed_at TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
     invitation_token VARCHAR(255),
     invitation_expires_at TIMESTAMP WITH TIME ZONE,
-    declaration_completed BOOLEAN DEFAULT FALSE NOT NULL,
-    declaration_data TEXT,
-    pdn_consent_given BOOLEAN DEFAULT FALSE NOT NULL,
-    pdn_consent_at TIMESTAMP WITH TIME ZONE,
-    pdn_consent_ip VARCHAR(45),
     is_active BOOLEAN DEFAULT TRUE NOT NULL,
     account_expires_at TIMESTAMP WITH TIME ZONE,
     ldap_created_at TIMESTAMP WITH TIME ZONE,
@@ -349,6 +481,7 @@ CREATE TABLE users (
 CREATE INDEX ix_users_is_external ON users(is_external);
 CREATE INDEX ix_users_is_active ON users(is_active);
 CREATE INDEX ix_users_is_system ON users(is_system);
+CREATE INDEX ix_users_person_id ON users(person_id);
 ```
 
 ### ref_roles
