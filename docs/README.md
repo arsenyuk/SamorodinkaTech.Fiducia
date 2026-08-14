@@ -28,6 +28,32 @@
 - [Заседание СД](domain/4%20BOD%20meeting.md)
 - [Уведомления о заседаниях СД](domain/5%20BOD%20mittings%20notifications.md)
 
+## Процедуры и чеклисты
+
+### ГОСА (годовое собрание акционеров)
+- [Контрольный список задач](domain/gosa-checklist.md)
+- [Диаграмма Ганта](domain/gosa-gantt.md)
+
+### ВОСА (внеочередное собрание акционеров)
+- [Контрольный список задач](domain/vosa-checklist.md)
+- [Диаграмма Ганта](domain/vosa-gantt.md)
+
+### ООСУ (очередное собрание участников ООО)
+- [Контрольный список задач](domain/oosu-checklist.md)
+- [Диаграмма Ганта](domain/oosu-gantt.md)
+
+### ВОСУ (внеочередное собрание участников ООО)
+- [Контрольный список задач](domain/vosu-checklist.md)
+- [Диаграмма Ганта](domain/vosu-gantt.md)
+
+### Реорганизация юридических лиц
+- [Контрольный список задач](domain/reorganization-checklist.md)
+- [Диаграмма Ганта](domain/reorganization-gantt.md)
+
+### Реорганизация кредитных организаций
+- [Контрольный список задач](domain/reorganization-credit-checklist.md)
+- [Диаграмма Ганта](domain/reorganization-credit-gantt.md)
+
 ## Безопасность
 
 - [Проверка компонентов на уязвимости](security/vulnerability-check.md)
