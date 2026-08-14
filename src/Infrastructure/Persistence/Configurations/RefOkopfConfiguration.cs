@@ -23,6 +23,8 @@ public class RefOkopfConfiguration : IEntityTypeConfiguration<RefOkopf>
             .HasColumnName("name")
             .HasMaxLength(500)
             .IsRequired();
+        builder.Property(x => x.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("CURRENT_TIMESTAMP");
+        builder.Property(x => x.CreatedBy).HasColumnName("created_by").IsRequired();
 
         builder.HasIndex(x => x.Name).HasDatabaseName("ix_ref_okopf_name");
     }

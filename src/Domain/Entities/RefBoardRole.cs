@@ -16,4 +16,8 @@ public class RefBoardRole
 
     /// <summary>Порядок сортировки (sort_order).</summary>
     public int SortOrder { get; set; }
+    /// <summary>Дата и время создания записи (created_at).</summary>
+    public DateTime CreatedAt { get; set; }
+    /// <summary>Идентификатор создателя (created_by).</summary>
+    public Guid CreatedBy { get; set; }
 }

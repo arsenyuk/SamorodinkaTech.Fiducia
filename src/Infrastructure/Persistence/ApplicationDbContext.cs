@@ -114,6 +114,8 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.Property(x => x.InheritanceWithoutConsent).HasColumnName("inheritance_without_consent");
             b.Property(x => x.ExecutiveBody).HasColumnName("executive_body").HasMaxLength(1);
             b.Property(x => x.DecisionConfirmationByAllSign).HasColumnName("decision_confirmation_by_all_sign");
+            b.Property(x => x.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("CURRENT_TIMESTAMP");
+            b.Property(x => x.CreatedBy).HasColumnName("created_by").IsRequired();
         });
 
         modelBuilder.Entity<LegalEntityCharter>(b =>
@@ -145,6 +147,8 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.Property(x => x.Id).HasColumnName("id");
             b.Property(x => x.Code).HasColumnName("code").HasMaxLength(2).IsRequired();
             b.Property(x => x.Name).HasColumnName("name").HasMaxLength(20).IsRequired();
+            b.Property(x => x.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("CURRENT_TIMESTAMP");
+            b.Property(x => x.CreatedBy).HasColumnName("created_by").IsRequired();
             b.HasIndex(x => x.Code).IsUnique().HasDatabaseName("ux_ref_month_code");
         });
 
@@ -234,6 +238,8 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.Property(x => x.Code).HasColumnName("code").HasMaxLength(10).IsRequired();
             b.Property(x => x.Name).HasColumnName("name").HasMaxLength(200).IsRequired();
             b.Property(x => x.ShortName).HasColumnName("short_name").HasMaxLength(50);
+            b.Property(x => x.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("CURRENT_TIMESTAMP");
+            b.Property(x => x.CreatedBy).HasColumnName("created_by").IsRequired();
             b.HasIndex(x => x.Code).IsUnique().HasDatabaseName("ux_ref_meeting_form_code");
         });
 
@@ -245,6 +251,8 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.Property(x => x.Code).HasColumnName("code").HasMaxLength(10).IsRequired();
             b.Property(x => x.Name).HasColumnName("name").HasMaxLength(200).IsRequired();
             b.Property(x => x.ShortName).HasColumnName("short_name").HasMaxLength(50);
+            b.Property(x => x.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("CURRENT_TIMESTAMP");
+            b.Property(x => x.CreatedBy).HasColumnName("created_by").IsRequired();
             b.HasIndex(x => x.Code).IsUnique().HasDatabaseName("ux_ref_osa_form_code");
         });
 
@@ -337,8 +345,10 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.ToTable("ref_board_of_directors_statuses");
             b.HasKey(x => x.Id);
             b.Property(x => x.Id).HasColumnName("id");
-            b.Property(x => x.Code).HasColumnName("code").HasMaxLength(20);
+            b.Property(x => x.Code).HasColumnName("code").HasMaxLength(20).IsRequired();
             b.Property(x => x.Name).HasColumnName("name").HasMaxLength(200).IsRequired();
+            b.Property(x => x.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("CURRENT_TIMESTAMP");
+            b.Property(x => x.CreatedBy).HasColumnName("created_by").IsRequired();
             b.HasIndex(x => x.Code).IsUnique();
         });
 
@@ -374,8 +384,10 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.ToTable("ref_board_member_types");
             b.HasKey(x => x.Id);
             b.Property(x => x.Id).HasColumnName("id");
-            b.Property(x => x.Code).HasColumnName("code").HasMaxLength(20);
+            b.Property(x => x.Code).HasColumnName("code").HasMaxLength(20).IsRequired();
             b.Property(x => x.Name).HasColumnName("name").HasMaxLength(200).IsRequired();
+            b.Property(x => x.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("CURRENT_TIMESTAMP");
+            b.Property(x => x.CreatedBy).HasColumnName("created_by").IsRequired();
             b.HasIndex(x => x.Code).IsUnique();
         });
 
@@ -384,9 +396,11 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.ToTable("ref_board_roles");
             b.HasKey(x => x.Id);
             b.Property(x => x.Id).HasColumnName("id");
-            b.Property(x => x.Code).HasColumnName("code").HasMaxLength(20);
+            b.Property(x => x.Code).HasColumnName("code").HasMaxLength(20).IsRequired();
             b.Property(x => x.Name).HasColumnName("name").HasMaxLength(200).IsRequired();
             b.Property(x => x.SortOrder).HasColumnName("sort_order");
+            b.Property(x => x.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("CURRENT_TIMESTAMP");
+            b.Property(x => x.CreatedBy).HasColumnName("created_by").IsRequired();
             b.HasIndex(x => x.Code).IsUnique();
         });
 
@@ -623,8 +637,10 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.ToTable("ref_board_member_appointment_statuses");
             b.HasKey(x => x.Id);
             b.Property(x => x.Id).HasColumnName("id");
-            b.Property(x => x.Code).HasColumnName("code").HasMaxLength(20);
+            b.Property(x => x.Code).HasColumnName("code").HasMaxLength(20).IsRequired();
             b.Property(x => x.Name).HasColumnName("name").HasMaxLength(200).IsRequired();
+            b.Property(x => x.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("CURRENT_TIMESTAMP");
+            b.Property(x => x.CreatedBy).HasColumnName("created_by").IsRequired();
             b.HasIndex(x => x.Code).IsUnique();
         });
 
@@ -633,8 +649,10 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.ToTable("ref_resignation_reasons");
             b.HasKey(x => x.Id);
             b.Property(x => x.Id).HasColumnName("id");
-            b.Property(x => x.Code).HasColumnName("code").HasMaxLength(20);
+            b.Property(x => x.Code).HasColumnName("code").HasMaxLength(20).IsRequired();
             b.Property(x => x.Name).HasColumnName("name").HasMaxLength(200).IsRequired();
+            b.Property(x => x.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("CURRENT_TIMESTAMP");
+            b.Property(x => x.CreatedBy).HasColumnName("created_by").IsRequired();
             b.HasIndex(x => x.Code).IsUnique();
         });
 

@@ -32,4 +32,8 @@ public class RefStandardCharter
 
     /// <summary>Подтверждение решений подписанием протокола всеми участниками, а не нотариально (decision_confirmation_by_all_sign).</summary>
     public bool DecisionConfirmationByAllSign { get; set; }
+    /// <summary>Дата и время создания записи (created_at).</summary>
+    public DateTime CreatedAt { get; set; }
+    /// <summary>Идентификатор создателя (created_by).</summary>
+    public Guid CreatedBy { get; set; }
 }
