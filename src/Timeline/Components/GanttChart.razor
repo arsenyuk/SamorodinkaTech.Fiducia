@@ -101,6 +101,31 @@
                         }
                     }
 
+                    <!-- Запреты (поверх зебры) -->
+                    @foreach (var zone in _prohibitionZones)
+                    {
+                        <div class="gantt-prohibition"
+                             style="left:@(zone.LeftPx)px; top:@(zone.TopPx)px;
+                                    width:@(zone.WidthPx)px; height:@(zone.HeightPx)px;
+                                    border-color:@(zone.Color);
+                                    background-image:repeating-linear-gradient(
+                                        -45deg,
+                                        transparent,
+                                        transparent 4px,
+                                        @(zone.Color)33 4px,
+                                        @(zone.Color)33 8px);
+                                    background-color:@(zone.Color);
+                                    opacity:@(zone.Opacity);"></div>
+                        @if (!string.IsNullOrEmpty(zone.Label))
+                        {
+                            <div class="gantt-prohibition-label"
+                                 style="left:@(zone.LeftPx + 4)px; top:@(zone.TopPx + 2)px;
+                                        color:@(zone.Color);">
+                                @zone.Label
+                            </div>
+                        }
+                    }
+
                     <!-- Бары задач/этапов/проектов -->
                     @foreach (var bar in _barInfos)
                     {

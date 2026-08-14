@@ -132,6 +132,28 @@ else
                 new() { FromId = "task-2-1", ToId = "task-2-2", Type = GanttDependencyType.CriticalPath, Color = "#d32f2f", Style = "dashed", Thickness = 2 },
                 new() { FromId = "task-1-2", ToId = "task-2-1" },
                 new() { FromId = "task-3-1", ToId = "task-3-2", Type = GanttDependencyType.CriticalPath, Color = "#d32f2f", Thickness = 2 },
+            },
+            Prohibitions = new List<GanttProhibition>
+            {
+                new()
+                {
+                    Id = "prohibition-1",
+                    Label = "Юридический запрет",
+                    StartDate = new DateOnly(2026, 4, 13),
+                    EndDate = new DateOnly(2026, 4, 24),
+                    Color = "#e53935",
+                    Opacity = 0.25
+                },
+                new()
+                {
+                    Id = "prohibition-2",
+                    Label = "Запрет на сделки",
+                    StartDate = new DateOnly(2026, 5, 4),
+                    EndDate = new DateOnly(2026, 5, 15),
+                    NodeId = "stage-2",
+                    Color = "#ff6f00",
+                    Opacity = 0.3
+                }
             }
         };
     }

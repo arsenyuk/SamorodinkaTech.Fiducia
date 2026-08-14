@@ -518,3 +518,22 @@
 .dep-overall {
     z-index: 10;
 }
+
+/* ── Запрет работы (зона запрета) ───────────────────────── */
+
+.gantt-prohibition {
+    position: absolute;
+    pointer-events: none;
+    z-index: 6;
+    border-left: 2px solid;
+    border-right: 2px solid;
+}
+
+.gantt-prohibition-label {
+    position: absolute;
+    font-size: 9px;
+    font-weight: 600;
+    white-space: nowrap;
+    pointer-events: none;
+    z-index: 7;
+}

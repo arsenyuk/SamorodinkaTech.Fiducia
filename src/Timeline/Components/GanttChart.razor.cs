@@ -109,6 +109,7 @@ public partial class GanttChart : ComponentBase, IAsyncDisposable
             ComputeBarPositions();
             ComputeDependencies();
             ComputeStripeInfo();
+            ComputeProhibitionZones();
             ComputeTodayPosition();
         }
     }
@@ -357,6 +358,7 @@ public partial class GanttChart : ComponentBase, IAsyncDisposable
         ComputeBarPositions();
         ComputeDependencies();
         ComputeStripeInfo();
+        ComputeProhibitionZones();
         StateHasChanged();
     }
 
@@ -376,6 +378,7 @@ public partial class GanttChart : ComponentBase, IAsyncDisposable
         ComputeBarPositions();
         ComputeDependencies();
         ComputeStripeInfo();
+        ComputeProhibitionZones();
         ComputeTodayPosition();
         StateHasChanged();
     }
@@ -505,4 +508,75 @@ public partial class GanttChart : ComponentBase, IAsyncDisposable
     private sealed record DependencyLine(
         int X1, int Y1, int X2, int Y2,
         string Color, string Style, int Thickness);
+
+    private sealed record ProhibitionZone(
+        int LeftPx, int WidthPx, int TopPx, int HeightPx,
+        string Label, string Color, double Opacity);
+
+    private List<ProhibitionZone> _prohibitionZones = [];
+
+    // ── Запреты ─────────────────────────────────────────────────────────
+
+    private void ComputeProhibitionZones()
+    {
+        _prohibitionZones.Clear();
+        if (Data?.Prohibitions is not { Count: > 0 } || Data.CalendarDays is not { Count: > 0 }) return;
+
+        var chartStart = Data.CalendarDays[0].Date;
+
+        foreach (var p in Data.Prohibitions)
+        {
+            var startCell = p.StartDate.DayNumber - chartStart.DayNumber;
+            var endCell = p.EndDate.AddDays(1).DayNumber - chartStart.DayNumber;
+            var leftPx = startCell * _dayCellWidth;
+            var widthPx = (endCell - startCell) * _dayCellWidth;
+
+            int topPx;
+            int heightPx;
+
+            if (string.IsNullOrEmpty(p.NodeId))
+            {
+                topPx = 0;
+                heightPx = _totalHeightPx;
+            }
+            else
+            {
+                var indices = FindNodeAndDescendantIndices(p.NodeId);
+                if (indices.Count == 0) continue;
+
+                var minIdx = indices.Min();
+                var maxIdx = indices.Max();
+                topPx = minIdx * RowHeight;
+                heightPx = (maxIdx - minIdx + 1) * RowHeight;
+            }
+
+            _prohibitionZones.Add(new ProhibitionZone(
+                leftPx, widthPx, topPx, heightPx,
+                p.Label, p.Color, p.Opacity));
+        }
+    }
+
+    private HashSet<int> FindNodeAndDescendantIndices(string nodeId)
+    {
+        var result = new HashSet<int>();
+
+        for (var i = 0; i < _visibleRows.Count; i++)
+        {
+            if (_visibleRows[i].Node.Id == nodeId || IsDescendantOf(_visibleRows[i].Node, nodeId))
+                result.Add(i);
+        }
+
+        return result;
+    }
+
+    private bool IsDescendantOf(GanttNode node, string ancestorId)
+    {
+        if (string.IsNullOrEmpty(node.ParentId)) return false;
+        if (node.ParentId == ancestorId) return true;
+
+        if (Data?.Nodes is not { Count: > 0 }) return false;
+
+        var parent = Data.Nodes.FirstOrDefault(n => n.Id == node.ParentId);
+        return parent != null && IsDescendantOf(parent, ancestorId);
+    }
 }

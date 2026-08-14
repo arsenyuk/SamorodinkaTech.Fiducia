@@ -26,4 +26,7 @@ public sealed record GanttChartInput
 
     /// <summary>Запас в неделях после максимальной даты узлов (для автокоррекции шкалы, по умолчанию 2).</summary>
     public int EndPaddingWeeks { get; init; } = 2;
+
+    /// <summary>Периоды юридического запрета (отображаются как зоны на шкале).</summary>
+    public IReadOnlyList<GanttProhibition> Prohibitions { get; init; } = [];
 }
