@@ -113,7 +113,8 @@ CREATE TABLE IF NOT EXISTS ref_roles (
     code varchar(50) UNIQUE NOT NULL,
     name varchar(100) NOT NULL,
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by uuid NOT NULL REFERENCES users(id)
+    created_by uuid NOT NULL REFERENCES users(id),
+    is_assignable boolean DEFAULT FALSE NOT NULL
 );
 
 -- Справочник: ref_meeting_form (формы проведения заседания СД)
@@ -989,3 +990,16 @@ CREATE TABLE IF NOT EXISTS trueconf_test_answer (
 );
 
 CREATE INDEX IF NOT EXISTS ix_ttanswer_question_id ON trueconf_test_answer(question_id);
+
+-- Сотрудник (employee) — связывает ФЛ с ЮЛ и должностью
+CREATE TABLE IF NOT EXISTS employee (
+    id uuid PRIMARY KEY,
+    person_id uuid NOT NULL REFERENCES persons(id) ON DELETE RESTRICT,
+    legal_entity_id uuid NOT NULL REFERENCES legal_entities(id) ON DELETE RESTRICT,
+    position varchar(200) NOT NULL,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    created_by uuid NOT NULL REFERENCES users(id)
+);
+
+CREATE INDEX IF NOT EXISTS ix_employee_person_id ON employee(person_id);
+CREATE INDEX IF NOT EXISTS ix_employee_legal_entity_id ON employee(legal_entity_id);

@@ -31,12 +31,30 @@
                 <ul class="nav nav-tabs card-header-tabs">
                     <li class="nav-item">
                         <button class="nav-link @(_tab == "info" ? "active" : "")"
-                                @onclick='() => SwitchTab("info")'>Основное</button>
+                                @onclick='() => SwitchTab("info")'>УЗ</button>
                     </li>
                     <li class="nav-item">
-                        <button class="nav-link @(_tab == "roles" ? "active" : "")"
-                                @onclick='() => SwitchTab("roles")'>Роли в СД</button>
+                        <button class="nav-link @(_tab == "person" ? "active" : "")"
+                                @onclick='() => SwitchTab("person")'>ФЛ</button>
                     </li>
+                    @if (_employees.Count > 0)
+                    {
+                        <li class="nav-item">
+                            <button class="nav-link @(_tab == "employee" ? "active" : "")"
+                                    @onclick='() => SwitchTab("employee")'>Сотрудник</button>
+                        </li>
+                    }
+                    <li class="nav-item">
+                        <button class="nav-link @(_tab == "roles" ? "active" : "")"
+                                @onclick='() => SwitchTab("roles")'>Роли</button>
+                    </li>
+                    @if (_appointments.Count > 0)
+                    {
+                        <li class="nav-item">
+                            <button class="nav-link @(_tab == "appointments" ? "active" : "")"
+                                    @onclick='() => SwitchTab("appointments")'>Назначения в СД</button>
+                        </li>
+                    }
                 </ul>
             </div>
             <div class="card-body">
@@ -95,31 +113,151 @@
                             <dd class="col-sm-9">@_user.AccountExpiresAt.Value.ToString("dd.MM.yyyy")</dd>
                         }
 
-                        <dt class="col-sm-3">Статус</dt>
-                        <dd class="col-sm-9">
-                            @if (_user.IsExternal)
-                            {
-                                if (_pepAgreement?.AgreementSigned == true)
-                                {
-                                    <span class="badge bg-success">ПЭП подписан</span>
-                                }
-                                else if (_independenceDeclaration?.Completed == true)
-                                {
-                                    <span class="badge bg-info">Анкета заполнена</span>
-                                }
-                                else if (!string.IsNullOrEmpty(_user.InvitationToken))
-                                {
-                                    <span class="badge bg-warning">Ожидает регистрации</span>
-                                }
-                            }
-                            else
-                            {
-                                <span class="badge bg-secondary">Внутренний</span>
-                            }
-                        </dd>
                     </dl>
                 }
+                else if (_tab == "person")
+                {
+                    @if (_person == null)
+                    {
+                        <p class="text-muted">Физическое лицо не привязано.</p>
+                    }
+                    else
+                    {
+                        <dl class="row mb-0">
+                            <dt class="col-sm-3">Фамилия</dt>
+                            <dd class="col-sm-9">@_person.LastName</dd>
+
+                            <dt class="col-sm-3">Имя</dt>
+                            <dd class="col-sm-9">@_person.FirstName</dd>
+
+                            @if (!string.IsNullOrWhiteSpace(_person.MiddleName))
+                            {
+                                <dt class="col-sm-3">Отчество</dt>
+                                <dd class="col-sm-9">@_person.MiddleName</dd>
+                            }
+
+                            <dt class="col-sm-3">Email</dt>
+                            <dd class="col-sm-9">@_person.Email</dd>
+
+                            @if (!string.IsNullOrWhiteSpace(_person.Phone))
+                            {
+                                <dt class="col-sm-3">Телефон</dt>
+                                <dd class="col-sm-9">@_person.Phone</dd>
+                            }
+
+                            @if (!string.IsNullOrWhiteSpace(_person.Inn))
+                            {
+                                <dt class="col-sm-3">ИНН</dt>
+                                <dd class="col-sm-9">@_person.Inn</dd>
+                            }
+
+                            @if (_user!.IsExternal)
+                            {
+                                <dt class="col-sm-3">Статус регистрации</dt>
+                                <dd class="col-sm-9">
+                                    @if (_pepAgreement?.AgreementSigned == true)
+                                    {
+                                        <span class="badge bg-success">ПЭП подписан</span>
+                                    }
+                                    else if (_independenceDeclaration?.Completed == true)
+                                    {
+                                        <span class="badge bg-info">Анкета заполнена</span>
+                                    }
+                                    else if (!string.IsNullOrEmpty(_user.InvitationToken))
+                                    {
+                                        <span class="badge bg-warning">Ожидает регистрации</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary">Не начата</span>
+                                    }
+                                </dd>
+                            }
+                        </dl>
+                    }
+                }
+                else if (_tab == "employee")
+                {
+                    @if (_employees.Count == 0)
+                    {
+                        <p class="text-muted">Нет записей о сотрудничестве.</p>
+                    }
+                    else
+                    {
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Юридическое лицо</th>
+                                    <th>Должность</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var emp in _employees)
+                                {
+                                    <tr>
+                                        <td>@emp.LegalEntity?.Name</td>
+                                        <td>@emp.Position</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    }
+                }
                 else if (_tab == "roles")
+                {
+                    <div class="row mb-3">
+                        <div class="col-auto">
+                            <select class="form-select form-select-sm" @bind="_selectedRoleId">
+                                <option value="">— Выберите роль —</option>
+                                @foreach (var role in _availableRoles)
+                                {
+                                    <option value="@role.Id">@role.Name (@role.Code)</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-auto">
+                            <button class="btn btn-sm btn-primary" @onclick="AddRole"
+                                    disabled="@string.IsNullOrEmpty(_selectedRoleId)">
+                                Добавить
+                            </button>
+                        </div>
+                    </div>
+
+                    @if (_userRoles.Count == 0)
+                    {
+                        <p class="text-muted">Нет назначенных ролей.</p>
+                    }
+                    else
+                    {
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Наименование</th>
+                                    <th>Код</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var ur in _userRoles)
+                                {
+                                    <tr>
+                                        <td>@ur.Role.Name</td>
+                                        <td><code>@ur.Role.Code</code></td>
+                                        <td>
+                                            @if (ur.Role.IsAssignable)
+                                            {
+                                                <button class="btn btn-sm btn-outline-danger" @onclick="() => RemoveRole(ur)">
+                                                    Удалить
+                                                </button>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    }
+                }
+                else if (_tab == "appointments")
                 {
                     @if (_appointments.Count == 0)
                     {
@@ -164,12 +302,20 @@
     public Guid UserId { get; set; }
 
     private User? _user;
+    private Person? _person;
     private string _fullName = string.Empty;
     private string _tab = "info";
     private bool _loaded;
     private List<BoardMemberAppointment> _appointments = new();
+    private List<UserRole> _userRoles = new();
+    private List<RefRole> _allRoles = new();
+    private List<Employee> _employees = new();
+    private string _selectedRoleId = string.Empty;
     private PepAgreement? _pepAgreement;
     private IndependenceDeclaration? _independenceDeclaration;
+
+    private List<RefRole> _availableRoles =>
+        _allRoles.Where(r => r.IsAssignable && _userRoles.All(ur => ur.RoleId != r.Id)).ToList();
 
     protected override async Task OnInitializedAsync()
     {
@@ -193,9 +339,12 @@
                 new[] { _user.LastName, _user.FirstName, _user.MiddleName }
                 .Where(s => !string.IsNullOrWhiteSpace(s)));
 
-            // Загружаем записи, привязанные к ФЛ
             if (_user.PersonId.HasValue)
             {
+                _person = await DbContext.Persons
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(p => p.Id == _user.PersonId.Value);
+
                 _pepAgreement = await DbContext.PepAgreements
                     .AsNoTracking()
                     .FirstOrDefaultAsync(a => a.PersonId == _user.PersonId.Value);
@@ -203,7 +352,24 @@
                 _independenceDeclaration = await DbContext.IndependenceDeclarations
                     .AsNoTracking()
                     .FirstOrDefaultAsync(d => d.PersonId == _user.PersonId.Value);
+
+                _employees = await DbContext.Employees
+                    .AsNoTracking()
+                    .Include(e => e.LegalEntity)
+                    .Where(e => e.PersonId == _user.PersonId.Value)
+                    .ToListAsync();
             }
+
+            _userRoles = await DbContext.UserRoles
+                .AsNoTracking()
+                .Include(ur => ur.Role)
+                .Where(ur => ur.UserId == UserId)
+                .ToListAsync();
+
+            _allRoles = await DbContext.Roles
+                .AsNoTracking()
+                .OrderBy(r => r.Name)
+                .ToListAsync();
 
             _appointments = await DbContext.BoardMemberAppointments
                 .AsNoTracking()
@@ -217,6 +383,47 @@
         }
 
         _loaded = true;
+
+        if ((_tab == "employee" && _employees.Count == 0) ||
+            (_tab == "appointments" && _appointments.Count == 0))
+        {
+            _tab = "info";
+        }
+    }
+
+    private async Task AddRole()
+    {
+        if (string.IsNullOrEmpty(_selectedRoleId)) return;
+
+        var roleId = Guid.Parse(_selectedRoleId);
+        if (_userRoles.Any(ur => ur.RoleId == roleId)) return;
+
+        var userRole = new UserRole
+        {
+            Id = Guid.NewGuid(),
+            UserId = UserId,
+            RoleId = roleId
+        };
+
+        DbContext.UserRoles.Add(userRole);
+        await DbContext.SaveChangesAsync(CancellationToken.None);
+
+        _selectedRoleId = string.Empty;
+        await LoadData();
+    }
+
+    private async Task RemoveRole(UserRole userRole)
+    {
+        var tracked = await DbContext.UserRoles
+            .Include(ur => ur.Role)
+            .FirstOrDefaultAsync(ur => ur.Id == userRole.Id);
+
+        if (tracked != null && tracked.Role.IsAssignable)
+        {
+            DbContext.UserRoles.Remove(tracked);
+            await DbContext.SaveChangesAsync(CancellationToken.None);
+            await LoadData();
+        }
     }
 
     private void SwitchTab(string tab)

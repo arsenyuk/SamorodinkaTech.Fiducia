@@ -12,6 +12,8 @@ public class RefRole
     public DateTime CreatedAt { get; set; }
     /// <summary>Идентификатор создателя (created_by).</summary>
     public Guid CreatedBy { get; set; }
+    /// <summary>Признак роли, которую можно свободно назначать/удалять пользователям (is_assignable).</summary>
+    public bool IsAssignable { get; set; }
 
     /// <summary>Связи пользователей с этой ролью.</summary>
     public ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();

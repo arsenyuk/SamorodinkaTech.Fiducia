@@ -173,7 +173,9 @@
 
     protected override async Task OnInitializedAsync()
     {
-        var users = await DbContext.Users.AsNoTracking().ToListAsync();
+        var users = await DbContext.Users.AsNoTracking()
+            .Where(u => !u.IsSystem)
+            .ToListAsync();
 
         var appointments = await DbContext.BoardMemberAppointments
             .AsNoTracking()

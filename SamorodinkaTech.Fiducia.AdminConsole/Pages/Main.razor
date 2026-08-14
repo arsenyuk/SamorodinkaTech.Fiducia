@@ -44,7 +44,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        _userCount = await DbContext.Users.CountAsync();
+        _userCount = await DbContext.Users.CountAsync(u => !u.IsSystem);
         _committeeCount = await DbContext.Committees.CountAsync(c => c.IsActive);
         _meetingCount = await DbContext.Meetings.CountAsync();
     }

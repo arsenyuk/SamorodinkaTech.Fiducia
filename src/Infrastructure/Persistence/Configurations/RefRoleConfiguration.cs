@@ -17,6 +17,7 @@ public class RoleConfiguration : IEntityTypeConfiguration<RefRole>
         builder.Property(r => r.Name).HasColumnName("name").HasMaxLength(100).IsRequired();
         builder.Property(r => r.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("CURRENT_TIMESTAMP");
         builder.Property(r => r.CreatedBy).HasColumnName("created_by").IsRequired();
+        builder.Property(r => r.IsAssignable).HasColumnName("is_assignable").HasDefaultValue(false);
 
         builder.HasIndex(r => r.Code).IsUnique();
     }

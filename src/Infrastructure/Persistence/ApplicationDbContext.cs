@@ -54,6 +54,7 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
     public DbSet<RefMeetingForm> MeetingForms => Set<RefMeetingForm>();
     public DbSet<ExtSparkManager> ExtSparkManagers => Set<ExtSparkManager>();
     public DbSet<ExtSparkFounder> ExtSparkFounders => Set<ExtSparkFounder>();
+    public DbSet<Employee> Employees => Set<Employee>();
 
     public DbSet<TplOrgIntent> TplOrgIntents => Set<TplOrgIntent>();
     public DbSet<TplOrgStage> TplOrgStages => Set<TplOrgStage>();
