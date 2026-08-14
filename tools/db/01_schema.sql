@@ -83,14 +83,14 @@ CREATE TABLE IF NOT EXISTS ref_board_roles (
 
 -- Справочник: ref_board_member_appointment_statuses (статусы назначения членов СД)
 CREATE TABLE IF NOT EXISTS ref_board_member_appointment_statuses (
-    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    id uuid PRIMARY KEY,
     code varchar(20) UNIQUE NOT NULL,
     name varchar(200) NOT NULL
 );
 
 -- Справочник: ref_resignation_reasons (причины сложения полномочий)
 CREATE TABLE IF NOT EXISTS ref_resignation_reasons (
-    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    id uuid PRIMARY KEY,
     code varchar(20) UNIQUE NOT NULL,
     name varchar(200) NOT NULL
 );
@@ -299,7 +299,7 @@ CREATE TABLE IF NOT EXISTS legal_entity_charter (
 
 -- Таблица: legal_entity_email_settings (настройки email-писем для ЮЛ)
 CREATE TABLE IF NOT EXISTS legal_entity_email_settings (
-    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    id uuid PRIMARY KEY,
     legal_entity_id uuid NOT NULL REFERENCES legal_entities(id) ON DELETE CASCADE,
     header_enabled boolean NOT NULL DEFAULT false,
     header_markdown text NOT NULL DEFAULT '',
@@ -453,14 +453,23 @@ CREATE INDEX IF NOT EXISTS ix_bm_osa_meeting_id ON board_members(osa_meeting_id)
 CREATE TABLE IF NOT EXISTS board_member_appointments (
     id uuid PRIMARY KEY,
     board_member_id uuid NOT NULL REFERENCES board_members(id) ON DELETE CASCADE,
-    role_id uuid NOT NULL REFERENCES ref_board_roles(id),
+    role_id uuid REFERENCES ref_board_roles(id),
+    role_code varchar(20) NOT NULL,
     started_at date NOT NULL,
     ended_at date,
-    status varchar(20) NOT NULL DEFAULT 'ACTIVE' CHECK (status IN ('ACTIVE','COMPLETED')),
-    CONSTRAINT ck_appointment_dates CHECK (ended_at IS NULL OR ended_at >= started_at)
+    status_id uuid NOT NULL REFERENCES ref_board_member_appointment_statuses(id),
+    resigned_at timestamp with time zone,
+    resignation_reason_id uuid REFERENCES ref_resignation_reasons(id),
+    legal_basis text,
+    CONSTRAINT ck_appointment_dates CHECK (ended_at IS NULL OR ended_at >= started_at),
+    CONSTRAINT ck_resignation_fields CHECK (
+        (status_id = '6e6bcad9-c361-48a2-9f08-3f86dbab7dc6'::uuid AND resigned_at IS NOT NULL AND resignation_reason_id IS NOT NULL)
+        OR (status_id <> '6e6bcad9-c361-48a2-9f08-3f86dbab7dc6'::uuid)
+    )
 );
 CREATE INDEX IF NOT EXISTS ix_bma_member_id ON board_member_appointments(board_member_id);
 CREATE INDEX IF NOT EXISTS ix_bma_role_id ON board_member_appointments(role_id);
+CREATE INDEX IF NOT EXISTS ix_bma_role_code ON board_member_appointments(role_code);
 
 -- ============================================================================
 -- Уведомления
@@ -483,6 +492,87 @@ CREATE INDEX IF NOT EXISTS ix_notifications_user_id ON notifications(user_id);
 CREATE INDEX IF NOT EXISTS ix_notifications_committee_id ON notifications(committee_id);
 CREATE INDEX IF NOT EXISTS ix_notifications_meeting_id ON notifications(meeting_id);
 CREATE INDEX IF NOT EXISTS ix_notifications_created_at ON notifications(created_at);
+
+-- ============================================================================
+-- Повестка и предложения (agenda)
+-- ============================================================================
+
+-- Таблица: agenda_proposals (предложения от пользователей)
+CREATE TABLE IF NOT EXISTS agenda_proposals (
+    id uuid PRIMARY KEY,
+    submitter_name varchar(300) NOT NULL,
+    submitter_email varchar(300),
+    proposal_text text NOT NULL,
+    status varchar(20) NOT NULL DEFAULT 'SUBMITTED',
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+-- Таблица: agenda_items (повестка совета директоров)
+CREATE TABLE IF NOT EXISTS agenda_items (
+    id uuid PRIMARY KEY,
+    board_of_directors_id uuid NOT NULL REFERENCES board_of_directors(id),
+    legal_entity_id uuid REFERENCES legal_entities(id),
+    title text NOT NULL,
+    target_type varchar(20) NOT NULL,
+    reason text NOT NULL,
+    status varchar(20) NOT NULL DEFAULT 'PENDING',
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+-- ============================================================================
+-- Выборы в совет директоров (elections)
+-- ============================================================================
+
+-- Таблица: election_proposals (предложения по выборам в СД)
+CREATE TABLE IF NOT EXISTS election_proposals (
+    id uuid PRIMARY KEY,
+    board_of_directors_id uuid NOT NULL REFERENCES board_of_directors(id),
+    position varchar(20) NOT NULL,
+    status varchar(20) NOT NULL DEFAULT 'OPEN',
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+-- Таблица: election_candidacies (кандидатуры в СД)
+CREATE TABLE IF NOT EXISTS election_candidacies (
+    id uuid PRIMARY KEY,
+    proposal_id uuid NOT NULL REFERENCES election_proposals(id) ON DELETE CASCADE,
+    candidate_member_id uuid NOT NULL REFERENCES board_members(id),
+    confirmed_by_member_id uuid REFERENCES board_members(id),
+    confirmed_at timestamp with time zone,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+-- ============================================================================
+-- Сложение полномочий (resignations)
+-- ============================================================================
+
+-- Таблица: user_board_member_resignations (сложение полномочий членов СД)
+CREATE TABLE IF NOT EXISTS user_board_member_resignations (
+    id uuid PRIMARY KEY,
+    user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    board_member_appointment_id uuid NOT NULL REFERENCES board_member_appointments(id) ON DELETE CASCADE,
+    resigned_at timestamp with time zone NOT NULL,
+    resignation_reason_id uuid NOT NULL REFERENCES ref_resignation_reasons(id),
+    rdl_extract_file_id uuid REFERENCES files(id),
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+-- ============================================================================
+-- Аудит безопасности (security audit log)
+-- ============================================================================
+
+-- Таблица: security_audit_log (аудит-лог безопасности)
+-- Примечание: bigint PK — наследуемая таблица, создана до BDR-004 (UUID PK)
+CREATE TABLE IF NOT EXISTS security_audit_log (
+    id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    user_id uuid,
+    user_ip varchar(45) NOT NULL,
+    action_code varchar(100) NOT NULL,
+    entity_name varchar(100),
+    entity_id uuid,
+    description text NOT NULL,
+    log_timestamp timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
 
 -- ============================================================================
 -- ext_ таблицы: данные из внешних источников (BDR-009)
@@ -611,27 +701,6 @@ CREATE TABLE IF NOT EXISTS tpl_org_offers (
 CREATE INDEX IF NOT EXISTS ix_tpl_org_offers_stage ON tpl_org_offers(stage_id);
 CREATE INDEX IF NOT EXISTS ix_tpl_org_offers_assigned_role ON tpl_org_offers(assigned_role_id);
 CREATE INDEX IF NOT EXISTS ix_tpl_org_offers_board_role ON tpl_org_offers(assigned_board_role_id);
-
--- tpl_org_tasks: [DEPRECATED] будет удалено; задачи перенесены в tpl_org_offers
-CREATE TABLE IF NOT EXISTS tpl_org_tasks (
-    id uuid PRIMARY KEY,
-    offer_id uuid NOT NULL REFERENCES tpl_org_offers(id) ON DELETE CASCADE,
-    name varchar(300) NOT NULL,
-    description text,
-    sort_order int NOT NULL DEFAULT 0,
-    assigned_role_id uuid REFERENCES ref_roles(id),
-    assigned_board_role_id uuid REFERENCES ref_board_roles(id),
-    require_notary_confirmation boolean,
-    require_all_sign_confirmation boolean,
-    require_committees boolean,
-    require_board_regulation boolean,
-    require_custom_charter boolean,
-    require_executive_body_a boolean,
-    require_board_of_directors boolean,
-    require_document_flow_legal_electronic boolean,
-    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
-);
-CREATE INDEX IF NOT EXISTS ix_tpl_org_tasks_offer ON tpl_org_tasks(offer_id);
 
 -- ============================================================================
 -- Реальные планы организационных мероприятий (создаются из шаблонов tpl_org_*)
