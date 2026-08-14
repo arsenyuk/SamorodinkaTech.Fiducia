@@ -536,6 +536,33 @@ fileGroup.MapDelete("/{id}", async (Guid id, IApplicationDbContext db, IFileStor
     return Results.Ok();
 });
 
+// Admin: очистка конфигурации юридического лица (устав, email, правила голосования)
+app.MapDelete("/api/legal-entities/{id:guid}", async (Guid id, IApplicationDbContext db, CancellationToken ct) =>
+{
+    var le = await ((FiduciaDbContext)db).LegalEntities.FirstOrDefaultAsync(x => x.Id == id, ct);
+    if (le is null) return Results.NotFound(new { message = "ЮЛ не найдено" });
+
+    await ((FiduciaDbContext)db).LegalEntityCharters
+        .Where(x => x.LegalEntityId == id)
+        .ExecuteDeleteAsync(ct);
+
+    await ((FiduciaDbContext)db).LegalEntityEmailSettings
+        .Where(x => x.LegalEntityId == id)
+        .ExecuteDeleteAsync(ct);
+
+    await ((FiduciaDbContext)db).LegalEntityVotingRules
+        .Where(x => x.LegalEntityId == id)
+        .ExecuteDeleteAsync(ct);
+
+    await ((FiduciaDbContext)db).CurrentWorkplaces
+        .Where(x => x.LastSelectedLegalEntityId == id)
+        .ExecuteUpdateAsync(s => s.SetProperty(x => x.LastSelectedLegalEntityId, (Guid?)null), ct);
+
+    await ((FiduciaDbContext)db).SaveChangesAsync(ct);
+
+    return Results.Ok(new { message = "Конфигурация ЮЛ очищена" });
+}).RequireAuthorization(policy => policy.RequireRole("SYS_ADMIN"));
+
 app.MapBlazorHub();
 app.MapFallbackToPage("/_Host");
 

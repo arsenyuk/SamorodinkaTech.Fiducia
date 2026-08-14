@@ -704,20 +704,49 @@
                 </div>
             }  @* end of _activeTab == 4 *@
 
-            @if (!string.IsNullOrEmpty(saveError))
-            {
-                <div class="alert alert-danger">@saveError</div>
-            }
-            @if (!string.IsNullOrEmpty(saveSuccess))
-            {
-                <div class="alert alert-success">@saveSuccess</div>
-            }
-
             <div class="d-flex gap-2">
                 <button class="btn btn-primary" @onclick="Save" disabled="@(!CanSave)">Сохранить</button>
+                <button class="btn btn-outline-danger" @onclick="ConfirmDelete">Очистить</button>
             </div>
+
+            @if (_showDeleteConfirm)
+            {
+                <div class="modal d-block" tabindex="-1" style="background-color:rgba(0,0,0,0.5)">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Подтверждение очистки</h5>
+                                <button type="button" class="btn-close" @onclick="() => _showDeleteConfirm = false"></button>
+                            </div>
+                            <div class="modal-body">
+                                <p>Очистить конфигурацию юридического лица <strong>@selectedEntity?.Name</strong> (@selectedEntity?.Inn)?</p>
+                                <p class="text-muted mb-0">Будут сброшены: устав, email-настройки, правила голосования в СД. ОСА, Совет директоров и организационные мероприятия не затрагиваются.</p>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" @onclick="() => _showDeleteConfirm = false">Отмена</button>
+                                <button type="button" class="btn btn-danger" @onclick="Delete" disabled="@_deleteLoading">
+                                    @if (_deleteLoading)
+                                    {
+                                        <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                                    }
+                                    Очистить
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
         </div>
     </div>
+}
+
+@if (!string.IsNullOrEmpty(saveError))
+{
+    <div class="alert alert-danger mt-3">@saveError</div>
+}
+@if (!string.IsNullOrEmpty(saveSuccess))
+{
+    <div class="alert alert-success mt-3">@saveSuccess</div>
 }
 
 @code {
@@ -776,6 +805,10 @@
     private bool sparkLoading;
     private string? sparkError;
     private string? sparkWarning; // не-критичные предупреждения (например, ограничение лицензии)
+
+    // Удаление ЮЛ
+    private bool _showDeleteConfirm;
+    private bool _deleteLoading;
 
     // Данные СПАРК для отображения в карточке «Руководитель»
     private string? _sparkManagerName;
@@ -938,27 +971,28 @@
         {
             await using var ctx = await DbFactory.CreateDbContextAsync();
             var q = search.Trim();
-            searchResults = await ctx.LegalEntities
+            searchResults = await ctx.ExtSparkCompanies
                 .Where(le =>
-                    (le.Name != null && EF.Functions.ILike(le.Name, $"%{q}%")) ||
+                    (le.FullName != null && EF.Functions.ILike(le.FullName, $"%{q}%")) ||
                     (le.ShortName != null && EF.Functions.ILike(le.ShortName, $"%{q}%")) ||
                     (le.Inn != null && EF.Functions.ILike(le.Inn, $"%{q}%")) ||
                     (le.Ogrn != null && EF.Functions.ILike(le.Ogrn, $"%{q}%")))
-                .OrderBy(le => le.Name)
+                .OrderBy(le => le.FullName)
                 .Take(limit)
                 .Select(le => new LegalEntityVm
                 {
                     Id = le.Id,
-                    Name = le.Name,
+                    Name = le.FullName,
                     ShortName = le.ShortName,
                     Inn = le.Inn,
                     Ogrn = le.Ogrn,
-                    RefOkopf = le.RefOkopf != null ? new OkopfVm { Code = le.RefOkopf.Code, Name = le.RefOkopf.Name } : null
+                    RefOkopf = le.OkopfCode != null ? new OkopfVm { Code = le.OkopfCode, Name = le.OkopfName } : null
                 })
                 .ToListAsync();
         }
-        catch
+        catch (Exception ex)
         {
+            Logger.LogWarning(ex, "Ошибка поиска ЮЛ по запросу '{Query}'", search);
             searchResults = null;
         }
     }
@@ -969,6 +1003,42 @@
         searchResults = null;
 
         await using var ctx = await DbFactory.CreateDbContextAsync();
+
+        // Если ЮЛ найдено через СПАРК — находим или создаём запись в legal_entities
+        if (!string.IsNullOrEmpty(le.Inn))
+        {
+            var existingLe = await ctx.LegalEntities.FirstOrDefaultAsync(x => x.Inn == le.Inn);
+            if (existingLe is null)
+            {
+                // Ищем ОКОПФ по коду
+                Guid? okopfId = null;
+                if (!string.IsNullOrEmpty(le.RefOkopf?.Code))
+                {
+                    var okopf = await ctx.RefOkopf.FirstOrDefaultAsync(o => o.Code == le.RefOkopf.Code);
+                    okopfId = okopf?.Id;
+                }
+
+                existingLe = new SamorodinkaTech.Fiducia.Domain.Entities.LegalEntity
+                {
+                    Id = Guid.NewGuid(),
+                    Name = le.Name ?? le.Inn,
+                    ShortName = le.ShortName,
+                    Inn = le.Inn,
+                    Ogrn = le.Ogrn,
+                    OkopfId = okopfId
+                };
+                ctx.LegalEntities.Add(existingLe);
+                await ctx.SaveChangesAsync();
+
+                // Обновляем ID в selectedEntity для дальнейшей работы
+                le.Id = existingLe.Id;
+            }
+            else
+            {
+                // Используем существующую запись
+                le.Id = existingLe.Id;
+            }
+        }
 
         // Загружаем руководителя (CurrentWorkplace) для выбранного ЮЛ
         var ip = await ctx.CurrentWorkplaces.FirstOrDefaultAsync();
@@ -1269,6 +1339,76 @@
         }
     }
 
+    private void ConfirmDelete()
+    {
+        if (selectedEntity is null) return;
+        saveError = null;
+        saveSuccess = null;
+        _showDeleteConfirm = true;
+    }
+
+    private async Task Delete()
+    {
+        if (selectedEntity is null) return;
+        _deleteLoading = true;
+        StateHasChanged();
+
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+            var id = selectedEntity.Id;
+            var name = selectedEntity.Name;
+
+            // Очистка конфигурации ЮЛ (без удаления ОСА, СД и организационных мероприятий)
+            await ctx.LegalEntityCharters
+                .Where(x => x.LegalEntityId == id)
+                .ExecuteDeleteAsync();
+
+            await ctx.LegalEntityEmailSettings
+                .Where(x => x.LegalEntityId == id)
+                .ExecuteDeleteAsync();
+
+            await ctx.LegalEntityVotingRules
+                .Where(x => x.LegalEntityId == id)
+                .ExecuteDeleteAsync();
+
+            // Сброс ссылки в current_workplace
+            await ctx.CurrentWorkplaces
+                .Where(x => x.LastSelectedLegalEntityId == id)
+                .ExecuteUpdateAsync(s => s.SetProperty(x => x.LastSelectedLegalEntityId, (Guid?)null));
+
+            Logger.LogInformation("Конфигурация ЮЛ {LegalEntityId} ({LegalEntityName}) очищена", id, name);
+            saveSuccess = $"Конфигурация «{name}» очищена.";
+
+            // Сброс UI-состояния
+            _showDeleteConfirm = false;
+            selectedEntity = null;
+            _activeTab = 0;
+            _sparkManagerName = null;
+            _sparkManagerPosition = null;
+            _sparkCompanyFullName = null;
+            _sparkCompanyShortName = null;
+            _sparkCompanyOgrn = null;
+            _sparkCompanyOkopfName = null;
+            _sparkCompanyAddress = null;
+            _sparkCompanyStatus = null;
+            _sparkCompanyRegDate = null;
+            _sparkFounders.Clear();
+            _editCharterNumber = null;
+            _charterSettings = null;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Ошибка очистки конфигурации ЮЛ {LegalEntityId}", selectedEntity.Id);
+            saveError = ExceptionFlattener.Unwrap(ex);
+        }
+        finally
+        {
+            _deleteLoading = false;
+            StateHasChanged();
+        }
+    }
+
     private async Task LoadCachedSparkAsync()
     {
         if (string.IsNullOrEmpty(selectedEntity?.Inn)) return;
@@ -1288,6 +1428,13 @@
             _sparkCompanyStatus = view.CompanyStatus;
             _sparkCompanyRegDate = view.CompanyRegDate;
             _sparkFounders = view.Founders;
+
+            // Автозаполнение ФИО/должности руководителя из кэша СПАРК,
+            // если CurrentWorkplace не содержит данных (новое ЮЛ)
+            if (string.IsNullOrWhiteSpace(editFullName) && !string.IsNullOrEmpty(view.ManagerName))
+                editFullName = view.ManagerName;
+            if (string.IsNullOrWhiteSpace(editPosition) && view.ManagerPosition is not null)
+                editPosition = view.ManagerPosition;
         }
         catch (Exception ex)
         {
