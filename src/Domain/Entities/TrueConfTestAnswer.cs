@@ -4,7 +4,7 @@ namespace SamorodinkaTech.Fiducia.Domain.Entities;
 public class TrueConfTestAnswer
 {
     /// <summary>Идентификатор ответа (id).</summary>
-    public int Id { get; set; }
+    public Guid Id { get; set; }
 
     /// <summary>Идентификатор вопроса (question_id).</summary>
     public Guid QuestionId { get; set; }

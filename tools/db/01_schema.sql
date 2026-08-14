@@ -26,10 +26,15 @@ CREATE TABLE IF NOT EXISTS users (
     declaration_data text,
     pdn_consent_given boolean DEFAULT FALSE NOT NULL,
     pdn_consent_at timestamp with time zone,
-    pdn_consent_ip varchar(45)
+    pdn_consent_ip varchar(45),
+    -- управление учётной записью
+    is_active boolean DEFAULT TRUE NOT NULL,
+    account_expires_at timestamp with time zone,
+    ldap_created_at timestamp with time zone
 );
 
 CREATE INDEX IF NOT EXISTS ix_users_is_external ON users(is_external);
+CREATE INDEX IF NOT EXISTS ix_users_is_active ON users(is_active);
 
 -- ============================================================================
 -- Справочники (ref_*): не зависят от других таблиц
@@ -316,7 +321,8 @@ CREATE TABLE IF NOT EXISTS legal_entity_charter (
     charter_document_id uuid REFERENCES files(id),
     board_regulation_document_id uuid REFERENCES files(id),
     mandatory_audit boolean,
-    has_revision_commission boolean
+    has_revision_commission boolean,
+    has_board_of_directors boolean NOT NULL DEFAULT false
 );
 
 -- Таблица: legal_entity_email_settings (настройки email-писем для ЮЛ)
@@ -336,7 +342,8 @@ CREATE TABLE IF NOT EXISTS current_workplace (
     id uuid PRIMARY KEY,
     full_name varchar(300) NOT NULL,
     position varchar(200),
-    last_selected_legal_entity_id uuid REFERENCES legal_entities(id)
+    last_selected_legal_entity_id uuid REFERENCES legal_entities(id),
+    gantt_end_padding_weeks int NOT NULL DEFAULT 2
 );
 
 -- Singleton: не более одной записи руководителя (одно-компанийный режим, BDR-007)
@@ -401,6 +408,7 @@ CREATE TABLE IF NOT EXISTS osa_meetings (
     id uuid PRIMARY KEY,
     legal_entity_id uuid NOT NULL REFERENCES legal_entities(id) ON DELETE CASCADE,
     osa_form_id uuid NOT NULL REFERENCES ref_osa_form(id) ON DELETE RESTRICT,
+    title varchar(500),
     gosa_window_start date,
     gosa_window_end date,
     election_year int,
@@ -425,6 +433,8 @@ CREATE TABLE IF NOT EXISTS osa_meetings (
     secretary_signs_protocols boolean NOT NULL DEFAULT false,
     temporary_chair_provided boolean NOT NULL DEFAULT false,
     board_composition_approved boolean NOT NULL DEFAULT false,
+    board_mandatory boolean NOT NULL DEFAULT false,
+    board_approved boolean NOT NULL DEFAULT false,
     temporary_chair_selection varchar(50),
     temporary_chair_name varchar(300),
     protocol_signed_at timestamp with time zone,
@@ -463,7 +473,6 @@ CREATE TABLE IF NOT EXISTS board_members (
     osa_meeting_id uuid NOT NULL REFERENCES osa_meetings(id) ON DELETE CASCADE,
     board_of_directors_id uuid REFERENCES board_of_directors(id),
     full_name varchar(300) NOT NULL,
-    position varchar(200),
     board_member_type_id uuid REFERENCES ref_board_member_types(id),
     account varchar(100),
     email varchar(200),
@@ -563,6 +572,22 @@ CREATE TABLE IF NOT EXISTS election_candidacies (
     confirmed_at timestamp with time zone,
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
+
+-- Таблица: election_consents (согласие/отказ кандидата на выборы в СД)
+CREATE TABLE IF NOT EXISTS election_consents (
+    id uuid PRIMARY KEY,
+    proposal_id uuid NOT NULL REFERENCES election_proposals(id) ON DELETE CASCADE,
+    candidate_member_id uuid NOT NULL REFERENCES board_members(id),
+    consent_given boolean NOT NULL,
+    consent_token varchar(64) NOT NULL,
+    signed_at timestamp with time zone,
+    signed_ip varchar(45),
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS ux_election_consents_proposal_member ON election_consents(proposal_id, candidate_member_id);
+CREATE UNIQUE INDEX IF NOT EXISTS ux_election_consents_token ON election_consents(consent_token);
+CREATE INDEX IF NOT EXISTS ix_election_consents_proposal ON election_consents(proposal_id);
 
 -- ============================================================================
 -- Сложение полномочий (resignations)
@@ -847,3 +872,53 @@ CREATE TABLE IF NOT EXISTS committee_files (
 );
 CREATE INDEX IF NOT EXISTS ix_cf_committee_id ON committee_files(committee_id);
 CREATE INDEX IF NOT EXISTS ix_cf_file_id ON committee_files(file_id);
+
+-- ============================================================================
+-- Тестовые заседания TrueConf
+-- ============================================================================
+
+-- Таблица: trueconf_test_meeting (тестовое заседание СД через TrueConf)
+CREATE TABLE IF NOT EXISTS trueconf_test_meeting (
+    id uuid PRIMARY KEY,
+    title varchar(200) NOT NULL,
+    description text,
+    trueconf_conference_id varchar(100),
+    trueconf_join_link text,
+    conference_state varchar(50),
+    started_at timestamp with time zone,
+    ended_at timestamp with time zone,
+    all_members_voted boolean DEFAULT FALSE NOT NULL,
+    decision_accepted boolean,
+    status varchar(20) DEFAULT 'PREPARING' NOT NULL,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS ix_ttmeeting_status ON trueconf_test_meeting(status);
+CREATE INDEX IF NOT EXISTS ix_ttmeeting_conference_id ON trueconf_test_meeting(trueconf_conference_id);
+
+-- Таблица: trueconf_test_question (вопросы тестового заседания)
+CREATE TABLE IF NOT EXISTS trueconf_test_question (
+    id uuid PRIMARY KEY,
+    meeting_id uuid NOT NULL REFERENCES trueconf_test_meeting(id) ON DELETE CASCADE,
+    sequence_number int NOT NULL,
+    question_text text NOT NULL,
+    proposed_resolution text DEFAULT '',
+    trueconf_poll_id varchar(100),
+    poll_state varchar(20),
+    status varchar(20) DEFAULT 'PENDING' NOT NULL,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS ix_ttquestion_meeting_id ON trueconf_test_question(meeting_id);
+CREATE INDEX IF NOT EXISTS ix_ttquestion_poll_id ON trueconf_test_question(trueconf_poll_id);
+
+-- Таблица: trueconf_test_answer (ответы/голоса на вопросы тестового заседания)
+CREATE TABLE IF NOT EXISTS trueconf_test_answer (
+    id uuid PRIMARY KEY,
+    question_id uuid NOT NULL REFERENCES trueconf_test_question(id) ON DELETE CASCADE,
+    user_name varchar(100) NOT NULL,
+    vote_value varchar(20) NOT NULL,
+    voted_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS ix_ttanswer_question_id ON trueconf_test_answer(question_id);

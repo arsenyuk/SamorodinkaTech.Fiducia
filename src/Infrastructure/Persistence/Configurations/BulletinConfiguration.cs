@@ -11,7 +11,7 @@ public class BulletinConfiguration : IEntityTypeConfiguration<Bulletin>
         builder.ToTable("bulletins");
 
         builder.HasKey(b => b.Id);
-        builder.Property(b => b.Id).HasColumnName("id").UseIdentityAlwaysColumn();
+        builder.Property(b => b.Id).HasColumnName("id");
 
         builder.Property(b => b.AgendaQuestionId).HasColumnName("agenda_question_id").IsRequired();
         builder.Property(b => b.UserId).HasColumnName("user_id").IsRequired();
