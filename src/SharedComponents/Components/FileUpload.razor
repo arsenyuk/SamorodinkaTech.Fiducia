@@ -1,0 +1,201 @@
+@using System.Net.Http.Json
+@using Microsoft.AspNetCore.Components.Forms
+@using SamorodinkaTech.Fiducia.Domain.Entities
+@using SamorodinkaTech.Fiducia.Domain.Interfaces
+
+<div class="file-upload">
+    @if (_isUploading)
+    {
+        <div class="mb-2">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+                <span class="text-muted small">@_uploadingFileName</span>
+                <span class="text-muted small">@_uploadProgress%</span>
+            </div>
+            <div class="progress" style="height: 6px;">
+                <div class="progress-bar bg-primary" style="width: @_uploadProgress%"></div>
+            </div>
+        </div>
+    }
+    else if (!string.IsNullOrEmpty(_error))
+    {
+        <div class="alert alert-danger py-1 px-2 mb-2 small">@_error</div>
+    }
+    else
+    {
+        <InputFile OnChange="OnFileSelected"
+                   accept="@Accept"
+                   class="form-control form-control-sm" />
+        @if (MaxSizeBytes > 0)
+        {
+            <div class="form-text">Макс. размер: @FormatSize(MaxSizeBytes)</div>
+        }
+    }
+</div>
+
+@code {
+    /// <summary>Допустимые типы файлов (атрибут accept).</summary>
+    [Parameter] public string? Accept { get; set; }
+
+    /// <summary>Максимальный размер файла в байтах.</summary>
+    [Parameter] public long MaxSizeBytes { get; set; } = 50_000_000;
+
+    /// <summary>Тип файла для junction-таблицы (CHARTER, PROTOCOL и т.д.).</summary>
+    [Parameter] public string FileType { get; set; } = "DOCUMENT";
+
+    /// <summary>Отображаемое имя файла (опционально).</summary>
+    [Parameter] public string? DisplayName { get; set; }
+
+    /// <summary>Callback после успешной загрузки: передаёт FileId.</summary>
+    [Parameter] public EventCallback<Guid> OnFileUploaded { get; set; }
+
+    /// <summary>Callback при ошибке: передаёт текст ошибки.</summary>
+    [Parameter] public EventCallback<string> OnUploadError { get; set; }
+
+    /// <summary>Base URL API для загрузки (по умолчанию пустой — тот же хост).</summary>
+    [Parameter] public string? ApiBaseUrl { get; set; }
+
+    [Inject] private HttpClient Http { get; set; } = default!;
+
+    private bool _isUploading;
+    private int _uploadProgress;
+    private string? _uploadingFileName;
+    private string? _error;
+
+    // Запрещённые расширения файлов (BDR-011)
+    private static readonly HashSet<string> _blockedExtensions = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "exe", "dll", "com", "msi", "bat", "cmd", "scr", "pif",
+        "vbs", "vbe", "js", "jse", "ws", "wsh", "wsf",
+        "ps1", "psm1", "psd1", "psc1",
+        "sh", "bash", "csh", "ksh", "zsh",
+        "app", "bin", "command", "cpl", "hta", "inf", "ins", "isp",
+        "job", "lnk", "mdb", "msc", "msp",
+        "reg", "rgs", "scf", "snap",
+        "application", "gadget", "paf",
+        "xbap", "xll", "xnk",
+        "zip", "rar", "7z", "tar", "gz", "bz2", "xz", "zst",
+        "iso", "img", "vhd", "vhdx", "vmdk", "ova", "ovf",
+        "cab", "dmg", "pak", "war", "ear",
+        "sys", "drv", "diagnostics", "msix", "appx",
+        "widget", "webpnp"
+    };
+
+    private async Task OnFileSelected(InputFileChangeEventArgs e)
+    {
+        _error = null;
+        var file = e.File;
+
+        if (file.Size > MaxSizeBytes)
+        {
+            _error = $"Файл слишком большой ({FormatSize(file.Size)}). Максимум: {FormatSize(MaxSizeBytes)}.";
+            await OnUploadError.InvokeAsync(_error);
+            return;
+        }
+
+        // Проверка запрещённых расширений
+        var ext = System.IO.Path.GetExtension(file.Name)?.TrimStart('.').ToLowerInvariant();
+        if (!string.IsNullOrEmpty(ext) && _blockedExtensions.Contains(ext))
+        {
+            _error = $"Загрузка файлов с расширением .{ext} запрещена.";
+            await OnUploadError.InvokeAsync(_error);
+            return;
+        }
+
+        _isUploading = true;
+        _uploadingFileName = file.Name;
+        _uploadProgress = 0;
+        StateHasChanged();
+
+        try
+        {
+            // 1. Инициируем загрузку
+            var baseUrl = ApiBaseUrl ?? "";
+            var initResponse = await Http.PostAsJsonAsync($"{baseUrl}/api/files/upload", new
+            {
+                fileName = file.Name,
+                contentType = file.ContentType,
+                totalSizeBytes = file.Size
+            });
+            initResponse.EnsureSuccessStatusCode();
+
+            var initResult = await initResponse.Content.ReadFromJsonAsync<UploadInitResult>();
+            if (initResult == null)
+                throw new InvalidOperationException("Не удалось получить uploadId.");
+
+            var uploadId = initResult.UploadId;
+            var chunkSize = initResult.MaxChunkSize;
+
+            // 2. Загружаем чанки
+            using var stream = file.OpenReadStream(MaxSizeBytes);
+            var buffer = new byte[chunkSize];
+            int chunkIndex = 0;
+            int bytesRead;
+
+            while ((bytesRead = await stream.ReadAsync(buffer)) > 0)
+            {
+                using var content = new MultipartFormDataContent();
+                content.Add(new StringContent(uploadId), "uploadId");
+                content.Add(new StringContent(chunkIndex.ToString()), "chunkIndex");
+
+                var chunkBytes = buffer[..bytesRead];
+                var chunkContent = new ByteArrayContent(chunkBytes);
+                chunkContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/octet-stream");
+                content.Add(chunkContent, "chunk", $"chunk_{chunkIndex}");
+
+                var chunkResponse = await Http.PostAsync($"{baseUrl}/api/files/upload/chunk", content);
+                chunkResponse.EnsureSuccessStatusCode();
+
+                chunkIndex++;
+                _uploadProgress = (int)((double)(chunkIndex * chunkSize) / file.Size * 100);
+                if (_uploadProgress > 100) _uploadProgress = 100;
+                StateHasChanged();
+            }
+
+            // 3. Завершаем загрузку
+            var completeResponse = await Http.PostAsJsonAsync($"{baseUrl}/api/files/upload/complete", new
+            {
+                uploadId = uploadId
+            });
+            completeResponse.EnsureSuccessStatusCode();
+
+            var completeResult = await completeResponse.Content.ReadFromJsonAsync<UploadCompleteResult>();
+            if (completeResult == null)
+                throw new InvalidOperationException("Не удалось завершить загрузку.");
+
+            _uploadProgress = 100;
+            _isUploading = false;
+            StateHasChanged();
+
+            await OnFileUploaded.InvokeAsync(completeResult.FileId);
+        }
+        catch (Exception ex)
+        {
+            _isUploading = false;
+            _error = $"Ошибка загрузки: {ex.Message}";
+            StateHasChanged();
+            await OnUploadError.InvokeAsync(_error);
+        }
+    }
+
+    private static string FormatSize(long bytes)
+    {
+        if (bytes < 1024) return $"{bytes} Б";
+        if (bytes < 1024 * 1024) return $"{bytes / 1024.0:F1} КБ";
+        if (bytes < 1024 * 1024 * 1024) return $"{bytes / (1024.0 * 1024.0):F1} МБ";
+        return $"{bytes / (1024.0 * 1024.0 * 1024.0):F1} ГБ";
+    }
+
+    // DTO-классы для десериализации ответов API
+    private class UploadInitResult
+    {
+        public string UploadId { get; set; } = null!;
+        public int MaxChunkSize { get; set; }
+    }
+
+    private class UploadCompleteResult
+    {
+        public Guid FileId { get; set; }
+        public string OriginalName { get; set; } = null!;
+        public long SizeBytes { get; set; }
+    }
+}

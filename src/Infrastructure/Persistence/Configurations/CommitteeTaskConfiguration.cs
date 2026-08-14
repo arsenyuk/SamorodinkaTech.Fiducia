@@ -12,7 +12,7 @@ public class CommitteeTaskConfiguration : IEntityTypeConfiguration<CommitteeTask
         builder.ToTable("committee_tasks");
 
         builder.HasKey(ct => ct.Id);
-        builder.Property(ct => ct.Id).HasColumnName("id").UseIdentityAlwaysColumn();
+        builder.Property(ct => ct.Id).HasColumnName("id");
 
         builder.Property(ct => ct.CommitteeId).HasColumnName("committee_id").IsRequired();
         builder.Property(ct => ct.AgendaQuestionId).HasColumnName("agenda_question_id");

@@ -20,11 +20,18 @@ public class FileEntryConfiguration : IEntityTypeConfiguration<FileEntry>
         b.Property(x => x.Checksum).HasColumnName("checksum").HasMaxLength(64);
         b.Property(x => x.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("CURRENT_TIMESTAMP");
         b.Property(x => x.CreatedBy).HasColumnName("created_by");
+        b.Property(x => x.FileType).HasColumnName("file_type").HasMaxLength(50);
+        b.Property(x => x.DisplayName).HasColumnName("display_name").HasMaxLength(255);
+        b.Property(x => x.Extension).HasColumnName("extension").HasMaxLength(20);
+        b.Property(x => x.IsUploaded).HasColumnName("is_uploaded").HasDefaultValue(true);
+        b.Property(x => x.UploadId).HasColumnName("upload_id").HasMaxLength(64);
+        b.Property(x => x.ExpiresAt).HasColumnName("expires_at");
 
         b.HasIndex(x => new { x.StorageProvider, x.StorageKeyOrPath })
             .IsUnique()
             .HasDatabaseName("ux_files_provider_key");
         b.HasIndex(x => x.CreatedAt).HasDatabaseName("ix_files_created_at");
         b.HasIndex(x => x.Checksum).HasDatabaseName("ix_files_checksum");
+        b.HasIndex(x => x.UploadId).HasDatabaseName("ix_files_upload_id").HasFilter("upload_id IS NOT NULL");
     }
 }

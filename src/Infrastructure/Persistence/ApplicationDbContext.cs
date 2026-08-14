@@ -64,6 +64,13 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
     public DbSet<TrueConfTestQuestion> TrueConfTestQuestions => Set<TrueConfTestQuestion>();
     public DbSet<TrueConfTestAnswer> TrueConfTestAnswers => Set<TrueConfTestAnswer>();
 
+    // Junction-таблицы файлов (BDR-011)
+    public DbSet<MeetingFile> MeetingFiles => Set<MeetingFile>();
+    public DbSet<AgendaQuestionFile> AgendaQuestionFiles => Set<AgendaQuestionFile>();
+    public DbSet<CommitteeTaskFile> CommitteeTaskFiles => Set<CommitteeTaskFile>();
+    public DbSet<OrgTaskFile> OrgTaskFiles => Set<OrgTaskFile>();
+    public DbSet<CommitteeFile> CommitteeFiles => Set<CommitteeFile>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(FiduciaDbContext).Assembly);
@@ -296,8 +303,6 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.Property(x => x.Id).HasColumnName("id");
             b.Property(x => x.OsaMeetingId).HasColumnName("osa_meeting_id").IsRequired();
             b.Property(x => x.FileId).HasColumnName("file_id").IsRequired();
-            b.Property(x => x.FileType).HasColumnName("file_type").HasMaxLength(50).IsRequired();
-            b.Property(x => x.DisplayName).HasColumnName("display_name").HasMaxLength(255);
             b.HasOne(x => x.OsaMeeting)
              .WithMany()
              .HasForeignKey(x => x.OsaMeetingId)

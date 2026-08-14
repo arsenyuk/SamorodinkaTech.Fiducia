@@ -97,6 +97,10 @@ builder.Services.AddSingleton<ITimeProvider, SystemTimeProvider>();
 // File Storage (ADR-020)
 builder.Services.AddFileStorage(builder.Configuration);
 
+// Chunked Upload (BDR-011)
+builder.Services.Configure<FileUploadOptions>(builder.Configuration.GetSection("FileUpload"));
+builder.Services.AddScoped<IChunkedUploadService, ChunkedUploadService>();
+
 // GOSA interval service — расчёт интервала ГОСА (BDR-007)
 builder.Services.AddSingleton<ILegalEntityGosaIntervalService, LegalEntityGosaIntervalService>();
 
@@ -296,9 +300,96 @@ app.MapPost("/api/session/login", (HttpContext http, ISessionService sessionServ
     return Results.Ok(new { message = "Login cookie set", expires });
 });
 
+// File upload/download endpoints (BDR-011)
+var fileGroup = app.MapGroup("/api/files").RequireAuthorization().WithTags("Files");
+
+fileGroup.MapPost("/upload", async (HttpContext http, IChunkedUploadService uploadService) =>
+{
+    var request = await http.Request.ReadFromJsonAsync<UploadInitRequest>();
+    if (request == null) return Results.BadRequest(new { error = "Invalid request" });
+    try
+    {
+        var uploadId = await uploadService.InitiateUploadAsync(request.FileName, request.ContentType, request.TotalSizeBytes);
+        return Results.Ok(new { uploadId, maxChunkSize = 512 * 1024 });
+    }
+    catch (InvalidOperationException ex) { return Results.BadRequest(new { error = ex.Message }); }
+});
+
+fileGroup.MapPost("/upload/chunk", async (HttpContext http, IChunkedUploadService uploadService) =>
+{
+    var form = await http.Request.ReadFormAsync();
+    var uploadId = form["uploadId"].FirstOrDefault();
+    var chunkIndexStr = form["chunkIndex"].FirstOrDefault();
+    var chunkFile = http.Request.Form.Files["chunk"];
+
+    if (string.IsNullOrEmpty(uploadId) || chunkIndexStr == null || chunkFile == null)
+        return Results.BadRequest(new { error = "Missing parameters" });
+
+    if (!int.TryParse(chunkIndexStr, out var chunkIndex))
+        return Results.BadRequest(new { error = "Invalid chunkIndex" });
+
+    try
+    {
+        await using var stream = chunkFile.OpenReadStream();
+        await uploadService.UploadChunkAsync(uploadId, chunkIndex, stream);
+        return Results.Ok();
+    }
+    catch (InvalidOperationException ex) { return Results.BadRequest(new { error = ex.Message }); }
+});
+
+fileGroup.MapPost("/upload/complete", async (HttpContext http, IChunkedUploadService uploadService) =>
+{
+    var request = await http.Request.ReadFromJsonAsync<UploadCompleteRequest>();
+    if (request == null) return Results.BadRequest(new { error = "Invalid request" });
+    try
+    {
+        var fileEntry = await uploadService.CompleteUploadAsync(request.UploadId);
+        return Results.Ok(new { fileId = fileEntry.Id, originalName = fileEntry.OriginalName, sizeBytes = fileEntry.SizeBytes });
+    }
+    catch (InvalidOperationException ex) { return Results.BadRequest(new { error = ex.Message }); }
+});
+
+fileGroup.MapGet("/upload/{uploadId}/chunks", async (string uploadId, IChunkedUploadService uploadService) =>
+{
+    var chunks = await uploadService.GetUploadedChunksAsync(uploadId);
+    return Results.Ok(new { uploadId, chunkIndices = chunks.ToList() });
+});
+
+fileGroup.MapDelete("/upload/{uploadId}", async (string uploadId, IChunkedUploadService uploadService) =>
+{
+    await uploadService.AbortUploadAsync(uploadId);
+    return Results.Ok();
+});
+
+fileGroup.MapGet("/{id}/download", async (Guid id, IApplicationDbContext db, IFileStorage fileStorage) =>
+{
+    var fileEntry = db.Files.FirstOrDefault(f => f.Id == id);
+    if (fileEntry == null) return Results.NotFound();
+    try
+    {
+        var stream = await fileStorage.OpenReadAsync(fileEntry.StorageKeyOrPath);
+        return Results.File(stream, fileEntry.ContentType ?? "application/octet-stream", fileEntry.OriginalName);
+    }
+    catch (FileNotFoundException) { return Results.NotFound(); }
+});
+
+fileGroup.MapDelete("/{id}", async (Guid id, IApplicationDbContext db, IFileStorage fileStorage) =>
+{
+    var fileEntry = db.Files.FirstOrDefault(f => f.Id == id);
+    if (fileEntry == null) return Results.NotFound();
+    await fileStorage.DeleteAsync(fileEntry.StorageKeyOrPath);
+    db.Files.Remove(fileEntry);
+    await ((FiduciaDbContext)db).SaveChangesAsync();
+    return Results.Ok();
+});
+
 app.MapBlazorHub();
 app.MapFallbackToPage("/_Host");
 
 app.Run();
+
+// DTO records для file upload API
+public record UploadInitRequest(string FileName, string? ContentType, long TotalSizeBytes);
+public record UploadCompleteRequest(string UploadId);
 
 public record LoginCookieRequest(string Token);

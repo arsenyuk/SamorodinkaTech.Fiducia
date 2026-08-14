@@ -401,7 +401,11 @@
                 <div class="row g-3">
                     <div class="col-md-6">
                         <label class="form-label">Положение о Совете директоров (PDF)</label>
-                        <InputFile OnChange="OnBoardRegulationSelected" accept=".pdf" class="form-control" />
+                        <FileUpload Accept=".pdf"
+                                    MaxSizeBytes="52428800"
+                                    FileType="REGULATION"
+                                    OnFileUploaded="OnBoardRegulationFileUploaded"
+                                    OnUploadError="OnBoardRegulationUploadError" />
                         @if (_customBoardRegulationDocName != null)
                         {
                             <small class="text-success">📄 @_customBoardRegulationDocName</small>
@@ -684,7 +688,11 @@
                             <div class="row g-3 mt-2">
                                 <div class="col-md-6">
                                     <label class="form-label">Устав (PDF)</label>
-                                    <InputFile OnChange="OnCharterDocumentSelected" accept=".pdf" class="form-control" />
+                                    <FileUpload Accept=".pdf"
+                                                MaxSizeBytes="52428800"
+                                                FileType="CHARTER"
+                                                OnFileUploaded="OnCharterFileUploaded"
+                                                OnUploadError="OnCharterUploadError" />
                                     @if (_customCharterDocName != null)
                                     {
                                         <small class="text-success">📄 @_customCharterDocName</small>
@@ -716,6 +724,25 @@
     private string search = string.Empty;
     private int limit = 15;
     private List<LegalEntityVm>? searchResults;
+
+    // Запрещённые расширения файлов (BDR-011)
+    private static readonly HashSet<string> _blockedExtensions = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "exe", "dll", "com", "msi", "bat", "cmd", "scr", "pif",
+        "vbs", "vbe", "js", "jse", "ws", "wsh", "wsf",
+        "ps1", "psm1", "psd1", "psc1",
+        "sh", "bash", "csh", "ksh", "zsh",
+        "app", "bin", "command", "cpl", "hta", "inf", "ins", "isp",
+        "job", "lnk", "mdb", "msc", "msp",
+        "reg", "rgs", "scf", "snap",
+        "application", "gadget", "paf",
+        "xbap", "xll", "xnk",
+        "zip", "rar", "7z", "tar", "gz", "bz2", "xz", "zst",
+        "iso", "img", "vhd", "vhdx", "vmdk", "ova", "ovf",
+        "cab", "dmg", "pak", "war", "ear",
+        "sys", "drv", "diagnostics", "msix", "appx",
+        "widget", "webpnp"
+    };
 
     private LegalEntityVm? selectedEntity;
     private string editPosition = "Генеральный директор";
@@ -1586,6 +1613,33 @@
         _customBoardRegulationDocName = e.File?.Name;
     }
 
+    // Callbacks для FileUpload компоненты (BDR-011)
+    private void OnCharterFileUploaded(Guid fileId)
+    {
+        _customCharterDocId = fileId;
+        _customCharterDocName = "Файл загружен";
+        StateHasChanged();
+    }
+
+    private void OnCharterUploadError(string error)
+    {
+        saveError = error;
+        StateHasChanged();
+    }
+
+    private void OnBoardRegulationFileUploaded(Guid fileId)
+    {
+        _customBoardRegulationDocId = fileId;
+        _customBoardRegulationDocName = "Файл загружен";
+        StateHasChanged();
+    }
+
+    private void OnBoardRegulationUploadError(string error)
+    {
+        saveError = error;
+        StateHasChanged();
+    }
+
     private string? _lastCharterNumber;
 
     private async Task OnCharterNumberSet(string? value)
@@ -1667,6 +1721,11 @@
         SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext ctx,
         IBrowserFile file)
     {
+        // Проверка запрещённых расширений
+        var ext = System.IO.Path.GetExtension(file.Name)?.TrimStart('.').ToLowerInvariant();
+        if (!string.IsNullOrEmpty(ext) && _blockedExtensions.Contains(ext))
+            throw new InvalidOperationException($"Загрузка файлов с расширением .{ext} запрещена.");
+
         await using var stream = file.OpenReadStream(maxAllowedSize: 50_000_000);
         var storageKey = await FileStorage.SaveAsync(stream, file.Name, file.ContentType, CancellationToken.None);
         var entry = new FileEntry
@@ -1676,7 +1735,8 @@
             ContentType = file.ContentType,
             SizeBytes = file.Size,
             StorageProvider = "LOCAL",
-            StorageKeyOrPath = storageKey
+            StorageKeyOrPath = storageKey,
+            Extension = System.IO.Path.GetExtension(file.Name)?.TrimStart('.')
         };
         ctx.Files.Add(entry);
         return entry.Id;

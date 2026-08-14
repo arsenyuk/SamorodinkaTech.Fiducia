@@ -1,21 +1,21 @@
 namespace SamorodinkaTech.Fiducia.Domain.Entities;
 
 /// <summary>
-/// Связь ОСА с файлами (osa_meeting_files).
+/// Связь заседания СД с файлами (meeting_files).
 /// </summary>
-public class OsaMeetingFile
+public class MeetingFile
 {
     /// <summary>Идентификатор (id).</summary>
     public Guid Id { get; set; }
 
-    /// <summary>Ссылка на ОСА (osa_meeting_id).</summary>
-    public Guid OsaMeetingId { get; set; }
+    /// <summary>Ссылка на заседание (meeting_id).</summary>
+    public Guid MeetingId { get; set; }
 
     /// <summary>Ссылка на файл (file_id).</summary>
     public Guid FileId { get; set; }
 
-    /// <summary>Навигация к ОСА.</summary>
-    public OsaMeeting? OsaMeeting { get; set; }
+    /// <summary>Навигация к заседанию.</summary>
+    public Meeting? Meeting { get; set; }
 
     /// <summary>Навигация к файлу.</summary>
     public FileEntry? File { get; set; }

@@ -48,11 +48,14 @@ else if (_step == 1)
             {
                 <div class="mb-3">
                     <label class="form-label">Выписка из РДЛ (обязательно)</label>
-                    <InputFile class="form-control form-control-sm" OnChange="OnRdlFileSelected"
-                               accept=".pdf,.png,.jpg,.jpeg" />
-                    @if (_rdlFile is not null)
+                    <FileUpload Accept=".pdf,.png,.jpg,.jpeg"
+                                MaxSizeBytes="52428800"
+                                FileType="RDL_EXTRACT"
+                                OnFileUploaded="OnRdlFileUploaded"
+                                OnUploadError="OnRdlUploadError" />
+                    @if (_rdlFileId is not null)
                     {
-                        <span class="text-success small">✓ @_rdlFile.Name</span>
+                        <span class="text-success small">✓ Файл загружен</span>
                     }
                 </div>
             }
@@ -154,6 +157,25 @@ else if (_step == 2)
     [Parameter] public Guid BoardId { get; set; }
     [Parameter] public Guid MemberId { get; set; }
 
+    // Запрещённые расширения файлов (BDR-011)
+    private static readonly HashSet<string> _blockedExtensions = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "exe", "dll", "com", "msi", "bat", "cmd", "scr", "pif",
+        "vbs", "vbe", "js", "jse", "ws", "wsh", "wsf",
+        "ps1", "psm1", "psd1", "psc1",
+        "sh", "bash", "csh", "ksh", "zsh",
+        "app", "bin", "command", "cpl", "hta", "inf", "ins", "isp",
+        "job", "lnk", "mdb", "msc", "msp",
+        "reg", "rgs", "scf", "snap",
+        "application", "gadget", "paf",
+        "xbap", "xll", "xnk",
+        "zip", "rar", "7z", "tar", "gz", "bz2", "xz", "zst",
+        "iso", "img", "vhd", "vhdx", "vmdk", "ova", "ovf",
+        "cab", "dmg", "pak", "war", "ear",
+        "sys", "drv", "diagnostics", "msix", "appx",
+        "widget", "webpnp"
+    };
+
     private record MemberInfo
     {
         public string FullName { get; init; } = default!;
@@ -179,6 +201,7 @@ else if (_step == 2)
     private DateOnly? _resignDate = DateOnly.FromDateTime(DateTime.Today);
     private string? _legalBasis;
     private IBrowserFile? _rdlFile;
+    private Guid? _rdlFileId; // ID файла загруженного через FileUpload компоненту (BDR-011)
     private bool _saving;
     private string? _error;
 
@@ -245,12 +268,25 @@ else if (_step == 2)
         _rdlFile = e.File;
     }
 
+    // Callbacks для FileUpload компоненты (BDR-011)
+    private void OnRdlFileUploaded(Guid fileId)
+    {
+        _rdlFileId = fileId;
+        StateHasChanged();
+    }
+
+    private void OnRdlUploadError(string error)
+    {
+        _error = error;
+        StateHasChanged();
+    }
+
     /// <summary>Шаг 2: собираем данные для финализации.</summary>
     private async Task GoToFinalize()
     {
         _error = null;
 
-        if (_selectedReasonCode == "DISQUALIFICATION" && _rdlFile is null)
+        if (_selectedReasonCode == "DISQUALIFICATION" && _rdlFileId is null)
         {
             _error = "Для основания «Дисквалификация» необходимо приложить выписку из РДЛ.";
             return;
@@ -354,23 +390,8 @@ else if (_step == 2)
             appointment.ResignationReasonId = reasonId;
             appointment.LegalBasis = _selectedReasonCode == "LEGAL" ? _legalBasis?.Trim() : null;
 
-            Guid? rdlFileId = null;
-            if (_rdlFile is not null)
-            {
-                await using var stream = _rdlFile.OpenReadStream(maxAllowedSize: 50_000_000);
-                var storageKey = await FileStorage.SaveAsync(stream, _rdlFile.Name, _rdlFile.ContentType, CancellationToken.None);
-                var fileEntry = new FileEntry
-                {
-                    Id = Guid.NewGuid(),
-                    OriginalName = _rdlFile.Name,
-                    ContentType = _rdlFile.ContentType,
-                    SizeBytes = _rdlFile.Size,
-                    StorageProvider = "LOCAL",
-                    StorageKeyOrPath = storageKey
-                };
-                ctx.Files.Add(fileEntry);
-                rdlFileId = fileEntry.Id;
-            }
+            // Файл уже загружен через FileUpload компоненту (BDR-011)
+            Guid? rdlFileId = _rdlFileId;
 
             if (_member.UserId.HasValue && _member.UserId.Value != Guid.Empty)
             {

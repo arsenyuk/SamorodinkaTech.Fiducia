@@ -218,8 +218,6 @@ CREATE TABLE IF NOT EXISTS osa_meeting_files (
     id uuid PRIMARY KEY,
     osa_meeting_id uuid NOT NULL REFERENCES osa_meetings(id) ON DELETE CASCADE,
     file_id uuid NOT NULL REFERENCES files(id) ON DELETE CASCADE,
-    file_type varchar(50) NOT NULL CHECK (file_type IN ('CHARTER','PROTOCOL','REGULATION')),
-    display_name varchar(255),
     CONSTRAINT ux_osa_meeting_file UNIQUE (osa_meeting_id, file_id)
 );
 
@@ -394,7 +392,7 @@ CREATE TABLE IF NOT EXISTS legal_entity_voting_rules (
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_voting_rules_entity ON legal_entity_voting_rules (legal_entity_id);
 
--- Таблица: files (метаданные файлов для единого файлового хранилища, ADR-020)
+-- Таблица: files (метаданные файлов для единого файлового хранилища, ADR-020, BDR-011)
 CREATE TABLE IF NOT EXISTS files (
     id uuid PRIMARY KEY,
     original_name varchar(255) NOT NULL,
@@ -404,7 +402,15 @@ CREATE TABLE IF NOT EXISTS files (
     storage_key_or_path varchar(1024) NOT NULL,
     checksum varchar(64), -- SHA-256 в hex (64 символа), опционально
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by uuid REFERENCES users(id) ON DELETE SET NULL
+    created_by uuid REFERENCES users(id) ON DELETE SET NULL,
+    -- Контекст использования файла (BDR-011)
+    file_type varchar(50),
+    display_name varchar(255),
+    extension varchar(20),
+    -- Chunked upload (BDR-011)
+    is_uploaded boolean NOT NULL DEFAULT true,
+    upload_id varchar(64),
+    expires_at timestamp with time zone
 );
 
 -- Уникальность: один и тот же ключ хранения в пределах провайдера
@@ -413,6 +419,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS ux_files_provider_key ON files(storage_provide
 -- Полезные индексы
 CREATE INDEX IF NOT EXISTS ix_files_created_at ON files(created_at);
 CREATE INDEX IF NOT EXISTS ix_files_checksum ON files(checksum);
+CREATE INDEX IF NOT EXISTS ix_files_upload_id ON files(upload_id) WHERE upload_id IS NOT NULL;
 
 -- ============================================================================
 -- ext_ таблицы: данные из внешних источников (BDR-009)
@@ -644,3 +651,59 @@ CREATE TABLE IF NOT EXISTS ref_resignation_reasons (
     code varchar(20) UNIQUE NOT NULL,
     name varchar(200) NOT NULL
 );
+
+-- ============================================================================
+-- Junction-таблицы файлов (BDR-011: Единая таблица файлов)
+-- Паттерн: {entity}_files — связь сущностей с таблицей files
+-- file_type и display_name хранятся в таблице files
+-- ============================================================================
+
+-- meeting_files: файлы заседаний СД
+CREATE TABLE IF NOT EXISTS meeting_files (
+    id uuid PRIMARY KEY,
+    meeting_id uuid NOT NULL REFERENCES meetings(id) ON DELETE CASCADE,
+    file_id uuid NOT NULL REFERENCES files(id) ON DELETE CASCADE,
+    CONSTRAINT ux_meeting_files_unique UNIQUE (meeting_id, file_id)
+);
+CREATE INDEX IF NOT EXISTS ix_meeting_files_meeting_id ON meeting_files(meeting_id);
+CREATE INDEX IF NOT EXISTS ix_meeting_files_file_id ON meeting_files(file_id);
+
+-- agenda_question_files: файлы вопросов повестки
+CREATE TABLE IF NOT EXISTS agenda_question_files (
+    id uuid PRIMARY KEY,
+    agenda_question_id uuid NOT NULL REFERENCES agenda_questions(id) ON DELETE CASCADE,
+    file_id uuid NOT NULL REFERENCES files(id) ON DELETE CASCADE,
+    CONSTRAINT ux_agenda_question_files_unique UNIQUE (agenda_question_id, file_id)
+);
+CREATE INDEX IF NOT EXISTS ix_aqf_agenda_question_id ON agenda_question_files(agenda_question_id);
+CREATE INDEX IF NOT EXISTS ix_aqf_file_id ON agenda_question_files(file_id);
+
+-- committee_task_files: файлы задач комитетов
+CREATE TABLE IF NOT EXISTS committee_task_files (
+    id uuid PRIMARY KEY,
+    committee_task_id uuid NOT NULL REFERENCES committee_tasks(id) ON DELETE CASCADE,
+    file_id uuid NOT NULL REFERENCES files(id) ON DELETE CASCADE,
+    CONSTRAINT ux_committee_task_files_unique UNIQUE (committee_task_id, file_id)
+);
+CREATE INDEX IF NOT EXISTS ix_ctf_committee_task_id ON committee_task_files(committee_task_id);
+CREATE INDEX IF NOT EXISTS ix_ctf_file_id ON committee_task_files(file_id);
+
+-- org_task_files: файлы задач оргплана
+CREATE TABLE IF NOT EXISTS org_task_files (
+    id uuid PRIMARY KEY,
+    org_task_id uuid NOT NULL REFERENCES org_tasks(id) ON DELETE CASCADE,
+    file_id uuid NOT NULL REFERENCES files(id) ON DELETE CASCADE,
+    CONSTRAINT ux_org_task_files_unique UNIQUE (org_task_id, file_id)
+);
+CREATE INDEX IF NOT EXISTS ix_otf_org_task_id ON org_task_files(org_task_id);
+CREATE INDEX IF NOT EXISTS ix_otf_file_id ON org_task_files(file_id);
+
+-- committee_files: файлы комитетов
+CREATE TABLE IF NOT EXISTS committee_files (
+    id uuid PRIMARY KEY,
+    committee_id uuid NOT NULL REFERENCES committees(id) ON DELETE CASCADE,
+    file_id uuid NOT NULL REFERENCES files(id) ON DELETE CASCADE,
+    CONSTRAINT ux_committee_files_unique UNIQUE (committee_id, file_id)
+);
+CREATE INDEX IF NOT EXISTS ix_cf_committee_id ON committee_files(committee_id);
+CREATE INDEX IF NOT EXISTS ix_cf_file_id ON committee_files(file_id);

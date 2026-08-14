@@ -2348,9 +2348,9 @@
                 .Select(x => new MeetingFileVm
                 {
                     Id = x.Id,
-                    FileType = x.FileType,
-                    DisplayName = x.DisplayName,
-                    FileName = x.File!.OriginalName,
+                    FileType = x.File!.FileType,
+                    DisplayName = x.File.DisplayName,
+                    FileName = x.File.OriginalName,
                     SizeBytes = x.File.SizeBytes
                 })
                 .ToListAsync();
@@ -2401,7 +2401,10 @@
                 ContentType = browserFile.ContentType,
                 SizeBytes = browserFile.Size,
                 StorageProvider = "LOCAL",
-                StorageKeyOrPath = storageKey
+                StorageKeyOrPath = storageKey,
+                FileType = newFileType,
+                DisplayName = string.IsNullOrWhiteSpace(newFileDisplayName) ? null : newFileDisplayName.Trim(),
+                Extension = System.IO.Path.GetExtension(browserFile.Name)?.TrimStart('.')
             };
             ctx.Files.Add(fileEntry);
 
@@ -2409,9 +2412,7 @@
             {
                 Id = Guid.NewGuid(),
                 OsaMeetingId = editingMeetingId!.Value,
-                FileId = fileEntry.Id,
-                FileType = newFileType,
-                DisplayName = string.IsNullOrWhiteSpace(newFileDisplayName) ? null : newFileDisplayName.Trim()
+                FileId = fileEntry.Id
             };
             ctx.Set<OsaMeetingFile>().Add(meetingFile);
 
