@@ -297,6 +297,18 @@ CREATE TABLE IF NOT EXISTS legal_entity_charter (
     has_revision_commission boolean
 );
 
+-- Таблица: legal_entity_email_settings (настройки email-писем для ЮЛ)
+CREATE TABLE IF NOT EXISTS legal_entity_email_settings (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    legal_entity_id uuid NOT NULL REFERENCES legal_entities(id) ON DELETE CASCADE,
+    header_enabled boolean NOT NULL DEFAULT false,
+    header_markdown text NOT NULL DEFAULT '',
+    footer_enabled boolean NOT NULL DEFAULT false,
+    footer_markdown text NOT NULL DEFAULT '',
+    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+CREATE UNIQUE INDEX IF NOT EXISTS ix_email_settings_legal_entity ON legal_entity_email_settings(legal_entity_id);
+
 -- Таблица: current_workplace (руководитель ЮЛ, singleton, BDR-007)
 CREATE TABLE IF NOT EXISTS current_workplace (
     id uuid PRIMARY KEY,
