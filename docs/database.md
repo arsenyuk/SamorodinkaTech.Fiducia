@@ -23,6 +23,17 @@ erDiagram
         boolean pep_agreement_signed
         timestamp pep_signed_at
         timestamp created_at
+        varchar invitation_token
+        timestamp invitation_expires_at
+        boolean declaration_completed
+        text declaration_data
+        boolean pdn_consent_given
+        timestamp pdn_consent_at
+        varchar pdn_consent_ip
+        boolean is_active
+        timestamp account_expires_at
+        timestamp ldap_created_at
+        boolean is_system
     }
 
     ref_roles {
@@ -298,6 +309,17 @@ erDiagram
 | `pep_agreement_signed` | BOOLEAN | Подписано ли Соглашение о ПЭП |
 | `pep_signed_at` | TIMESTAMP WITH TIME ZONE | Точное UTC-время подписания Соглашения |
 | `created_at` | TIMESTAMP WITH TIME ZONE | Дата создания |
+| `invitation_token` | VARCHAR(255) | Токен приглашения (nullable) |
+| `invitation_expires_at` | TIMESTAMP WITH TIME ZONE | Срок действия приглашения (nullable) |
+| `declaration_completed` | BOOLEAN | Пройден ли онбординг (анкета) |
+| `declaration_data` | TEXT | JSON с данными анкеты (nullable) |
+| `pdn_consent_given` | BOOLEAN | Согласие на обработку ПДн |
+| `pdn_consent_at` | TIMESTAMP WITH TIME ZONE | Дата согласия на обработку ПДн (nullable) |
+| `pdn_consent_ip` | VARCHAR(45) | IP-адрес при даче согласия на ПДн (nullable) |
+| `is_active` | BOOLEAN | Активна ли учётная запись |
+| `account_expires_at` | TIMESTAMP WITH TIME ZONE | Дата окончания действия учётной записи (nullable) |
+| `ldap_created_at` | TIMESTAMP WITH TIME ZONE | Дата создания учётной записи в LDAP-каталоге (nullable) |
+| `is_system` | BOOLEAN | Признак системного пользователя (не отображается в UI авторизации) |
 
 ```sql
 CREATE TABLE users (
@@ -307,15 +329,26 @@ CREATE TABLE users (
     middle_name VARCHAR(150),
     email VARCHAR(255) UNIQUE NOT NULL,
     phone VARCHAR(20) UNIQUE NOT NULL,
-    is_external BOOLEAN DEFAULT FALSE,
-    pep_agreement_signed BOOLEAN DEFAULT FALSE,
+    is_external BOOLEAN DEFAULT FALSE NOT NULL,
+    pep_agreement_signed BOOLEAN DEFAULT FALSE NOT NULL,
     pep_signed_at TIMESTAMP WITH TIME ZONE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    invitation_token VARCHAR(255),
+    invitation_expires_at TIMESTAMP WITH TIME ZONE,
+    declaration_completed BOOLEAN DEFAULT FALSE NOT NULL,
+    declaration_data TEXT,
+    pdn_consent_given BOOLEAN DEFAULT FALSE NOT NULL,
+    pdn_consent_at TIMESTAMP WITH TIME ZONE,
+    pdn_consent_ip VARCHAR(45),
+    is_active BOOLEAN DEFAULT TRUE NOT NULL,
+    account_expires_at TIMESTAMP WITH TIME ZONE,
+    ldap_created_at TIMESTAMP WITH TIME ZONE,
+    is_system BOOLEAN DEFAULT FALSE NOT NULL
 );
 
-CREATE INDEX idx_users_email ON users(email);
-CREATE INDEX idx_users_phone ON users(phone);
-CREATE INDEX idx_users_is_external ON users(is_external);
+CREATE INDEX ix_users_is_external ON users(is_external);
+CREATE INDEX ix_users_is_active ON users(is_active);
+CREATE INDEX ix_users_is_system ON users(is_system);
 ```
 
 ### ref_roles
@@ -851,24 +884,22 @@ cat tools/db/03_demo.sql | docker exec -i fiducia-postgres psql -U fiducia -d fi
 ### Начальные данные
 
 ```sql
--- Тестовые роли
-INSERT INTO ref_roles (role_code, role_name) VALUES
-    ('SYS_ADMIN', 'Системный администратор'),
-    ('CORP_SECRETARY', 'Корпоративный секретарь'),
-    ('CHAIR_BOARD', 'Председатель СД'),
-    ('MEMBER_BOARD', 'Член СД'),
-    ('EXTERNAL_DIRECTOR', 'Внешний/Независимый директор'),
-    ('SHAREHOLDER', 'Акционер'),
-    ('COMMITTEE_CHAIR', 'Председатель комитета'),
-    ('COMMITTEE_MEMBER', 'Член комитета');
+-- Системный пользователь (нулевой GUID)
+INSERT INTO users (id, last_name, first_name, email, phone, is_external, pep_agreement_signed, created_at, is_system)
+VALUES (
+    '00000000-0000-0000-0000-000000000000',
+    'Системный', 'Пользователь', 'system@fiducia.local',
+    '+00000000000', FALSE, FALSE, '2025-01-01T00:00:00Z', TRUE
+) ON CONFLICT (id) DO NOTHING;
 
--- Тестовые пользователи
-INSERT INTO users (last_name, first_name, middle_name, email, phone, is_external)
-VALUES
-    ('Иванов', 'Иван', 'Иванович', 'ivanov@example.com', '+79001234567', false),
-    ('Петров', 'Петр', 'Петрович', 'petr@example.com', '+79007654321', false),
-    ('Сидорова', 'Мария', 'Александровна', 'sidorova@example.com', '+79009876543', false),
-    ('Козлов', 'Алексей', 'Сергеевич', 'kozlov@example.com', '+79001112233', true);
+-- Роли
+INSERT INTO ref_roles (id, code, name, created_at, created_by) VALUES
+    ('11111111-1111-1111-1111-111111111111','SYS_ADMIN','Системный администратор','2025-01-01T00:00:00Z','00000000-0000-0000-0000-000000000000'),
+    ('22222222-2222-2222-2222-222222222222','CORP_SECRETARY','Корпоративный секретарь','2025-01-01T00:00:00Z','00000000-0000-0000-0000-000000000000'),
+    ('33333333-3333-3333-3333-333333333333','CHAIR_BOARD','Председатель СД','2025-01-01T00:00:00Z','00000000-0000-0000-0000-000000000000'),
+    ('44444444-4444-4444-4444-444444444444','MEMBER_BOARD','Член СД','2025-01-01T00:00:00Z','00000000-0000-0000-0000-000000000000'),
+    ('55555555-5555-5555-5555-555555555555','EXTERNAL_DIRECTOR','Внешний/Независимый директор','2025-01-01T00:00:00Z','00000000-0000-0000-0000-000000000000'),
+    ('66666666-6666-6666-6666-666666666666','SHAREHOLDER','Акционер','2025-01-01T00:00:00Z','00000000-0000-0000-0000-000000000000');
 ```
 
 ---

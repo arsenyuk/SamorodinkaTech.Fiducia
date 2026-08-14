@@ -22,6 +22,9 @@ public class User
     /// <summary>Дата создания учётной записи в LDAP-каталоге (ldap_created_at).</summary>
     public DateTime? LdapCreatedAt { get; set; }
 
+    /// <summary>Признак системного пользователя (is_system).</summary>
+    public bool IsSystem { get; set; }
+
     // Онбординг внешних директоров
     public string? InvitationToken { get; set; }
     public DateTime? InvitationExpiresAt { get; set; }

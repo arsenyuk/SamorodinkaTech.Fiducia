@@ -25,6 +25,7 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(u => u.IsActive).HasColumnName("is_active").HasDefaultValue(true);
         builder.Property(u => u.AccountExpiresAt).HasColumnName("account_expires_at");
         builder.Property(u => u.LdapCreatedAt).HasColumnName("ldap_created_at");
+        builder.Property(u => u.IsSystem).HasColumnName("is_system").HasDefaultValue(false);
 
         // Онбординг внешних директоров и согласия ПДн (snake_case)
         builder.Property(u => u.InvitationToken).HasColumnName("invitation_token");

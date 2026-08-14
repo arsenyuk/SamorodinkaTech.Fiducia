@@ -27,6 +27,7 @@ public class UserTests
         user.IsExternal.Should().BeFalse();
         user.PepAgreementSigned.Should().BeFalse();
         user.PepSignedAt.Should().BeNull();
+        user.IsSystem.Should().BeFalse();
         user.UserRoles.Should().NotBeNull();
         user.UserRoles.Should().BeEmpty();
     }

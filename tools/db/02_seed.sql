@@ -4,7 +4,7 @@
 -- Системный пользователь (нулевой GUID) — создаётся первым,
 -- используется как created_by для всех справочников ниже
 -- ============================================================================
-INSERT INTO users (id, last_name, first_name, email, phone, is_external, pep_agreement_signed, created_at)
+INSERT INTO users (id, last_name, first_name, email, phone, is_external, pep_agreement_signed, created_at, is_system)
 VALUES (
     '00000000-0000-0000-0000-000000000000',
     'Системный',
@@ -13,7 +13,8 @@ VALUES (
     '+00000000000',
     FALSE,
     FALSE,
-    '2025-01-01T00:00:00Z'
+    '2025-01-01T00:00:00Z',
+    TRUE
 ) ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO ref_roles (id, code, name, created_at, created_by) VALUES

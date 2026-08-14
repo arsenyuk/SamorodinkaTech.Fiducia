@@ -26,6 +26,7 @@
                         <th>ФИО</th>
                         <th>Роли в СД</th>
                         <th>Статус выбытия</th>
+                        <th>Тип</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -35,6 +36,7 @@
                             <td><strong>@user.FullName</strong></td>
                             <td>@user.BoardRoles</td>
                             <td>@user.ResignationStatus</td>
+                            <td>@(user.IsSystem ? "Системный" : "")</td>
                         </tr>
                     }
                 </tbody>
@@ -212,7 +214,7 @@
                 resignationStatus = $"Выбыл: {reason}, {date}";
             }
 
-            return new UserRow(u.Id, fullName, boardRoles, resignationStatus);
+            return new UserRow(u.Id, fullName, boardRoles, resignationStatus, u.IsSystem);
         }).OrderBy(r => r.FullName).ToList();
     }
 
@@ -297,5 +299,5 @@
         await Task.CompletedTask;
     }
 
-    private record UserRow(Guid UserId, string FullName, string BoardRoles, string ResignationStatus);
+    private record UserRow(Guid UserId, string FullName, string BoardRoles, string ResignationStatus, bool IsSystem);
 }

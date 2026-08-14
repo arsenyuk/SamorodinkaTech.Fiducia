@@ -30,11 +30,13 @@ CREATE TABLE IF NOT EXISTS users (
     -- управление учётной записью
     is_active boolean DEFAULT TRUE NOT NULL,
     account_expires_at timestamp with time zone,
-    ldap_created_at timestamp with time zone
+    ldap_created_at timestamp with time zone,
+    is_system boolean DEFAULT FALSE NOT NULL
 );
 
 CREATE INDEX IF NOT EXISTS ix_users_is_external ON users(is_external);
 CREATE INDEX IF NOT EXISTS ix_users_is_active ON users(is_active);
+CREATE INDEX IF NOT EXISTS ix_users_is_system ON users(is_system);
 
 -- ============================================================================
 -- Справочники (ref_*): не зависят от других таблиц

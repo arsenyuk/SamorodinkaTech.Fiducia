@@ -90,6 +90,7 @@
         if (AuthProvider.ProviderName == "Basic")
         {
             _users = await DbContext.Users
+                .Where(u => !u.IsSystem)
                 .Include(u => u.UserRoles)
                 .ThenInclude(ur => ur.Role)
                 .OrderBy(u => u.LastName)
