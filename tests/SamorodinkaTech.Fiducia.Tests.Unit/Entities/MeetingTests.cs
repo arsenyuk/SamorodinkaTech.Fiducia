@@ -10,6 +10,9 @@ namespace SamorodinkaTech.Fiducia.Tests.Unit.Entities;
 /// </summary>
 public class MeetingTests
 {
+    private static readonly Guid OchnFormId = new("10000000-0000-0000-0000-000000000001");
+    private static readonly Guid ZaOchnFormId = new("10000000-0000-0000-0000-000000000002");
+
     /// <summary>
     /// Новая сущность Meeting имеет корректные значения по умолчанию.
     /// </summary>
@@ -21,7 +24,7 @@ public class MeetingTests
 
         // Assert
         meeting.MeetingNumber.Should().BeNull();
-        meeting.MeetingFormId.Should().Be(string.Empty);
+        meeting.MeetingFormId.Should().Be(Guid.Empty);
         meeting.Status.Should().Be(MeetingStatus.DRAFT);
         meeting.VotingStartAt.Should().BeNull();
         meeting.VotingEndAt.Should().BeNull();
@@ -38,24 +41,24 @@ public class MeetingTests
     {
         var meeting = new Meeting
         {
-            MeetingFormId = "OCHN"
+            MeetingFormId = OchnFormId
         };
 
-        meeting.MeetingFormId.Should().Be("OCHN");
+        meeting.MeetingFormId.Should().Be(OchnFormId);
     }
 
     /// <summary>
-    /// Форма проведения хранится как код (OCHN/ZAOCHN) в соответствии со схемой БД.
+    /// Форма проведения хранится как UUID FK в соответствии со схемой БД.
     /// </summary>
     [Fact]
-    public void Meeting_ShouldStoreFormCodes()
+    public void Meeting_ShouldStoreFormIds()
     {
         var meeting = new Meeting
         {
-            MeetingFormId = "ZAOCHN"
+            MeetingFormId = ZaOchnFormId
         };
 
-        meeting.MeetingFormId.Should().Be("ZAOCHN");
+        meeting.MeetingFormId.Should().Be(ZaOchnFormId);
     }
 
     /// <summary>

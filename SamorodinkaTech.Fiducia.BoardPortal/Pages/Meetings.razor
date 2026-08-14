@@ -1,8 +1,8 @@
 @page "/meetings"
+@using Microsoft.EntityFrameworkCore
 @using SamorodinkaTech.Fiducia.Domain.Entities
 @using SamorodinkaTech.Fiducia.Domain.Interfaces
 @using SamorodinkaTech.Fiducia.Domain.Enums
-@inject IApplicationDbContext DbContext
 @inject IApplicationDbContext DbContext
 @inject ILogger<Meetings> Logger
 
@@ -35,11 +35,11 @@
                             <tr>
                                 <td><strong>@meeting.MeetingNumber</strong></td>
                                 <td>
-                                    @if (meeting.MeetingFormId == "OCHN")
+                                    @if (meeting.MeetingForm?.Code == "OCHN")
                                     {
                                         <span class="badge bg-info">Очная</span>
                                     }
-                                    else if (meeting.MeetingFormId == "MIXED")
+                                    else if (meeting.MeetingForm?.Code == "MIXED")
                                     {
                                         <span class="badge bg-warning text-dark">Смешанная</span>
                                     }
@@ -123,9 +123,11 @@
 
                     <div class="mb-3">
                         <label class="form-label">Форма проведения *</label>
-                        <select class="form-select" @bind="_newMeetingFormId">
-                            <option value="OCHN">Очная</option>
-                            <option value="ZAOCHN">Заочная</option>
+                        <select class="form-select" @bind="_newMeetingFormIdStr">
+                            @foreach (var form in _meetingForms)
+                            {
+                                <option value="@form.Id">@form.Name</option>
+                            }
                         </select>
                     </div>
 
@@ -183,16 +185,18 @@
     private string? _errorMessage;
 
     private string _newMeetingNumber = string.Empty;
-    private string _newMeetingFormId = "OCHN";
+    private string _newMeetingFormIdStr = "";
     private DateTime _newVotingStart = DateTime.UtcNow.AddDays(1);
     private DateTime _newVotingEnd = DateTime.UtcNow.AddDays(4);
     private List<User> _availableUsers = new();
+    private List<RefMeetingForm> _meetingForms = new();
     private HashSet<Guid> _selectedUserIds = new();
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
+            _meetingForms = await DbContext.MeetingForms.ToListAsync();
             await LoadMeetings();
             _availableUsers = await DbContext.Users.ToListAsync();
         }
@@ -208,6 +212,7 @@
         try
         {
             _meetings = await DbContext.Meetings
+                .Include(m => m.MeetingForm)
                 .OrderByDescending(m => m.CreatedAt)
                 .ToListAsync();
         }
@@ -288,7 +293,7 @@
             var meeting = new Meeting
             {
                 MeetingNumber = _newMeetingNumber,
-                MeetingFormId = _newMeetingFormId,
+                MeetingFormId = Guid.Parse(_newMeetingFormIdStr),
                 Status = MeetingStatus.DRAFT,
                 VotingStartAt = _newVotingStart,
                 VotingEndAt = _newVotingEnd,

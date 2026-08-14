@@ -6,6 +6,12 @@ namespace SamorodinkaTech.Fiducia.Tests.Unit.Services;
 
 public class NotificationTextBuilderTests
 {
+    private static readonly Guid OchnFormId = new("10000000-0000-0000-0000-000000000001");
+    private static readonly Guid ZaOchnFormId = new("10000000-0000-0000-0000-000000000002");
+    private static readonly Guid MixedFormId = new("10000000-0000-0000-0000-000000000003");
+
+    private static RefMeetingForm MakeForm(Guid id, string code) => new() { Id = id, Code = code, Name = code };
+
     private readonly NotificationTextBuilder _sut = new();
 
     // ── BuildFirstMeetingSummons ──────────────────────────────────
@@ -16,7 +22,8 @@ public class NotificationTextBuilderTests
         var meeting = new Meeting
         {
             Id = Guid.NewGuid(),
-            MeetingFormId = "OCHN",
+            MeetingFormId = OchnFormId,
+            MeetingForm = MakeForm(OchnFormId, "OCHN"),
             MeetingNumber = "001",
             VotingStartAt = new DateTime(2025, 6, 15, 10, 0, 0)
         };
@@ -35,7 +42,8 @@ public class NotificationTextBuilderTests
         var meeting = new Meeting
         {
             Id = Guid.NewGuid(),
-            MeetingFormId = "ZAOCHN"
+            MeetingFormId = ZaOchnFormId,
+            MeetingForm = MakeForm(ZaOchnFormId, "ZAOCHN")
         };
 
         Action act = () => _sut.BuildFirstMeetingSummons(meeting, "ООО «Тест»");
@@ -50,7 +58,8 @@ public class NotificationTextBuilderTests
         var meeting = new Meeting
         {
             Id = new Guid("12345678-1234-1234-1234-123456789abc"),
-            MeetingFormId = "OCHN",
+            MeetingFormId = OchnFormId,
+            MeetingForm = MakeForm(OchnFormId, "OCHN"),
             MeetingNumber = null
         };
 
@@ -66,12 +75,21 @@ public class NotificationTextBuilderTests
     [InlineData("OCHN", "очное")]
     [InlineData("ZAOCHN", "заочное")]
     [InlineData("MIXED", "смешанное")]
-    public void BuildMeetingSummons_DifferentForms_ReturnsFormText(string formId, string expectedForm)
+    public void BuildMeetingSummons_DifferentForms_ReturnsFormText(string formCode, string expectedForm)
     {
+        var formId = formCode switch
+        {
+            "OCHN" => OchnFormId,
+            "ZAOCHN" => ZaOchnFormId,
+            "MIXED" => MixedFormId,
+            _ => Guid.Empty
+        };
+
         var meeting = new Meeting
         {
             Id = Guid.NewGuid(),
             MeetingFormId = formId,
+            MeetingForm = MakeForm(formId, formCode),
             MeetingNumber = "002"
         };
 
@@ -86,7 +104,8 @@ public class NotificationTextBuilderTests
         var meeting = new Meeting
         {
             Id = Guid.NewGuid(),
-            MeetingFormId = "OCHN",
+            MeetingFormId = OchnFormId,
+            MeetingForm = MakeForm(OchnFormId, "OCHN"),
             MeetingNumber = "003",
             VotingStartAt = new DateTime(2025, 6, 15, 10, 0, 0),
             VotingEndAt = new DateTime(2025, 6, 20, 18, 0, 0)
@@ -105,7 +124,8 @@ public class NotificationTextBuilderTests
         var meeting = new Meeting
         {
             Id = Guid.NewGuid(),
-            MeetingFormId = "OCHN",
+            MeetingFormId = OchnFormId,
+            MeetingForm = MakeForm(OchnFormId, "OCHN"),
             MeetingNumber = "004"
         };
 

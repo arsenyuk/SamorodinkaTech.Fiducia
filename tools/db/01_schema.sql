@@ -240,7 +240,7 @@ CREATE INDEX IF NOT EXISTS ix_committee_tasks_deadline_at ON committee_tasks(dea
 CREATE TABLE IF NOT EXISTS bulletins (
     id uuid PRIMARY KEY,
     agenda_question_id uuid NOT NULL REFERENCES agenda_questions(id) ON DELETE CASCADE,
-    user_id uuid REFERENCES users(id) ON DELETE SET NULL,
+    user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     vote_value varchar(15) NOT NULL CHECK (vote_value IN ('ZA','PROTIV','VOZDERZHALSYA','CONFLICT')),
     special_opinion text,
     signature_type varchar(10) NOT NULL CHECK (signature_type IN ('PEP','UKEP')),
