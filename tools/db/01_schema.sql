@@ -307,7 +307,7 @@ CREATE TABLE IF NOT EXISTS legal_entity_email_settings (
     footer_markdown text NOT NULL DEFAULT '',
     updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
-CREATE UNIQUE INDEX IF NOT EXISTS ix_email_settings_legal_entity ON legal_entity_email_settings(legal_entity_id);
+CREATE UNIQUE INDEX IF NOT EXISTS ix_legal_entity_email_settings_legal_entity_id ON legal_entity_email_settings(legal_entity_id);
 
 -- Таблица: current_workplace (руководитель ЮЛ, singleton, BDR-007)
 CREATE TABLE IF NOT EXISTS current_workplace (
