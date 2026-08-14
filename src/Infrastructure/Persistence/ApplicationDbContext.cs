@@ -314,11 +314,11 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.HasOne(x => x.OsaMeeting)
              .WithMany()
              .HasForeignKey(x => x.OsaMeetingId)
-             .OnDelete(DeleteBehavior.Cascade);
+             .OnDelete(DeleteBehavior.Restrict);
             b.HasOne(x => x.File)
              .WithMany()
              .HasForeignKey(x => x.FileId)
-             .OnDelete(DeleteBehavior.Cascade);
+             .OnDelete(DeleteBehavior.Restrict);
         });
 
         modelBuilder.Entity<BoardOfDirectors>(b =>
@@ -334,7 +334,7 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.HasOne(x => x.OsaMeeting)
              .WithMany()
              .HasForeignKey(x => x.OsaMeetingId)
-             .OnDelete(DeleteBehavior.Cascade);
+             .OnDelete(DeleteBehavior.Restrict);
             b.HasOne(x => x.Status)
              .WithMany()
              .HasForeignKey(x => x.StatusId);
@@ -370,7 +370,7 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.HasOne(x => x.OsaMeeting)
              .WithMany()
              .HasForeignKey(x => x.OsaMeetingId)
-             .OnDelete(DeleteBehavior.Cascade);
+             .OnDelete(DeleteBehavior.Restrict);
             b.HasOne(x => x.User)
              .WithMany()
              .HasForeignKey(x => x.UserId);
@@ -421,7 +421,7 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.HasOne(x => x.BoardMember)
              .WithMany()
              .HasForeignKey(x => x.BoardMemberId)
-             .OnDelete(DeleteBehavior.Cascade);
+             .OnDelete(DeleteBehavior.Restrict);
             b.HasOne(x => x.Role)
              .WithMany()
              .HasForeignKey(x => x.RoleId);
@@ -670,11 +670,11 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.HasOne(x => x.User)
              .WithMany()
              .HasForeignKey(x => x.UserId)
-             .OnDelete(DeleteBehavior.Cascade);
+             .OnDelete(DeleteBehavior.Restrict);
             b.HasOne(x => x.BoardMemberAppointment)
              .WithMany()
              .HasForeignKey(x => x.BoardMemberAppointmentId)
-             .OnDelete(DeleteBehavior.Cascade);
+             .OnDelete(DeleteBehavior.Restrict);
             b.HasOne(x => x.RefResignationReason)
              .WithMany()
              .HasForeignKey(x => x.ResignationReasonId);

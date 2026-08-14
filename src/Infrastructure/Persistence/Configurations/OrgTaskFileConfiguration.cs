@@ -21,11 +21,11 @@ public class OrgTaskFileConfiguration : IEntityTypeConfiguration<OrgTaskFile>
         b.HasOne(x => x.OrgTask)
             .WithMany()
             .HasForeignKey(x => x.OrgTaskId)
-            .OnDelete(DeleteBehavior.Cascade);
+            .OnDelete(DeleteBehavior.Restrict);
 
         b.HasOne(x => x.File)
             .WithMany()
             .HasForeignKey(x => x.FileId)
-            .OnDelete(DeleteBehavior.Cascade);
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }

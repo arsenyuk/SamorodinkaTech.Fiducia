@@ -152,8 +152,8 @@ CREATE TABLE IF NOT EXISTS ref_resignation_reasons (
 
 CREATE TABLE IF NOT EXISTS user_roles (
     id uuid PRIMARY KEY,
-    user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    role_id uuid NOT NULL REFERENCES ref_roles(id) ON DELETE CASCADE,
+    user_id uuid NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+    role_id uuid NOT NULL REFERENCES ref_roles(id) ON DELETE RESTRICT,
     UNIQUE (user_id, role_id)
 );
 
@@ -182,8 +182,8 @@ CREATE INDEX IF NOT EXISTS ix_committees_behavior_type ON committees(behavior_ty
 -- Связка: committee_members
 CREATE TABLE IF NOT EXISTS committee_members (
     id uuid PRIMARY KEY,
-    committee_id uuid NOT NULL REFERENCES committees(id) ON DELETE CASCADE,
-    user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    committee_id uuid NOT NULL REFERENCES committees(id) ON DELETE RESTRICT,
+    user_id uuid NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
     UNIQUE (committee_id, user_id)
 );
 
@@ -210,7 +210,7 @@ CREATE INDEX IF NOT EXISTS ix_meetings_created_at ON meetings(created_at);
 -- Таблица: agenda_questions
 CREATE TABLE IF NOT EXISTS agenda_questions (
     id uuid PRIMARY KEY,
-    meeting_id uuid NOT NULL REFERENCES meetings(id) ON DELETE CASCADE,
+    meeting_id uuid NOT NULL REFERENCES meetings(id) ON DELETE RESTRICT,
     sequence_number int NOT NULL,
     question_text text NOT NULL,
     proposed_resolution text NOT NULL,
@@ -223,7 +223,7 @@ CREATE INDEX IF NOT EXISTS ix_agenda_questions_status ON agenda_questions(status
 -- Таблица: committee_tasks
 CREATE TABLE IF NOT EXISTS committee_tasks (
     id uuid PRIMARY KEY,
-    committee_id uuid NOT NULL REFERENCES committees(id) ON DELETE CASCADE,
+    committee_id uuid NOT NULL REFERENCES committees(id) ON DELETE RESTRICT,
     agenda_question_id uuid REFERENCES agenda_questions(id) ON DELETE SET NULL,
     task_description text NOT NULL,
     deadline_at timestamp with time zone NOT NULL,
@@ -239,8 +239,8 @@ CREATE INDEX IF NOT EXISTS ix_committee_tasks_deadline_at ON committee_tasks(dea
 -- Таблица: bulletins
 CREATE TABLE IF NOT EXISTS bulletins (
     id uuid PRIMARY KEY,
-    agenda_question_id uuid NOT NULL REFERENCES agenda_questions(id) ON DELETE CASCADE,
-    user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    agenda_question_id uuid NOT NULL REFERENCES agenda_questions(id) ON DELETE RESTRICT,
+    user_id uuid NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
     vote_value varchar(15) NOT NULL CHECK (vote_value IN ('ZA','PROTIV','VOZDERZHALSYA','CONFLICT')),
     special_opinion text,
     signature_type varchar(10) NOT NULL CHECK (signature_type IN ('PEP','UKEP')),
@@ -310,7 +310,7 @@ CREATE INDEX IF NOT EXISTS ix_legal_entities_ogrn ON legal_entities(ogrn);
 
 -- Параметры устава ООО (1:1 с legal_entities, обслуживает и типовой и нетиповой)
 CREATE TABLE IF NOT EXISTS legal_entity_charter (
-    legal_entity_id uuid PRIMARY KEY REFERENCES legal_entities(id) ON DELETE CASCADE,
+    legal_entity_id uuid PRIMARY KEY REFERENCES legal_entities(id) ON DELETE RESTRICT,
     exit_allowed boolean NOT NULL DEFAULT false,
     transfer_to_participants_without_consent boolean NOT NULL DEFAULT true,
     transfer_to_third_parties_without_consent boolean NOT NULL DEFAULT false,
@@ -328,7 +328,7 @@ CREATE TABLE IF NOT EXISTS legal_entity_charter (
 -- Таблица: legal_entity_email_settings (настройки email-писем для ЮЛ)
 CREATE TABLE IF NOT EXISTS legal_entity_email_settings (
     id uuid PRIMARY KEY,
-    legal_entity_id uuid NOT NULL REFERENCES legal_entities(id) ON DELETE CASCADE,
+    legal_entity_id uuid NOT NULL REFERENCES legal_entities(id) ON DELETE RESTRICT,
     header_enabled boolean NOT NULL DEFAULT false,
     header_markdown text NOT NULL DEFAULT '',
     footer_enabled boolean NOT NULL DEFAULT false,
@@ -384,7 +384,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS ux_board_settings_singleton ON legal_entity_bo
 -- Таблица: legal_entity_voting_rules (правила голосования в СД, индивидуальные для ЮЛ)
 CREATE TABLE IF NOT EXISTS legal_entity_voting_rules (
     id uuid PRIMARY KEY,
-    legal_entity_id uuid NOT NULL REFERENCES legal_entities(id) ON DELETE CASCADE,
+    legal_entity_id uuid NOT NULL REFERENCES legal_entities(id) ON DELETE RESTRICT,
     quorum_percent int NOT NULL DEFAULT 50 CHECK (quorum_percent > 0 AND quorum_percent <= 100),
     chair_tiebreaker boolean NOT NULL DEFAULT FALSE,
     absentee_opinions boolean NOT NULL DEFAULT FALSE,
@@ -406,7 +406,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS ux_voting_rules_entity ON legal_entity_voting_
 -- Таблица: osa_meetings (записи общих собраний акционеров/участников)
 CREATE TABLE IF NOT EXISTS osa_meetings (
     id uuid PRIMARY KEY,
-    legal_entity_id uuid NOT NULL REFERENCES legal_entities(id) ON DELETE CASCADE,
+    legal_entity_id uuid NOT NULL REFERENCES legal_entities(id) ON DELETE RESTRICT,
     osa_form_id uuid NOT NULL REFERENCES ref_osa_form(id) ON DELETE RESTRICT,
     title varchar(500),
     gosa_window_start date,
@@ -445,8 +445,8 @@ CREATE TABLE IF NOT EXISTS osa_meetings (
 -- Таблица: osa_meeting_files (связь ОСА с файлами)
 CREATE TABLE IF NOT EXISTS osa_meeting_files (
     id uuid PRIMARY KEY,
-    osa_meeting_id uuid NOT NULL REFERENCES osa_meetings(id) ON DELETE CASCADE,
-    file_id uuid NOT NULL REFERENCES files(id) ON DELETE CASCADE,
+    osa_meeting_id uuid NOT NULL REFERENCES osa_meetings(id) ON DELETE RESTRICT,
+    file_id uuid NOT NULL REFERENCES files(id) ON DELETE RESTRICT,
     CONSTRAINT ux_osa_meeting_file UNIQUE (osa_meeting_id, file_id)
 );
 
@@ -460,7 +460,7 @@ CREATE INDEX IF NOT EXISTS ix_omf_file_id ON osa_meeting_files(file_id);
 -- Таблица: board_of_directors (головная запись состава СД)
 CREATE TABLE IF NOT EXISTS board_of_directors (
     id uuid PRIMARY KEY,
-    osa_meeting_id uuid NOT NULL REFERENCES osa_meetings(id) ON DELETE CASCADE,
+    osa_meeting_id uuid NOT NULL REFERENCES osa_meetings(id) ON DELETE RESTRICT,
     status_id uuid NOT NULL REFERENCES ref_board_of_directors_statuses(id),
     election_year integer,
     started_at date,
@@ -470,7 +470,7 @@ CREATE TABLE IF NOT EXISTS board_of_directors (
 -- Таблица: board_members (члены СД, состав утверждается ОСА)
 CREATE TABLE IF NOT EXISTS board_members (
     id uuid PRIMARY KEY,
-    osa_meeting_id uuid NOT NULL REFERENCES osa_meetings(id) ON DELETE CASCADE,
+    osa_meeting_id uuid NOT NULL REFERENCES osa_meetings(id) ON DELETE RESTRICT,
     board_of_directors_id uuid REFERENCES board_of_directors(id),
     full_name varchar(300) NOT NULL,
     board_member_type_id uuid REFERENCES ref_board_member_types(id),
@@ -483,7 +483,7 @@ CREATE INDEX IF NOT EXISTS ix_bm_osa_meeting_id ON board_members(osa_meeting_id)
 -- Таблица: board_member_appointments (SCD Type 2 — история должностей членов СД)
 CREATE TABLE IF NOT EXISTS board_member_appointments (
     id uuid PRIMARY KEY,
-    board_member_id uuid NOT NULL REFERENCES board_members(id) ON DELETE CASCADE,
+    board_member_id uuid NOT NULL REFERENCES board_members(id) ON DELETE RESTRICT,
     role_id uuid REFERENCES ref_board_roles(id),
     role_code varchar(20) NOT NULL,
     started_at date NOT NULL,
@@ -566,7 +566,7 @@ CREATE TABLE IF NOT EXISTS election_proposals (
 -- Таблица: election_candidacies (кандидатуры в СД)
 CREATE TABLE IF NOT EXISTS election_candidacies (
     id uuid PRIMARY KEY,
-    proposal_id uuid NOT NULL REFERENCES election_proposals(id) ON DELETE CASCADE,
+    proposal_id uuid NOT NULL REFERENCES election_proposals(id) ON DELETE RESTRICT,
     candidate_member_id uuid NOT NULL REFERENCES board_members(id),
     confirmed_by_member_id uuid REFERENCES board_members(id),
     confirmed_at timestamp with time zone,
@@ -576,7 +576,7 @@ CREATE TABLE IF NOT EXISTS election_candidacies (
 -- Таблица: election_consents (согласие/отказ кандидата на выборы в СД)
 CREATE TABLE IF NOT EXISTS election_consents (
     id uuid PRIMARY KEY,
-    proposal_id uuid NOT NULL REFERENCES election_proposals(id) ON DELETE CASCADE,
+    proposal_id uuid NOT NULL REFERENCES election_proposals(id) ON DELETE RESTRICT,
     candidate_member_id uuid NOT NULL REFERENCES board_members(id),
     consent_given boolean NOT NULL,
     consent_token varchar(64) NOT NULL,
@@ -596,8 +596,8 @@ CREATE INDEX IF NOT EXISTS ix_election_consents_proposal ON election_consents(pr
 -- Таблица: user_board_member_resignations (сложение полномочий членов СД)
 CREATE TABLE IF NOT EXISTS user_board_member_resignations (
     id uuid PRIMARY KEY,
-    user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    board_member_appointment_id uuid NOT NULL REFERENCES board_member_appointments(id) ON DELETE CASCADE,
+    user_id uuid NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+    board_member_appointment_id uuid NOT NULL REFERENCES board_member_appointments(id) ON DELETE RESTRICT,
     resigned_at timestamp with time zone NOT NULL,
     resignation_reason_id uuid NOT NULL REFERENCES ref_resignation_reasons(id),
     rdl_extract_file_id uuid REFERENCES files(id),
@@ -709,7 +709,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS ux_tpl_org_intents_code ON tpl_org_intents(cod
 -- tpl_org_stages: этапы (привязаны к целям)
 CREATE TABLE IF NOT EXISTS tpl_org_stages (
     id uuid PRIMARY KEY,
-    intent_id uuid NOT NULL REFERENCES tpl_org_intents(id) ON DELETE CASCADE,
+    intent_id uuid NOT NULL REFERENCES tpl_org_intents(id) ON DELETE RESTRICT,
     name varchar(300) NOT NULL,
     description text,
     sort_order int NOT NULL DEFAULT 0,
@@ -724,7 +724,7 @@ CREATE INDEX IF NOT EXISTS ix_tpl_org_stages_intent ON tpl_org_stages(intent_id)
 -- tpl_org_offers: шаблоны задач (привязаны к этапам)
 CREATE TABLE IF NOT EXISTS tpl_org_offers (
     id uuid PRIMARY KEY,
-    stage_id uuid NOT NULL REFERENCES tpl_org_stages(id) ON DELETE CASCADE,
+    stage_id uuid NOT NULL REFERENCES tpl_org_stages(id) ON DELETE RESTRICT,
     name varchar(300) NOT NULL,
     description text,
     start_offset_days int,
@@ -756,7 +756,7 @@ CREATE INDEX IF NOT EXISTS ix_tpl_org_offers_board_role ON tpl_org_offers(assign
 
 CREATE TABLE IF NOT EXISTS org_intents (
     id uuid PRIMARY KEY,
-    legal_entity_id uuid NOT NULL REFERENCES legal_entities(id) ON DELETE CASCADE,
+    legal_entity_id uuid NOT NULL REFERENCES legal_entities(id) ON DELETE RESTRICT,
     template_intent_id uuid REFERENCES tpl_org_intents(id),
     name varchar(300) NOT NULL,
     description text,
@@ -770,7 +770,7 @@ CREATE INDEX IF NOT EXISTS ix_org_intents_legal_entity ON org_intents(legal_enti
 
 CREATE TABLE IF NOT EXISTS org_stages (
     id uuid PRIMARY KEY,
-    intent_id uuid NOT NULL REFERENCES org_intents(id) ON DELETE CASCADE,
+    intent_id uuid NOT NULL REFERENCES org_intents(id) ON DELETE RESTRICT,
     template_stage_id uuid REFERENCES tpl_org_stages(id),
     name varchar(300) NOT NULL,
     description text,
@@ -787,7 +787,7 @@ CREATE INDEX IF NOT EXISTS ix_org_stages_intent ON org_stages(intent_id);
 
 CREATE TABLE IF NOT EXISTS org_tasks (
     id uuid PRIMARY KEY,
-    stage_id uuid NOT NULL REFERENCES org_stages(id) ON DELETE CASCADE,
+    stage_id uuid NOT NULL REFERENCES org_stages(id) ON DELETE RESTRICT,
     template_offer_id uuid REFERENCES tpl_org_offers(id),
     name varchar(300) NOT NULL,
     description text,
@@ -810,8 +810,8 @@ CREATE INDEX IF NOT EXISTS ix_org_tasks_user ON org_tasks(assigned_user_id);
 -- tpl_org_offer_roles: связь офер-роль (пул кандидатов)
 CREATE TABLE IF NOT EXISTS tpl_org_offer_roles (
     id uuid PRIMARY KEY,
-    tpl_offer_id uuid NOT NULL REFERENCES tpl_org_offers(id) ON DELETE CASCADE,
-    role_id uuid NOT NULL REFERENCES ref_roles(id) ON DELETE CASCADE,
+    tpl_offer_id uuid NOT NULL REFERENCES tpl_org_offers(id) ON DELETE RESTRICT,
+    role_id uuid NOT NULL REFERENCES ref_roles(id) ON DELETE RESTRICT,
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_tpl_offer_roles ON tpl_org_offer_roles(tpl_offer_id, role_id);
@@ -826,8 +826,8 @@ CREATE INDEX IF NOT EXISTS ix_tpl_offer_roles_role ON tpl_org_offer_roles(role_i
 -- meeting_files: файлы заседаний СД
 CREATE TABLE IF NOT EXISTS meeting_files (
     id uuid PRIMARY KEY,
-    meeting_id uuid NOT NULL REFERENCES meetings(id) ON DELETE CASCADE,
-    file_id uuid NOT NULL REFERENCES files(id) ON DELETE CASCADE,
+    meeting_id uuid NOT NULL REFERENCES meetings(id) ON DELETE RESTRICT,
+    file_id uuid NOT NULL REFERENCES files(id) ON DELETE RESTRICT,
     CONSTRAINT ux_meeting_files_unique UNIQUE (meeting_id, file_id)
 );
 CREATE INDEX IF NOT EXISTS ix_meeting_files_meeting_id ON meeting_files(meeting_id);
@@ -836,8 +836,8 @@ CREATE INDEX IF NOT EXISTS ix_meeting_files_file_id ON meeting_files(file_id);
 -- agenda_question_files: файлы вопросов повестки
 CREATE TABLE IF NOT EXISTS agenda_question_files (
     id uuid PRIMARY KEY,
-    agenda_question_id uuid NOT NULL REFERENCES agenda_questions(id) ON DELETE CASCADE,
-    file_id uuid NOT NULL REFERENCES files(id) ON DELETE CASCADE,
+    agenda_question_id uuid NOT NULL REFERENCES agenda_questions(id) ON DELETE RESTRICT,
+    file_id uuid NOT NULL REFERENCES files(id) ON DELETE RESTRICT,
     CONSTRAINT ux_agenda_question_files_unique UNIQUE (agenda_question_id, file_id)
 );
 CREATE INDEX IF NOT EXISTS ix_aqf_agenda_question_id ON agenda_question_files(agenda_question_id);
@@ -846,8 +846,8 @@ CREATE INDEX IF NOT EXISTS ix_aqf_file_id ON agenda_question_files(file_id);
 -- committee_task_files: файлы задач комитетов
 CREATE TABLE IF NOT EXISTS committee_task_files (
     id uuid PRIMARY KEY,
-    committee_task_id uuid NOT NULL REFERENCES committee_tasks(id) ON DELETE CASCADE,
-    file_id uuid NOT NULL REFERENCES files(id) ON DELETE CASCADE,
+    committee_task_id uuid NOT NULL REFERENCES committee_tasks(id) ON DELETE RESTRICT,
+    file_id uuid NOT NULL REFERENCES files(id) ON DELETE RESTRICT,
     CONSTRAINT ux_committee_task_files_unique UNIQUE (committee_task_id, file_id)
 );
 CREATE INDEX IF NOT EXISTS ix_ctf_committee_task_id ON committee_task_files(committee_task_id);
@@ -856,8 +856,8 @@ CREATE INDEX IF NOT EXISTS ix_ctf_file_id ON committee_task_files(file_id);
 -- org_task_files: файлы задач оргплана
 CREATE TABLE IF NOT EXISTS org_task_files (
     id uuid PRIMARY KEY,
-    org_task_id uuid NOT NULL REFERENCES org_tasks(id) ON DELETE CASCADE,
-    file_id uuid NOT NULL REFERENCES files(id) ON DELETE CASCADE,
+    org_task_id uuid NOT NULL REFERENCES org_tasks(id) ON DELETE RESTRICT,
+    file_id uuid NOT NULL REFERENCES files(id) ON DELETE RESTRICT,
     CONSTRAINT ux_org_task_files_unique UNIQUE (org_task_id, file_id)
 );
 CREATE INDEX IF NOT EXISTS ix_otf_org_task_id ON org_task_files(org_task_id);
@@ -866,8 +866,8 @@ CREATE INDEX IF NOT EXISTS ix_otf_file_id ON org_task_files(file_id);
 -- committee_files: файлы комитетов
 CREATE TABLE IF NOT EXISTS committee_files (
     id uuid PRIMARY KEY,
-    committee_id uuid NOT NULL REFERENCES committees(id) ON DELETE CASCADE,
-    file_id uuid NOT NULL REFERENCES files(id) ON DELETE CASCADE,
+    committee_id uuid NOT NULL REFERENCES committees(id) ON DELETE RESTRICT,
+    file_id uuid NOT NULL REFERENCES files(id) ON DELETE RESTRICT,
     CONSTRAINT ux_committee_files_unique UNIQUE (committee_id, file_id)
 );
 CREATE INDEX IF NOT EXISTS ix_cf_committee_id ON committee_files(committee_id);
@@ -899,7 +899,7 @@ CREATE INDEX IF NOT EXISTS ix_ttmeeting_conference_id ON trueconf_test_meeting(t
 -- Таблица: trueconf_test_question (вопросы тестового заседания)
 CREATE TABLE IF NOT EXISTS trueconf_test_question (
     id uuid PRIMARY KEY,
-    meeting_id uuid NOT NULL REFERENCES trueconf_test_meeting(id) ON DELETE CASCADE,
+    meeting_id uuid NOT NULL REFERENCES trueconf_test_meeting(id) ON DELETE RESTRICT,
     sequence_number int NOT NULL,
     question_text text NOT NULL,
     proposed_resolution text DEFAULT '',
@@ -915,7 +915,7 @@ CREATE INDEX IF NOT EXISTS ix_ttquestion_poll_id ON trueconf_test_question(truec
 -- Таблица: trueconf_test_answer (ответы/голоса на вопросы тестового заседания)
 CREATE TABLE IF NOT EXISTS trueconf_test_answer (
     id uuid PRIMARY KEY,
-    question_id uuid NOT NULL REFERENCES trueconf_test_question(id) ON DELETE CASCADE,
+    question_id uuid NOT NULL REFERENCES trueconf_test_question(id) ON DELETE RESTRICT,
     user_name varchar(100) NOT NULL,
     vote_value varchar(20) NOT NULL,
     voted_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL

@@ -30,7 +30,7 @@ public class CommitteeTaskConfiguration : IEntityTypeConfiguration<CommitteeTask
         builder.HasOne(ct => ct.Committee)
             .WithMany(c => c.Tasks)
             .HasForeignKey(ct => ct.CommitteeId)
-            .OnDelete(DeleteBehavior.Cascade);
+            .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasOne(ct => ct.AgendaQuestion)
             .WithMany(aq => aq.CommitteeTasks)

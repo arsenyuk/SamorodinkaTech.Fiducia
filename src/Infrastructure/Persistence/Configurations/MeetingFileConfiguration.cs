@@ -21,11 +21,11 @@ public class MeetingFileConfiguration : IEntityTypeConfiguration<MeetingFile>
         b.HasOne(x => x.Meeting)
             .WithMany()
             .HasForeignKey(x => x.MeetingId)
-            .OnDelete(DeleteBehavior.Cascade);
+            .OnDelete(DeleteBehavior.Restrict);
 
         b.HasOne(x => x.File)
             .WithMany()
             .HasForeignKey(x => x.FileId)
-            .OnDelete(DeleteBehavior.Cascade);
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }

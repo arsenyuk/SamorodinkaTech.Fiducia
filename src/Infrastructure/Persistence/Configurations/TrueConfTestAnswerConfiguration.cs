@@ -23,6 +23,6 @@ public class TrueConfTestAnswerConfiguration : IEntityTypeConfiguration<TrueConf
         builder.HasOne(a => a.Question)
             .WithMany(q => q.Answers)
             .HasForeignKey(a => a.QuestionId)
-            .OnDelete(DeleteBehavior.Cascade);
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }

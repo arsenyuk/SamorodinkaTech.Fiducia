@@ -21,11 +21,11 @@ public class CommitteeFileConfiguration : IEntityTypeConfiguration<CommitteeFile
         b.HasOne(x => x.Committee)
             .WithMany()
             .HasForeignKey(x => x.CommitteeId)
-            .OnDelete(DeleteBehavior.Cascade);
+            .OnDelete(DeleteBehavior.Restrict);
 
         b.HasOne(x => x.File)
             .WithMany()
             .HasForeignKey(x => x.FileId)
-            .OnDelete(DeleteBehavior.Cascade);
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }

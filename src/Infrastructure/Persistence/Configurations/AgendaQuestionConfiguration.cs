@@ -27,6 +27,6 @@ public class AgendaQuestionConfiguration : IEntityTypeConfiguration<AgendaQuesti
         builder.HasOne(aq => aq.Meeting)
             .WithMany(m => m.AgendaQuestions)
             .HasForeignKey(aq => aq.MeetingId)
-            .OnDelete(DeleteBehavior.Cascade);
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }

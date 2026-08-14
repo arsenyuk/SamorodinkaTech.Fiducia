@@ -21,11 +21,11 @@ public class AgendaQuestionFileConfiguration : IEntityTypeConfiguration<AgendaQu
         b.HasOne(x => x.AgendaQuestion)
             .WithMany()
             .HasForeignKey(x => x.AgendaQuestionId)
-            .OnDelete(DeleteBehavior.Cascade);
+            .OnDelete(DeleteBehavior.Restrict);
 
         b.HasOne(x => x.File)
             .WithMany()
             .HasForeignKey(x => x.FileId)
-            .OnDelete(DeleteBehavior.Cascade);
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }

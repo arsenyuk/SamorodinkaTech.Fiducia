@@ -142,7 +142,7 @@ CREATE INDEX IF NOT EXISTS ix_trueconf_test_meeting_conference ON trueconf_test_
 -- Вопросы повестки
 CREATE TABLE IF NOT EXISTS trueconf_test_question (
     id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    meeting_id          UUID NOT NULL REFERENCES trueconf_test_meeting(id) ON DELETE CASCADE,
+    meeting_id          UUID NOT NULL REFERENCES trueconf_test_meeting(id) ON DELETE RESTRICT,
     sequence_number     INT NOT NULL,
     question_text       TEXT NOT NULL,
     proposed_resolution TEXT NOT NULL DEFAULT '',
@@ -158,7 +158,7 @@ CREATE INDEX IF NOT EXISTS ix_trueconf_test_question_poll ON trueconf_test_quest
 -- Ответы (голоса)
 CREATE TABLE IF NOT EXISTS trueconf_test_answer (
     id              SERIAL PRIMARY KEY,
-    question_id     UUID NOT NULL REFERENCES trueconf_test_question(id) ON DELETE CASCADE,
+    question_id     UUID NOT NULL REFERENCES trueconf_test_question(id) ON DELETE RESTRICT,
     user_name       VARCHAR(100) NOT NULL,
     vote_value      VARCHAR(20) NOT NULL,
     voted_at        TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP

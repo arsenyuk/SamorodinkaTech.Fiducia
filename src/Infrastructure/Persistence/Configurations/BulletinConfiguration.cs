@@ -31,11 +31,11 @@ public class BulletinConfiguration : IEntityTypeConfiguration<Bulletin>
         builder.HasOne(b => b.AgendaQuestion)
             .WithMany(aq => aq.Bulletins)
             .HasForeignKey(b => b.AgendaQuestionId)
-            .OnDelete(DeleteBehavior.Cascade);
+            .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasOne(b => b.User)
             .WithMany(u => u.Bulletins)
             .HasForeignKey(b => b.UserId)
-            .OnDelete(DeleteBehavior.Cascade);
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }

@@ -630,6 +630,16 @@ Api → Application → Domain ← Infrastructure
   `LogWarning("Валидация не пройдена для {EntityType} {Id}: {Errors}")`.
 - Правило действует для всех форм сохранения в Admin Console (BDR‑008).
 
+### Запрет каскадных удалений (КРИТИЧНО)
+
+`ON DELETE CASCADE` запрещён во всех FK-связях проекта. При удалении родительской записи дочерние записи **не удаляются автоматически**.
+
+Допустимые варианты `ON DELETE`:
+- `ON DELETE RESTRICT` — для прямых потомков (нельзя удалить родителя, пока есть дети)
+- `ON DELETE SET NULL` — для ссылок на `users` (установить NULL при удалении пользователя)
+
+При добавлении нового FK — всегда указывать `ON DELETE RESTRICT` или `ON DELETE SET NULL`. Маппинг в EF-конфигурации должен соответствовать (`DeleteBehavior.Restrict` / `DeleteBehavior.SetNull`).
+
 ### Domain Events
 
 Используйте domain events для кросс-модульной коммуникации:

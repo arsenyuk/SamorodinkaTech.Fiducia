@@ -55,7 +55,7 @@
 
 Индекс существующих DR
 - [dr_architecture.md](dr_architecture.md)
-- [dr_database.md](dr_database.md)
+- [dr_database.md](dr_database.md) — BDR-002, BDR-005, BDR-006, BDR-013, **BDR-014**
 - [dr_board_laws.md](dr_board_laws.md)
 
 Примечания
