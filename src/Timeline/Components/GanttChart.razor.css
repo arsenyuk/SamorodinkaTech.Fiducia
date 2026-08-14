@@ -537,3 +537,22 @@
     pointer-events: none;
     z-index: 7;
 }
+
+/* ── Юридическое окно возможностей (под задачами) ────────── */
+
+.gantt-opportunity-window {
+    position: absolute;
+    pointer-events: none;
+    z-index: 1;
+    border-left: 2px solid;
+    border-right: 2px solid;
+}
+
+.gantt-opportunity-window-label {
+    position: absolute;
+    font-size: 9px;
+    font-weight: 600;
+    white-space: nowrap;
+    pointer-events: none;
+    z-index: 1;
+}

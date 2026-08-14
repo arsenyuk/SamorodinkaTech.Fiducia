@@ -126,6 +126,31 @@
                         }
                     }
 
+                    <!-- Юридические окна возможностей (под задачами) -->
+                    @foreach (var zone in _opportunityWindowZones)
+                    {
+                        <div class="gantt-opportunity-window"
+                             style="left:@(zone.LeftPx)px; top:@(zone.TopPx)px;
+                                    width:@(zone.WidthPx)px; height:@(zone.HeightPx)px;
+                                    border-color:@(zone.Color);
+                                    background-image:repeating-linear-gradient(
+                                        45deg,
+                                        transparent,
+                                        transparent 6px,
+                                        @(zone.Color)22 6px,
+                                        @(zone.Color)22 12px);
+                                    background-color:@(zone.Color);
+                                    opacity:@(zone.Opacity);"></div>
+                        @if (!string.IsNullOrEmpty(zone.Label))
+                        {
+                            <div class="gantt-opportunity-window-label"
+                                 style="left:@(zone.LeftPx + 4)px; top:@(zone.TopPx + 2)px;
+                                        color:@(zone.Color);">
+                                @zone.Label
+                            </div>
+                        }
+                    }
+
                     <!-- Бары задач/этапов/проектов -->
                     @foreach (var bar in _barInfos)
                     {

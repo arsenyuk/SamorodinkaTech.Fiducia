@@ -29,4 +29,7 @@ public sealed record GanttChartInput
 
     /// <summary>Периоды юридического запрета (отображаются как зоны на шкале).</summary>
     public IReadOnlyList<GanttProhibition> Prohibitions { get; init; } = [];
+
+    /// <summary>Юридические окна возможностей (отображаются как фон под задачами).</summary>
+    public IReadOnlyList<GanttOpportunityWindow> OpportunityWindows { get; init; } = [];
 }

@@ -110,6 +110,7 @@ public partial class GanttChart : ComponentBase, IAsyncDisposable
             ComputeDependencies();
             ComputeStripeInfo();
             ComputeProhibitionZones();
+            ComputeOpportunityWindowZones();
             ComputeTodayPosition();
         }
     }
@@ -359,6 +360,7 @@ public partial class GanttChart : ComponentBase, IAsyncDisposable
         ComputeDependencies();
         ComputeStripeInfo();
         ComputeProhibitionZones();
+        ComputeOpportunityWindowZones();
         StateHasChanged();
     }
 
@@ -379,6 +381,7 @@ public partial class GanttChart : ComponentBase, IAsyncDisposable
         ComputeDependencies();
         ComputeStripeInfo();
         ComputeProhibitionZones();
+        ComputeOpportunityWindowZones();
         ComputeTodayPosition();
         StateHasChanged();
     }
@@ -513,7 +516,12 @@ public partial class GanttChart : ComponentBase, IAsyncDisposable
         int LeftPx, int WidthPx, int TopPx, int HeightPx,
         string Label, string Color, double Opacity);
 
+    private sealed record OpportunityWindowZone(
+        int LeftPx, int WidthPx, int TopPx, int HeightPx,
+        string Label, string Color, double Opacity);
+
     private List<ProhibitionZone> _prohibitionZones = [];
+    private List<OpportunityWindowZone> _opportunityWindowZones = [];
 
     // ── Запреты ─────────────────────────────────────────────────────────
 
@@ -578,5 +586,46 @@ public partial class GanttChart : ComponentBase, IAsyncDisposable
 
         var parent = Data.Nodes.FirstOrDefault(n => n.Id == node.ParentId);
         return parent != null && IsDescendantOf(parent, ancestorId);
+    }
+
+    // ── Юридические окна возможностей ──────────────────────────────────
+
+    private void ComputeOpportunityWindowZones()
+    {
+        _opportunityWindowZones.Clear();
+        if (Data?.OpportunityWindows is not { Count: > 0 } || Data.CalendarDays is not { Count: > 0 }) return;
+
+        var chartStart = Data.CalendarDays[0].Date;
+
+        foreach (var w in Data.OpportunityWindows)
+        {
+            var startCell = w.StartDate.DayNumber - chartStart.DayNumber;
+            var endCell = w.EndDate.AddDays(1).DayNumber - chartStart.DayNumber;
+            var leftPx = startCell * _dayCellWidth;
+            var widthPx = (endCell - startCell) * _dayCellWidth;
+
+            int topPx;
+            int heightPx;
+
+            if (string.IsNullOrEmpty(w.NodeId))
+            {
+                topPx = 0;
+                heightPx = _totalHeightPx;
+            }
+            else
+            {
+                var indices = FindNodeAndDescendantIndices(w.NodeId);
+                if (indices.Count == 0) continue;
+
+                var minIdx = indices.Min();
+                var maxIdx = indices.Max();
+                topPx = minIdx * RowHeight;
+                heightPx = (maxIdx - minIdx + 1) * RowHeight;
+            }
+
+            _opportunityWindowZones.Add(new OpportunityWindowZone(
+                leftPx, widthPx, topPx, heightPx,
+                w.Label, w.Color, w.Opacity));
+        }
     }
 }

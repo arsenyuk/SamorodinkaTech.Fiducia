@@ -154,6 +154,28 @@ else
                     Color = "#ff6f00",
                     Opacity = 0.3
                 }
+            },
+            OpportunityWindows = new List<GanttOpportunityWindow>
+            {
+                new()
+                {
+                    Id = "window-1",
+                    Label = "Окно для собрания СД",
+                    StartDate = new DateOnly(2026, 6, 1),
+                    EndDate = new DateOnly(2026, 6, 30),
+                    NodeId = "stage-2",
+                    Color = "#00897b",
+                    Opacity = 0.2
+                },
+                new()
+                {
+                    Id = "window-2",
+                    Label = "Окно подачи документов",
+                    StartDate = new DateOnly(2026, 8, 1),
+                    EndDate = new DateOnly(2026, 8, 31),
+                    Color = "#1565c0",
+                    Opacity = 0.15
+                }
             }
         };
     }
