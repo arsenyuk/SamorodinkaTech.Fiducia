@@ -1,81 +1,82 @@
 -- 02_seed.sql — первичное наполнение (справочники и системные записи)
+-- Системный пользователь: 00000000-0000-0000-0000-000000000000
 
-INSERT INTO ref_roles (id, code, name) VALUES
-    ('11111111-1111-1111-1111-111111111111','SYS_ADMIN','Системный администратор'),
-    ('22222222-2222-2222-2222-222222222222','CORP_SECRETARY','Корпоративный секретарь'),
-    ('33333333-3333-3333-3333-333333333333','CHAIR_BOARD','Председатель СД'),
-    ('44444444-4444-4444-4444-444444444444','MEMBER_BOARD','Член СД'),
-    ('55555555-5555-5555-5555-555555555555','EXTERNAL_DIRECTOR','Внешний/Независимый директор'),
-    ('66666666-6666-6666-6666-666666666666','SHAREHOLDER','Акционер'),
-    ('77777777-7777-7777-7777-777777777777','COMMITTEE_CHAIR','Председатель комитета'),
-    ('88888888-8888-8888-8888-888888888888','COMMITTEE_MEMBER','Член комитета')
+INSERT INTO ref_roles (id, code, name, created_at, created_by) VALUES
+    ('11111111-1111-1111-1111-111111111111','SYS_ADMIN','Системный администратор','2025-01-01T00:00:00Z','00000000-0000-0000-0000-000000000000'),
+    ('22222222-2222-2222-2222-222222222222','CORP_SECRETARY','Корпоративный секретарь','2025-01-01T00:00:00Z','00000000-0000-0000-0000-000000000000'),
+    ('33333333-3333-3333-3333-333333333333','CHAIR_BOARD','Председатель СД','2025-01-01T00:00:00Z','00000000-0000-0000-0000-000000000000'),
+    ('44444444-4444-4444-4444-444444444444','MEMBER_BOARD','Член СД','2025-01-01T00:00:00Z','00000000-0000-0000-0000-000000000000'),
+    ('55555555-5555-5555-5555-555555555555','EXTERNAL_DIRECTOR','Внешний/Независимый директор','2025-01-01T00:00:00Z','00000000-0000-0000-0000-000000000000'),
+    ('66666666-6666-6666-6666-666666666666','SHAREHOLDER','Акционер','2025-01-01T00:00:00Z','00000000-0000-0000-0000-000000000000'),
+    ('77777777-7777-7777-7777-777777777777','COMMITTEE_CHAIR','Председатель комитета','2025-01-01T00:00:00Z','00000000-0000-0000-0000-000000000000'),
+    ('88888888-8888-8888-8888-888888888888','COMMITTEE_MEMBER','Член комитета','2025-01-01T00:00:00Z','00000000-0000-0000-0000-000000000000')
 ON CONFLICT (code) DO NOTHING;
 
 -- ОКОПФ (базовые записи)
-INSERT INTO ref_okopf(id, code, name) VALUES
-    ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1','12247','Публичное акционерное общество (ПАО)'),
-    ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa2','12267','Непубличное акционерное общество (НАО)'),
-    ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa3','12260','Акционерное общество (АО)'),
-    ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa4','12300','Общество с ограниченной ответственностью (ООО)'),
-    ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa5','65241','Федеральное государственное унитарное предприятие (ФГУП)'),
-    ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa6','65242','Государственное унитарное предприятие субъекта РФ (ГУП)'),
-    ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa7','65243','Муниципальное унитарное предприятие (МУП)')
+INSERT INTO ref_okopf(id, code, name, created_at, created_by) VALUES
+    ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1','12247','Публичное акционерное общество (ПАО)','2025-01-01T00:00:00Z','00000000-0000-0000-0000-000000000000'),
+    ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa2','12267','Непубличное акционерное общество (НАО)','2025-01-01T00:00:00Z','00000000-0000-0000-0000-000000000000'),
+    ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa3','12260','Акционерное общество (АО)','2025-01-01T00:00:00Z','00000000-0000-0000-0000-000000000000'),
+    ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa4','12300','Общество с ограниченной ответственностью (ООО)','2025-01-01T00:00:00Z','00000000-0000-0000-0000-000000000000'),
+    ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa5','65241','Федеральное государственное унитарное предприятие (ФГУП)','2025-01-01T00:00:00Z','00000000-0000-0000-0000-000000000000'),
+    ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa6','65242','Государственное унитарное предприятие субъекта РФ (ГУП)','2025-01-01T00:00:00Z','00000000-0000-0000-0000-000000000000'),
+    ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa7','65243','Муниципальное унитарное предприятие (МУП)','2025-01-01T00:00:00Z','00000000-0000-0000-0000-000000000000')
 ON CONFLICT (code) DO NOTHING;
 
 -- Месяцы
-INSERT INTO ref_month(id, code, name) VALUES
-    ('cccccccc-cccc-cccc-cccc-cccccccccc01','01','Январь'),
-    ('cccccccc-cccc-cccc-cccc-cccccccccc02','02','Февраль'),
-    ('cccccccc-cccc-cccc-cccc-cccccccccc03','03','Март'),
-    ('cccccccc-cccc-cccc-cccc-cccccccccc04','04','Апрель'),
-    ('cccccccc-cccc-cccc-cccc-cccccccccc05','05','Май'),
-    ('cccccccc-cccc-cccc-cccc-cccccccccc06','06','Июнь'),
-    ('cccccccc-cccc-cccc-cccc-cccccccccc07','07','Июль'),
-    ('cccccccc-cccc-cccc-cccc-cccccccccc08','08','Август'),
-    ('cccccccc-cccc-cccc-cccc-cccccccccc09','09','Сентябрь'),
-    ('cccccccc-cccc-cccc-cccc-cccccccccc10','10','Октябрь'),
-    ('cccccccc-cccc-cccc-cccc-cccccccccc11','11','Ноябрь'),
-    ('cccccccc-cccc-cccc-cccc-cccccccccc12','12','Декабрь')
+INSERT INTO ref_month(id, code, name, created_at, created_by) VALUES
+    ('cccccccc-cccc-cccc-cccc-cccccccccc01','01','Январь','2025-01-01T00:00:00Z','00000000-0000-0000-0000-000000000000'),
+    ('cccccccc-cccc-cccc-cccc-cccccccccc02','02','Февраль','2025-01-01T00:00:00Z','00000000-0000-0000-0000-000000000000'),
+    ('cccccccc-cccc-cccc-cccc-cccccccccc03','03','Март','2025-01-01T00:00:00Z','00000000-0000-0000-0000-000000000000'),
+    ('cccccccc-cccc-cccc-cccc-cccccccccc04','04','Апрель','2025-01-01T00:00:00Z','00000000-0000-0000-0000-000000000000'),
+    ('cccccccc-cccc-cccc-cccc-cccccccccc05','05','Май','2025-01-01T00:00:00Z','00000000-0000-0000-0000-000000000000'),
+    ('cccccccc-cccc-cccc-cccc-cccccccccc06','06','Июнь','2025-01-01T00:00:00Z','00000000-0000-0000-0000-000000000000'),
+    ('cccccccc-cccc-cccc-cccc-cccccccccc07','07','Июль','2025-01-01T00:00:00Z','00000000-0000-0000-0000-000000000000'),
+    ('cccccccc-cccc-cccc-cccc-cccccccccc08','08','Август','2025-01-01T00:00:00Z','00000000-0000-0000-0000-000000000000'),
+    ('cccccccc-cccc-cccc-cccc-cccccccccc09','09','Сентябрь','2025-01-01T00:00:00Z','00000000-0000-0000-0000-000000000000'),
+    ('cccccccc-cccc-cccc-cccc-cccccccccc10','10','Октябрь','2025-01-01T00:00:00Z','00000000-0000-0000-0000-000000000000'),
+    ('cccccccc-cccc-cccc-cccc-cccccccccc11','11','Ноябрь','2025-01-01T00:00:00Z','00000000-0000-0000-0000-000000000000'),
+    ('cccccccc-cccc-cccc-cccc-cccccccccc12','12','Декабрь','2025-01-01T00:00:00Z','00000000-0000-0000-0000-000000000000')
 ON CONFLICT (code) DO NOTHING;
 
 -- Форма проведения заседания СД
-INSERT INTO ref_meeting_form(id, code, name, short_name) VALUES
-    ('ffffffff-ffff-ffff-ffff-fffffffffff1','OCHN','Очное заседание (совместное присутствие)','Очное'),
-    ('ffffffff-ffff-ffff-ffff-fffffffffff2','ZAOCHN','Заочное голосование (опросным путём)','Заочное'),
-    ('ffffffff-ffff-ffff-ffff-fffffffffff3','MIXED','Смешанное (очное заседание + заочное голосование)','Смешанное')
+INSERT INTO ref_meeting_form(id, code, name, short_name, created_at, created_by) VALUES
+    ('ffffffff-ffff-ffff-ffff-fffffffffff1','OCHN','Очное заседание (совместное присутствие)','Очное','2025-01-01T00:00:00Z','00000000-0000-0000-0000-000000000000'),
+    ('ffffffff-ffff-ffff-ffff-fffffffffff2','ZAOCHN','Заочное голосование (опросным путём)','Заочное','2025-01-01T00:00:00Z','00000000-0000-0000-0000-000000000000'),
+    ('ffffffff-ffff-ffff-ffff-fffffffffff3','MIXED','Смешанное (очное заседание + заочное голосование)','Смешанное','2025-01-01T00:00:00Z','00000000-0000-0000-0000-000000000000')
 ON CONFLICT (code) DO NOTHING;
 
 -- Форма проведения ОСА
-INSERT INTO ref_osa_form(id, code, name, short_name) VALUES
-    ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb1','GOSA','Годовое общее собрание акционеров','ГОСА'),
-    ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb2','VOSA','Внеочередное общее собрание акционеров','ВОСА'),
-    ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb3','OOSU','Очередное общее собрание участников','ООСУ'),
-    ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb4','VOSU','Внеочередное общее собрание участников','ВОСУ')
+INSERT INTO ref_osa_form(id, code, name, short_name, created_at, created_by) VALUES
+    ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb1','GOSA','Годовое общее собрание акционеров','ГОСА','2025-01-01T00:00:00Z','00000000-0000-0000-0000-000000000000'),
+    ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb2','VOSA','Внеочередное общее собрание акционеров','ВОСА','2025-01-01T00:00:00Z','00000000-0000-0000-0000-000000000000'),
+    ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb3','OOSU','Очередное общее собрание участников','ООСУ','2025-01-01T00:00:00Z','00000000-0000-0000-0000-000000000000'),
+    ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb4','VOSU','Внеочередное общее собрание участников','ВОСУ','2025-01-01T00:00:00Z','00000000-0000-0000-0000-000000000000')
 ON CONFLICT (code) DO NOTHING;
 
 -- Типы директоров
-INSERT INTO ref_board_member_types(id, code, name) VALUES
-    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeeee1','EXECUTIVE','Исполнительный директор'),
-    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeeee2','NON_EXECUTIVE','Внешний директор'),
-    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeeee3','INDEPENDENT','Независимый директор'),
-    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeeee4','STAFF','Штатный сотрудник')
+INSERT INTO ref_board_member_types(id, code, name, created_at, created_by) VALUES
+    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeeee1','EXECUTIVE','Исполнительный директор','2025-01-01T00:00:00Z','00000000-0000-0000-0000-000000000000'),
+    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeeee2','NON_EXECUTIVE','Внешний директор','2025-01-01T00:00:00Z','00000000-0000-0000-0000-000000000000'),
+    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeeee3','INDEPENDENT','Независимый директор','2025-01-01T00:00:00Z','00000000-0000-0000-0000-000000000000'),
+    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeeee4','STAFF','Штатный сотрудник','2025-01-01T00:00:00Z','00000000-0000-0000-0000-000000000000')
 ON CONFLICT (code) DO NOTHING;
 
 -- Должности в СД
-INSERT INTO ref_board_roles(id, code, name, sort_order) VALUES
-    ('ffffffff-ffff-ffff-ffff-fffffffffff1','CHAIR','Председатель СД',1),
-    ('ffffffff-ffff-ffff-ffff-fffffffffff2','DEPUTY_CHAIR','Заместитель председателя',2),
-    ('ffffffff-ffff-ffff-ffff-fffffffffff3','MEMBER','Член СД',3),
-    ('ffffffff-ffff-ffff-ffff-fffffffffff4','TEMP_CHAIR','Временный председательствующий',4),
-    ('ffffffff-ffff-ffff-ffff-fffffffffff5','TEMP_SECRETARY','Временный секретарь',5),
-    ('ffffffff-ffff-ffff-ffff-fffffffffff6','SECRETARY','Секретарь СД',6)
+INSERT INTO ref_board_roles(id, code, name, sort_order, created_at, created_by) VALUES
+    ('ffffffff-ffff-ffff-ffff-fffffffffff1','CHAIR','Председатель СД',1,'2025-01-01T00:00:00Z','00000000-0000-0000-0000-000000000000'),
+    ('ffffffff-ffff-ffff-ffff-fffffffffff2','DEPUTY_CHAIR','Заместитель председателя',2,'2025-01-01T00:00:00Z','00000000-0000-0000-0000-000000000000'),
+    ('ffffffff-ffff-ffff-ffff-fffffffffff3','MEMBER','Член СД',3,'2025-01-01T00:00:00Z','00000000-0000-0000-0000-000000000000'),
+    ('ffffffff-ffff-ffff-ffff-fffffffffff4','TEMP_CHAIR','Временный председательствующий',4,'2025-01-01T00:00:00Z','00000000-0000-0000-0000-000000000000'),
+    ('ffffffff-ffff-ffff-ffff-fffffffffff5','TEMP_SECRETARY','Временный секретарь',5,'2025-01-01T00:00:00Z','00000000-0000-0000-0000-000000000000'),
+    ('ffffffff-ffff-ffff-ffff-fffffffffff6','SECRETARY','Секретарь СД',6,'2025-01-01T00:00:00Z','00000000-0000-0000-0000-000000000000')
 ON CONFLICT (code) DO NOTHING;
 
 -- Статусы Совета директоров
-INSERT INTO ref_board_of_directors_statuses(id, code, name) VALUES
-    ('99999999-9999-9999-9999-999999999991','DRAFT','Черновик'),
-    ('99999999-9999-9999-9999-999999999992','ACTIVE','Действующий'),
-    ('99999999-9999-9999-9999-999999999993','INACTIVE','Недействующий')
+INSERT INTO ref_board_of_directors_statuses(id, code, name, created_at, created_by) VALUES
+    ('99999999-9999-9999-9999-999999999991','DRAFT','Черновик','2025-01-01T00:00:00Z','00000000-0000-0000-0000-000000000000'),
+    ('99999999-9999-9999-9999-999999999992','ACTIVE','Действующий','2025-01-01T00:00:00Z','00000000-0000-0000-0000-000000000000'),
+    ('99999999-9999-9999-9999-999999999993','INACTIVE','Недействующий','2025-01-01T00:00:00Z','00000000-0000-0000-0000-000000000000')
 ON CONFLICT (code) DO NOTHING;
 
 -- Базовое наполнение: 10 комитетов Совета директоров
@@ -609,43 +610,43 @@ ON CONFLICT DO NOTHING;
 
 -- Типовые уставы ООО (Приказ Минэкономразвития № 411 от 01.08.2018)
 -- Номера 01–09 с ведущим нулём в соответствии с форматом ФНС (Р11001, Р13014)
-INSERT INTO ref_standard_charter (id, number, exit_allowed, transfer_to_participants_without_consent, transfer_to_third_parties_without_consent, preemptive_right, inheritance_without_consent, executive_body, decision_confirmation_by_all_sign) VALUES
-    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee01', '01', FALSE, TRUE,  FALSE, TRUE, TRUE, 'A', FALSE),
-    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee02', '02', TRUE,  TRUE,  FALSE, TRUE, TRUE, 'A', FALSE),
-    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee03', '03', FALSE, TRUE,  TRUE,  TRUE, TRUE, 'A', FALSE),
-    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee04', '04', FALSE, TRUE,  TRUE,  TRUE, TRUE, 'A', FALSE),
-    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee05', '05', FALSE, FALSE, FALSE, TRUE, TRUE, 'A', FALSE),
-    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee06', '06', FALSE, FALSE, FALSE, TRUE, TRUE, 'A', FALSE),
-    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee07', '07', FALSE, TRUE,  FALSE, TRUE, TRUE, 'B', FALSE),
-    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee08', '08', TRUE,  TRUE,  FALSE, TRUE, TRUE, 'B', FALSE),
-    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee09', '09', FALSE, TRUE,  TRUE,  TRUE, TRUE, 'B', FALSE),
-    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee10', '10', FALSE, TRUE,  TRUE,  TRUE, TRUE, 'B', FALSE),
-    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee11', '11', FALSE, FALSE, FALSE, TRUE, TRUE, 'B', FALSE),
-    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee12', '12', FALSE, FALSE, FALSE, TRUE, TRUE, 'B', FALSE),
-    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee13', '13', FALSE, TRUE,  FALSE, TRUE, TRUE, 'C', FALSE),
-    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee14', '14', TRUE,  TRUE,  FALSE, TRUE, TRUE, 'C', FALSE),
-    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee15', '15', FALSE, TRUE,  TRUE,  TRUE, TRUE, 'C', FALSE),
-    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee16', '16', FALSE, TRUE,  TRUE,  TRUE, TRUE, 'C', FALSE),
-    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee17', '17', FALSE, FALSE, FALSE, TRUE, TRUE, 'C', FALSE),
-    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee18', '18', FALSE, FALSE, FALSE, TRUE, TRUE, 'C', FALSE),
-    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee19', '19', FALSE, TRUE,  FALSE, TRUE, TRUE, 'A', TRUE),
-    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee20', '20', TRUE,  TRUE,  FALSE, TRUE, TRUE, 'A', TRUE),
-    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee21', '21', FALSE, TRUE,  TRUE,  TRUE, TRUE, 'A', TRUE),
-    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee22', '22', FALSE, TRUE,  TRUE,  TRUE, TRUE, 'A', TRUE),
-    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee23', '23', FALSE, FALSE, FALSE, TRUE, TRUE, 'A', TRUE),
-    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee24', '24', FALSE, FALSE, FALSE, TRUE, TRUE, 'A', TRUE),
-    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee25', '25', FALSE, TRUE,  FALSE, TRUE, TRUE, 'B', TRUE),
-    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee26', '26', TRUE,  TRUE,  FALSE, TRUE, TRUE, 'B', TRUE),
-    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee27', '27', FALSE, TRUE,  TRUE,  TRUE, TRUE, 'B', TRUE),
-    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee28', '28', FALSE, TRUE,  TRUE,  TRUE, TRUE, 'B', TRUE),
-    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee29', '29', FALSE, FALSE, FALSE, TRUE, TRUE, 'B', TRUE),
-    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee30', '30', FALSE, FALSE, FALSE, TRUE, TRUE, 'B', TRUE),
-    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee31', '31', FALSE, TRUE,  FALSE, TRUE, TRUE, 'C', TRUE),
-    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee32', '32', TRUE,  TRUE,  FALSE, TRUE, TRUE, 'C', TRUE),
-    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee33', '33', FALSE, TRUE,  TRUE,  TRUE, TRUE, 'C', TRUE),
-    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee34', '34', FALSE, TRUE,  TRUE,  TRUE, TRUE, 'C', TRUE),
-    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee35', '35', FALSE, FALSE, FALSE, TRUE, TRUE, 'C', TRUE),
-    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee36', '36', FALSE, FALSE, FALSE, TRUE, TRUE, 'C', TRUE)
+INSERT INTO ref_standard_charter (id, number, exit_allowed, transfer_to_participants_without_consent, transfer_to_third_parties_without_consent, preemptive_right, inheritance_without_consent, executive_body, decision_confirmation_by_all_sign, created_at, created_by) VALUES
+    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee01', '01', FALSE, TRUE,  FALSE, TRUE, TRUE, 'A', FALSE, '2025-01-01T00:00:00Z', '00000000-0000-0000-0000-000000000000'),
+    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee02', '02', TRUE,  TRUE,  FALSE, TRUE, TRUE, 'A', FALSE, '2025-01-01T00:00:00Z', '00000000-0000-0000-0000-000000000000'),
+    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee03', '03', FALSE, TRUE,  TRUE,  TRUE, TRUE, 'A', FALSE, '2025-01-01T00:00:00Z', '00000000-0000-0000-0000-000000000000'),
+    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee04', '04', FALSE, TRUE,  TRUE,  TRUE, TRUE, 'A', FALSE, '2025-01-01T00:00:00Z', '00000000-0000-0000-0000-000000000000'),
+    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee05', '05', FALSE, FALSE, FALSE, TRUE, TRUE, 'A', FALSE, '2025-01-01T00:00:00Z', '00000000-0000-0000-0000-000000000000'),
+    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee06', '06', FALSE, FALSE, FALSE, TRUE, TRUE, 'A', FALSE, '2025-01-01T00:00:00Z', '00000000-0000-0000-0000-000000000000'),
+    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee07', '07', FALSE, TRUE,  FALSE, TRUE, TRUE, 'B', FALSE, '2025-01-01T00:00:00Z', '00000000-0000-0000-0000-000000000000'),
+    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee08', '08', TRUE,  TRUE,  FALSE, TRUE, TRUE, 'B', FALSE, '2025-01-01T00:00:00Z', '00000000-0000-0000-0000-000000000000'),
+    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee09', '09', FALSE, TRUE,  TRUE,  TRUE, TRUE, 'B', FALSE, '2025-01-01T00:00:00Z', '00000000-0000-0000-0000-000000000000'),
+    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee10', '10', FALSE, TRUE,  TRUE,  TRUE, TRUE, 'B', FALSE, '2025-01-01T00:00:00Z', '00000000-0000-0000-0000-000000000000'),
+    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee11', '11', FALSE, FALSE, FALSE, TRUE, TRUE, 'B', FALSE, '2025-01-01T00:00:00Z', '00000000-0000-0000-0000-000000000000'),
+    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee12', '12', FALSE, FALSE, FALSE, TRUE, TRUE, 'B', FALSE, '2025-01-01T00:00:00Z', '00000000-0000-0000-0000-000000000000'),
+    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee13', '13', FALSE, TRUE,  FALSE, TRUE, TRUE, 'C', FALSE, '2025-01-01T00:00:00Z', '00000000-0000-0000-0000-000000000000'),
+    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee14', '14', TRUE,  TRUE,  FALSE, TRUE, TRUE, 'C', FALSE, '2025-01-01T00:00:00Z', '00000000-0000-0000-0000-000000000000'),
+    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee15', '15', FALSE, TRUE,  TRUE,  TRUE, TRUE, 'C', FALSE, '2025-01-01T00:00:00Z', '00000000-0000-0000-0000-000000000000'),
+    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee16', '16', FALSE, TRUE,  TRUE,  TRUE, TRUE, 'C', FALSE, '2025-01-01T00:00:00Z', '00000000-0000-0000-0000-000000000000'),
+    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee17', '17', FALSE, FALSE, FALSE, TRUE, TRUE, 'C', FALSE, '2025-01-01T00:00:00Z', '00000000-0000-0000-0000-000000000000'),
+    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee18', '18', FALSE, FALSE, FALSE, TRUE, TRUE, 'C', FALSE, '2025-01-01T00:00:00Z', '00000000-0000-0000-0000-000000000000'),
+    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee19', '19', FALSE, TRUE,  FALSE, TRUE, TRUE, 'A', TRUE, '2025-01-01T00:00:00Z', '00000000-0000-0000-0000-000000000000'),
+    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee20', '20', TRUE,  TRUE,  FALSE, TRUE, TRUE, 'A', TRUE, '2025-01-01T00:00:00Z', '00000000-0000-0000-0000-000000000000'),
+    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee21', '21', FALSE, TRUE,  TRUE,  TRUE, TRUE, 'A', TRUE, '2025-01-01T00:00:00Z', '00000000-0000-0000-0000-000000000000'),
+    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee22', '22', FALSE, TRUE,  TRUE,  TRUE, TRUE, 'A', TRUE, '2025-01-01T00:00:00Z', '00000000-0000-0000-0000-000000000000'),
+    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee23', '23', FALSE, FALSE, FALSE, TRUE, TRUE, 'A', TRUE, '2025-01-01T00:00:00Z', '00000000-0000-0000-0000-000000000000'),
+    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee24', '24', FALSE, FALSE, FALSE, TRUE, TRUE, 'A', TRUE, '2025-01-01T00:00:00Z', '00000000-0000-0000-0000-000000000000'),
+    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee25', '25', FALSE, TRUE,  FALSE, TRUE, TRUE, 'B', TRUE, '2025-01-01T00:00:00Z', '00000000-0000-0000-0000-000000000000'),
+    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee26', '26', TRUE,  TRUE,  FALSE, TRUE, TRUE, 'B', TRUE, '2025-01-01T00:00:00Z', '00000000-0000-0000-0000-000000000000'),
+    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee27', '27', FALSE, TRUE,  TRUE,  TRUE, TRUE, 'B', TRUE, '2025-01-01T00:00:00Z', '00000000-0000-0000-0000-000000000000'),
+    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee28', '28', FALSE, TRUE,  TRUE,  TRUE, TRUE, 'B', TRUE, '2025-01-01T00:00:00Z', '00000000-0000-0000-0000-000000000000'),
+    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee29', '29', FALSE, FALSE, FALSE, TRUE, TRUE, 'B', TRUE, '2025-01-01T00:00:00Z', '00000000-0000-0000-0000-000000000000'),
+    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee30', '30', FALSE, FALSE, FALSE, TRUE, TRUE, 'B', TRUE, '2025-01-01T00:00:00Z', '00000000-0000-0000-0000-000000000000'),
+    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee31', '31', FALSE, TRUE,  FALSE, TRUE, TRUE, 'C', TRUE, '2025-01-01T00:00:00Z', '00000000-0000-0000-0000-000000000000'),
+    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee32', '32', TRUE,  TRUE,  FALSE, TRUE, TRUE, 'C', TRUE, '2025-01-01T00:00:00Z', '00000000-0000-0000-0000-000000000000'),
+    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee33', '33', FALSE, TRUE,  TRUE,  TRUE, TRUE, 'C', TRUE, '2025-01-01T00:00:00Z', '00000000-0000-0000-0000-000000000000'),
+    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee34', '34', FALSE, TRUE,  TRUE,  TRUE, TRUE, 'C', TRUE, '2025-01-01T00:00:00Z', '00000000-0000-0000-0000-000000000000'),
+    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee35', '35', FALSE, FALSE, FALSE, TRUE, TRUE, 'C', TRUE, '2025-01-01T00:00:00Z', '00000000-0000-0000-0000-000000000000'),
+    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee36', '36', FALSE, FALSE, FALSE, TRUE, TRUE, 'C', TRUE, '2025-01-01T00:00:00Z', '00000000-0000-0000-0000-000000000000')
 ON CONFLICT (number) DO NOTHING;
 
 

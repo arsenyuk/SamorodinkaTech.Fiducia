@@ -11,7 +11,9 @@
 CREATE TABLE IF NOT EXISTS ref_roles (
     id uuid PRIMARY KEY,
     code varchar(50) UNIQUE NOT NULL,
-    name varchar(100) NOT NULL
+    name varchar(100) NOT NULL,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    created_by uuid NOT NULL REFERENCES users(id)
 );
 
 -- Справочник: ref_meeting_form (формы проведения заседания СД)
@@ -19,14 +21,18 @@ CREATE TABLE IF NOT EXISTS ref_meeting_form (
     id uuid PRIMARY KEY,
     code varchar(10) UNIQUE NOT NULL,
     name varchar(200) NOT NULL,
-    short_name varchar(50)
+    short_name varchar(50),
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    created_by uuid NOT NULL REFERENCES users(id)
 );
 
 -- Справочник: ref_okopf (ОКОПФ)
 CREATE TABLE IF NOT EXISTS ref_okopf (
     id uuid PRIMARY KEY,
     code varchar(10) UNIQUE NOT NULL,
-    name varchar(500) NOT NULL
+    name varchar(500) NOT NULL,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    created_by uuid NOT NULL REFERENCES users(id)
 );
 
 CREATE INDEX IF NOT EXISTS ix_ref_okopf_name ON ref_okopf(name);
@@ -41,14 +47,18 @@ CREATE TABLE IF NOT EXISTS ref_standard_charter (
     preemptive_right boolean NOT NULL DEFAULT true,
     inheritance_without_consent boolean NOT NULL DEFAULT true,
     executive_body char(1) NOT NULL DEFAULT 'A' CHECK (executive_body IN ('A', 'B', 'C')),
-    decision_confirmation_by_all_sign boolean NOT NULL DEFAULT false
+    decision_confirmation_by_all_sign boolean NOT NULL DEFAULT false,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    created_by uuid NOT NULL REFERENCES users(id)
 );
 
 -- Справочник: ref_month (месяцы)
 CREATE TABLE IF NOT EXISTS ref_month (
     id uuid PRIMARY KEY,
     code varchar(2) UNIQUE NOT NULL,
-    name varchar(20) NOT NULL
+    name varchar(20) NOT NULL,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    created_by uuid NOT NULL REFERENCES users(id)
 );
 
 -- Справочник: ref_osa_form (Форма проведения ОСА/ОСУ)
@@ -56,21 +66,27 @@ CREATE TABLE IF NOT EXISTS ref_osa_form (
     id uuid PRIMARY KEY,
     code varchar(10) UNIQUE NOT NULL,
     name varchar(200) NOT NULL,
-    short_name varchar(50)
+    short_name varchar(50),
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    created_by uuid NOT NULL REFERENCES users(id)
 );
 
 -- Справочник: ref_board_of_directors_statuses (статусы Совета директоров)
 CREATE TABLE IF NOT EXISTS ref_board_of_directors_statuses (
     id uuid PRIMARY KEY,
     code varchar(20) UNIQUE NOT NULL,
-    name varchar(200) NOT NULL
+    name varchar(200) NOT NULL,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    created_by uuid NOT NULL REFERENCES users(id)
 );
 
 -- Справочник: ref_board_member_types (типы директоров)
 CREATE TABLE IF NOT EXISTS ref_board_member_types (
     id uuid PRIMARY KEY,
     code varchar(20) UNIQUE NOT NULL,
-    name varchar(200) NOT NULL
+    name varchar(200) NOT NULL,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    created_by uuid NOT NULL REFERENCES users(id)
 );
 
 -- Справочник: ref_board_roles (должности в СД)
@@ -78,21 +94,27 @@ CREATE TABLE IF NOT EXISTS ref_board_roles (
     id uuid PRIMARY KEY,
     code varchar(20) UNIQUE NOT NULL,
     name varchar(200) NOT NULL,
-    sort_order int NOT NULL DEFAULT 0
+    sort_order int NOT NULL DEFAULT 0,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    created_by uuid NOT NULL REFERENCES users(id)
 );
 
 -- Справочник: ref_board_member_appointment_statuses (статусы назначения членов СД)
 CREATE TABLE IF NOT EXISTS ref_board_member_appointment_statuses (
     id uuid PRIMARY KEY,
     code varchar(20) UNIQUE NOT NULL,
-    name varchar(200) NOT NULL
+    name varchar(200) NOT NULL,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    created_by uuid NOT NULL REFERENCES users(id)
 );
 
 -- Справочник: ref_resignation_reasons (причины сложения полномочий)
 CREATE TABLE IF NOT EXISTS ref_resignation_reasons (
     id uuid PRIMARY KEY,
     code varchar(20) UNIQUE NOT NULL,
-    name varchar(200) NOT NULL
+    name varchar(200) NOT NULL,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    created_by uuid NOT NULL REFERENCES users(id)
 );
 
 -- ============================================================================
@@ -120,6 +142,19 @@ CREATE TABLE IF NOT EXISTS users (
     pdn_consent_at timestamp with time zone,
     pdn_consent_ip varchar(45)
 );
+
+-- Системный пользователь (нулевой GUID) для seed-данных справочников
+INSERT INTO users (id, last_name, first_name, email, phone, is_external, pep_agreement_signed, created_at)
+VALUES (
+    '00000000-0000-0000-0000-000000000000',
+    'Системный',
+    'Пользователь',
+    'system@fiducia.local',
+    '+00000000000',
+    FALSE,
+    FALSE,
+    '2025-01-01T00:00:00Z'
+) ON CONFLICT (id) DO NOTHING;
 
 CREATE INDEX IF NOT EXISTS ix_users_is_external ON users(is_external);
 
