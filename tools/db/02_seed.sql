@@ -4,7 +4,7 @@
 -- Системный пользователь (нулевой GUID) — создаётся первым,
 -- используется как created_by для всех справочников ниже
 -- ============================================================================
-INSERT INTO users (id, last_name, first_name, email, phone, is_external, pep_agreement_signed, created_at, is_system)
+INSERT INTO users (id, last_name, first_name, email, phone, is_external, created_at, is_system)
 VALUES (
     '00000000-0000-0000-0000-000000000000',
     'Системный',
@@ -12,10 +12,40 @@ VALUES (
     'system@fiducia.local',
     '+00000000000',
     FALSE,
-    FALSE,
     '2025-01-01T00:00:00Z',
     TRUE
 ) ON CONFLICT (id) DO NOTHING;
+
+-- ============================================================================
+-- Тестовые физические лица (persons)
+-- ============================================================================
+INSERT INTO persons (id, last_name, first_name, middle_name, email, phone, inn, created_at, created_by) VALUES
+    ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa01', 'Иванов', 'Иван', 'Иванович', 'ivanov@fiducia.local', '+79001112233', '770123456789', '2025-01-01T00:00:00Z', '00000000-0000-0000-0000-000000000000'),
+    ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa02', 'Петрова', 'Мария', 'Сергеевна', 'petrova@fiducia.local', '+79002223344', '770234567890', '2025-01-01T00:00:00Z', '00000000-0000-0000-0000-000000000000'),
+    ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa03', 'Сидоров', 'Алексей', 'Петрович', 'sidorov@fiducia.local', '+79003334455', '770345678901', '2025-01-01T00:00:00Z', '00000000-0000-0000-0000-000000000000'),
+    ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa04', 'Козлова', 'Елена', 'Дмитриевна', 'kozlova@fiducia.local', '+79004445566', '770456789012', '2025-01-01T00:00:00Z', '00000000-0000-0000-0000-000000000000'),
+    ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa05', 'Новиков', 'Дмитрий', 'Александрович', 'novikov@fiducia.local', '+79005556677', '770567890123', '2025-01-01T00:00:00Z', '00000000-0000-0000-0000-000000000000')
+ON CONFLICT (id) DO NOTHING;
+
+-- ============================================================================
+-- Тестовые пользователи (привязаны к ФЛ)
+-- ============================================================================
+INSERT INTO users (id, person_id, last_name, first_name, email, phone, is_external, created_at, is_system) VALUES
+    ('11111111-1111-1111-1111-111111111112', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa01', 'Иванов', 'Иван', 'ivanov@fiducia.local', '+79001112233', FALSE, '2025-01-01T00:00:00Z', FALSE),
+    ('11111111-1111-1111-1111-111111111113', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa02', 'Петрова', 'Мария', 'petrova@fiducia.local', '+79002223344', FALSE, '2025-01-01T00:00:00Z', FALSE),
+    ('11111111-1111-1111-1111-111111111114', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa03', 'Сидоров', 'Алексей', 'sidorov@fiducia.local', '+79003334455', TRUE, '2025-01-01T00:00:00Z', FALSE),
+    ('11111111-1111-1111-1111-111111111115', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa04', 'Козлова', 'Елена', 'kozlova@fiducia.local', '+79004445566', TRUE, '2025-01-01T00:00:00Z', FALSE),
+    ('11111111-1111-1111-1111-111111111116', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa05', 'Новиков', 'Дмитрий', 'novikov@fiducia.local', '+79005556677', FALSE, '2025-01-01T00:00:00Z', FALSE)
+ON CONFLICT (id) DO NOTHING;
+
+-- Роли тестовых пользователей
+INSERT INTO user_roles (id, user_id, role_id) VALUES
+    ('aaaa0000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111112', '11111111-1111-1111-1111-111111111111'), -- Иванов = SYS_ADMIN
+    ('aaaa0000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111113', '22222222-2222-2222-2222-222222222222'), -- Петрова = CORP_SECRETARY
+    ('aaaa0000-0000-0000-0000-000000000003', '11111111-1111-1111-1111-111111111114', '55555555-5555-5555-5555-555555555555'), -- Сидоров = EXTERNAL_DIRECTOR
+    ('aaaa0000-0000-0000-0000-000000000004', '11111111-1111-1111-1111-111111111115', '55555555-5555-5555-5555-555555555555'), -- Козлова = EXTERNAL_DIRECTOR
+    ('aaaa0000-0000-0000-0000-000000000005', '11111111-1111-1111-1111-111111111116', '33333333-3333-3333-3333-333333333333')  -- Новиков = CHAIR_BOARD
+ON CONFLICT (user_id, role_id) DO NOTHING;
 
 INSERT INTO ref_roles (id, code, name, created_at, created_by) VALUES
     ('11111111-1111-1111-1111-111111111111','SYS_ADMIN','Системный администратор','2025-01-01T00:00:00Z','00000000-0000-0000-0000-000000000000'),

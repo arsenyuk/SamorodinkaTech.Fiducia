@@ -42,6 +42,15 @@ public class BasicProvider : IAuthProvider
             };
         }
 
+        if (user.IsSystem)
+        {
+            return new AuthResult
+            {
+                Success = false,
+                ErrorMessage = "Системные учётные записи не предназначены для входа"
+            };
+        }
+
         // Определяем роль: если есть SYS_ADMIN — даём доступ администратора
         var roleName = user.UserRoles
             .Select(ur => ur.Role?.Code)
