@@ -4,6 +4,34 @@
 -- CREATE EXTENSION IF NOT EXISTS pgcrypto; -- не требуется для явной генерации UUID на стороне приложения/скриптов
 
 -- ============================================================================
+-- Пользователи (создаются первыми — ref_* ссылаются на users)
+-- ============================================================================
+
+-- Таблица: users
+CREATE TABLE IF NOT EXISTS users (
+    id uuid PRIMARY KEY,
+    last_name varchar(150) NOT NULL,
+    first_name varchar(150) NOT NULL,
+    middle_name varchar(150),
+    email varchar(255) UNIQUE NOT NULL,
+    phone varchar(20) UNIQUE NOT NULL,
+    is_external boolean DEFAULT FALSE NOT NULL,
+    pep_agreement_signed boolean DEFAULT FALSE NOT NULL,
+    pep_signed_at timestamp with time zone,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    -- онбординг внешних директоров и согласия ПДн
+    invitation_token varchar(255),
+    invitation_expires_at timestamp with time zone,
+    declaration_completed boolean DEFAULT FALSE NOT NULL,
+    declaration_data text,
+    pdn_consent_given boolean DEFAULT FALSE NOT NULL,
+    pdn_consent_at timestamp with time zone,
+    pdn_consent_ip varchar(45)
+);
+
+CREATE INDEX IF NOT EXISTS ix_users_is_external ON users(is_external);
+
+-- ============================================================================
 -- Справочники (ref_*): не зависят от других таблиц
 -- ============================================================================
 
@@ -116,47 +144,6 @@ CREATE TABLE IF NOT EXISTS ref_resignation_reasons (
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     created_by uuid NOT NULL REFERENCES users(id)
 );
-
--- ============================================================================
--- Пользователи и роли
--- ============================================================================
-
--- Таблица: users
-CREATE TABLE IF NOT EXISTS users (
-    id uuid PRIMARY KEY,
-    last_name varchar(150) NOT NULL,
-    first_name varchar(150) NOT NULL,
-    middle_name varchar(150),
-    email varchar(255) UNIQUE NOT NULL,
-    phone varchar(20) UNIQUE NOT NULL,
-    is_external boolean DEFAULT FALSE NOT NULL,
-    pep_agreement_signed boolean DEFAULT FALSE NOT NULL,
-    pep_signed_at timestamp with time zone,
-    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    -- онбординг внешних директоров и согласия ПДн
-    invitation_token varchar(255),
-    invitation_expires_at timestamp with time zone,
-    declaration_completed boolean DEFAULT FALSE NOT NULL,
-    declaration_data text,
-    pdn_consent_given boolean DEFAULT FALSE NOT NULL,
-    pdn_consent_at timestamp with time zone,
-    pdn_consent_ip varchar(45)
-);
-
--- Системный пользователь (нулевой GUID) для seed-данных справочников
-INSERT INTO users (id, last_name, first_name, email, phone, is_external, pep_agreement_signed, created_at)
-VALUES (
-    '00000000-0000-0000-0000-000000000000',
-    'Системный',
-    'Пользователь',
-    'system@fiducia.local',
-    '+00000000000',
-    FALSE,
-    FALSE,
-    '2025-01-01T00:00:00Z'
-) ON CONFLICT (id) DO NOTHING;
-
-CREATE INDEX IF NOT EXISTS ix_users_is_external ON users(is_external);
 
 CREATE TABLE IF NOT EXISTS user_roles (
     id uuid PRIMARY KEY,

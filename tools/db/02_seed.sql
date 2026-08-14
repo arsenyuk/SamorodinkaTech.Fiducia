@@ -1,5 +1,20 @@
 -- 02_seed.sql — первичное наполнение (справочники и системные записи)
--- Системный пользователь: 00000000-0000-0000-0000-000000000000
+
+-- ============================================================================
+-- Системный пользователь (нулевой GUID) — создаётся первым,
+-- используется как created_by для всех справочников ниже
+-- ============================================================================
+INSERT INTO users (id, last_name, first_name, email, phone, is_external, pep_agreement_signed, created_at)
+VALUES (
+    '00000000-0000-0000-0000-000000000000',
+    'Системный',
+    'Пользователь',
+    'system@fiducia.local',
+    '+00000000000',
+    FALSE,
+    FALSE,
+    '2025-01-01T00:00:00Z'
+) ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO ref_roles (id, code, name, created_at, created_by) VALUES
     ('11111111-1111-1111-1111-111111111111','SYS_ADMIN','Системный администратор','2025-01-01T00:00:00Z','00000000-0000-0000-0000-000000000000'),
@@ -192,45 +207,6 @@ INSERT INTO tpl_org_offers (id, stage_id, name, description, start_offset_days, 
 ON CONFLICT DO NOTHING;
 
 -- Задачи ВОСА (aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa30)
-INSERT INTO tpl_org_tasks (id, offer_id, name, description, sort_order,
-    
-    require_notary_confirmation, require_all_sign_confirmation, require_committees,
-    require_board_regulation, require_custom_charter, require_executive_body_a,
-    require_board_of_directors, require_document_flow_legal_electronic) VALUES
-    -- Стадия 1: Выдвижение требования / Проверка требования (cc21)
-    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee20', 'cccccccc-cccc-cccc-cccc-cccccccccc21', 'Приём и регистрация требования', 'Регистрация входящего требования о созыве ВОСА с датой получения', 1, NULL, NULL, NULL, NULL, NULL, NULL, TRUE, NULL),
-    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee21', 'cccccccc-cccc-cccc-cccc-cccccccccc21', 'Проверка доли инициатора (≥10%)', 'Сверка с реестром акционеров, подтверждение совокупной доли голосующих акций', 2, NULL, NULL, NULL, NULL, NULL, NULL, TRUE, NULL),
-    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee22', 'cccccccc-cccc-cccc-cccc-cccccccccc21', 'Проверка повестки на соответствие закону и уставу', 'Проверка вопросов на компетенцию ОСА и соответствие 208-ФЗ', 3, NULL, NULL, NULL, NULL, NULL, NULL, TRUE, NULL),
-    -- Стадия 1: Выдвижение требования / Принятие решения (cc22)
-    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee23', 'cccccccc-cccc-cccc-cccc-cccccccccc22', 'Принятие решения о созыве или мотивированный отказ', 'Заседание СД: решение о созыве ВОСА либо отказ с указанием основания (5 р.д.)', 1, NULL, NULL, NULL, NULL, NULL, NULL, TRUE, NULL),
-    -- Стадия 2: Подготовка повестки / Утверждение вопросов (cc23)
-    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee24', 'cccccccc-cccc-cccc-cccc-cccccccccc23', 'Определение даты и места ВОСА', 'Выбор даты в пределах 40 (75 — с избранием СД) дней с учётом 21-дневного уведомления', 1, NULL, NULL, NULL, NULL, NULL, NULL, TRUE, NULL),
-    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee25', 'cccccccc-cccc-cccc-cccc-cccccccccc23', 'Формирование повестки дня (из требования)', 'Составление перечня вопросов ровно по требованию инициатора', 2, NULL, NULL, NULL, NULL, NULL, NULL, TRUE, NULL),
-    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee26', 'cccccccc-cccc-cccc-cccc-cccccccccc23', 'Подготовка проектов решений', 'Подготовка проектов решений по каждому вопросу повестки', 3, NULL, NULL, NULL, NULL, NULL, NULL, TRUE, NULL),
-    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee27', 'cccccccc-cccc-cccc-cccc-cccccccccc23', 'Подготовка информационных материалов', 'Подготовка материалов по вопросам повестки (при необходимости)', 4, NULL, NULL, NULL, NULL, NULL, NULL, TRUE, NULL),
-    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee28', 'cccccccc-cccc-cccc-cccc-cccccccccc23', 'Сборка пакета материалов для акционеров', 'Формирование полного комплекта документов для отправки акционерам', 5, NULL, NULL, NULL, NULL, NULL, NULL, TRUE, NULL),
-    -- Стадия 3: Созыв собрания / Рассылка уведомлений (cc24)
-    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee29', 'cccccccc-cccc-cccc-cccc-cccccccccc24', 'Запрос списка акционеров у регистратора', 'Подготовка и направление запроса регистратору на дату фиксации СД', 1, NULL, NULL, NULL, NULL, NULL, NULL, TRUE, NULL),
-    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee2A', 'cccccccc-cccc-cccc-cccc-cccccccccc24', 'Получение быстрого списка от регистратора', 'Получение списка прямых владельцев (след. раб. день)', 2, NULL, NULL, NULL, NULL, NULL, NULL, TRUE, NULL),
-    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee2B', 'cccccccc-cccc-cccc-cccc-cccccccccc24', 'Получение полного списка с раскрытием номинальных держателей', 'Раскрытие конечных владельцев за номинальными держателями (до 3 р.д.)', 3, NULL, NULL, NULL, NULL, NULL, NULL, TRUE, NULL),
-    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee2C', 'cccccccc-cccc-cccc-cccc-cccccccccc24', 'Проверка списка (валидация)', 'Сверка адресов, расчёт кворума, проверка паспортных данных', 4, NULL, NULL, NULL, NULL, NULL, NULL, TRUE, NULL),
-    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee2D', 'cccccccc-cccc-cccc-cccc-cccccccccc24', 'Рассылка уведомлений и бюллетеней акционерам', 'Заказное письмо за 21 кал. день до ВОСА', 5, NULL, NULL, NULL, NULL, NULL, NULL, TRUE, NULL),
-    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee2E', 'cccccccc-cccc-cccc-cccc-cccccccccc24', 'Уведомление нотариуса о собрании', 'Уведомление о дате/времени/месте собрания, передача документов', 6, TRUE,  NULL, NULL, NULL, NULL, NULL, TRUE, NULL),
-    -- Стадия 3: Созыв собрания / Формирование бюллетеней (cc25)
-    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee2F', 'cccccccc-cccc-cccc-cccc-cccccccccc25', 'Подготовка бюллетеней для голосования', 'Бюллетени «за»/«против»/«воздержался» по каждому вопросу повестки', 1, NULL, NULL, NULL, NULL, NULL, NULL, TRUE, NULL),
-    -- Стадия 4: Проведение ВОСА / Регистрация участников (cc26)
-    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee30', 'cccccccc-cccc-cccc-cccc-cccccccccc26', 'Регистрация участников и проверка полномочий', 'Проверка доверенностей представителей, выдача бюллетеней', 1, NULL, NULL, NULL, NULL, NULL, NULL, TRUE, NULL),
-    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee31', 'cccccccc-cccc-cccc-cccc-cccccccccc26', 'Проверка кворума (>50%)', 'Подтверждение наличия кворума для правомочности собрания', 2, NULL, NULL, NULL, NULL, NULL, NULL, TRUE, NULL),
-    -- Стадия 4: Проведение ВОСА / Голосование и подсчёт (cc27)
-    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee32', 'cccccccc-cccc-cccc-cccc-cccccccccc27', 'Проведение собрания: обсуждение и голосование', 'Обсуждение вопросов повестки, голосование, подсчёт, оглашение', 1, NULL, NULL, NULL, NULL, NULL, NULL, TRUE, NULL),
-    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee33', 'cccccccc-cccc-cccc-cccc-cccccccccc27', 'Оформление протокола ВОСА', 'Подготовка и подписание протокола председателем и секретарём', 2, NULL, NULL, NULL, NULL, NULL, NULL, TRUE, NULL),
-    -- Стадия 5: Завершение / Фиксация результатов (cc28) — дополнительные задачи
-    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee34', 'cccccccc-cccc-cccc-cccc-cccccccccc28', 'Раскрытие протокола (ПАО)', 'Публикация протокола в ленте новостей (Интерфакс) в течение 4 р.д.', 4, NULL, NULL, NULL, NULL, NULL, NULL, TRUE, NULL),
-    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee35', 'cccccccc-cccc-cccc-cccc-cccccccccc28', 'Подача Р13014 в ФНС', 'Заявление по форме Р13014 в течение 7 р.д. (при смене директора/устава)', 5, NULL, NULL, NULL, NULL, NULL, TRUE,  TRUE, NULL),
-    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee36', 'cccccccc-cccc-cccc-cccc-cccccccccc28', 'Уведомление банка о смене директора', 'Уведомление банка об изменении лица, имеющего право подписи', 6, NULL, NULL, NULL, NULL, NULL, TRUE,  TRUE, NULL),
-    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee37', 'cccccccc-cccc-cccc-cccc-cccccccccc28', 'Уведомление регистратора об изменениях', 'Уведомление регистратора о смене директора или устава', 7, NULL, NULL, NULL, NULL, NULL, NULL, TRUE, NULL),
-    ('eeeeeeee-eeee-eeee-eeee-eeeeeeeeee38', 'cccccccc-cccc-cccc-cccc-cccccccccc28', 'Рассылка копий протокола акционерам', 'Отправка копий протокола всем акционерам в разумный срок', 8, NULL, NULL, NULL, NULL, NULL, NULL, TRUE, NULL)
-ON CONFLICT DO NOTHING;
 
 INSERT INTO tpl_org_intents (id, code, name, description, sort_order, is_for_ao, is_for_llc, requires_board_of_directors) VALUES
     ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa40', 'FIRST_BOARD', 'Подготовка и проведение первого СД', 'Подготовка и проведение первого заседания Совета директоров после избрания', 4, true, true, true)
@@ -264,92 +240,12 @@ INSERT INTO tpl_org_offers (id, stage_id, name, description, start_offset_days, 
 ON CONFLICT DO NOTHING;
 
 -- Задачи FIRST_BOARD (aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa40)
-INSERT INTO tpl_org_tasks (id, offer_id, name, description, sort_order, assigned_board_role_id,
-    require_notary_confirmation, require_all_sign_confirmation, require_committees,
-    require_board_regulation, require_custom_charter, require_executive_body_a,
-    require_board_of_directors, require_document_flow_legal_electronic) VALUES
-    -- Stage 1, Offer 1: Шаблон протокола и подготовка к избранию
-    ('dddddddd-dddd-dddd-dddd-dddddddddd01', 'cccccccc-cccc-cccc-cccc-cccccccccc31', 'Подготовка шаблона протокола первого заседания', 'Создание шаблона протокола по ст. 68 п. 4 208-ФЗ', 1, NULL, NULL, NULL, NULL, NULL, NULL, NULL, TRUE, NULL),
-    ('dddddddd-dddd-dddd-dddd-dddddddddd02', 'cccccccc-cccc-cccc-cccc-cccccccccc31', 'Подготовка к избранию председателя СД', 'Подготовка материалов к голосованию по председателю', 2, 'ffffffff-ffff-ffff-ffff-fffffffffff1', NULL, NULL, NULL, NULL, NULL, NULL, TRUE, NULL),
-    ('dddddddd-dddd-dddd-dddd-dddddddddd03', 'cccccccc-cccc-cccc-cccc-cccccccccc31', 'Подготовка к избранию заместителя председателя СД', 'Подготовка материалов к голосованию по заместителю', 3, 'ffffffff-ffff-ffff-ffff-fffffffffff2', NULL, NULL, NULL, NULL, NULL, NULL, TRUE, NULL),
-    ('dddddddd-dddd-dddd-dddd-dddddddddd04', 'cccccccc-cccc-cccc-cccc-cccccccccc31', 'Подготовка к избранию секретаря СД', 'Подготовка материалов к голосованию по секретарю', 4, 'ffffffff-ffff-ffff-ffff-fffffffffff6', NULL, NULL, NULL, NULL, NULL, NULL, TRUE, NULL),
-    ('dddddddd-dddd-dddd-dddd-dddddddddd05', 'cccccccc-cccc-cccc-cccc-cccccccccc31', 'Подготовка к формированию комитетов СД', 'Подготовка материалов к голосованию по комитетам', 5, NULL, NULL, NULL, TRUE, NULL, NULL, NULL, TRUE, NULL),
-    -- Stage 1, Offer 2: Уведомление и сбор материалов
-    ('dddddddd-dddd-dddd-dddd-dddddddddd06', 'cccccccc-cccc-cccc-cccc-cccccccccc32', 'Уведомление членов СД о дате, времени, месте и повестке заседания', 'Рассылка уведомлений по ст. 68 п. 1 208-ФЗ', 1, NULL, NULL, NULL, NULL, NULL, NULL, NULL, TRUE, NULL),
-    ('dddddddd-dddd-dddd-dddd-dddddddddd07', 'cccccccc-cccc-cccc-cccc-cccccccccc32', 'Сбор и консолидация проектов решений по вопросам повестки', 'Сбор проектов документов от членов СД', 2, NULL, NULL, NULL, NULL, NULL, NULL, NULL, TRUE, NULL),
-    ('dddddddd-dddd-dddd-dddd-dddddddddd08', 'cccccccc-cccc-cccc-cccc-cccccccccc32', 'Подготовка и рассылка бюллетеней для голосования', 'При заочной или смешанной форме заседания', 3, NULL, NULL, NULL, NULL, NULL, NULL, NULL, TRUE, NULL),
-    ('dddddddd-dddd-dddd-dddd-dddddddddd09', 'cccccccc-cccc-cccc-cccc-cccccccccc32', 'Сбор и обработка письменных мнений членов СД', 'Сбор письменных мнений отсутствующих членов', 4, NULL, NULL, NULL, NULL, NULL, NULL, NULL, TRUE, NULL),
-    -- Stage 2, Offer 1: Открытие заседания и проверка кворума
-    ('dddddddd-dddd-dddd-dddd-dddddddddd11', 'cccccccc-cccc-cccc-cccc-cccccccccc33', 'Открытие заседания', 'Открытие заседания председательствующим', 1, 'ffffffff-ffff-ffff-ffff-fffffffffff1', NULL, NULL, NULL, NULL, NULL, NULL, TRUE, NULL),
-    ('dddddddd-dddd-dddd-dddd-dddddddddd12', 'cccccccc-cccc-cccc-cccc-cccccccccc33', 'Проверка кворума', 'Проверка кворума по ст. 68 п. 2 208-ФЗ', 2, 'ffffffff-ffff-ffff-ffff-fffffffffff1', TRUE,  NULL, NULL, NULL, NULL, NULL, TRUE, NULL),
-    -- Stage 2, Offer 2: Избрание председателя СД
-    ('dddddddd-dddd-dddd-dddd-dddddddddd13', 'cccccccc-cccc-cccc-cccc-cccccccccc34', 'Голосование по избранию председателя СД', 'Голосование членов СД', 1, 'ffffffff-ffff-ffff-ffff-fffffffffff3', NULL, NULL, NULL, NULL, NULL, NULL, TRUE, NULL),
-    ('dddddddd-dddd-dddd-dddd-dddddddddd14', 'cccccccc-cccc-cccc-cccc-cccccccccc34', 'Подсчёт голосов по избранию председателя СД', 'Подсчёт голосов председательствующим', 2, 'ffffffff-ffff-ffff-ffff-fffffffffff1', NULL, NULL, NULL, NULL, NULL, NULL, TRUE, NULL),
-    ('dddddddd-dddd-dddd-dddd-dddddddddd15', 'cccccccc-cccc-cccc-cccc-cccccccccc34', 'Подведение итогов и объявление результатов', 'Объявление результатов голосования', 3, 'ffffffff-ffff-ffff-ffff-fffffffffff1', NULL, NULL, NULL, NULL, NULL, NULL, TRUE, NULL),
-    -- Stage 2, Offer 3: Избрание заместителя председателя СД
-    ('dddddddd-dddd-dddd-dddd-dddddddddd16', 'cccccccc-cccc-cccc-cccc-cccccccccc35', 'Голосование по избранию заместителя председателя СД', 'Голосование членов СД', 1, 'ffffffff-ffff-ffff-ffff-fffffffffff3', NULL, NULL, NULL, NULL, NULL, NULL, TRUE, NULL),
-    ('dddddddd-dddd-dddd-dddd-dddddddddd17', 'cccccccc-cccc-cccc-cccc-cccccccccc35', 'Подсчёт голосов по избранию заместителя председателя СД', 'Подсчёт голосов председательствующим', 2, 'ffffffff-ffff-ffff-ffff-fffffffffff1', NULL, NULL, NULL, NULL, NULL, NULL, TRUE, NULL),
-    ('dddddddd-dddd-dddd-dddd-dddddddddd18', 'cccccccc-cccc-cccc-cccc-cccccccccc35', 'Подведение итогов и объявление результатов', 'Объявление результатов голосования', 3, 'ffffffff-ffff-ffff-ffff-fffffffffff1', NULL, NULL, NULL, NULL, NULL, NULL, TRUE, NULL),
-    -- Stage 2, Offer 4: Избрание секретаря СД
-    ('dddddddd-dddd-dddd-dddd-dddddddddd19', 'cccccccc-cccc-cccc-cccc-cccccccccc36', 'Голосование по избранию секретаря СД', 'Голосование членов СД', 1, 'ffffffff-ffff-ffff-ffff-fffffffffff3', NULL, NULL, NULL, NULL, NULL, NULL, TRUE, NULL),
-    ('dddddddd-dddd-dddd-dddd-dddddddddd20', 'cccccccc-cccc-cccc-cccc-cccccccccc36', 'Подсчёт голосов по избранию секретаря СД', 'Подсчёт голосов председательствующим', 2, 'ffffffff-ffff-ffff-ffff-fffffffffff1', NULL, NULL, NULL, NULL, NULL, NULL, TRUE, NULL),
-    ('dddddddd-dddd-dddd-dddd-dddddddddd21', 'cccccccc-cccc-cccc-cccc-cccccccccc36', 'Подведение итогов и объявление результатов', 'Объявление результатов голосования', 3, 'ffffffff-ffff-ffff-ffff-fffffffffff1', NULL, NULL, NULL, NULL, NULL, NULL, TRUE, NULL),
-    -- Stage 2, Offer 5: Формирование комитетов СД
-    ('dddddddd-dddd-dddd-dddd-dddddddddd22', 'cccccccc-cccc-cccc-cccc-cccccccccc37', 'Голосование по формированию комитетов СД', 'Голосование членов СД', 1, 'ffffffff-ffff-ffff-ffff-fffffffffff3', NULL, NULL, TRUE, NULL, NULL, NULL, TRUE, NULL),
-    ('dddddddd-dddd-dddd-dddd-dddddddddd23', 'cccccccc-cccc-cccc-cccc-cccccccccc37', 'Подсчёт голосов по формированию комитетов СД', 'Подсчёт голосов секретарём', 2, 'ffffffff-ffff-ffff-ffff-fffffffffff6', NULL, NULL, TRUE, NULL, NULL, NULL, TRUE, NULL),
-    ('dddddddd-dddd-dddd-dddd-dddddddddd24', 'cccccccc-cccc-cccc-cccc-cccccccccc37', 'Подведение итогов и объявление результатов', 'Объявление результатов голосования', 3, 'ffffffff-ffff-ffff-ffff-fffffffffff1', NULL, NULL, TRUE, NULL, NULL, NULL, TRUE, NULL),
-    -- Stage 2, Offer 6: Иные вопросы и закрытие заседания
-    ('dddddddd-dddd-dddd-dddd-dddddddddd25', 'cccccccc-cccc-cccc-cccc-cccccccccc38', 'Голосование по иным вопросам повестки', 'Голосование по дополнительным вопросам', 1, 'ffffffff-ffff-ffff-ffff-fffffffffff3', NULL, NULL, NULL, NULL, NULL, NULL, TRUE, NULL),
-    ('dddddddd-dddd-dddd-dddd-dddddddddd26', 'cccccccc-cccc-cccc-cccc-cccccccccc38', 'Подсчёт голосов по иным вопросам повестки', 'Подсчёт голосов секретарём', 2, 'ffffffff-ffff-ffff-ffff-fffffffffff6', NULL, NULL, NULL, NULL, NULL, NULL, TRUE, NULL),
-    ('dddddddd-dddd-dddd-dddd-dddddddddd27', 'cccccccc-cccc-cccc-cccc-cccccccccc38', 'Подведение итогов и объявление результатов', 'Объявление результатов голосования', 3, 'ffffffff-ffff-ffff-ffff-fffffffffff1', NULL, NULL, NULL, NULL, NULL, NULL, TRUE, NULL),
-    ('dddddddd-dddd-dddd-dddd-dddddddddd28', 'cccccccc-cccc-cccc-cccc-cccccccccc38', 'Закрытие заседания', 'Закрытие заседания председательствующим', 4, 'ffffffff-ffff-ffff-ffff-fffffffffff1', NULL, NULL, NULL, NULL, NULL, NULL, TRUE, NULL),
-    -- Stage 3, Offer 1: Получение УКЭП
-    ('dddddddd-dddd-dddd-dddd-dddddddddd31', 'cccccccc-cccc-cccc-cccc-cccccccccc41', 'Получение УКЭП для избранного председателя СД', 'При ЮЗЭДО; 63-ФЗ', 1, 'ffffffff-ffff-ffff-ffff-fffffffffff1', NULL, NULL, NULL, NULL, TRUE,  NULL, TRUE, NULL),
-    ('dddddddd-dddd-dddd-dddd-dddddddddd32', 'cccccccc-cccc-cccc-cccc-cccccccccc41', 'Получение УКЭП для избранного заместителя председателя СД', 'При ЮЗЭДО; 63-ФЗ', 2, 'ffffffff-ffff-ffff-ffff-fffffffffff2', NULL, NULL, NULL, NULL, TRUE,  NULL, TRUE, NULL),
-    ('dddddddd-dddd-dddd-dddd-dddddddddd33', 'cccccccc-cccc-cccc-cccc-cccccccccc41', 'Получение УКЭП для избранного секретаря СД', 'При ЮЗЭДО; 63-ФЗ', 3, 'ffffffff-ffff-ffff-ffff-fffffffffff6', NULL, NULL, NULL, NULL, TRUE,  NULL, TRUE, NULL),
-    -- Stage 3, Offer 2: Оформление и проверка протокола
-    ('dddddddd-dddd-dddd-dddd-dddddddddd37', 'cccccccc-cccc-cccc-cccc-cccccccccc42', 'Оформление финального протокола заседания', 'Составление протокола по ст. 68 п. 4 208-ФЗ', 1, NULL, NULL, NULL, NULL, NULL, NULL, NULL, TRUE, NULL),
-    ('dddddddd-dddd-dddd-dddd-dddddddddd38', 'cccccccc-cccc-cccc-cccc-cccccccccc42', 'Проверка наличия УКЭП у всех подписантов', 'При ЮЗЭДО; 63-ФЗ', 2, 'ffffffff-ffff-ffff-ffff-fffffffffff1', TRUE,  NULL, NULL, NULL, NULL, NULL, TRUE, NULL),
-    -- Stage 3, Offer 3: Бумажное подписание протокола
-    ('dddddddd-dddd-dddd-dddd-dddddddddd41', 'cccccccc-cccc-cccc-cccc-cccccccccc43', 'Бумажное подписание протокола председателем', 'Подписание бумажного экземпляра', 1, 'ffffffff-ffff-ffff-ffff-fffffffffff1', TRUE,  NULL, NULL, NULL, NULL, TRUE,  TRUE, NULL),
-    ('dddddddd-dddd-dddd-dddd-dddddddddd42', 'cccccccc-cccc-cccc-cccc-cccccccccc43', 'Бумажное подписание протокола заместителем председателя', 'При отсутствии председателя', 2, 'ffffffff-ffff-ffff-ffff-fffffffffff2', TRUE,  NULL, NULL, NULL, NULL, NULL, TRUE, NULL),
-    ('dddddddd-dddd-dddd-dddd-dddddddddd43', 'cccccccc-cccc-cccc-cccc-cccccccccc43', 'Бумажное подписание протокола секретарем', 'При наличии права подписи', 3, 'ffffffff-ffff-ffff-ffff-fffffffffff6', TRUE,  NULL, NULL, NULL, NULL, NULL, TRUE, NULL),
-    ('dddddddd-dddd-dddd-dddd-dddddddddd44', 'cccccccc-cccc-cccc-cccc-cccccccccc43', 'Внесение электронного образа подписанного документа в систему', 'Сканирование и загрузка в систему', 4, NULL, TRUE,  NULL, NULL, NULL, NULL, NULL, TRUE, NULL),
-    -- Stage 3, Offer 4: Электронное подписание протокола
-    ('dddddddd-dddd-dddd-dddd-dddddddddd45', 'cccccccc-cccc-cccc-cccc-cccccccccc44', 'Подписание протокола председателем с использованием УКЭП', 'При ЮЗЭДО; ст. 68 п. 4 208-ФЗ', 1, 'ffffffff-ffff-ffff-ffff-fffffffffff1', TRUE,  NULL, NULL, NULL, TRUE,  TRUE,  TRUE, NULL),
-    ('dddddddd-dddd-dddd-dddd-dddddddddd46', 'cccccccc-cccc-cccc-cccc-cccccccccc44', 'Подписание протокола заместителем председателя с использованием УКЭП', 'При отсутствии председателя и ЮЗЭДО', 2, 'ffffffff-ffff-ffff-ffff-fffffffffff2', TRUE,  NULL, NULL, NULL, TRUE,  NULL, TRUE, NULL),
-    ('dddddddd-dddd-dddd-dddd-dddddddddd47', 'cccccccc-cccc-cccc-cccc-cccccccccc44', 'Подписание протокола секретарем с использованием УКЭП', 'При наличии права подписи и ЮЗЭДО', 3, 'ffffffff-ffff-ffff-ffff-fffffffffff6', TRUE,  NULL, NULL, NULL, TRUE,  NULL, TRUE, NULL),
-    -- Stage 3, Offer 5: Завершение
-    ('dddddddd-dddd-dddd-dddd-dddddddddd48', 'cccccccc-cccc-cccc-cccc-cccccccccc45', 'Рассылка копий протокола и решений членам СД', 'Рассылка по ст. 68 п. 4 208-ФЗ', 1, 'ffffffff-ffff-ffff-ffff-fffffffffff3', NULL, NULL, NULL, NULL, NULL, NULL, TRUE, NULL),
-    ('dddddddd-dddd-dddd-dddd-dddddddddd49', 'cccccccc-cccc-cccc-cccc-cccccccccc45', 'Обеспечение готовности пакета документов для регулирующих органов', 'Подготовка документов для ЦБ РФ и других органов', 2, NULL, NULL, NULL, NULL, NULL, NULL, NULL, TRUE, NULL),
-    ('dddddddd-dddd-dddd-dddd-dddddddddd50', 'cccccccc-cccc-cccc-cccc-cccccccccc45', 'Организация постоянного хранения полного комплекта документов заседания СД', 'Хранение по ст. 89 208-ФЗ', 3, NULL, NULL, NULL, NULL, NULL, NULL, NULL, TRUE, NULL),
-    ('dddddddd-dddd-dddd-dddd-dddddddddd51', 'cccccccc-cccc-cccc-cccc-cccccccccc45', 'Организация исполнения принятых решений', 'Контроль исполнения по ст. 69 208-ФЗ', 4, NULL, NULL, NULL, NULL, NULL, NULL, NULL, TRUE, NULL)
-ON CONFLICT DO NOTHING;
 
 -- Задачи «Завершение» для ГОСА (aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa10)
-INSERT INTO tpl_org_tasks (id, offer_id, name, description, sort_order) VALUES
-    ('dddddddd-dddd-dddd-dddd-dddddddddd61', 'cccccccc-cccc-cccc-cccc-000000000031', 'Фиксация результатов ГОСА в системе', 'Внесение итогов голосования и решений ГОСА в систему', 1),
-    ('dddddddd-dddd-dddd-dddd-dddddddddd62', 'cccccccc-cccc-cccc-cccc-000000000031', 'Организация хранения документов ГОСА', 'Формирование и передача полного комплекта документов ГОСА на постоянное хранение', 2),
-    ('dddddddd-dddd-dddd-dddd-dddddddddd63', 'cccccccc-cccc-cccc-cccc-000000000031', 'Организация исполнения решений ГОСА', 'Контроль исполнения решений, принятых на ГОСА', 3)
-ON CONFLICT DO NOTHING;
 
 -- Задачи «Завершение» для Заседания СД (aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa20)
-INSERT INTO tpl_org_tasks (id, offer_id, name, description, sort_order) VALUES
-    ('dddddddd-dddd-dddd-dddd-dddddddddd71', 'cccccccc-cccc-cccc-cccc-cccccccccc16', 'Фиксация результатов заседания СД в системе', 'Внесение итогов голосования и решений заседания СД в систему', 1),
-    ('dddddddd-dddd-dddd-dddd-dddddddddd72', 'cccccccc-cccc-cccc-cccc-cccccccccc16', 'Организация хранения документов заседания СД', 'Формирование и передача полного комплекта документов заседания на постоянное хранение', 2),
-    ('dddddddd-dddd-dddd-dddd-dddddddddd73', 'cccccccc-cccc-cccc-cccc-cccccccccc16', 'Организация исполнения решений заседания СД', 'Контроль исполнения решений, принятых на заседании СД', 3)
-ON CONFLICT DO NOTHING;
 
 -- Задачи «Завершение» для ВОСА (aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa30)
-INSERT INTO tpl_org_tasks (id, offer_id, name, description, sort_order,
-    
-    require_notary_confirmation, require_all_sign_confirmation, require_committees,
-    require_board_regulation, require_custom_charter, require_executive_body_a,
-    require_board_of_directors, require_document_flow_legal_electronic) VALUES
-    ('dddddddd-dddd-dddd-dddd-dddddddddd81', 'cccccccc-cccc-cccc-cccc-cccccccccc28', 'Фиксация результатов ВОСА в системе', 'Внесение итогов голосования и решений ВОСА в систему', 1, NULL, NULL, NULL, NULL, NULL, NULL, TRUE, NULL),
-    ('dddddddd-dddd-dddd-dddd-dddddddddd82', 'cccccccc-cccc-cccc-cccc-cccccccccc28', 'Организация хранения документов ВОСА', 'Формирование и передача полного комплекта документов ВОСА на постоянное хранение', 2, NULL, NULL, NULL, NULL, NULL, NULL, TRUE, NULL),
-    ('dddddddd-dddd-dddd-dddd-dddddddddd83', 'cccccccc-cccc-cccc-cccc-cccccccccc28', 'Организация исполнения решений ВОСА', 'Контроль исполнения решений, принятых на ВОСА', 3, NULL, NULL, NULL, NULL, NULL, NULL, TRUE, NULL)
-ON CONFLICT DO NOTHING;
 
 -- Оферы для шаблона «Заседание Совета директоров» (aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa20)
 INSERT INTO tpl_org_offers (id, stage_id, name, description, start_offset_days, deadline_rule, deadline_days) VALUES
@@ -651,30 +547,3 @@ ON CONFLICT (number) DO NOTHING;
 
 
 -- ============================================================================
--- Миграция: повышение задач (tpl_org_tasks) до оферов (tpl_org_offers)
--- Каждая задача становится отдельным офером — шаблоном одной будущей задачи.
--- Старые оферы, имевшие дочерние задачи, удаляются.
--- ============================================================================
-
--- Шаг 1: создать новые оферы из задач
-INSERT INTO tpl_org_offers (id, stage_id, name, description,
-    assigned_role_id, assigned_board_role_id,
-    require_notary_confirmation, require_all_sign_confirmation,
-    require_committees, require_board_regulation,
-    require_custom_charter, require_executive_body_a,
-    require_board_of_directors, require_document_flow_legal_electronic)
-SELECT t.id, o.stage_id, t.name, t.description,
-    t.assigned_role_id, t.assigned_board_role_id,
-    t.require_notary_confirmation, t.require_all_sign_confirmation,
-    t.require_committees, t.require_board_regulation,
-    t.require_custom_charter, t.require_executive_body_a,
-    t.require_board_of_directors, t.require_document_flow_legal_electronic
-FROM tpl_org_tasks t
-JOIN tpl_org_offers o ON o.id = t.offer_id
-ON CONFLICT (id) DO NOTHING;
-
--- Шаг 2: удалить старые оферы, которые были родителями задач
-DELETE FROM tpl_org_offers WHERE id IN (SELECT DISTINCT offer_id FROM tpl_org_tasks);
-
--- Шаг 3: удалить таблицу задач (больше не нужна)
-DROP TABLE IF EXISTS tpl_org_tasks CASCADE;
