@@ -439,6 +439,25 @@
                         Комитеты определены документами Общества
                     </label>
                 </div>
+                <div class="mt-2">
+                    @if (_customCommitteeRegulationDocName != null && _customCommitteeRegulationDocId.HasValue && !_showCommitteeRegulationUpload)
+                    {
+                        <div class="d-flex align-items-center gap-2">
+                            <a href="/api/files/@_customCommitteeRegulationDocId/download" target="_blank"
+                               class="btn btn-sm btn-outline-success">📄 @_customCommitteeRegulationDocName</a>
+                            <button class="btn btn-sm btn-outline-secondary" @onclick="() => _showCommitteeRegulationUpload = true">Заменить</button>
+                        </div>
+                    }
+                    else
+                    {
+                        <FileUpload Accept=".pdf"
+                                    MaxSizeBytes="52428800"
+                                    FileType="REGULATION"
+                                    Token="@_jwtToken"
+                                    OnFileUploadedInfo="OnCommitteeRegulationFileUploadedInfo"
+                                    OnUploadError="OnCommitteeRegulationUploadError" />
+                    }
+                </div>
                 <div class="form-check mb-2 @(_editCommitteesDefinedByDocuments ? "" : "opacity-50")">
                     <input class="form-check-input" type="checkbox" id="editMaxCommitteesPerMemberDefined"
                            @bind="_editMaxCommitteesPerMemberDefined"
@@ -873,6 +892,10 @@
     private string? _customBoardRegulationDocName;
     private Guid? _customBoardRegulationDocId;
     private IBrowserFile? _boardRegulationFile;
+    private string? _customCommitteeRegulationDocName;
+    private Guid? _customCommitteeRegulationDocId;
+    private IBrowserFile? _committeeRegulationFile;
+    private bool _showCommitteeRegulationUpload;
     private bool? _customMandatoryAudit;
     private bool? _customHasRevisionCommission;
 
@@ -1354,10 +1377,13 @@
                         _customCharterDocId = await SaveUploadedFileAsync(ctx, _charterFile);
                     if (_boardRegulationFile != null)
                         _customBoardRegulationDocId = await SaveUploadedFileAsync(ctx, _boardRegulationFile);
+                    if (_committeeRegulationFile != null)
+                        _customCommitteeRegulationDocId = await SaveUploadedFileAsync(ctx, _committeeRegulationFile);
 
                     // Сбрасываем ссылки на файлы после сохранения
                     _charterFile = null;
                     _boardRegulationFile = null;
+                    _committeeRegulationFile = null;
 
                     var charterParams = await ctx.LegalEntityCharters
                         .FirstOrDefaultAsync(x => x.LegalEntityId == leForCharter.Id);
@@ -1378,6 +1404,7 @@
                     charterParams.DecisionConfirmationByAllSign = _customDecisionConfirmation;
                     charterParams.CharterDocumentId = _customCharterDocId ?? charterParams.CharterDocumentId;
                     charterParams.BoardRegulationDocumentId = _customBoardRegulationDocId ?? charterParams.BoardRegulationDocumentId;
+                    charterParams.CommitteeRegulationDocumentId = _customCommitteeRegulationDocId ?? charterParams.CommitteeRegulationDocumentId;
                     charterParams.MandatoryAudit = _customMandatoryAudit;
                     charterParams.HasRevisionCommission = _customHasRevisionCommission;
                     charterParams.HasBoardOfDirectors = _customHasBoardOfDirectors;
@@ -1761,6 +1788,7 @@
                 _customDecisionConfirmation = custom.DecisionConfirmationByAllSign;
                 _customCharterDocId = custom.CharterDocumentId;
                 _customBoardRegulationDocId = custom.BoardRegulationDocumentId;
+                _customCommitteeRegulationDocId = custom.CommitteeRegulationDocumentId;
                 _customMandatoryAudit = custom.MandatoryAudit;
                 _customHasRevisionCommission = custom.HasRevisionCommission;
                 _customHasBoardOfDirectors = custom.HasBoardOfDirectors;
@@ -1783,6 +1811,13 @@
                     _customBoardRegulationDocName = file?.OriginalName;
                 }
                 else _customBoardRegulationDocName = null;
+
+                if (custom.CommitteeRegulationDocumentId.HasValue)
+                {
+                    var file = await ctx.Files.FirstOrDefaultAsync(x => x.Id == custom.CommitteeRegulationDocumentId.Value);
+                    _customCommitteeRegulationDocName = file?.OriginalName;
+                }
+                else _customCommitteeRegulationDocName = null;
             }
             else if (_charterSettings != null)
             {
@@ -1871,6 +1906,20 @@
     }
 
     private void OnBoardRegulationUploadError(string error)
+    {
+        saveError = error;
+        StateHasChanged();
+    }
+
+    private void OnCommitteeRegulationFileUploadedInfo((Guid FileId, string OriginalName) info)
+    {
+        _customCommitteeRegulationDocId = info.FileId;
+        _customCommitteeRegulationDocName = info.OriginalName;
+        _showCommitteeRegulationUpload = false;
+        StateHasChanged();
+    }
+
+    private void OnCommitteeRegulationUploadError(string error)
     {
         saveError = error;
         StateHasChanged();

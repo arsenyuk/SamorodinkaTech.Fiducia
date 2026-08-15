@@ -138,6 +138,7 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.Property(x => x.DecisionConfirmationByAllSign).HasColumnName("decision_confirmation_by_all_sign");
             b.Property(x => x.CharterDocumentId).HasColumnName("charter_document_id");
             b.Property(x => x.BoardRegulationDocumentId).HasColumnName("board_regulation_document_id");
+            b.Property(x => x.CommitteeRegulationDocumentId).HasColumnName("committee_regulation_document_id");
             b.Property(x => x.MandatoryAudit).HasColumnName("mandatory_audit");
             b.Property(x => x.HasRevisionCommission).HasColumnName("has_revision_commission");
             b.Property(x => x.HasBoardOfDirectors).HasColumnName("has_board_of_directors");
@@ -145,6 +146,7 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.HasOne(x => x.GdTerm).WithMany().HasForeignKey(x => x.GdTermId);
             b.HasOne(x => x.CharterDocument).WithMany().HasForeignKey(x => x.CharterDocumentId);
             b.HasOne(x => x.BoardRegulationDocument).WithMany().HasForeignKey(x => x.BoardRegulationDocumentId);
+            b.HasOne(x => x.CommitteeRegulationDocument).WithMany().HasForeignKey(x => x.CommitteeRegulationDocumentId);
             b.HasOne(x => x.LegalEntity).WithOne().HasForeignKey<LegalEntityCharter>(x => x.LegalEntityId);
         });
 

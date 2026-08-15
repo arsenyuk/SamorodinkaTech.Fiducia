@@ -45,6 +45,12 @@ public class LegalEntityCharter
     /// <summary>Положение о Совете директоров.</summary>
     public FileEntry? BoardRegulationDocument { get; set; }
 
+    /// <summary>Файл положения о комитетах (committee_regulation_document_id).</summary>
+    public Guid? CommitteeRegulationDocumentId { get; set; }
+
+    /// <summary>Положение о комитетах.</summary>
+    public FileEntry? CommitteeRegulationDocument { get; set; }
+
     /// <summary>Обязательный аудит — выручка >800 млн или активы >400 млн (mandatory_audit). null — не указано.</summary>
     public bool? MandatoryAudit { get; set; }
 

@@ -411,6 +411,7 @@ CREATE TABLE IF NOT EXISTS legal_entity_charter (
     decision_confirmation_by_all_sign boolean NOT NULL DEFAULT false,
     charter_document_id uuid REFERENCES files(id),
     board_regulation_document_id uuid REFERENCES files(id),
+    committee_regulation_document_id uuid REFERENCES files(id),
     mandatory_audit boolean,
     has_revision_commission boolean,
     has_board_of_directors boolean NOT NULL DEFAULT false,
