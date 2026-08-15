@@ -152,6 +152,22 @@ if (builder.Configuration.GetValue<bool>("MtsLink:Enabled"))
     });
 }
 
+// CBR FinOrg API — справочник участников финансового рынка (опционально)
+// Все настройки — в appsettings.json, секция CbrFinOrg (ADR-022)
+builder.Services.Configure<CbrFinOrgOptions>(builder.Configuration.GetSection("CbrFinOrg"));
+if (builder.Configuration.GetValue<bool>("CbrFinOrg:Enabled"))
+{
+    builder.Services.AddScoped<ICbrFinOrgClient>(sp =>
+    {
+        var options = sp.GetRequiredService<IOptions<CbrFinOrgOptions>>().Value;
+        var logger = sp.GetRequiredService<ILogger<CbrFinOrgApiClient>>();
+        var inner = new CbrFinOrgApiClient(new HttpClient(), logger, options.BaseUrl);
+        var auditService = sp.GetRequiredService<ISecurityAuditService>();
+        var auditLogger = sp.GetRequiredService<ILogger<AuditCbrFinOrgDecorator>>();
+        return new AuditCbrFinOrgDecorator(inner, auditService, auditLogger);
+    });
+}
+
 // LDAP — корпоративный каталог для синхронизации состава СД (опционально)
 if (builder.Configuration.GetValue<bool>("Ldap:Enabled"))
 {

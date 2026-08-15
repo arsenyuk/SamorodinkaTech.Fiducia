@@ -885,6 +885,107 @@ builder.Services.AddScoped<ISparkApiClient>(sp =>
 
 ---
 
+# Интеграция с ЦБ РФ (FinOrg)
+
+> Внешняя система: **FinOrg** — веб-сервис Банка России для получения данных об участниках финансового рынка (УФР).
+
+---
+
+## Обзор
+
+Сервис ЦБ РФ предоставляет справочную информацию об участниках финансового рынка: наименование, статус, лицензии, уставный капитал, подразделения. Данные обновляются ежедневно (по состоянию на 23:59 предыдущего дня).
+
+**Адрес сервиса**: [cbr.ru/FO_ZoomWS/FinOrg.asmx](https://cbr.ru/FO_ZoomWS/FinOrg.asmx)
+
+**Лицензия**: сервис бесплатный, не требует API-ключа или регистрации.
+
+**Опциональность**: интеграция необязательна. Если `CbrFinOrg:Enabled` = `false`, клиент не регистрируется в DI.
+
+---
+
+## Место в архитектуре
+
+```
+┌──────────────────┐      ┌──────────────────┐      ┌──────────────────┐
+│  ICbrFinOrgClient │─────▶│  CbrFinOrg       │─────▶│  cbr.ru/FO_ZoomWS│
+│  (Domain)        │      │  ApiClient        │      │  /FinOrg.asmx    │
+└──────────────────┘      │  (Infrastructure) │      └──────────────────┘
+        ▲                  └──────────────────┘
+        │ implements
+┌───────┴──────────┐
+│ AuditCbrFinOrg   │  ← Аудит-декоратор
+│ Decorator        │
+└──────────────────┘
+```
+
+---
+
+## Протокол
+
+HTTP POST с `application/x-www-form-urlencoded` (не SOAP-envelope). Ответ — XML.
+
+```
+POST https://cbr.ru/FO_ZoomWS/FinOrg.asmx/GetFullInfoByINN
+Content-Type: application/x-www-form-urlencoded
+
+INN=7710140679
+```
+
+Аутентификация **не требуется**.
+
+---
+
+## Методы API
+
+| Метод | Описание | Параметры |
+|-------|----------|-----------|
+| `GetFullInfoByINN` | Полная информация по ИНН | `INN` (long) |
+| `GetFullInfoByOGRN` | Полная информация по ОГРН | `OGRN` (long) |
+| `Search` | Поиск по наименованию/адресу | `Name`, `Addr`, `Status`, `page` |
+| `SearchByINNs` | Массовый поиск по массиву ИНН | `INNs` (Int64[]) |
+| `GetLastUpdate` | Дата последнего обновления данных | — |
+
+---
+
+## Конфигурация
+
+**appsettings.json** (оба портала):
+
+```json
+"CbrFinOrg": {
+    "BaseUrl": "https://cbr.ru/FO_ZoomWS/FinOrg.asmx",
+    "Enabled": false
+}
+```
+
+**.env** (для production):
+
+```
+CBR_FINORG__BASEURL=https://cbr.ru/FO_ZoomWS/FinOrg.asmx
+CBR_FINORG__ENABLED=true
+```
+
+---
+
+## Структура файлов
+
+| Слой | Файл | Назначение |
+|------|------|------------|
+| Domain | `src/Domain/Interfaces/ICbrFinOrgClient.cs` | Интерфейс клиента |
+| Domain | `src/Domain/Models/CbrFinOrg/*.cs` | DTO-модели |
+| Infrastructure | `src/Infrastructure/Services/CbrFinOrgApiClient.cs` | Реализация клиента |
+| Infrastructure | `src/Infrastructure/Services/CbrFinOrgOptions.cs` | POCO настроек |
+| Infrastructure | `src/Infrastructure/Services/CbrFinOrgXmlParser.cs` | Парсинг XML |
+| Infrastructure | `src/Infrastructure/Auditing/AuditCbrFinOrgDecorator.cs` | Аудит-декоратор |
+
+---
+
+## Документация
+
+- [Веб-сервис FinOrg (ЦБ РФ)](laws/article-cbr-finorg-api.md)
+
+---
+
 # Реестр дисквалифицированных лиц (РДЛ)
 
 > Внешняя система: **Реестр дисквалифицированных лиц (РДЛ)** ФНС России — государственный реестр лиц, которым запрещено занимать должности в органах управления юридических лиц.
