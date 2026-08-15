@@ -553,24 +553,37 @@
                     {
                     <div class="row g-3">
                         <div class="col-md-6">
-                            <label class="form-label">Тип устава</label>
-                            <select class="form-select" @bind:get="_editCharterNumber" @bind:set="OnCharterNumberSet">
-                                <option value="">Нетиповой (индивидуальный) устав</option>
-                                @for (int i = 1; i <= 36; i++)
-                                {
-                                    var num = i.ToString("D2");
-                                    <option value="@num">Типовой устав № @num</option>
-                                }
-                            </select>
+                            <div class="d-flex align-items-center gap-2 flex-nowrap">
+                                <label class="form-label mb-0 fw-bold text-nowrap">Тип устава</label>
+                                <select class="form-select form-select-sm flex-grow-1" @bind:get="_editCharterNumber" @bind:set="OnCharterNumberSet">
+                                    <option value="">Нетиповой (индивидуальный) устав</option>
+                                    @for (int i = 1; i <= 36; i++)
+                                    {
+                                        var num = i.ToString("D2");
+                                        <option value="@num">Типовой устав № @num</option>
+                                    }
+                                </select>
+                            </div>
                         </div>
+                    </div>
+                    <div class="mt-2">
+                        @if (_showCharterUpload || _customCharterDocId is null)
+                        {
+                            <FileUpload Accept=".pdf"
+                                        MaxSizeBytes="52428800"
+                                        FileType="CHARTER"
+                                        Token="@_jwtToken"
+                                        OnFileUploadedInfo="OnCharterFileUploadedInfo"
+                                        OnUploadError="OnCharterUploadError" />
+                        }
                     </div>
                     }
 
                     @if (!string.IsNullOrEmpty(_editCharterNumber) && _charterSettings is not null)
                     {
                         <div class="mt-3">
-                            <h6>Настройки типового устава № @_editCharterNumber</h6>
-                            <div class="mb-2">
+                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                <h6 class="mb-0">Настройки типового устава № @_editCharterNumber</h6>
                                 <a href="@($"/charters/{_editCharterNumber}.pdf")" target="_blank" class="btn btn-sm btn-outline-secondary">
                                     📄 Открыть текст типового устава № @_editCharterNumber (PDF)
                                 </a>
@@ -579,23 +592,23 @@
                                 Настройки определены типовым уставом и не могут быть изменены. Чтобы изменить любое положение — перейдите на индивидуальный устав.
                             </div>
                             <dl class="row">
-                                <dt class="col-sm-5 text-muted fw-normal">1. Выход участника из общества</dt>
+                                <dt class="col-sm-5 text-muted fw-normal">1. Исполнительный орган</dt>
+                                <dd class="col-sm-7">@_charterSettings.ExecutiveBodyLabel</dd>
+
+                                <dt class="col-sm-5 text-muted fw-normal">2. Выход участника из общества</dt>
                                 <dd class="col-sm-7">@_charterSettings.ExitLabel</dd>
 
-                                <dt class="col-sm-5 text-muted fw-normal">2. Переход доли к участникам</dt>
+                                <dt class="col-sm-5 text-muted fw-normal">3. Переход доли к участникам</dt>
                                 <dd class="col-sm-7">@_charterSettings.TransferToParticipantsLabel</dd>
 
-                                <dt class="col-sm-5 text-muted fw-normal">3. Переход доли к третьим лицам</dt>
+                                <dt class="col-sm-5 text-muted fw-normal">4. Переход доли к третьим лицам</dt>
                                 <dd class="col-sm-7">@_charterSettings.TransferToThirdPartiesLabel</dd>
 
-                                <dt class="col-sm-5 text-muted fw-normal">4. Преимущественное право</dt>
+                                <dt class="col-sm-5 text-muted fw-normal">5. Преимущественное право</dt>
                                 <dd class="col-sm-7">@_charterSettings.PreemptiveRightLabel</dd>
 
-                                <dt class="col-sm-5 text-muted fw-normal">5. Переход доли наследникам</dt>
+                                <dt class="col-sm-5 text-muted fw-normal">6. Переход доли наследникам</dt>
                                 <dd class="col-sm-7">@_charterSettings.InheritanceLabel</dd>
-
-                                <dt class="col-sm-5 text-muted fw-normal">6. Исполнительный орган</dt>
-                                <dd class="col-sm-7">@_charterSettings.ExecutiveBodyLabel</dd>
 
                                 <dt class="col-sm-5 text-muted fw-normal">7. Подтверждение решений</dt>
                                 <dd class="col-sm-7">@_charterSettings.DecisionConfirmationLabel</dd>
@@ -605,11 +618,43 @@
                     else if (string.IsNullOrEmpty(_editCharterNumber))
                     {
                         <div class="mt-3">
-                            <h6>Параметры нетипового (индивидуального) устава</h6>
+                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                <h6 class="mb-0">Параметры нетипового (индивидуального) устава</h6>
+                                <div class="d-flex align-items-center gap-2">
+                                    @if (_customCharterDocName != null && _customCharterDocId.HasValue)
+                                    {
+                                        <a href="/api/files/@_customCharterDocId/download" target="_blank"
+                                           class="btn btn-sm btn-outline-success">📄 @_customCharterDocName</a>
+                                        <button class="btn btn-sm btn-outline-secondary" @onclick="() => _showCharterUpload = true">Заменить</button>
+                                    }
+                                </div>
+                            </div>
                             <div class="alert alert-info small py-2">
                                 <strong>Насыщенным шрифтом</strong> выделены заголовки параметров, влияющих на бизнес-процессы системы. Подробнее — в <a href="/docs/business-processes/standard-charter-impact.html" target="_blank">документации</a>.
                             </div>
                             <div class="row g-3">
+                                <div class="col-md-4">
+                                    <label class="form-label fw-bold" title="Тип исполнительного органа: A — гендиректор, B — каждый участник = директор, C — все совместно. Определяет процедуру избрания и подписания документов.">Исполнительный орган</label>
+                                    <select class="form-select" @bind="_executiveBodyStr">
+                                        <option value="A">A — Генеральный директор</option>
+                                        <option value="B">B — Каждый участник — директор</option>
+                                        <option value="C">C — Все участники совместно</option>
+                                    </select>
+                                </div>
+                                @if (_customExecutiveBody == 'A')
+                                {
+                                    <div class="col-md-4">
+                                        <label class="form-label fw-bold" title="Срок полномочий генерального директора ООО. Определяет период, на который избирается ГД.">Срок полномочий</label>
+                                        <select class="form-select" @bind="_gdTermStr">
+                                            @foreach (var term in _gdTerms)
+                                            {
+                                                <option value="@term.Id">@term.Name</option>
+                                            }
+                                        </select>
+                                    </div>
+                                }
+                            </div>
+                            <div class="row g-3 mt-2">
                                 <div class="col-md-4">
                                     <label class="form-label">Выход участника из общества</label>
                                     <select class="form-select" @bind="_exitAllowedStr">
@@ -639,37 +684,17 @@
                                     </select>
                                 </div>
                                 <div class="col-md-4">
-                                    <label class="form-label">Переход доли наследникам</label>
-                                    <select class="form-select" @bind="_inheritanceStr">
-                                        <option value="False">С согласия участников</option>
-                                        <option value="True">Без согласия участников</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-4">
-                                    <label class="form-label fw-bold" title="Тип исполнительного органа: A — гендиректор, B — каждый участник = директор, C — все совместно. Определяет процедуру избрания и подписания документов.">Исполнительный орган</label>
-                                    <select class="form-select" @bind="_executiveBodyStr">
-                                        <option value="A">A — Генеральный директор</option>
-                                        <option value="B">B — Каждый участник — директор</option>
-                                        <option value="C">C — Все участники совместно</option>
-                                    </select>
-                                </div>
-                                @if (_customExecutiveBody == 'A')
-                                {
-                                    <div class="col-md-4">
-                                        <label class="form-label fw-bold" title="Срок полномочий генерального директора ООО. Определяет период, на который избирается ГД.">Срок полномочий</label>
-                                        <select class="form-select" @bind="_gdTermStr">
-                                            @foreach (var term in _gdTerms)
-                                            {
-                                                <option value="@term.Id">@term.Name</option>
-                                            }
-                                        </select>
-                                    </div>
-                                }
-                                <div class="col-md-4">
                                     <label class="form-label fw-bold" title="Способ подтверждения решений ОСУ: нотариальное удостоверение или подписание протокола всеми участниками. Определяет процесс оформления собрания.">Подтверждение решений собрания</label>
                                     <select class="form-select" @bind="_decisionConfirmStr">
                                         <option value="False">Нотариальное</option>
                                         <option value="True">Подписание всеми участниками</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Переход доли наследникам</label>
+                                    <select class="form-select" @bind="_inheritanceStr">
+                                        <option value="False">С согласия участников</option>
+                                        <option value="True">Без согласия участников</option>
                                     </select>
                                 </div>
                             </div>
@@ -697,23 +722,6 @@
                                         <option value="False">Нет</option>
                                         <option value="True">Да</option>
                                     </select>
-                                </div>
-                            </div>
-
-                            <div class="row g-3 mt-2">
-                                <div class="col-md-6">
-                                    <label class="form-label">Устав (PDF)</label>
-                                    <FileUpload Accept=".pdf"
-                                                MaxSizeBytes="52428800"
-                                                FileType="CHARTER"
-                                                Token="@_jwtToken"
-                                                OnFileUploaded="OnCharterFileUploaded"
-                                                OnUploadError="OnCharterUploadError" />
-                                    @if (_customCharterDocName != null && _customCharterDocId.HasValue)
-                                    {
-                                        <a href="/api/files/@_customCharterDocId/download" target="_blank"
-                                           class="text-success small">📄 @_customCharterDocName</a>
-                                    }
                                 </div>
                             </div>
                         </div>
@@ -861,6 +869,7 @@
     private string? _customCharterDocName;
     private Guid? _customCharterDocId;
     private IBrowserFile? _charterFile;
+    private bool _showCharterUpload;
     private string? _customBoardRegulationDocName;
     private Guid? _customBoardRegulationDocId;
     private IBrowserFile? _boardRegulationFile;
@@ -1757,6 +1766,10 @@
                 _customHasBoardOfDirectors = custom.HasBoardOfDirectors;
                 _customGdTermId = custom.GdTermId;
 
+                if (_customExecutiveBody == 'A' && _customGdTermId is null && _gdTerms.Count > 0)
+                    _customGdTermId = _gdTerms.FirstOrDefault(t => t.Code == "5_YEARS")?.Id
+                                      ?? _gdTerms.FirstOrDefault()?.Id;
+
                 if (custom.CharterDocumentId.HasValue)
                 {
                     var file = await ctx.Files.FirstOrDefaultAsync(x => x.Id == custom.CharterDocumentId.Value);
@@ -1785,6 +1798,9 @@
                 _customHasRevisionCommission = null;
                 _customHasBoardOfDirectors = false;
                 _customGdTermId = null;
+                if (_customExecutiveBody == 'A' && _gdTerms.Count > 0)
+                    _customGdTermId = _gdTerms.FirstOrDefault(t => t.Code == "5_YEARS")?.Id
+                                      ?? _gdTerms.FirstOrDefault()?.Id;
             }
             else
             {
@@ -1799,6 +1815,9 @@
                 _customHasRevisionCommission = null;
                 _customHasBoardOfDirectors = false;
                 _customGdTermId = null;
+                if (_customExecutiveBody == 'A' && _gdTerms.Count > 0)
+                    _customGdTermId = _gdTerms.FirstOrDefault(t => t.Code == "5_YEARS")?.Id
+                                      ?? _gdTerms.FirstOrDefault()?.Id;
             }
 
             if (dispose) ctx.Dispose();
@@ -1825,7 +1844,16 @@
     private void OnCharterFileUploaded(Guid fileId)
     {
         _customCharterDocId = fileId;
-        _customCharterDocName = "Файл загружен";
+        _customCharterDocName = "Устав";
+        _showCharterUpload = false;
+        StateHasChanged();
+    }
+
+    private void OnCharterFileUploadedInfo((Guid FileId, string OriginalName) info)
+    {
+        _customCharterDocId = info.FileId;
+        _customCharterDocName = info.OriginalName;
+        _showCharterUpload = false;
         StateHasChanged();
     }
 

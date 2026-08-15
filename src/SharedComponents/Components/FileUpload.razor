@@ -48,6 +48,9 @@
     /// <summary>Callback после успешной загрузки: передаёт FileId.</summary>
     [Parameter] public EventCallback<Guid> OnFileUploaded { get; set; }
 
+    /// <summary>Callback после успешной загрузки: передаёт FileId и OriginalName.</summary>
+    [Parameter] public EventCallback<(Guid FileId, string OriginalName)> OnFileUploadedInfo { get; set; }
+
     /// <summary>Callback при ошибке: передаёт текст ошибки.</summary>
     [Parameter] public EventCallback<string> OnUploadError { get; set; }
 
@@ -210,6 +213,7 @@
             StateHasChanged();
 
             await OnFileUploaded.InvokeAsync(completeResult.FileId);
+            await OnFileUploadedInfo.InvokeAsync((completeResult.FileId, completeResult.OriginalName));
         }
         catch (Exception ex)
         {

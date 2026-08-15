@@ -21,6 +21,7 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(u => u.Phone).HasColumnName("phone").HasMaxLength(20).IsRequired();
         builder.Property(u => u.IsExternal).HasColumnName("is_external").HasDefaultValue(false);
         builder.Property(u => u.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("CURRENT_TIMESTAMP");
+        builder.Property(u => u.CreatedBy).HasColumnName("created_by").IsRequired();
         builder.Property(u => u.IsActive).HasColumnName("is_active").HasDefaultValue(true);
         builder.Property(u => u.AccountExpiresAt).HasColumnName("account_expires_at");
         builder.Property(u => u.LdapCreatedAt).HasColumnName("ldap_created_at");
