@@ -460,101 +460,97 @@
                                     OnUploadError="OnCommitteeRegulationUploadError" />
                     }
                 </div>
-                <div class="form-check mb-2">
-                    <input class="form-check-input" type="checkbox" id="editMaxCommitteesPerMemberDefined"
-                           @bind="_editMaxCommitteesPerMemberDefined"
-                           @bind:after="OnMaxPerMemberDefinedChanged">
-                    <label class="form-check-label" for="editMaxCommitteesPerMemberDefined">
-                        Определено максимальное число комитетов для одного члена СД
-                    </label>
-                </div>
-                @if (_editMaxCommitteesPerMemberDefined)
-                {
-                    <div class="row g-2 align-items-center mb-2">
-                        <div class="col-auto">
-                            <label class="col-form-label">Макс. число комитетов на одного члена СД</label>
-                        </div>
-                        <div class="col-auto">
-                            <input type="number" class="form-control" @bind="_editMaxCommitteesPerMember" min="1" style="width:100px">
-                        </div>
+                <div class="d-flex align-items-center gap-4 mb-2">
+                    <div class="form-check mb-0 flex-shrink-0">
+                        <input class="form-check-input" type="checkbox" id="editMaxCommitteesPerMemberDefined"
+                               @bind="_editMaxCommitteesPerMemberDefined"
+                               @bind:after="OnMaxPerMemberDefinedChanged">
+                        <label class="form-check-label" for="editMaxCommitteesPerMemberDefined">
+                            Определено максимальное число комитетов для одного члена СД
+                        </label>
                     </div>
-                }
-                <div class="form-check mb-2">
-                    <input class="form-check-input" type="checkbox" id="editMaxCommitteesHeadedPerMemberDefined"
-                           @bind="_editMaxCommitteesHeadedPerMemberDefined"
-                           @bind:after="OnMaxHeadedDefinedChanged">
-                    <label class="form-check-label" for="editMaxCommitteesHeadedPerMemberDefined">
-                        Определено макс. число возглавляемых комитетов для одного члена СД
-                    </label>
+                    @if (_editMaxCommitteesPerMemberDefined)
+                    {
+                        <div class="d-flex align-items-center gap-2">
+                            <label class="form-label mb-0 text-nowrap">Макс. число комитетов на одного члена СД</label>
+                            <input type="number" class="form-control form-control-sm" @bind="_editMaxCommitteesPerMember" min="1" style="width:80px">
+                        </div>
+                    }
                 </div>
-                @if (_editMaxCommitteesHeadedPerMemberDefined)
-                {
-                    <div class="row g-2 align-items-center mb-2">
-                        <div class="col-auto">
-                            <label class="col-form-label">Макс. число возглавляемых комитетов на одного члена СД</label>
-                        </div>
-                        <div class="col-auto">
-                            <input type="number" class="form-control" @bind="_editMaxCommitteesHeadedPerMember" min="1" style="width:100px">
-                        </div>
+                <div class="d-flex align-items-center gap-4 mb-2">
+                    <div class="form-check mb-0 flex-shrink-0">
+                        <input class="form-check-input" type="checkbox" id="editMaxCommitteesHeadedPerMemberDefined"
+                               @bind="_editMaxCommitteesHeadedPerMemberDefined"
+                               @bind:after="OnMaxHeadedDefinedChanged">
+                        <label class="form-check-label" for="editMaxCommitteesHeadedPerMemberDefined">
+                            Определено макс. число возглавляемых комитетов для одного члена СД
+                        </label>
                     </div>
-                }
-                <div class="form-check mb-2">
-                    <input class="form-check-input" type="checkbox" id="editMinCommitteeMembersDefined"
-                           @bind="_editMinCommitteeMembersDefined"
-                           @bind:after="OnMinMembersDefinedChanged">
-                    <label class="form-check-label" for="editMinCommitteeMembersDefined">
-                        Определено мин. количество членов в комитете
-                    </label>
+                    @if (_editMaxCommitteesHeadedPerMemberDefined)
+                    {
+                        <div class="d-flex align-items-center gap-2">
+                            <label class="form-label mb-0 text-nowrap">Макс. число возглавляемых комитетов</label>
+                            <input type="number" class="form-control form-control-sm" @bind="_editMaxCommitteesHeadedPerMember" min="1" style="width:80px">
+                        </div>
+                    }
                 </div>
-                @if (_editMinCommitteeMembersDefined)
-                {
-                    <div class="row g-2 align-items-center mb-2">
-                        <div class="col-auto">
-                            <label class="col-form-label">Мин. количество членов в комитете</label>
-                        </div>
-                        <div class="col-auto">
-                            <input type="number" class="form-control" @bind="_editMinCommitteeMembers" min="2" style="width:100px">
-                        </div>
+                <div class="d-flex align-items-center gap-4 mb-2">
+                    <div class="form-check mb-0 flex-shrink-0">
+                        <input class="form-check-input" type="checkbox" id="editMinCommitteeMembersDefined"
+                               @bind="_editMinCommitteeMembersDefined"
+                               @bind:after="OnMinMembersDefinedChanged">
+                        <label class="form-check-label" for="editMinCommitteeMembersDefined">
+                            Определено мин. количество членов в комитете
+                        </label>
                     </div>
-                }
-                <div class="form-check mb-2">
-                    <input class="form-check-input" type="checkbox" id="editCommitteeQuorumDefined"
-                           @bind="_editCommitteeQuorumDefined"
-                           @bind:after="OnQuorumDefinedChanged">
-                    <label class="form-check-label" for="editCommitteeQuorumDefined">
-                        Определен кворум заседания комитета
-                    </label>
+                    @if (_editMinCommitteeMembersDefined)
+                    {
+                        <div class="d-flex align-items-center gap-2">
+                            <label class="form-label mb-0 text-nowrap">Мин. количество членов в комитете</label>
+                            <input type="number" class="form-control form-control-sm" @bind="_editMinCommitteeMembers" min="2" style="width:80px">
+                        </div>
+                    }
                 </div>
-                @if (_editCommitteeQuorumDefined)
-                {
-                    <div class="row g-2 align-items-center mb-2">
-                        <div class="col-auto">
-                            <label class="col-form-label">Кворум заседания комитета (%)</label>
-                        </div>
-                        <div class="col-auto">
-                            <input type="number" class="form-control" @bind="_editCommitteeQuorumPercent" min="1" max="100" style="width:100px">
-                        </div>
+                <div class="d-flex align-items-center gap-4 mb-2">
+                    <div class="form-check mb-0 flex-shrink-0">
+                        <input class="form-check-input" type="checkbox" id="editCommitteeQuorumDefined"
+                               @bind="_editCommitteeQuorumDefined"
+                               @bind:after="OnQuorumDefinedChanged">
+                        <label class="form-check-label" for="editCommitteeQuorumDefined">
+                            Определен кворум заседания комитета
+                        </label>
                     </div>
-                }
-                <div class="form-check mb-2">
-                    <input class="form-check-input" type="checkbox" id="editJointCommitteeQuorumDefined"
-                           @bind="_editJointCommitteeQuorumDefined"
-                           @bind:after="OnJointQuorumDefinedChanged">
-                    <label class="form-check-label" for="editJointCommitteeQuorumDefined">
-                        Определен кворум совместного заседания комитетов
-                    </label>
+                    @if (_editCommitteeQuorumDefined)
+                    {
+                        <div class="d-flex align-items-center gap-2">
+                            <label class="form-label mb-0 text-nowrap">Кворум заседания комитета</label>
+                            <div class="d-flex align-items-center gap-1">
+                                <input type="number" class="form-control form-control-sm" @bind="_editCommitteeQuorumPercent" min="1" max="100" style="width:80px">
+                                <span class="text-muted">%</span>
+                            </div>
+                        </div>
+                    }
                 </div>
-                @if (_editJointCommitteeQuorumDefined)
-                {
-                    <div class="row g-2 align-items-center mb-2">
-                        <div class="col-auto">
-                            <label class="col-form-label">Кворум совместного заседания комитетов (%)</label>
-                        </div>
-                        <div class="col-auto">
-                            <input type="number" class="form-control" @bind="_editJointCommitteeQuorumPercent" min="1" max="100" style="width:100px">
-                        </div>
+                <div class="d-flex align-items-center gap-4 mb-2">
+                    <div class="form-check mb-0 flex-shrink-0">
+                        <input class="form-check-input" type="checkbox" id="editJointCommitteeQuorumDefined"
+                               @bind="_editJointCommitteeQuorumDefined"
+                               @bind:after="OnJointQuorumDefinedChanged">
+                        <label class="form-check-label" for="editJointCommitteeQuorumDefined">
+                            Определен кворум совместного заседания комитетов
+                        </label>
                     </div>
-                }
+                    @if (_editJointCommitteeQuorumDefined)
+                    {
+                        <div class="d-flex align-items-center gap-2">
+                            <label class="form-label mb-0 text-nowrap">Кворум совместного заседания</label>
+                            <div class="d-flex align-items-center gap-1">
+                                <input type="number" class="form-control form-control-sm" @bind="_editJointCommitteeQuorumPercent" min="1" max="100" style="width:80px">
+                                <span class="text-muted">%</span>
+                            </div>
+                        </div>
+                    }
+                </div>
                 }
             }  @* end of _activeTab == 6 *@
 
