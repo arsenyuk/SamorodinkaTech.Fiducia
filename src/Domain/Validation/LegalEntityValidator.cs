@@ -47,6 +47,10 @@ public static class LegalEntityValidator
         if (!model.HasBoardOfDirectors)
             return;
 
+        // Для ООО количество участников не обязательно (нет публичного обращения акций)
+        if (orgType == OrgValidationType.LLC)
+            return;
+
         if (!model.ShareholdersCount.HasValue)
         {
             result.AddError("Укажите количество акционеров (участников).");

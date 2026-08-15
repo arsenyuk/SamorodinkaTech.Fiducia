@@ -215,6 +215,14 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         {
             OnMessageReceived = ctx =>
             {
+                // First check Authorization header (for loopback FileUpload requests)
+                var authHeader = ctx.Request.Headers["Authorization"].FirstOrDefault();
+                if (!string.IsNullOrEmpty(authHeader) && authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+                {
+                    ctx.Token = authHeader["Bearer ".Length..].Trim();
+                    return Task.CompletedTask;
+                }
+                // Then cookie (for browser requests)
                 var token = ctx.Request.Cookies["SessionToken"];
                 if (!string.IsNullOrEmpty(token))
                     ctx.Token = token;

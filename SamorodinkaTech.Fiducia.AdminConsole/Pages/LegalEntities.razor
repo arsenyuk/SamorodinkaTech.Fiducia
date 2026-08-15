@@ -8,6 +8,7 @@
 @inject SamorodinkaTech.Fiducia.Domain.Interfaces.ISparkDataService SparkDataSvc
 @inject ILogger<LegalEntities> Logger
 @inject SamorodinkaTech.Fiducia.Domain.Interfaces.IFileStorage FileStorage
+@inject IHttpContextAccessor HttpContextAccessor
 @attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "SYS_ADMIN")]
 
 <h3>Юридическое лицо</h3>
@@ -404,11 +405,13 @@
                         <FileUpload Accept=".pdf"
                                     MaxSizeBytes="52428800"
                                     FileType="REGULATION"
+                                    Token="@_jwtToken"
                                     OnFileUploaded="OnBoardRegulationFileUploaded"
                                     OnUploadError="OnBoardRegulationUploadError" />
-                        @if (_customBoardRegulationDocName != null)
+                        @if (_customBoardRegulationDocName != null && _customBoardRegulationDocId.HasValue)
                         {
-                            <small class="text-success">📄 @_customBoardRegulationDocName</small>
+                            <a href="/api/files/@_customBoardRegulationDocId/download" target="_blank"
+                               class="text-success small">📄 @_customBoardRegulationDocName</a>
                         }
                     </div>
                 </div>
@@ -604,7 +607,7 @@
                         <div class="mt-3">
                             <h6>Параметры нетипового (индивидуального) устава</h6>
                             <div class="alert alert-info small py-2">
-                                <strong>Жирным</strong> выделены параметры, влияющие на бизнес-процессы системы. Подробнее — в <a href="/docs/business-processes/standard-charter-impact" target="_blank">документации</a>.
+                                <strong>Насыщенным шрифтом</strong> выделены заголовки параметров, влияющих на бизнес-процессы системы. Подробнее — в <a href="/docs/business-processes/standard-charter-impact.html" target="_blank">документации</a>.
                             </div>
                             <div class="row g-3">
                                 <div class="col-md-4">
@@ -617,15 +620,15 @@
                                 <div class="col-md-4">
                                     <label class="form-label fw-bold" title="Требуется ли согласие участников при переходе доли между участниками. Влияет на голосование ОСУ.">Переход доли к участникам</label>
                                     <select class="form-select" @bind="_transferParticipantsStr">
-                                        <option value="False">С согласия</option>
-                                        <option value="True">Без согласия</option>
+                                        <option value="False">С согласия участников</option>
+                                        <option value="True">Без согласия участников</option>
                                     </select>
                                 </div>
                                 <div class="col-md-4">
                                     <label class="form-label fw-bold" title="Требуется ли согласие участников при продаже доли третьему лицу. Влияет на голосование ОСУ.">Переход доли к третьим лицам</label>
                                     <select class="form-select" @bind="_transferThirdStr">
-                                        <option value="False">С согласия</option>
-                                        <option value="True">Без согласия</option>
+                                        <option value="False">С согласия участников</option>
+                                        <option value="True">Без согласия участников</option>
                                     </select>
                                 </div>
                                 <div class="col-md-4">
@@ -638,8 +641,8 @@
                                 <div class="col-md-4">
                                     <label class="form-label">Переход доли наследникам</label>
                                     <select class="form-select" @bind="_inheritanceStr">
-                                        <option value="False">С согласия</option>
-                                        <option value="True">Без согласия</option>
+                                        <option value="False">С согласия участников</option>
+                                        <option value="True">Без согласия участников</option>
                                     </select>
                                 </div>
                                 <div class="col-md-4">
@@ -691,11 +694,13 @@
                                     <FileUpload Accept=".pdf"
                                                 MaxSizeBytes="52428800"
                                                 FileType="CHARTER"
+                                                Token="@_jwtToken"
                                                 OnFileUploaded="OnCharterFileUploaded"
                                                 OnUploadError="OnCharterUploadError" />
-                                    @if (_customCharterDocName != null)
+                                    @if (_customCharterDocName != null && _customCharterDocId.HasValue)
                                     {
-                                        <small class="text-success">📄 @_customCharterDocName</small>
+                                        <a href="/api/files/@_customCharterDocId/download" target="_blank"
+                                           class="text-success small">📄 @_customCharterDocName</a>
                                     }
                                 </div>
                             </div>
@@ -830,6 +835,7 @@
 
     // Устав
     private string? _editCharterNumber;
+    private bool _isLoadingCharter;
     private StandardCharterInfo? _charterSettings;
 
     // Нетиповой устав
@@ -918,9 +924,13 @@
     private int _editFirstMeetingDeadlineDays = 30;
     private SamorodinkaTech.Fiducia.Domain.Enums.DocumentFlowType _editDocumentFlow = SamorodinkaTech.Fiducia.Domain.Enums.DocumentFlowType.Paper;
     private Guid? _votingRulesId;
+    private string? _jwtToken;
 
     protected override async Task OnInitializedAsync()
     {
+        // Получаем JWT из cookie для loopback-запросов FileUpload
+        _jwtToken = HttpContextAccessor.HttpContext?.Request.Cookies["SessionToken"];
+
         // Авто-загрузка последнего выбранного ЮЛ при открытии страницы
         await using var ctx = await DbFactory.CreateDbContextAsync();
         var workplace = await ctx.CurrentWorkplaces.FirstOrDefaultAsync();
@@ -1119,6 +1129,9 @@
         saveError = null;
         saveSuccess = null;
 
+        Logger.LogDebug("[Save] TransferToThird={Transfer}, PreemptiveRight={Preemptive}, CanSave={CanSave}, gosaError={GosaError}",
+            _customTransferToThirdParties, _customPreemptiveRight, CanSave, gosaError);
+
         // Серверная валидация (BDR‑008) — вызывается первой, до любых операций с БД
         Logger.LogDebug("Серверная валидация ЮЛ {LegalEntityId} ({LegalEntityName})",
             selectedEntity.Id, selectedEntity.Name);
@@ -1227,44 +1240,45 @@
                 if (_editJointCommitteeQuorumDefined && (_editJointCommitteeQuorumPercent is not > 0 || _editJointCommitteeQuorumPercent > 100))
                 { saveError = "Кворум совместного заседания должен быть от 1 до 100%"; return; }
 
-                // Сохраняем правила голосования в СД
-                if (_editQuorumPercent < 50)
+            }
+
+            // Сохраняем правила голосования в СД (вне зависимости от editHasBoardOfDirectors)
+            if (_editQuorumPercent < 50)
+            {
+                saveError = "Кворум не может быть менее 50% (п. 2 ст. 68 208-ФЗ)";
+                return;
+            }
+            var votingRules = await ctx.LegalEntityVotingRules
+                .FirstOrDefaultAsync(x => x.LegalEntityId == selectedEntity.Id);
+            if (votingRules is null)
+            {
+                votingRules = new SamorodinkaTech.Fiducia.Domain.Entities.LegalEntityVotingRules
                 {
-                    saveError = "Кворум не может быть менее 50% (п. 2 ст. 68 208-ФЗ)";
-                    return;
-                }
-                var votingRules = await ctx.LegalEntityVotingRules
-                    .FirstOrDefaultAsync(x => x.LegalEntityId == selectedEntity.Id);
-                if (votingRules is null)
-                {
-                    votingRules = new SamorodinkaTech.Fiducia.Domain.Entities.LegalEntityVotingRules
-                    {
-                        Id = Guid.NewGuid(),
-                        LegalEntityId = selectedEntity.Id,
-                        QuorumPercent = _editQuorumPercent,
-                        ChairTiebreaker = _editChairTiebreaker,
-                        AbsenteeOpinions = _editAbsenteeOpinions,
-                        AbsenteeAllowed = _editAbsenteeAllowed,
-                        MixedAllowed = _editMixedAllowed,
-                        DocumentFlow = _editDocumentFlow,
-                        QualifiedMajorityPercent = _editQualifiedMajorityPercent,
-                        SpotByElection = _editSpotByElection,
-                        FirstMeetingDeadlineDays = _editFirstMeetingDeadlineDays
-                    };
-                    ctx.LegalEntityVotingRules.Add(votingRules);
-                }
-                else
-                {
-                    votingRules.QuorumPercent = _editQuorumPercent;
-                    votingRules.ChairTiebreaker = _editChairTiebreaker;
-                    votingRules.AbsenteeOpinions = _editAbsenteeOpinions;
-                    votingRules.QualifiedMajorityPercent = _editQualifiedMajorityPercent;
-                    votingRules.AbsenteeAllowed = _editAbsenteeAllowed;
-                    votingRules.MixedAllowed = _editMixedAllowed;
-                    votingRules.DocumentFlow = _editDocumentFlow;
-                    votingRules.SpotByElection = _editSpotByElection;
-                    votingRules.FirstMeetingDeadlineDays = _editFirstMeetingDeadlineDays;
-                }
+                    Id = Guid.NewGuid(),
+                    LegalEntityId = selectedEntity.Id,
+                    QuorumPercent = _editQuorumPercent,
+                    ChairTiebreaker = _editChairTiebreaker,
+                    AbsenteeOpinions = _editAbsenteeOpinions,
+                    AbsenteeAllowed = _editAbsenteeAllowed,
+                    MixedAllowed = _editMixedAllowed,
+                    DocumentFlow = _editDocumentFlow,
+                    QualifiedMajorityPercent = _editQualifiedMajorityPercent,
+                    SpotByElection = _editSpotByElection,
+                    FirstMeetingDeadlineDays = _editFirstMeetingDeadlineDays
+                };
+                ctx.LegalEntityVotingRules.Add(votingRules);
+            }
+            else
+            {
+                votingRules.QuorumPercent = _editQuorumPercent;
+                votingRules.ChairTiebreaker = _editChairTiebreaker;
+                votingRules.AbsenteeOpinions = _editAbsenteeOpinions;
+                votingRules.QualifiedMajorityPercent = _editQualifiedMajorityPercent;
+                votingRules.AbsenteeAllowed = _editAbsenteeAllowed;
+                votingRules.MixedAllowed = _editMixedAllowed;
+                votingRules.DocumentFlow = _editDocumentFlow;
+                votingRules.SpotByElection = _editSpotByElection;
+                votingRules.FirstMeetingDeadlineDays = _editFirstMeetingDeadlineDays;
             }
 
             // Сохраняем параметры устава (для ООО — типовой/нетиповой, для АО — всегда нетиповой)
@@ -1327,6 +1341,7 @@
 
             await ctx.SaveChangesAsync();
             saveSuccess = "Изменения сохранены.";
+            Logger.LogDebug("[Save] SaveChangesAsync completed successfully");
 
             // Обновляем видимость вкладки «Совет директоров» для ООО после сохранения устава
             if (_orgType == OrgType.LLC)
@@ -1336,6 +1351,7 @@
         {
             Logger.LogWarning(ex, "Ошибка сохранения ЮЛ");
             saveError = ExceptionFlattener.Unwrap(ex);
+            Logger.LogDebug("[Save] saveError set to: {Error}", saveError);
         }
     }
 
@@ -1654,6 +1670,7 @@
     {
         try
         {
+            _isLoadingCharter = true;
             await using var ctx = await DbFactory.CreateDbContextAsync();
             var le = await ctx.LegalEntities
                 .Include(x => x.StandardCharter)
@@ -1670,6 +1687,10 @@
         catch (Exception ex)
         {
             Logger.LogWarning(ex, "Ошибка загрузки настроек устава для ЮЛ {LegalEntityId}", legalEntityId);
+        }
+        finally
+        {
+            _isLoadingCharter = false;
         }
     }
 
@@ -1791,6 +1812,7 @@
 
     private async Task OnCharterNumberSet(string? value)
     {
+        if (_isLoadingCharter) return;
         if (value == _editCharterNumber) return;
         _editCharterNumber = value;
         await OnCharterNumberChanged();

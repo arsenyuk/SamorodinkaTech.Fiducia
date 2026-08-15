@@ -31,7 +31,7 @@ builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
 builder.Services.AddHttpClient();
 builder.Services.AddHttpContextAccessor();
-// Для Blazor Server настраиваем HttpClient с BaseAddress, чтобы работали относительные URI ("/api/...")
+// Базовый HttpClient с BaseAddress для Blazor Server
 builder.Services.AddScoped(sp =>
 {
     var nav = sp.GetRequiredService<NavigationManager>();
@@ -225,6 +225,14 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         {
             OnMessageReceived = ctx =>
             {
+                // Сначала проверяем Authorization header (для loopback-запросов FileUpload)
+                var authHeader = ctx.Request.Headers["Authorization"].FirstOrDefault();
+                if (!string.IsNullOrEmpty(authHeader) && authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+                {
+                    ctx.Token = authHeader["Bearer ".Length..].Trim();
+                    return Task.CompletedTask;
+                }
+                // Затем — cookie (для браузерных запросов)
                 var token = ctx.Request.Cookies["SessionToken"];
                 if (!string.IsNullOrEmpty(token))
                     ctx.Token = token;

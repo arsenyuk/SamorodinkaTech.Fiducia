@@ -54,6 +54,9 @@
     /// <summary>Base URL API для загрузки (по умолчанию пустой — тот же хост).</summary>
     [Parameter] public string? ApiBaseUrl { get; set; }
 
+    /// <summary>JWT-токен для Authorization-заголовка (Bearer).</summary>
+    [Parameter] public string? Token { get; set; }
+
     [Inject] private HttpClient Http { get; set; } = default!;
 
     private bool _isUploading;
@@ -101,6 +104,15 @@
             return;
         }
 
+        // Читаем файл в память ДО StateHasChanged — ре-рендер чистит _blazorFilesById на клиенте
+        using var memoryStream = new MemoryStream();
+        await Task.Run(async () =>
+        {
+            using var bs = file.OpenReadStream(MaxSizeBytes);
+            await bs.CopyToAsync(memoryStream).ConfigureAwait(false);
+        });
+        memoryStream.Position = 0;
+
         _isUploading = true;
         _uploadingFileName = file.Name;
         _uploadProgress = 0;
@@ -110,13 +122,26 @@
         {
             // 1. Инициируем загрузку
             var baseUrl = ApiBaseUrl ?? "";
-            var initResponse = await Http.PostAsJsonAsync($"{baseUrl}/api/files/upload", new
+
+            // Создаём запрос с JWT-токеном для loopback Blazor Server
+            var initRequest = new HttpRequestMessage(HttpMethod.Post, $"{baseUrl}/api/files/upload")
             {
-                fileName = file.Name,
-                contentType = file.ContentType,
-                totalSizeBytes = file.Size
-            });
-            initResponse.EnsureSuccessStatusCode();
+                Content = JsonContent.Create(new
+                {
+                    fileName = file.Name,
+                    contentType = file.ContentType,
+                    totalSizeBytes = file.Size
+                })
+            };
+            if (!string.IsNullOrEmpty(Token))
+                initRequest.Headers.Authorization =
+                    new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", Token);
+            var initResponse = await Http.SendAsync(initRequest);
+            if (!initResponse.IsSuccessStatusCode)
+            {
+                var errBody = await initResponse.Content.ReadAsStringAsync();
+                throw new HttpRequestException($"HTTP {(int)initResponse.StatusCode}: {errBody}");
+            }
 
             var initResult = await initResponse.Content.ReadFromJsonAsync<UploadInitResult>();
             if (initResult == null)
@@ -125,13 +150,12 @@
             var uploadId = initResult.UploadId;
             var chunkSize = initResult.MaxChunkSize;
 
-            // 2. Загружаем чанки
-            using var stream = file.OpenReadStream(MaxSizeBytes);
+            // 2. Загружаем чанки из памяти
             var buffer = new byte[chunkSize];
             int chunkIndex = 0;
             int bytesRead;
 
-            while ((bytesRead = await stream.ReadAsync(buffer)) > 0)
+            while ((bytesRead = await memoryStream.ReadAsync(buffer)) > 0)
             {
                 using var content = new MultipartFormDataContent();
                 content.Add(new StringContent(uploadId), "uploadId");
@@ -142,8 +166,19 @@
                 chunkContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/octet-stream");
                 content.Add(chunkContent, "chunk", $"chunk_{chunkIndex}");
 
-                var chunkResponse = await Http.PostAsync($"{baseUrl}/api/files/upload/chunk", content);
-                chunkResponse.EnsureSuccessStatusCode();
+                var chunkRequest = new HttpRequestMessage(HttpMethod.Post, $"{baseUrl}/api/files/upload/chunk")
+                {
+                    Content = content
+                };
+                if (!string.IsNullOrEmpty(Token))
+                    chunkRequest.Headers.Authorization =
+                        new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", Token);
+                var chunkResponse = await Http.SendAsync(chunkRequest);
+                if (!chunkResponse.IsSuccessStatusCode)
+                {
+                    var errBody = await chunkResponse.Content.ReadAsStringAsync();
+                    throw new HttpRequestException($"HTTP {(int)chunkResponse.StatusCode}: {errBody}");
+                }
 
                 chunkIndex++;
                 _uploadProgress = (int)((double)(chunkIndex * chunkSize) / file.Size * 100);
@@ -152,11 +187,19 @@
             }
 
             // 3. Завершаем загрузку
-            var completeResponse = await Http.PostAsJsonAsync($"{baseUrl}/api/files/upload/complete", new
+            var completeRequest = new HttpRequestMessage(HttpMethod.Post, $"{baseUrl}/api/files/upload/complete")
             {
-                uploadId = uploadId
-            });
-            completeResponse.EnsureSuccessStatusCode();
+                Content = JsonContent.Create(new { uploadId })
+            };
+            if (!string.IsNullOrEmpty(Token))
+                completeRequest.Headers.Authorization =
+                    new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", Token);
+            var completeResponse = await Http.SendAsync(completeRequest);
+            if (!completeResponse.IsSuccessStatusCode)
+            {
+                var errBody = await completeResponse.Content.ReadAsStringAsync();
+                throw new HttpRequestException($"HTTP {(int)completeResponse.StatusCode}: {errBody}");
+            }
 
             var completeResult = await completeResponse.Content.ReadFromJsonAsync<UploadCompleteResult>();
             if (completeResult == null)

@@ -59,7 +59,7 @@ namespace SamorodinkaTech.Fiducia.Infrastructure.Services
                 ContentType = contentType,
                 SizeBytes = totalSizeBytes,
                 StorageProvider = "LOCAL",
-                StorageKeyOrPath = string.Empty,
+                StorageKeyOrPath = $"pending/{uploadId}",
                 IsUploaded = false,
                 UploadId = uploadId,
                 ExpiresAt = DateTime.UtcNow.AddHours(_options.UploadExpirationHours),

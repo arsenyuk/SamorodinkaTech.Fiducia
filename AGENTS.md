@@ -1026,6 +1026,53 @@ var scrollLeft = (int)(...) - ScrollToTodayOffsetPx;
 2. Перезапустить приложение (kill + запуск заново).
 3. Обновить страницу в браузере (Ctrl/Cmd+R).
 
+### Blazor: Razor-параметры — `@` для C#-выражений (КРИТИЧНО)
+
+- В Razor-шаблонах параметр компонента `Prop="value"` передаёт **литеральную строку**.
+- Для передачи значения C#-поля/выражения обязательна `@`-инфиксация: `Prop="@field"`.
+- Без `@` компонент получает литерал, а не значение — ошибка невидима на этапе компиляции.
+- Пример: `Token="_jwtToken"` → передаёт строку `"_jwtToken"`, `Token="@_jwtToken"` → значение поля.
+
+### Blazor Server: `HttpClient` loopback без cookie (КРИТИЧНО)
+
+- `HttpClient` в Blazor Server выполняет **server-to-server** запросы (loopback). Браузерные cookie **не передаются**.
+- JWT-middleware по умолчанию читает токен только из cookie (`OnMessageReceived`).
+- Для loopback-запросов JWT передаётся через `Authorization: Bearer` заголовок.
+- JWT-middleware **обязан** проверять оба источника: сначала `Authorization` header, затем cookie.
+- Паттерн: читать JWT из cookie в `OnInitializedAsync` (когда HTTP-контекст доступен), передавать как параметр компоненту.
+
+### Blazor: `InputFile` stream — копировать в память до async-операций (КРИТИЧНО)
+
+- `IBrowserFile.OpenReadStream()` ссылается на **браузерный** файл через Blazor Circuit.
+- При `StateHasChanged()` (ре-рендер) reference на поток **теряется** → `_blazorFilesById` null.
+- Обязательно: копировать данные через `Task.Run` (чтение на thread pool) **ДО** первого
+  `StateHasChanged()` — ре-рендер чистит `_blazorFilesById` на клиенте до завершения чтения.
+- Синхронное чтение (`browserStream.Read()`) невозможно — `OpenReadStream` не поддерживает.
+- Шаблон:
+  ```csharp
+  using var ms = new MemoryStream();
+  await Task.Run(async () => {
+      using var bs = file.OpenReadStream(maxSize);
+      await bs.CopyToAsync(ms).ConfigureAwait(false);
+  });
+  ms.Position = 0;
+  // ... теперь безопасно вызывать StateHasChanged()
+  ```
+
+### Ошибки HTTP — показывать тело ответа (КРИТИЧНО)
+
+- `EnsureSuccessStatusCode()` выбрасывает `HttpRequestException` **без тела ответа** — сообщение сервера скрыто.
+- При обработке ответов API: **всегда читать тело** перед выбросом исключения при не-2xx статусе.
+- Шаблон:
+  ```csharp
+  if (!response.IsSuccessStatusCode)
+  {
+      var body = await response.Content.ReadAsStringAsync();
+      throw new HttpRequestException($"HTTP {(int)response.StatusCode}: {body}");
+  }
+  ```
+- Правило действует для всех HTTP-клиентов: `FileUpload`, внешние API-клиенты, интеграции.
+
 ### EF Core: `HasDefaultValue` для enum — через значение enum, не через `int`
 
 - `HasDefaultValue(0)` для enum-свойства падает на этапе design-time с ошибкой

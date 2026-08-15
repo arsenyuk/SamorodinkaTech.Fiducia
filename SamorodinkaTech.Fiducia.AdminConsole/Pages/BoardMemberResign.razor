@@ -4,6 +4,7 @@
 @inject ILogger<BoardMemberResign> Logger
 @inject NavigationManager Navigation
 @inject SamorodinkaTech.Fiducia.Domain.Interfaces.IFileStorage FileStorage
+@inject IHttpContextAccessor HttpContextAccessor
 @attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "SYS_ADMIN")]
 @using SamorodinkaTech.Fiducia.Domain.Entities
 
@@ -51,6 +52,7 @@ else if (_step == 1)
                     <FileUpload Accept=".pdf,.png,.jpg,.jpeg"
                                 MaxSizeBytes="52428800"
                                 FileType="RDL_EXTRACT"
+                                Token="@_jwtToken"
                                 OnFileUploaded="OnRdlFileUploaded"
                                 OnUploadError="OnRdlUploadError" />
                     @if (_rdlFileId is not null)
@@ -196,6 +198,7 @@ else if (_step == 2)
     private List<RefResignationReason> _reasons = new();
     private int? _electionYear;
     private int _step = 1;
+    private string? _jwtToken;
 
     private string? _reasonId;
     private DateOnly? _resignDate = DateOnly.FromDateTime(DateTime.Today);
@@ -218,6 +221,7 @@ else if (_step == 2)
 
     protected override async Task OnInitializedAsync()
     {
+        _jwtToken = HttpContextAccessor.HttpContext?.Request.Cookies["SessionToken"];
         try
         {
             await using var ctx = await DbFactory.CreateDbContextAsync();
