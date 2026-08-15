@@ -218,6 +218,17 @@ CREATE TABLE IF NOT EXISTS ref_resignation_reasons (
     created_by uuid NOT NULL REFERENCES users(id)
 );
 
+-- Справочник: ref_gd_term (сроки полномочий генерального директора ООО)
+CREATE TABLE IF NOT EXISTS ref_gd_term (
+    id uuid PRIMARY KEY,
+    code varchar(20) UNIQUE NOT NULL,
+    name varchar(200) NOT NULL,
+    duration_years int,           -- NULL = безсрочно
+    sort_order int NOT NULL DEFAULT 0,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    created_by uuid NOT NULL REFERENCES users(id)
+);
+
 CREATE TABLE IF NOT EXISTS user_roles (
     id uuid PRIMARY KEY,
     user_id uuid NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
@@ -390,7 +401,8 @@ CREATE TABLE IF NOT EXISTS legal_entity_charter (
     board_regulation_document_id uuid REFERENCES files(id),
     mandatory_audit boolean,
     has_revision_commission boolean,
-    has_board_of_directors boolean NOT NULL DEFAULT false
+    has_board_of_directors boolean NOT NULL DEFAULT false,
+    gd_term_id uuid REFERENCES ref_gd_term(id) ON DELETE SET NULL
 );
 
 -- Таблица: legal_entity_email_settings (настройки email-писем для ЮЛ)

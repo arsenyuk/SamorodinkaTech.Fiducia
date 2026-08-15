@@ -53,4 +53,10 @@ public class LegalEntityCharter
 
     /// <summary>Наличие Совета директоров — для ООО с нетиповым уставом (has_board_of_directors).</summary>
     public bool HasBoardOfDirectors { get; set; }
+
+    /// <summary>Идентификатор срока полномочий ГД (gd_term_id). Только для нетипового устава с executive_body = 'A'.</summary>
+    public Guid? GdTermId { get; set; }
+
+    /// <summary>Срок полномочий ГД.</summary>
+    public RefGdTerm? GdTerm { get; set; }
 }

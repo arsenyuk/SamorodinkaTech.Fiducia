@@ -646,13 +646,25 @@
                                     </select>
                                 </div>
                                 <div class="col-md-4">
-                                    <label class="form-label fw-bold" title="Тип исполнительного органа: A — гендиректор (избрание на 5 лет), B — каждый участник = директор, C — все совместно. Определяет процедуру избрания и подписания документов.">Исполнительный орган</label>
+                                    <label class="form-label fw-bold" title="Тип исполнительного органа: A — гендиректор, B — каждый участник = директор, C — все совместно. Определяет процедуру избрания и подписания документов.">Исполнительный орган</label>
                                     <select class="form-select" @bind="_executiveBodyStr">
-                                        <option value="A">A — Генеральный директор (5 лет)</option>
+                                        <option value="A">A — Генеральный директор</option>
                                         <option value="B">B — Каждый участник — директор</option>
                                         <option value="C">C — Все участники совместно</option>
                                     </select>
                                 </div>
+                                @if (_customExecutiveBody == 'A')
+                                {
+                                    <div class="col-md-4">
+                                        <label class="form-label fw-bold" title="Срок полномочий генерального директора ООО. Определяет период, на который избирается ГД.">Срок полномочий</label>
+                                        <select class="form-select" @bind="_gdTermStr">
+                                            @foreach (var term in _gdTerms)
+                                            {
+                                                <option value="@term.Id">@term.Name</option>
+                                            }
+                                        </select>
+                                    </div>
+                                }
                                 <div class="col-md-4">
                                     <label class="form-label fw-bold" title="Способ подтверждения решений ОСУ: нотариальное удостоверение или подписание протокола всеми участниками. Определяет процесс оформления собрания.">Подтверждение решений собрания</label>
                                     <select class="form-select" @bind="_decisionConfirmStr">
@@ -857,6 +869,15 @@
 
     private bool _customHasBoardOfDirectors;
 
+    private Guid? _customGdTermId;
+    private List<SamorodinkaTech.Fiducia.Domain.Entities.RefGdTerm> _gdTerms = new();
+
+    private string _gdTermStr
+    {
+        get => _customGdTermId?.ToString() ?? "";
+        set => _customGdTermId = string.IsNullOrEmpty(value) ? null : Guid.Parse(value);
+    }
+
     private string _mandatoryAuditStr
     {
         get => _customMandatoryAudit?.ToString() ?? "";
@@ -876,7 +897,21 @@
     private string _executiveBodyStr
     {
         get => _customExecutiveBody.ToString();
-        set { if (!string.IsNullOrEmpty(value)) _customExecutiveBody = value[0]; }
+        set
+        {
+            if (!string.IsNullOrEmpty(value))
+            {
+                _customExecutiveBody = value[0];
+                if (_customExecutiveBody == 'A')
+                {
+                    if (_customGdTermId is null)
+                        _customGdTermId = _gdTerms.FirstOrDefault(t => t.Code == "5_YEARS")?.Id
+                                          ?? _gdTerms.FirstOrDefault()?.Id;
+                }
+                else
+                    _customGdTermId = null;
+            }
+        }
     }
 
     private string _exitAllowedStr
@@ -933,6 +968,7 @@
 
         // Авто-загрузка последнего выбранного ЮЛ при открытии страницы
         await using var ctx = await DbFactory.CreateDbContextAsync();
+        _gdTerms = await ctx.RefGdTerms.OrderBy(t => t.SortOrder).ToListAsync();
         var workplace = await ctx.CurrentWorkplaces.FirstOrDefaultAsync();
         Guid? targetId = workplace?.LastSelectedLegalEntityId;
 
@@ -1336,6 +1372,7 @@
                     charterParams.MandatoryAudit = _customMandatoryAudit;
                     charterParams.HasRevisionCommission = _customHasRevisionCommission;
                     charterParams.HasBoardOfDirectors = _customHasBoardOfDirectors;
+                    charterParams.GdTermId = _customGdTermId;
                 }
             }
 
@@ -1718,6 +1755,7 @@
                 _customMandatoryAudit = custom.MandatoryAudit;
                 _customHasRevisionCommission = custom.HasRevisionCommission;
                 _customHasBoardOfDirectors = custom.HasBoardOfDirectors;
+                _customGdTermId = custom.GdTermId;
 
                 if (custom.CharterDocumentId.HasValue)
                 {
@@ -1746,6 +1784,7 @@
                 _customMandatoryAudit = null;
                 _customHasRevisionCommission = null;
                 _customHasBoardOfDirectors = false;
+                _customGdTermId = null;
             }
             else
             {
@@ -1759,6 +1798,7 @@
                 _customMandatoryAudit = null;
                 _customHasRevisionCommission = null;
                 _customHasBoardOfDirectors = false;
+                _customGdTermId = null;
             }
 
             if (dispose) ctx.Dispose();

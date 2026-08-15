@@ -1,0 +1,65 @@
+@page "/gd-terms"
+@using Microsoft.EntityFrameworkCore
+@inject IDbContextFactory<SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext> DbFactory
+@inject ILogger<GdTerms> Logger
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "SYS_ADMIN")]
+@using SamorodinkaTech.Fiducia.Domain.Entities
+
+<h3>Сроки полномочий генерального директора ООО</h3>
+
+<p class="text-muted">
+    Справочник определяет допустимые сроки полномочий ГД для нетиповых уставов ООО.
+    Числовое значение (duration_years) используется системой для расчёта срока.
+</p>
+
+@if (_items is null)
+{
+    <p><em>Загрузка...</em></p>
+}
+else if (_items.Count == 0)
+{
+    <p class="text-muted">Нет записей.</p>
+}
+else
+{
+    <table class="table table-sm">
+        <thead>
+            <tr>
+                <th>Код</th>
+                <th>Наименование</th>
+                <th>Срок (лет)</th>
+                <th>Порядок</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in _items)
+            {
+                <tr>
+                    <td><code>@item.Code</code></td>
+                    <td>@item.Name</td>
+                    <td>@(item.DurationYears?.ToString() ?? "Бессрочно")</td>
+                    <td>@item.SortOrder</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<RefGdTerm>? _items;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+            _items = await ctx.RefGdTerms
+                .OrderBy(s => s.SortOrder)
+                .ToListAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Ошибка загрузки справочника сроков полномочий ГД");
+        }
+    }
+}

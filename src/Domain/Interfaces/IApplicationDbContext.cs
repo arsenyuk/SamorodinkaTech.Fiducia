@@ -47,6 +47,7 @@ public interface IApplicationDbContext
     DbSet<FileEntry> Files { get; }
     DbSet<ExtSparkCompany> ExtSparkCompanies { get; }
     DbSet<RefMeetingForm> MeetingForms { get; }
+    DbSet<RefGdTerm> RefGdTerms { get; }
     DbSet<ExtSparkManager> ExtSparkManagers { get; }
     DbSet<ExtSparkFounder> ExtSparkFounders { get; }
     DbSet<Employee> Employees { get; }

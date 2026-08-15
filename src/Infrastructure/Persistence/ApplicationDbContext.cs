@@ -52,6 +52,7 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
     public DbSet<FileEntry> Files => Set<FileEntry>();
     public DbSet<ExtSparkCompany> ExtSparkCompanies => Set<ExtSparkCompany>();
     public DbSet<RefMeetingForm> MeetingForms => Set<RefMeetingForm>();
+    public DbSet<RefGdTerm> RefGdTerms => Set<RefGdTerm>();
     public DbSet<ExtSparkManager> ExtSparkManagers => Set<ExtSparkManager>();
     public DbSet<ExtSparkFounder> ExtSparkFounders => Set<ExtSparkFounder>();
     public DbSet<Employee> Employees => Set<Employee>();
@@ -140,6 +141,8 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.Property(x => x.MandatoryAudit).HasColumnName("mandatory_audit");
             b.Property(x => x.HasRevisionCommission).HasColumnName("has_revision_commission");
             b.Property(x => x.HasBoardOfDirectors).HasColumnName("has_board_of_directors");
+            b.Property(x => x.GdTermId).HasColumnName("gd_term_id");
+            b.HasOne(x => x.GdTerm).WithMany().HasForeignKey(x => x.GdTermId);
             b.HasOne(x => x.CharterDocument).WithMany().HasForeignKey(x => x.CharterDocumentId);
             b.HasOne(x => x.BoardRegulationDocument).WithMany().HasForeignKey(x => x.BoardRegulationDocumentId);
             b.HasOne(x => x.LegalEntity).WithOne().HasForeignKey<LegalEntityCharter>(x => x.LegalEntityId);
@@ -155,6 +158,20 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.Property(x => x.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("CURRENT_TIMESTAMP");
             b.Property(x => x.CreatedBy).HasColumnName("created_by").IsRequired();
             b.HasIndex(x => x.Code).IsUnique().HasDatabaseName("ux_ref_month_code");
+        });
+
+        modelBuilder.Entity<RefGdTerm>(b =>
+        {
+            b.ToTable("ref_gd_term");
+            b.HasKey(x => x.Id);
+            b.Property(x => x.Id).HasColumnName("id");
+            b.Property(x => x.Code).HasColumnName("code").HasMaxLength(20).IsRequired();
+            b.HasIndex(x => x.Code).IsUnique().HasDatabaseName("ux_ref_gd_term_code");
+            b.Property(x => x.Name).HasColumnName("name").HasMaxLength(200).IsRequired();
+            b.Property(x => x.DurationYears).HasColumnName("duration_years");
+            b.Property(x => x.SortOrder).HasColumnName("sort_order");
+            b.Property(x => x.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("CURRENT_TIMESTAMP");
+            b.Property(x => x.CreatedBy).HasColumnName("created_by").IsRequired();
         });
 
         modelBuilder.Entity<CurrentWorkplace>(b =>
