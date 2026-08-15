@@ -4,7 +4,41 @@
 -- CREATE EXTENSION IF NOT EXISTS pgcrypto; -- не требуется для явной генерации UUID на стороне приложения/скриптов
 
 -- ============================================================================
--- Физические лица (создаются первыми — users и pdn_consents ссылаются на persons)
+-- Пользователи (создаются первыми — persons ссылаются на users через created_by)
+-- ============================================================================
+
+-- Таблица: users
+CREATE TABLE IF NOT EXISTS users (
+    id uuid PRIMARY KEY,
+    person_id uuid,
+    last_name varchar(150) NOT NULL,
+    first_name varchar(150) NOT NULL,
+    middle_name varchar(150),
+    email varchar(255) UNIQUE NOT NULL,
+    phone varchar(20) UNIQUE NOT NULL,
+    is_external boolean DEFAULT FALSE NOT NULL,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    created_by uuid REFERENCES users(id),
+    -- онбординг внешних директоров
+    invitation_token varchar(255),
+    invitation_expires_at timestamp with time zone,
+    -- управление учётной записью
+    is_active boolean DEFAULT TRUE NOT NULL,
+    account_expires_at timestamp with time zone,
+    ldap_created_at timestamp with time zone,
+    is_system boolean DEFAULT FALSE NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS ix_users_is_external ON users(is_external);
+CREATE INDEX IF NOT EXISTS ix_users_is_active ON users(is_active);
+CREATE INDEX IF NOT EXISTS ix_users_is_system ON users(is_system);
+CREATE INDEX IF NOT EXISTS ix_users_person_id ON users(person_id);
+
+-- FK users → persons (добавляется после создания persons)
+-- см. конец файла
+
+-- ============================================================================
+-- Физические лица (создаются после users — ссылаются на users через created_by)
 -- ============================================================================
 
 -- Таблица: persons (физические лица)
@@ -21,6 +55,13 @@ CREATE TABLE IF NOT EXISTS persons (
 );
 
 CREATE INDEX IF NOT EXISTS ix_persons_inn ON persons(inn);
+
+-- ============================================================================
+-- Добавление FK users → persons (после создания обеих таблиц)
+-- ============================================================================
+
+ALTER TABLE users ADD CONSTRAINT fk_users_person_id
+    FOREIGN KEY (person_id) REFERENCES persons(id) ON DELETE SET NULL;
 
 -- ============================================================================
 -- Согласия на обработку ПДн (привязаны к ФЛ, а не к пользователю)
@@ -72,36 +113,6 @@ CREATE TABLE IF NOT EXISTS independence_declarations (
 );
 
 CREATE INDEX IF NOT EXISTS ix_independence_declarations_person_id ON independence_declarations(person_id);
-
--- ============================================================================
--- Пользователи (создаются после persons — ссылаются на persons)
--- ============================================================================
-
--- Таблица: users
-CREATE TABLE IF NOT EXISTS users (
-    id uuid PRIMARY KEY,
-    person_id uuid REFERENCES persons(id) ON DELETE SET NULL,
-    last_name varchar(150) NOT NULL,
-    first_name varchar(150) NOT NULL,
-    middle_name varchar(150),
-    email varchar(255) UNIQUE NOT NULL,
-    phone varchar(20) UNIQUE NOT NULL,
-    is_external boolean DEFAULT FALSE NOT NULL,
-    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    -- онбординг внешних директоров
-    invitation_token varchar(255),
-    invitation_expires_at timestamp with time zone,
-    -- управление учётной записью
-    is_active boolean DEFAULT TRUE NOT NULL,
-    account_expires_at timestamp with time zone,
-    ldap_created_at timestamp with time zone,
-    is_system boolean DEFAULT FALSE NOT NULL
-);
-
-CREATE INDEX IF NOT EXISTS ix_users_is_external ON users(is_external);
-CREATE INDEX IF NOT EXISTS ix_users_is_active ON users(is_active);
-CREATE INDEX IF NOT EXISTS ix_users_is_system ON users(is_system);
-CREATE INDEX IF NOT EXISTS ix_users_person_id ON users(person_id);
 
 -- ============================================================================
 -- Справочники (ref_*): не зависят от других таблиц
@@ -252,6 +263,7 @@ CREATE TABLE IF NOT EXISTS committees (
     chair_id uuid REFERENCES users(id) ON DELETE SET NULL,
     secretary_id uuid REFERENCES users(id) ON DELETE SET NULL,
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    created_by uuid REFERENCES users(id),
     CONSTRAINT ck_committees_chair_secretary_different CHECK (chair_id IS NULL OR secretary_id IS NULL OR chair_id <> secretary_id)
 );
 
@@ -781,7 +793,8 @@ CREATE TABLE IF NOT EXISTS tpl_org_intents (
     is_for_ao boolean,
     is_for_llc boolean,
     requires_board_of_directors boolean,
-    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    created_by uuid REFERENCES users(id)
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS ux_tpl_org_intents_code ON tpl_org_intents(code);
@@ -797,7 +810,8 @@ CREATE TABLE IF NOT EXISTS tpl_org_stages (
     deadline_rule varchar(100),
     deadline_days int,
     predecessor_stage_ids text,
-    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    created_by uuid REFERENCES users(id)
 );
 CREATE INDEX IF NOT EXISTS ix_tpl_org_stages_intent ON tpl_org_stages(intent_id);
 
@@ -823,7 +837,8 @@ CREATE TABLE IF NOT EXISTS tpl_org_offers (
     require_mandatory_audit boolean,
     require_revision_commission boolean,
     predecessor_offer_ids text,
-    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    created_by uuid REFERENCES users(id)
 );
 CREATE INDEX IF NOT EXISTS ix_tpl_org_offers_stage ON tpl_org_offers(stage_id);
 CREATE INDEX IF NOT EXISTS ix_tpl_org_offers_assigned_role ON tpl_org_offers(assigned_role_id);

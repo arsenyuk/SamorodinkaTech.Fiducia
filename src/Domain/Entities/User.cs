@@ -33,6 +33,9 @@ public class User
     /// <summary>Дата создания записи (created_at).</summary>
     public DateTime CreatedAt { get; set; }
 
+    /// <summary>Идентификатор создателя записи (created_by).</summary>
+    public Guid? CreatedBy { get; set; }
+
     /// <summary>Активна ли учётная запись (is_active).</summary>
     public bool IsActive { get; set; } = true;
 

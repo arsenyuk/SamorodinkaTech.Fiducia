@@ -454,6 +454,15 @@ private static bool IsPublicUrl(string uri)
   добавление нового файла с порядковым номером (`04_*`).
 - **Запрещено** создавать SQL-файлы вне `tools/db/` или без номерного префикса.
 
+### Команда «сбрось базу» (КРИТИЧНО)
+
+По команде пользователя **«сбрось базу»** (или «reset db») выполнять полный сброс БД:
+
+1. `TRUNCATE ... CASCADE` по всем таблицам БД.
+2. Применить SQL-скрипты по порядку: `01_schema.sql` → `02_seed.sql` → `03_demo.sql`.
+
+Подключение к БД: `docker exec fiducia-postgres psql -U fiducia -d fiducia`
+
 ### Правило: полные CREATE TABLE в 01_schema.sql (КРИТИЧНО)
 
 - Файл `tools/db/01_schema.sql` содержит **полные определения таблиц** через `CREATE TABLE`.

@@ -80,4 +80,7 @@ public class TplOrgTaskOffer
 
     /// <summary>Дата и время создания записи (created_at).</summary>
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    /// <summary>Идентификатор создателя записи (created_by).</summary>
+    public Guid? CreatedBy { get; set; }
 }
