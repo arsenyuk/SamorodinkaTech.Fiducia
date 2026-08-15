@@ -54,6 +54,10 @@
 - [Контрольный список задач](domain/reorganization-credit-checklist.md)
 - [Диаграмма Ганта](domain/reorganization-credit-gantt.md)
 
+### Выплата дивидендов в АО
+- [Проверка финансовых ограничений](business-processes/dividend-payment-restrictions-check.md)
+- [Диаграмма Ганта: процесс выплаты дивидендов](domain/dividend-distribution-gantt.md)
+
 ## Безопасность
 
 - [Проверка компонентов на уязвимости](security/vulnerability-check.md)
