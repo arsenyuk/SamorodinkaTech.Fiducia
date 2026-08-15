@@ -439,6 +439,8 @@
                         Комитеты определены документами Общества
                     </label>
                 </div>
+                @if (_editCommitteesDefinedByDocuments)
+                {
                 <div class="mt-2">
                     @if (_customCommitteeRegulationDocName != null && _customCommitteeRegulationDocId.HasValue && !_showCommitteeRegulationUpload)
                     {
@@ -458,110 +460,101 @@
                                     OnUploadError="OnCommitteeRegulationUploadError" />
                     }
                 </div>
-                <div class="form-check mb-2 @(_editCommitteesDefinedByDocuments ? "" : "opacity-50")">
+                <div class="form-check mb-2">
                     <input class="form-check-input" type="checkbox" id="editMaxCommitteesPerMemberDefined"
                            @bind="_editMaxCommitteesPerMemberDefined"
-                           @bind:after="OnMaxPerMemberDefinedChanged"
-                           disabled="@(!_editCommitteesDefinedByDocuments)">
+                           @bind:after="OnMaxPerMemberDefinedChanged">
                     <label class="form-check-label" for="editMaxCommitteesPerMemberDefined">
                         Определено максимальное число комитетов для одного члена СД
                     </label>
                 </div>
                 @if (_editMaxCommitteesPerMemberDefined)
                 {
-                    <div class="row g-2 align-items-center mb-2 @(_editCommitteesDefinedByDocuments ? "" : "opacity-50")">
+                    <div class="row g-2 align-items-center mb-2">
                         <div class="col-auto">
                             <label class="col-form-label">Макс. число комитетов на одного члена СД</label>
                         </div>
                         <div class="col-auto">
-                            <input type="number" class="form-control" @bind="_editMaxCommitteesPerMember" min="1" style="width:100px"
-                                   disabled="@(!_editCommitteesDefinedByDocuments)">
+                            <input type="number" class="form-control" @bind="_editMaxCommitteesPerMember" min="1" style="width:100px">
                         </div>
                     </div>
                 }
-                <div class="form-check mb-2 @(_editCommitteesDefinedByDocuments ? "" : "opacity-50")">
+                <div class="form-check mb-2">
                     <input class="form-check-input" type="checkbox" id="editMaxCommitteesHeadedPerMemberDefined"
                            @bind="_editMaxCommitteesHeadedPerMemberDefined"
-                           @bind:after="OnMaxHeadedDefinedChanged"
-                           disabled="@(!_editCommitteesDefinedByDocuments)">
+                           @bind:after="OnMaxHeadedDefinedChanged">
                     <label class="form-check-label" for="editMaxCommitteesHeadedPerMemberDefined">
                         Определено макс. число возглавляемых комитетов для одного члена СД
                     </label>
                 </div>
                 @if (_editMaxCommitteesHeadedPerMemberDefined)
                 {
-                    <div class="row g-2 align-items-center mb-2 @(_editCommitteesDefinedByDocuments ? "" : "opacity-50")">
+                    <div class="row g-2 align-items-center mb-2">
                         <div class="col-auto">
                             <label class="col-form-label">Макс. число возглавляемых комитетов на одного члена СД</label>
                         </div>
                         <div class="col-auto">
-                            <input type="number" class="form-control" @bind="_editMaxCommitteesHeadedPerMember" min="1" style="width:100px"
-                                   disabled="@(!_editCommitteesDefinedByDocuments)">
+                            <input type="number" class="form-control" @bind="_editMaxCommitteesHeadedPerMember" min="1" style="width:100px">
                         </div>
                     </div>
                 }
-                <div class="form-check mb-2 @(_editCommitteesDefinedByDocuments ? "" : "opacity-50")">
+                <div class="form-check mb-2">
                     <input class="form-check-input" type="checkbox" id="editMinCommitteeMembersDefined"
                            @bind="_editMinCommitteeMembersDefined"
-                           @bind:after="OnMinMembersDefinedChanged"
-                           disabled="@(!_editCommitteesDefinedByDocuments)">
+                           @bind:after="OnMinMembersDefinedChanged">
                     <label class="form-check-label" for="editMinCommitteeMembersDefined">
                         Определено мин. количество членов в комитете
                     </label>
                 </div>
                 @if (_editMinCommitteeMembersDefined)
                 {
-                    <div class="row g-2 align-items-center mb-2 @(_editCommitteesDefinedByDocuments ? "" : "opacity-50")">
+                    <div class="row g-2 align-items-center mb-2">
                         <div class="col-auto">
                             <label class="col-form-label">Мин. количество членов в комитете</label>
                         </div>
                         <div class="col-auto">
-                            <input type="number" class="form-control" @bind="_editMinCommitteeMembers" min="2" style="width:100px"
-                                   disabled="@(!_editCommitteesDefinedByDocuments)">
+                            <input type="number" class="form-control" @bind="_editMinCommitteeMembers" min="2" style="width:100px">
                         </div>
                     </div>
                 }
-                <div class="form-check mb-2 @(_editCommitteesDefinedByDocuments ? "" : "opacity-50")">
+                <div class="form-check mb-2">
                     <input class="form-check-input" type="checkbox" id="editCommitteeQuorumDefined"
                            @bind="_editCommitteeQuorumDefined"
-                           @bind:after="OnQuorumDefinedChanged"
-                           disabled="@(!_editCommitteesDefinedByDocuments)">
+                           @bind:after="OnQuorumDefinedChanged">
                     <label class="form-check-label" for="editCommitteeQuorumDefined">
                         Определен кворум заседания комитета
                     </label>
                 </div>
                 @if (_editCommitteeQuorumDefined)
                 {
-                    <div class="row g-2 align-items-center mb-2 @(_editCommitteesDefinedByDocuments ? "" : "opacity-50")">
+                    <div class="row g-2 align-items-center mb-2">
                         <div class="col-auto">
                             <label class="col-form-label">Кворум заседания комитета (%)</label>
                         </div>
                         <div class="col-auto">
-                            <input type="number" class="form-control" @bind="_editCommitteeQuorumPercent" min="1" max="100" style="width:100px"
-                                   disabled="@(!_editCommitteesDefinedByDocuments)">
+                            <input type="number" class="form-control" @bind="_editCommitteeQuorumPercent" min="1" max="100" style="width:100px">
                         </div>
                     </div>
                 }
-                <div class="form-check mb-2 @(_editCommitteesDefinedByDocuments ? "" : "opacity-50")">
+                <div class="form-check mb-2">
                     <input class="form-check-input" type="checkbox" id="editJointCommitteeQuorumDefined"
                            @bind="_editJointCommitteeQuorumDefined"
-                           @bind:after="OnJointQuorumDefinedChanged"
-                           disabled="@(!_editCommitteesDefinedByDocuments)">
+                           @bind:after="OnJointQuorumDefinedChanged">
                     <label class="form-check-label" for="editJointCommitteeQuorumDefined">
                         Определен кворум совместного заседания комитетов
                     </label>
                 </div>
                 @if (_editJointCommitteeQuorumDefined)
                 {
-                    <div class="row g-2 align-items-center mb-2 @(_editCommitteesDefinedByDocuments ? "" : "opacity-50")">
+                    <div class="row g-2 align-items-center mb-2">
                         <div class="col-auto">
                             <label class="col-form-label">Кворум совместного заседания комитетов (%)</label>
                         </div>
                         <div class="col-auto">
-                            <input type="number" class="form-control" @bind="_editJointCommitteeQuorumPercent" min="1" max="100" style="width:100px"
-                                   disabled="@(!_editCommitteesDefinedByDocuments)">
+                            <input type="number" class="form-control" @bind="_editJointCommitteeQuorumPercent" min="1" max="100" style="width:100px">
                         </div>
                     </div>
+                }
                 }
             }  @* end of _activeTab == 6 *@
 
