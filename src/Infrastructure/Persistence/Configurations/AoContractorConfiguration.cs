@@ -27,6 +27,7 @@ public class AoContractorConfiguration : IEntityTypeConfiguration<AoContractor>
         builder.Property(c => c.ContractDate).HasColumnName("contract_date");
         builder.Property(c => c.ContractValidFrom).HasColumnName("contract_valid_from");
         builder.Property(c => c.ContractValidTo).HasColumnName("contract_valid_to");
+        builder.Property(c => c.IsIndefinite).HasColumnName("is_indefinite").HasDefaultValue(true);
 
         builder.Property(c => c.ContractDocumentId).HasColumnName("contract_document_id");
 

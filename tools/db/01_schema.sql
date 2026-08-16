@@ -850,6 +850,7 @@ CREATE TABLE IF NOT EXISTS ao_contractors (
     contract_date                     date,
     contract_valid_from               date,
     contract_valid_to                 date,
+    is_indefinite                     boolean NOT NULL DEFAULT true,
     contract_document_id              uuid REFERENCES files(id) ON DELETE SET NULL,
     registry_preparation_days         integer,
     registry_preparation_unit         varchar(20),

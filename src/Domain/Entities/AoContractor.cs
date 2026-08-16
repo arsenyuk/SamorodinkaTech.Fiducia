@@ -42,6 +42,9 @@ public class AoContractor
     /// <summary>Окончание действия договора (contract_valid_to).</summary>
     public DateOnly? ContractValidTo { get; set; }
 
+    /// <summary>Признак бессрочного договора (is_indefinite). true = бессрочный, false = срочный с пролонгацией.</summary>
+    public bool IsIndefinite { get; set; } = true;
+
     // ── Прикреплённый файл договора ──
 
     /// <summary>Внешний ключ на прикреплённый файл договора (contract_document_id).</summary>

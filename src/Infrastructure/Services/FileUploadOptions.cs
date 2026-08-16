@@ -7,17 +7,29 @@ namespace SamorodinkaTech.Fiducia.Infrastructure.Services
     /// </summary>
     public class FileUploadOptions
     {
-        /// <summary>Максимальный размер файла в байтах (по умолчанию 50 МБ).</summary>
-        public long MaxFileSizeBytes { get; set; } = 50_000_000;
+        /// <summary>Значение по умолчанию: максимальный размер файла 50 МБ.</summary>
+        public const long DefaultMaxFileSizeBytes = 50_000_000;
 
-        /// <summary>Размер чанка в байтах (по умолчанию 512 КБ).</summary>
-        public int ChunkSizeBytes { get; set; } = 512 * 1024;
+        /// <summary>Значение по умолчанию: размер чанка 512 КБ.</summary>
+        public const int DefaultChunkSizeBytes = 512 * 1024;
+
+        /// <summary>Значение по умолчанию: максимум 10 одновременных загрузок.</summary>
+        public const int DefaultMaxConcurrentUploads = 10;
+
+        /// <summary>Значение по умолчанию: время жизни незавершённой загрузки 24 часа.</summary>
+        public const int DefaultUploadExpirationHours = 24;
+
+        /// <summary>Максимальный размер файла в байтах.</summary>
+        public long MaxFileSizeBytes { get; set; } = DefaultMaxFileSizeBytes;
+
+        /// <summary>Размер чанка в байтах.</summary>
+        public int ChunkSizeBytes { get; set; } = DefaultChunkSizeBytes;
 
         /// <summary>Максимальное количество одновременных загрузок.</summary>
-        public int MaxConcurrentUploads { get; set; } = 10;
+        public int MaxConcurrentUploads { get; set; } = DefaultMaxConcurrentUploads;
 
         /// <summary>Время жизни незавершённой загрузки.</summary>
-        public int UploadExpirationHours { get; set; } = 24;
+        public int UploadExpirationHours { get; set; } = DefaultUploadExpirationHours;
 
         /// <summary>Базовый папка для временных чанков (null = подкаталог uploads в BasePath).</summary>
         public string? TempBasePath { get; set; }

@@ -8,6 +8,15 @@ namespace SamorodinkaTech.Fiducia.Domain.Entities;
 /// </summary>
 public class LegalEntityVotingRules
 {
+    /// <summary>Значение по умолчанию: кворум 50%.</summary>
+    public const int DefaultQuorumPercent = 50;
+
+    /// <summary>Значение по умолчанию: квалифицированное большинство 75%.</summary>
+    public const int DefaultQualifiedMajorityPercent = 75;
+
+    /// <summary>Значение по умолчанию: 30 календарных дней на первое заседание СД.</summary>
+    public const int DefaultFirstMeetingDeadlineDays = 30;
+
     /// <summary>Идентификатор (id).</summary>
     public Guid Id { get; set; }
 
@@ -18,7 +27,7 @@ public class LegalEntityVotingRules
     public LegalEntity? LegalEntity { get; set; }
 
     /// <summary>Порог кворума в процентах от числа избранных членов СД (quorum_percent).</summary>
-    public int QuorumPercent { get; set; } = 50;
+    public int QuorumPercent { get; set; } = DefaultQuorumPercent;
 
     /// <summary>Решающий голос председателя при равенстве голосов (chair_tiebreaker).</summary>
     public bool ChairTiebreaker { get; set; }
@@ -27,7 +36,7 @@ public class LegalEntityVotingRules
     public bool AbsenteeOpinions { get; set; }
 
     /// <summary>Порог квалифицированного большинства в процентах (qualified_majority_percent).</summary>
-    public int QualifiedMajorityPercent { get; set; } = 75;
+    public int QualifiedMajorityPercent { get; set; } = DefaultQualifiedMajorityPercent;
 
     /// <summary>Разрешено очное голосование — всегда включено (in_person_allowed).</summary>
     public bool InPersonAllowed { get; set; } = true;
@@ -45,7 +54,7 @@ public class LegalEntityVotingRules
     public bool SpotByElection { get; set; }
 
     /// <summary>Предельный срок проведения первого заседания СД после утверждения состава на ОСА, в календарных днях (first_meeting_deadline_days).</summary>
-    public int FirstMeetingDeadlineDays { get; set; } = 30;
+    public int FirstMeetingDeadlineDays { get; set; } = DefaultFirstMeetingDeadlineDays;
 
     /// <summary>Дата и время создания записи (created_at).</summary>
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
