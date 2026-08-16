@@ -166,7 +166,8 @@ public static class AoContractorEndpoints
         aoContractors.MapGet("/diagnose", async (
             string inn,
             [Microsoft.AspNetCore.Mvc.FromServices] ISparkApiClient? sparkApi,
-            IDbContextFactory<FiduciaDbContext> dbFactory) =>
+            IDbContextFactory<FiduciaDbContext> dbFactory,
+            [Microsoft.AspNetCore.Mvc.FromServices] ILogger logger) =>
         {
             if (string.IsNullOrWhiteSpace(inn) || inn.Length < MinInnLength)
                 return Results.BadRequest(new { error = "ИНН должен содержать минимум 10 цифр" });
@@ -208,7 +209,10 @@ public static class AoContractorEndpoints
                         await ctx.SaveChangesAsync();
                     }
                 }
-                catch { /* СПАРК недоступен — продолжаем с тем, что есть */ }
+                catch (Exception ex)
+                {
+                    logger.LogDebug(ex, "СПАРК недоступен для ИНН={Inn}, продолжаем с кэшем", inn);
+                }
             }
 
             // 4. Определяем тип по лицензиям ЦБ

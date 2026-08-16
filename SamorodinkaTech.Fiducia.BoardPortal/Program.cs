@@ -30,7 +30,6 @@ builder.Host.UseSerilog((ctx, cfg) =>
 builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
 builder.Services.AddSingleton<WeatherForecastService>();
-builder.Services.AddHttpClient();
 builder.Services.AddHttpContextAccessor();
 // HttpClient with BaseAddress and JWT token from cookie
 builder.Services.AddTransient<AuthHeaderHandler>();
