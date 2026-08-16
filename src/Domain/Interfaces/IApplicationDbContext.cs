@@ -50,6 +50,8 @@ public interface IApplicationDbContext
     DbSet<RefGdTerm> RefGdTerms { get; }
     DbSet<ExtSparkManager> ExtSparkManagers { get; }
     DbSet<ExtSparkFounder> ExtSparkFounders { get; }
+    DbSet<ExtCbrFinOrgOrganization> ExtCbrFinOrgOrganizations { get; }
+    DbSet<ExtCbrFinOrgLicense> ExtCbrFinOrgLicenses { get; }
     DbSet<Employee> Employees { get; }
 
     DbSet<TplOrgIntent> TplOrgIntents { get; }
@@ -64,6 +66,8 @@ public interface IApplicationDbContext
     DbSet<TrueConfTestMeeting> TrueConfTestMeetings { get; }
     DbSet<TrueConfTestQuestion> TrueConfTestQuestions { get; }
     DbSet<TrueConfTestAnswer> TrueConfTestAnswers { get; }
+
+    DbSet<AoContractor> AoContractors { get; }
 
     System.Threading.Tasks.Task<int> SaveChangesAsync(System.Threading.CancellationToken cancellationToken = default);
 }

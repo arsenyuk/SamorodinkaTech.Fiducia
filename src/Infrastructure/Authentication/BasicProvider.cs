@@ -42,12 +42,12 @@ public class BasicProvider : IAuthProvider
             };
         }
 
-        // Определяем роль: если есть SYS_ADMIN — даём доступ администратора
-        var roleName = user.UserRoles
+        // Определяем роли: возвращаем все роли пользователя через запятую
+        var allRoles = string.Join(",", user.UserRoles
             .Select(ur => ur.Role?.Code)
-            .FirstOrDefault(rc => rc == "SYS_ADMIN")
-            ?? user.UserRoles.Select(ur => ur.Role?.Code).FirstOrDefault()
-            ?? "MEMBER_BOARD";
+            .Where(rc => rc is not null));
+
+        var roleName = string.IsNullOrEmpty(allRoles) ? "MEMBER_BOARD" : allRoles;
 
         // Проверяем наличие подписанного ПЭП для внешнего директора
         var hasPep = false;

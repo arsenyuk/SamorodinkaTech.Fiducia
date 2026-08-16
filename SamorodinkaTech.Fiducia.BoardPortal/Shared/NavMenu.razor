@@ -32,6 +32,19 @@
                 </NavLink>
             }
         </div>
+        @if (!_isLlc)
+        {
+            <div class="nav-item px-3">
+                <NavLink class="nav-link text-nowrap" href="registrar">
+                    <span class="oi oi-shield" aria-hidden="true"></span> Регистратор
+                </NavLink>
+            </div>
+            <div class="nav-item px-3">
+                <NavLink class="nav-link text-nowrap" href="info-agency">
+                    <span class="oi oi-document" aria-hidden="true"></span> Информационное агентство
+                </NavLink>
+            </div>
+        }
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="committees">
                 <span class="oi oi-browser" aria-hidden="true"></span> Комитеты

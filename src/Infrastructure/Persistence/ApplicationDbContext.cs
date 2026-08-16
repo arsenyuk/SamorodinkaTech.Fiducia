@@ -55,6 +55,8 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
     public DbSet<RefGdTerm> RefGdTerms => Set<RefGdTerm>();
     public DbSet<ExtSparkManager> ExtSparkManagers => Set<ExtSparkManager>();
     public DbSet<ExtSparkFounder> ExtSparkFounders => Set<ExtSparkFounder>();
+    public DbSet<ExtCbrFinOrgOrganization> ExtCbrFinOrgOrganizations => Set<ExtCbrFinOrgOrganization>();
+    public DbSet<ExtCbrFinOrgLicense> ExtCbrFinOrgLicenses => Set<ExtCbrFinOrgLicense>();
     public DbSet<Employee> Employees => Set<Employee>();
 
     public DbSet<TplOrgIntent> TplOrgIntents => Set<TplOrgIntent>();
@@ -69,6 +71,8 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
     public DbSet<TrueConfTestMeeting> TrueConfTestMeetings => Set<TrueConfTestMeeting>();
     public DbSet<TrueConfTestQuestion> TrueConfTestQuestions => Set<TrueConfTestQuestion>();
     public DbSet<TrueConfTestAnswer> TrueConfTestAnswers => Set<TrueConfTestAnswer>();
+
+    public DbSet<AoContractor> AoContractors => Set<AoContractor>();
 
     // Junction-таблицы файлов (BDR-011)
     public DbSet<MeetingFile> MeetingFiles => Set<MeetingFile>();
@@ -511,6 +515,54 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.Property(x => x.SharePercent).HasColumnName("share_percent").HasColumnType("numeric(5,2)");
             b.Property(x => x.EntryDate).HasColumnName("entry_date");
             b.Property(x => x.ExitDate).HasColumnName("exit_date");
+            b.Property(x => x.FetchedAt).HasColumnName("fetched_at").IsRequired();
+        });
+
+        modelBuilder.Entity<ExtCbrFinOrgOrganization>(b =>
+        {
+            b.ToTable("ext_cbr_finorg_organization");
+            b.HasKey(x => x.Id);
+            b.Property(x => x.Id).HasColumnName("id");
+            b.Property(x => x.Inn).HasColumnName("inn").HasMaxLength(12).IsRequired();
+            b.Property(x => x.CbrId).HasColumnName("cbr_id");
+            b.Property(x => x.Ogrn).HasColumnName("ogrn").HasMaxLength(15);
+            b.Property(x => x.FullName).HasColumnName("full_name").HasMaxLength(500);
+            b.Property(x => x.ShortName).HasColumnName("short_name").HasMaxLength(255);
+            b.Property(x => x.EngName).HasColumnName("eng_name").HasMaxLength(500);
+            b.Property(x => x.Address).HasColumnName("address");
+            b.Property(x => x.Phones).HasColumnName("phones").HasMaxLength(500);
+            b.Property(x => x.Email).HasColumnName("email").HasMaxLength(255);
+            b.Property(x => x.Okato).HasColumnName("okato");
+            b.Property(x => x.Region).HasColumnName("region").HasMaxLength(255);
+            b.Property(x => x.FoTypes).HasColumnName("fo_types").HasMaxLength(500);
+            b.Property(x => x.Status).HasColumnName("status").HasMaxLength(50);
+            b.Property(x => x.IsSroMember).HasColumnName("is_sro_member");
+            b.Property(x => x.IsRss).HasColumnName("is_rss");
+            b.Property(x => x.IsNpo).HasColumnName("is_npo");
+            b.Property(x => x.IsAsv).HasColumnName("is_asv");
+            b.Property(x => x.RegNumber).HasColumnName("reg_number");
+            b.Property(x => x.Bic).HasColumnName("bic").HasMaxLength(20);
+            b.Property(x => x.BankStatus).HasColumnName("bank_status").HasMaxLength(100);
+            b.Property(x => x.RegistrationDate).HasColumnName("registration_date");
+            b.Property(x => x.HasBranches).HasColumnName("has_branches");
+            b.Property(x => x.FundValue).HasColumnName("fund_value").HasColumnType("numeric(18,2)");
+            b.Property(x => x.WebSites).HasColumnName("web_sites").HasMaxLength(1000);
+            b.Property(x => x.Error).HasColumnName("error");
+            b.Property(x => x.FetchedAt).HasColumnName("fetched_at").IsRequired();
+        });
+
+        modelBuilder.Entity<ExtCbrFinOrgLicense>(b =>
+        {
+            b.ToTable("ext_cbr_finorg_license");
+            b.HasKey(x => x.Id);
+            b.Property(x => x.Id).HasColumnName("id");
+            b.Property(x => x.OrganizationInn).HasColumnName("organization_inn").HasMaxLength(12).IsRequired();
+            b.Property(x => x.VidId).HasColumnName("vid_id");
+            b.Property(x => x.ActivityName).HasColumnName("activity_name").HasMaxLength(500);
+            b.Property(x => x.Number).HasColumnName("number").HasMaxLength(100);
+            b.Property(x => x.Name).HasColumnName("name").HasMaxLength(255);
+            b.Property(x => x.StartDate).HasColumnName("start_date");
+            b.Property(x => x.EndDate).HasColumnName("end_date");
             b.Property(x => x.FetchedAt).HasColumnName("fetched_at").IsRequired();
         });
 

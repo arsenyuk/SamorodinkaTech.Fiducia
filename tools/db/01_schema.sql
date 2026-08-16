@@ -780,6 +780,93 @@ CREATE INDEX IF NOT EXISTS ix_ext_spark_founder_inn ON ext_spark_founder(inn);
 CREATE INDEX IF NOT EXISTS ix_ext_spark_founder_fetched_at ON ext_spark_founder(fetched_at);
 
 -- ============================================================================
+-- Данные ЦБ РФ (FinOrg) — внешний кэш справочника участников финансового рынка
+-- Источник: SOAP-сервис cbr.ru/FO_ZoomWS/FinOrg.asmx
+-- TTL кэша: 24 часа (fetched_at)
+-- ============================================================================
+
+-- ext_cbr_finorg_organization: карточка организации из ЦБ РФ
+CREATE TABLE IF NOT EXISTS ext_cbr_finorg_organization (
+    id          uuid PRIMARY KEY,
+    inn         varchar(12) NOT NULL,
+    cbr_id      bigint,
+    ogrn        varchar(15),
+    full_name   varchar(500),
+    short_name  varchar(255),
+    eng_name    varchar(500),
+    address     text,
+    phones      varchar(500),
+    email       varchar(255),
+    okato       integer,
+    region      varchar(255),
+    fo_types    varchar(500),
+    status      varchar(50) NOT NULL DEFAULT '',
+    is_sro_member boolean NOT NULL DEFAULT false,
+    is_rss      boolean NOT NULL DEFAULT false,
+    is_npo      boolean NOT NULL DEFAULT false,
+    is_asv      boolean NOT NULL DEFAULT false,
+    reg_number  integer,
+    bic         varchar(20),
+    bank_status varchar(100),
+    registration_date timestamptz,
+    has_branches boolean NOT NULL DEFAULT false,
+    fund_value  numeric(18,2),
+    web_sites   varchar(1000),
+    error       text,
+    fetched_at  timestamptz NOT NULL
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS ux_ext_cbr_finorg_organization_inn ON ext_cbr_finorg_organization(inn);
+CREATE INDEX IF NOT EXISTS ix_ext_cbr_finorg_organization_fetched_at ON ext_cbr_finorg_organization(fetched_at);
+
+-- ext_cbr_finorg_license: лицензии организации из ЦБ РФ
+CREATE TABLE IF NOT EXISTS ext_cbr_finorg_license (
+    id              uuid PRIMARY KEY,
+    organization_inn varchar(12) NOT NULL,
+    vid_id          integer NOT NULL,
+    activity_name   varchar(500),
+    number          varchar(100),
+    name            varchar(255),
+    start_date      timestamptz,
+    end_date        timestamptz,
+    fetched_at      timestamptz NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS ix_ext_cbr_finorg_license_organization_inn ON ext_cbr_finorg_license(organization_inn);
+CREATE INDEX IF NOT EXISTS ix_ext_cbr_finorg_license_fetched_at ON ext_cbr_finorg_license(fetched_at);
+
+-- ============================================================================
+-- Договоры АО с регистраторами и информационными агентствами
+-- ============================================================================
+
+-- ao_contractors: договоры АО с регистраторами и информационными агентствами
+CREATE TABLE IF NOT EXISTS ao_contractors (
+    id                                uuid PRIMARY KEY,
+    legal_entity_id                   uuid NOT NULL REFERENCES legal_entities(id) ON DELETE RESTRICT,
+    contractor_inn                    varchar(12) NOT NULL,
+    contractor_name                   varchar(500) NOT NULL,
+    contractor_type                   varchar(20) NOT NULL,
+    contract_number                   varchar(100),
+    contract_date                     date,
+    contract_valid_from               date,
+    contract_valid_to                 date,
+    contract_document_id              uuid REFERENCES files(id) ON DELETE SET NULL,
+    registry_preparation_days         integer,
+    registry_preparation_unit         varchar(20),
+    dividend_registry_preparation_days integer,
+    dividend_registry_preparation_unit varchar(20),
+    registry_rules_url                varchar(1000),
+    is_active                         boolean NOT NULL DEFAULT true,
+    created_at                        timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_by                        uuid
+);
+
+CREATE INDEX IF NOT EXISTS ix_ao_contractors_legal_entity_id ON ao_contractors(legal_entity_id);
+CREATE UNIQUE INDEX IF NOT EXISTS ux_ao_contractors_le_type_active
+    ON ao_contractors(legal_entity_id, contractor_type)
+    WHERE is_active = true;
+
+-- ============================================================================
 -- Шаблоны организационных мероприятий (Org Templates)
 -- Иерархия: tpl_org_intents → tpl_org_stages → tpl_org_offers (офер = шаблон задачи)
 -- ============================================================================

@@ -144,6 +144,9 @@ if (builder.Configuration.GetValue<bool>("CbrFinOrg:Enabled"))
         var auditLogger = sp.GetRequiredService<ILogger<AuditCbrFinOrgDecorator>>();
         return new AuditCbrFinOrgDecorator(inner, auditService, auditLogger);
     });
+
+    // Сервис кэширования данных ЦБ РФ — загрузка из API, сохранение в ext_cbr_finorg_*, TTL 24ч
+    builder.Services.AddScoped<ICbrFinOrgDataService, CbrFinOrgDataService>();
 }
 
 // TrueConf Server API — видеоконференцсвязь для заседаний СД (опционально)

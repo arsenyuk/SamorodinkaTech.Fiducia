@@ -1,0 +1,307 @@
+@page "/registrar/{Id:guid}"
+@using Microsoft.EntityFrameworkCore
+@using SamorodinkaTech.Fiducia.Domain.Entities
+@using SamorodinkaTech.Fiducia.Domain.Enums
+@inject IDbContextFactory<SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext> DbFactory
+@inject HttpClient Http
+@inject ILogger<RegistrarEdit> Logger
+@inject IJSRuntime JS
+@inject NavigationManager Navigation
+@inject IHttpContextAccessor HttpContextAccessor
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+
+<PageTitle>Fiducia — Редактирование договора с регистратором</PageTitle>
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3>Редактирование договора с регистратором</h3>
+        <button class="btn btn-outline-secondary" @onclick='() => Navigation.NavigateTo("/registrar")'>← Назад к списку</button>
+    </div>
+
+    @if (_loading)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Загрузка...</span>
+            </div>
+        </div>
+    }
+    else if (_contractor is null)
+    {
+        <div class="alert alert-danger">Договор не найден</div>
+    }
+    else
+    {
+        @if (!string.IsNullOrEmpty(_errorMessage))
+        {
+            <div class="alert alert-danger">@_errorMessage</div>
+        }
+
+        <!-- Информация о контрагенте -->
+        <div class="card bg-light mb-3">
+            <div class="card-body py-2">
+                <strong>@_contractor.ContractorName</strong> (ИНН @_contractor.ContractorInn)
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Реквизиты договора</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Номер договора</label>
+                        <input type="text" class="form-control" @bind="_formContractNumber">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Дата договора</label>
+                        <input type="date" class="form-control" @bind="_formContractDate">
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Начало действия</label>
+                        <input type="date" class="form-control" @bind="_formValidFrom">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Окончание действия</label>
+                        <input type="date" class="form-control" @bind="_formValidTo">
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Файл договора</label>
+                    @if (_formDocumentId.HasValue)
+                    {
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <a href="/api/files/@_formDocumentId/download" target="_blank"
+                               class="btn btn-sm btn-outline-secondary">📄 @_formDocumentName</a>
+                            <button class="btn btn-sm btn-outline-danger" @onclick="() => { _formDocumentId = null; _formDocumentName = null; }">Заменить</button>
+                        </div>
+                    }
+                    else
+                    {
+                        <FileUpload Accept=".pdf,.doc,.docx"
+                                    MaxSizeBytes="52428800"
+                                    FileType="CONTRACT"
+                                    Token="@_jwtToken"
+                                    OnFileUploadedInfo="OnContractFileUploaded" />
+                    }
+                </div>
+
+                <hr />
+                <h6>Сроки подготовки реестров</h6>
+
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Реестр акционеров (дни)</label>
+                        <input type="number" class="form-control" @bind="_formRegistryPrepDays" min="0">
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Единица измерения</label>
+                        <select class="form-select" @bind="_formRegistryPrepUnit">
+                            <option value="">Не указано</option>
+                            <option value="CALENDAR">Календарный день</option>
+                            <option value="BUSINESS">Рабочий день</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Реестр для дивидендов (дни)</label>
+                        <input type="number" class="form-control" @bind="_formDividendRegPrepDays" min="0">
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Единица измерения</label>
+                        <select class="form-select" @bind="_formDividendRegPrepUnit">
+                            <option value="">Не указано</option>
+                            <option value="CALENDAR">Календарный день</option>
+                            <option value="BUSINESS">Рабочий день</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">URL Правил ведения реестра</label>
+                    <input type="url" class="form-control" @bind="_formRegistryRulesUrl" placeholder="https://...">
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Файл Правил ведения реестра</label>
+                    @if (_formRulesDocumentId.HasValue)
+                    {
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <a href="/api/files/@_formRulesDocumentId/download" target="_blank"
+                               class="btn btn-sm btn-outline-secondary">📄 @_formRulesDocumentName</a>
+                            <button class="btn btn-sm btn-outline-danger" @onclick="() => { _formRulesDocumentId = null; _formRulesDocumentName = null; }">Заменить</button>
+                        </div>
+                    }
+                    else
+                    {
+                        <FileUpload Accept=".pdf,.doc,.docx"
+                                    MaxSizeBytes="52428800"
+                                    FileType="REGISTRY_RULES"
+                                    Token="@_jwtToken"
+                                    OnFileUploadedInfo="OnRulesFileUploaded" />
+                    }
+                </div>
+            </div>
+            <div class="card-footer">
+                <button type="button" class="btn btn-secondary me-2" @onclick='() => Navigation.NavigateTo("/registrar")'>Отмена</button>
+                <button type="button" class="btn btn-primary" @onclick="Save" disabled="@_saving">
+                    @if (_saving) { <span class="spinner-border spinner-border-sm me-1"></span> }
+                    Сохранить
+                </button>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+
+    private bool _loading = true;
+    private bool _saving;
+    private string? _errorMessage;
+    private string? _jwtToken;
+    private ContractorDto? _contractor;
+
+    // Реквизиты договора
+    private string? _formContractNumber;
+    private DateOnly? _formContractDate;
+    private DateOnly? _formValidFrom;
+    private DateOnly? _formValidTo;
+    private Guid? _formDocumentId;
+    private string? _formDocumentName;
+    private int? _formRegistryPrepDays;
+    private string? _formRegistryPrepUnit;
+    private int? _formDividendRegPrepDays;
+    private string? _formDividendRegPrepUnit;
+    private string? _formRegistryRulesUrl;
+    private Guid? _formRulesDocumentId;
+    private string? _formRulesDocumentName;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _jwtToken = HttpContextAccessor.HttpContext?.Request.Cookies["SessionToken"];
+        await LoadContractor();
+    }
+
+    private async Task LoadContractor()
+    {
+        _loading = true;
+        try
+        {
+            var response = await Http.GetAsync($"/api/ao-contractors/{Id}");
+            if (response.IsSuccessStatusCode)
+            {
+                _contractor = await response.Content.ReadFromJsonAsync<ContractorDto>();
+                if (_contractor is not null)
+                {
+                    _formContractNumber = _contractor.ContractNumber;
+                    _formContractDate = DateOnly.TryParse(_contractor.ContractDate, out var cd) ? cd : null;
+                    _formValidFrom = DateOnly.TryParse(_contractor.ContractValidFrom, out var vf) ? vf : null;
+                    _formValidTo = DateOnly.TryParse(_contractor.ContractValidTo, out var vt) ? vt : null;
+                    _formDocumentId = _contractor.ContractDocumentId;
+                    _formDocumentName = _contractor.ContractDocumentName;
+                    _formRegistryPrepDays = _contractor.RegistryPreparationDays;
+                    _formRegistryPrepUnit = _contractor.RegistryPreparationUnit;
+                    _formDividendRegPrepDays = _contractor.DividendRegistryPreparationDays;
+                    _formDividendRegPrepUnit = _contractor.DividendRegistryPreparationUnit;
+                    _formRegistryRulesUrl = _contractor.RegistryRulesUrl;
+                    _formRulesDocumentId = _contractor.RegistryRulesDocumentId;
+                    _formRulesDocumentName = _contractor.RegistryRulesDocumentName;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Ошибка загрузки договора");
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    // ── FileUpload callbacks ──
+
+    private void OnContractFileUploaded((Guid FileId, string OriginalName) info)
+    {
+        _formDocumentId = info.FileId;
+        _formDocumentName = info.OriginalName;
+    }
+
+    private void OnRulesFileUploaded((Guid FileId, string OriginalName) info)
+    {
+        _formRulesDocumentId = info.FileId;
+        _formRulesDocumentName = info.OriginalName;
+    }
+
+    // ── Сохранение ──
+
+    private async Task Save()
+    {
+        _saving = true;
+        _errorMessage = null;
+
+        try
+        {
+            using var content = new MultipartFormDataContent();
+            if (_formContractNumber is not null) content.Add(new StringContent(_formContractNumber), "contractNumber");
+            if (_formContractDate.HasValue) content.Add(new StringContent(_formContractDate.Value.ToString("yyyy-MM-dd")), "contractDate");
+            if (_formValidFrom.HasValue) content.Add(new StringContent(_formValidFrom.Value.ToString("yyyy-MM-dd")), "contractValidFrom");
+            if (_formValidTo.HasValue) content.Add(new StringContent(_formValidTo.Value.ToString("yyyy-MM-dd")), "contractValidTo");
+            if (_formRegistryPrepDays.HasValue) content.Add(new StringContent(_formRegistryPrepDays.Value.ToString()), "registryPreparationDays");
+            if (_formRegistryPrepUnit is not null) content.Add(new StringContent(_formRegistryPrepUnit), "registryPreparationUnit");
+            if (_formDividendRegPrepDays.HasValue) content.Add(new StringContent(_formDividendRegPrepDays.Value.ToString()), "dividendRegistryPreparationDays");
+            if (_formDividendRegPrepUnit is not null) content.Add(new StringContent(_formDividendRegPrepUnit), "dividendRegistryPreparationUnit");
+            if (_formRegistryRulesUrl is not null) content.Add(new StringContent(_formRegistryRulesUrl), "registryRulesUrl");
+
+            var response = await Http.PutAsync($"/api/ao-contractors/{Id}", content);
+
+            if (response.IsSuccessStatusCode)
+            {
+                Navigation.NavigateTo("/registrar");
+            }
+            else
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                _errorMessage = $"Ошибка: {error}";
+            }
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Ошибка: {ex.Message}";
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    // ── DTO ──
+
+    private class ContractorDto
+    {
+        public Guid Id { get; set; }
+        public string ContractorInn { get; set; } = "";
+        public string ContractorName { get; set; } = "";
+        public string? ContractNumber { get; set; }
+        public string? ContractDate { get; set; }
+        public string? ContractValidFrom { get; set; }
+        public string? ContractValidTo { get; set; }
+        public Guid? ContractDocumentId { get; set; }
+        public string? ContractDocumentName { get; set; }
+        public int? RegistryPreparationDays { get; set; }
+        public string? RegistryPreparationUnit { get; set; }
+        public int? DividendRegistryPreparationDays { get; set; }
+        public string? DividendRegistryPreparationUnit { get; set; }
+        public string? RegistryRulesUrl { get; set; }
+        public Guid? RegistryRulesDocumentId { get; set; }
+        public string? RegistryRulesDocumentName { get; set; }
+    }
+}
