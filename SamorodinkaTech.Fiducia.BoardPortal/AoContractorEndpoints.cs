@@ -167,10 +167,12 @@ public static class AoContractorEndpoints
             string inn,
             [Microsoft.AspNetCore.Mvc.FromServices] ISparkApiClient? sparkApi,
             IDbContextFactory<FiduciaDbContext> dbFactory,
-            [Microsoft.AspNetCore.Mvc.FromServices] ILogger logger) =>
+            [Microsoft.AspNetCore.Mvc.FromServices] ILoggerFactory loggerFactory) =>
         {
             if (string.IsNullOrWhiteSpace(inn) || inn.Length < MinInnLength)
                 return Results.BadRequest(new { error = "ИНН должен содержать минимум 10 цифр" });
+
+            var logger = loggerFactory.CreateLogger("AoContractors.Diagnose");
 
             await using var ctx = await dbFactory.CreateDbContextAsync();
 

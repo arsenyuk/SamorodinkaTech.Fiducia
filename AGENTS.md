@@ -935,6 +935,34 @@ var scrollLeft = (int)(...) - ScrollToTodayOffsetPx;
 - Цель: при анализе логов сразу видно, какой именно запрос упал и почему,
   без необходимости восстанавливать контекст из стека вызовов.
 
+### URL в UI-сообщениях об ошибках HTTP (КРИТИЧНО)
+
+- Каждое сообщение об ошибке HTTP-запроса, показываемое пользователю через UI
+  (`_formError`, `_sparkWarning`, `_errorMessage` и т.п.), **обязано** содержать
+  полный URL endpoint'а.
+- Формат: `"Ошибка ({StatusCode}) {requestUrl}: {body}"` или
+  `"Ошибка {requestUrl}: {message}"`.
+- Запрещено: `_formError = "Ошибка диагностики (401): "` — без URL пользователь
+  не может сообщить, какой именно запрос упал.
+- Разрешено: `_formError = "Ошибка (401) /api/ao-contractors/diagnose?inn=...: unauthorized"`.
+
+### URL-шаблоны — DRY, вычислять один раз (КРИТИЧНО)
+
+- URL-шаблон вычисляется **один раз** перед `try`-блоком и переиспользуется
+  во всех ветках (`try`, `else`, `catch`).
+- Запрещено дублировать конструирование URL в `try`/`else`/`catch`:
+  ```csharp
+  // ❌ Неправильно
+  try { var response = await http.GetAsync($"/api/x?inn={inn}"); }
+  catch { Logger.LogWarning("Ошибка /api/x?inn={inn}"); } // ← дубль
+  ```
+- Правильно:
+  ```csharp
+  var requestUrl = $"/api/x?inn={inn}";
+  try { var response = await http.GetAsync(requestUrl); }
+  catch { Logger.LogWarning("Ошибка {Url}", requestUrl); }
+  ```
+
 ### Blazor: `@bind` к элементу списка по индексу (КРИТИЧНО)
 
 - Запрещено использовать `@bind="list[i].Property"` в `@for`-цикле.
@@ -1121,6 +1149,41 @@ var scrollLeft = (int)(...) - ScrollToTodayOffsetPx;
   });
   ms.Position = 0;
   // ... теперь безопасно вызывать StateHasChanged()
+  ```
+
+### Blazor Server: HttpClient — только инжектированный из DI (КРИТИЧНО)
+
+- Запрещено создавать `new HttpClient` в компонентах Blazor Server.
+- Использовать инжектированный `HttpClient` из DI (`@inject HttpClient Http`), который
+  настроен с `AuthHeaderHandler` (автоматически добавляет JWT из cookie) и `BaseAddress`.
+- `AuthHeaderHandler` registered в `Program.cs`: `builder.Services.AddHttpClient("BoardPortal").AddHttpMessageHandler<AuthHeaderHandler>()`.
+- Ручное добавление `Authorization` header при использовании `new HttpClient` — обходной путь,
+  который не покрывает все edge cases (обновление токена, обработка ошибок аутентификации).
+
+### Blazor Server: JWT-токен — только из cookie, не из localStorage (КРИТИЧНО)
+
+- JWT-токен в Blazor Server **всегда** читается из HTTP-cookie `SessionToken`.
+- Запрещено: `_jwtToken = await JS.InvokeAsync<string?>("localStorage.getItem", "jwtToken")` —
+  ключ `jwtToken` в localStorage не существует, токен хранится в HttpOnly cookie.
+- Если нужен токен для параметра компонента (например, `FileUpload.Token`):
+  `_jwtToken = HttpContextAccessor.HttpContext?.Request.Cookies["SessionToken"]`.
+- Если HttpContext недоступен — использовать инжектированный `HttpClient` (он сам читает токен
+  через `AuthHeaderHandler`).
+
+### ILogger в Minimal API — только ILoggerFactory (КРИТИЧНО)
+
+- В Minimal API endpoint'ах использовать `ILoggerFactory` + `CreateLogger("Category.Name")`.
+- Запрещено: `ILogger` (без generic) — не зарегистрирован в DI.
+- Запрещено: `ILogger<StaticClass>` — static классы не могут быть generic-аргументом.
+- Шаблон:
+  ```csharp
+  aoContractors.MapGet("/diagnose", async (
+      string inn,
+      ILoggerFactory loggerFactory) =>
+  {
+      var logger = loggerFactory.CreateLogger("AoContractors.Diagnose");
+      // ...
+  });
   ```
 
 ### Правило: отображение загруженного файла через FileUpload (КРИТИЧНО)
