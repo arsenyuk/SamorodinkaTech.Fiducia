@@ -125,7 +125,8 @@
     private void Edit(TplOrgStage s)
     {
         _editingId = s.Id; _editName = s.Name; _editOffset = s.StartOffsetDays;
-        _editDeadlineRule = s.DeadlineRule ?? ""; _editDeadlineDays = s.DeadlineDays; _editSort = s.SortOrder; _showForm = true;
+        _editDeadlineRule = s.DeadlineRule ?? ""; _editDeadlineDays = s.DeadlineDays;
+        _editSort = s.SortOrder; _showForm = true;
     }
 
     private void CancelForm() { _showForm = false; _editingId = null; }
@@ -142,13 +143,15 @@
                 if (e != null)
                 {
                     e.Name = _editName.Trim(); e.StartOffsetDays = _editOffset;
-                    e.DeadlineRule = (string.IsNullOrWhiteSpace(_editDeadlineRule) ? null : _editDeadlineRule.Trim()); e.DeadlineDays = _editDeadlineDays; e.SortOrder = _editSort;
+                    e.DeadlineRule = (string.IsNullOrWhiteSpace(_editDeadlineRule) ? null : _editDeadlineRule.Trim()); e.DeadlineDays = _editDeadlineDays;
+                    e.SortOrder = _editSort;
                 }
             }
             else
             {
                 ctx.TplOrgStages.Add(new TplOrgStage { Id = Guid.NewGuid(), Name = _editName.Trim(), IntentId = IntentId,
-                    StartOffsetDays = _editOffset, DeadlineRule = (string.IsNullOrWhiteSpace(_editDeadlineRule) ? null : _editDeadlineRule.Trim()), DeadlineDays = _editDeadlineDays, SortOrder = _editSort });
+                    StartOffsetDays = _editOffset, DeadlineRule = (string.IsNullOrWhiteSpace(_editDeadlineRule) ? null : _editDeadlineRule.Trim()), DeadlineDays = _editDeadlineDays,
+                    SortOrder = _editSort });
             }
             await ctx.SaveChangesAsync();
             CancelForm(); await LoadAsync();

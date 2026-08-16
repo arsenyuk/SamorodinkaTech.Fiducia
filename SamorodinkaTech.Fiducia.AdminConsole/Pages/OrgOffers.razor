@@ -56,6 +56,16 @@
                     <input class="form-control" type="number" @bind="_editDeadlineDays" />
                 </div>
                 <div class="col-md-2">
+                    <label class="form-label">Ед. изм.</label>
+                    <select class="form-select" @bind="_editMeasurementUnitId">
+                        <option value="">— не указано —</option>
+                        @foreach (var mu in _measurementUnits)
+                        {
+                            <option value="@mu.Id">@mu.ShortName</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-2">
                     <label class="form-label">Должность СД</label>
                     <select class="form-select" @bind="_editBoardRoleId">
                         <option value="">— нет —</option>
@@ -147,8 +157,8 @@
     {
         var deadlineLabel = s.DeadlineRule switch
         {
-            "FIXED_DAYS" => $"+{s.DeadlineDays} дн.",
-            "AFTER_START" => $"после нач. +{s.DeadlineDays} дн.",
+            "FIXED_DAYS" => $"+{s.DeadlineDays} {s.MeasurementUnit?.ShortName ?? "дн."}",
+            "AFTER_START" => $"после нач. +{s.DeadlineDays} {s.MeasurementUnit?.ShortName ?? "дн."}",
             _ => "—"
         };
         var boardRoleName = _boardRoles.FirstOrDefault(r => r.Id == s.AssignedBoardRoleId)?.Name ?? "—";
@@ -182,6 +192,7 @@
     private List<TplOrgTaskOffer> _items = new();
     private List<SamorodinkaTech.Fiducia.Domain.Entities.RefRole> _roles = new();
     private List<SamorodinkaTech.Fiducia.Domain.Entities.RefBoardRole> _boardRoles = new();
+    private List<RefMeasurementUnit> _measurementUnits = new();
     private Dictionary<Guid, List<string>> _offerRoleNames = new();
     private Dictionary<Guid, string> _predecessorNames = new();
     private string? _stageName;
@@ -196,6 +207,7 @@
     private int? _editOffset;
     private string _editDeadlineRule = "";
     private int? _editDeadlineDays;
+    private string? _editMeasurementUnitId;
     private string _editBoardRoleId = "";
     private bool _editNotaryConfirmation;
     private bool _editAllSignConfirmation;
@@ -223,6 +235,7 @@
             }
             _roles = await ctx.Roles.OrderBy(x => x.Name).ToListAsync();
             _boardRoles = await ctx.BoardRoles.OrderBy(x => x.SortOrder).ThenBy(x => x.Name).ToListAsync();
+            _measurementUnits = await ctx.RefMeasurementUnits.OrderBy(x => x.SortOrder).ToListAsync();
             _items = await ctx.TplOrgOffers.Where(x => x.StageId == StageId).OrderBy(x => x.StartOffsetDays ?? 0).ThenBy(x => x.Name).ToListAsync();
             // Загружаем все оферы intent'а для разрешения имён предшественников (кросс-этапные ссылки)
             List<TplOrgTaskOffer>? allOffers = null;
@@ -254,6 +267,7 @@
     {
         _editingId = o.Id; _editName = o.Name; _editDesc = o.Description ?? "";
         _editOffset = o.StartOffsetDays; _editDeadlineRule = o.DeadlineRule ?? ""; _editDeadlineDays = o.DeadlineDays;
+        _editMeasurementUnitId = o.MeasurementUnitId?.ToString();
         _editBoardRoleId = o.AssignedBoardRoleId?.ToString() ?? "";
         _editNotaryConfirmation = o.RequireNotaryConfirmation ?? false;
         _editAllSignConfirmation = o.RequireAllSignConfirmation ?? false;
@@ -291,6 +305,7 @@
         {
             await using var ctx = await DbFactory.CreateDbContextAsync();
             Guid? boardRoleId = Guid.TryParse(_editBoardRoleId, out var brId) ? brId : null;
+            Guid? measurementUnitId = Guid.TryParse(_editMeasurementUnitId, out var muId) ? muId : null;
             if (_editingId.HasValue)
             {
                 var e = await ctx.TplOrgOffers.FirstOrDefaultAsync(x => x.Id == _editingId.Value);
@@ -300,6 +315,7 @@
                     e.StartOffsetDays = _editOffset;
                     e.DeadlineRule = (string.IsNullOrWhiteSpace(_editDeadlineRule) ? null : _editDeadlineRule.Trim());
                     e.DeadlineDays = _editDeadlineDays;
+                    e.MeasurementUnitId = measurementUnitId;
                     e.AssignedBoardRoleId = boardRoleId;
                     e.RequireNotaryConfirmation = _editNotaryConfirmation ? true : null;
                     e.RequireAllSignConfirmation = _editAllSignConfirmation ? true : null;
@@ -321,6 +337,7 @@
                     StartOffsetDays = _editOffset,
                     DeadlineRule = (string.IsNullOrWhiteSpace(_editDeadlineRule) ? null : _editDeadlineRule.Trim()),
                     DeadlineDays = _editDeadlineDays,
+                    MeasurementUnitId = measurementUnitId,
                     AssignedBoardRoleId = boardRoleId,
                     RequireNotaryConfirmation = _editNotaryConfirmation ? true : null,
                     RequireAllSignConfirmation = _editAllSignConfirmation ? true : null,

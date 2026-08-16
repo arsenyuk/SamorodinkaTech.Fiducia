@@ -923,6 +923,7 @@ CREATE TABLE IF NOT EXISTS tpl_org_offers (
     start_offset_days int,
     deadline_rule varchar(100),
     deadline_days int,
+    measurement_unit_id uuid REFERENCES ref_measurement_unit(id),
     assigned_role_id uuid REFERENCES ref_roles(id),
     assigned_board_role_id uuid REFERENCES ref_board_roles(id),
     require_notary_confirmation boolean,

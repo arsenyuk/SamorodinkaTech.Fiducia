@@ -243,6 +243,7 @@ dotnet format --verify-no-changes
 - Display-имена: `src/Domain/Enums/MeasurementUnitExtensions.cs`
 - Использование: `unit.GetDisplayName()` / `unit.GetShortName()`
 - Запрещено хардкодить строки «Календарный день» / «Рабочий день» в razor/cs файлах.
+- Используется в шаблонах задач (`tpl_org_offers`) через FK `measurement_unit_id` → `ref_measurement_unit(id)` для указания единицы измерения `start_offset_days` и `deadline_days`.
 
 ### Правило: единственный вызов ApplyConfigurationsFromAssembly (КРИТИЧНО)
 

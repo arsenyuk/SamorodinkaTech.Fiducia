@@ -30,6 +30,12 @@ public class TplOrgTaskOffer
     /// <summary>Количество дней до дедлайна (deadline_days).</summary>
     public int? DeadlineDays { get; set; }
 
+    /// <summary>Единица измерения сроков (measurement_unit_id).</summary>
+    public Guid? MeasurementUnitId { get; set; }
+
+    /// <summary>Справочник единиц измерения.</summary>
+    public RefMeasurementUnit? MeasurementUnit { get; set; }
+
     /// <summary>Роли-кандидаты для данного офера.</summary>
     public ICollection<TplOrgOfferRole>? OfferRoles { get; set; }
 

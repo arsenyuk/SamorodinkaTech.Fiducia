@@ -16,6 +16,10 @@ public static class WorkingDayHelper
     public static DateOnly GetNextWorkingDay(DateOnly date, IReadOnlySet<DateOnly>? holidays = null)
         => WorkCalendar.GetNextWorkingDay(date, holidays);
 
+    /// <summary>Добавить N рабочих дней к дате. Считает только рабочие дни (исключает выходные и праздники).</summary>
+    public static DateOnly AddBusinessDays(DateOnly date, int businessDays, IReadOnlySet<DateOnly>? holidays = null)
+        => WorkCalendar.AddBusinessDays(date, businessDays, holidays);
+
     /// <summary>Возвращает множество официальных нерабочих праздничных дней РФ за указанный год.</summary>
     public static HashSet<DateOnly> GetHolidays(int year)
         => WorkCalendar.GetHolidays(year);

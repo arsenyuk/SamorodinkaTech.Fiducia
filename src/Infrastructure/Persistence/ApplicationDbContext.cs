@@ -624,6 +624,8 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.Property(x => x.StartOffsetDays).HasColumnName("start_offset_days");
             b.Property(x => x.DeadlineRule).HasColumnName("deadline_rule").HasMaxLength(100);
             b.Property(x => x.DeadlineDays).HasColumnName("deadline_days");
+            b.Property(x => x.MeasurementUnitId).HasColumnName("measurement_unit_id");
+            b.HasOne(x => x.MeasurementUnit).WithMany().HasForeignKey(x => x.MeasurementUnitId).OnDelete(DeleteBehavior.Restrict);
             b.Property(x => x.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("CURRENT_TIMESTAMP");
             b.HasOne(x => x.Stage).WithMany(x => x.Offers).HasForeignKey(x => x.StageId);
             b.Property(x => x.AssignedRoleId).HasColumnName("assigned_role_id");

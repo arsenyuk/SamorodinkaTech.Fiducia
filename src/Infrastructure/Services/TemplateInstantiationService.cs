@@ -113,7 +113,7 @@ public class TemplateInstantiationService : ITemplateInstantiationService
                 }
 
                 var stageStart = WorkingDayHelper.GetNextWorkingDay(rawStart, holidays);
-                var stageEnd = ComputeDeadline(stageStart, ts.DeadlineRule, ts.DeadlineDays, holidays);
+                var stageEnd = ComputeDeadline(stageStart, ts.DeadlineRule, ts.DeadlineDays, null, holidays);
 
                 var stage = new OrgStage
                 {
@@ -148,9 +148,11 @@ public class TemplateInstantiationService : ITemplateInstantiationService
                             continue;
                         }
 
-                        var taskStart = WorkingDayHelper.GetNextWorkingDay(
-                            stageStart.AddDays(to.StartOffsetDays ?? 0), holidays);
-                        var taskEnd = ComputeDeadline(taskStart, to.DeadlineRule, to.DeadlineDays, holidays);
+                        var unitCode = to.MeasurementUnit?.Code;
+                        var taskStart = AddOffset(stageStart, to.StartOffsetDays ?? 0, unitCode, holidays);
+                        if (unitCode == "BUSINESS")
+                            taskStart = WorkingDayHelper.GetNextWorkingDay(taskStart, holidays);
+                        var taskEnd = ComputeDeadline(taskStart, to.DeadlineRule, to.DeadlineDays, unitCode, holidays);
 
                         var task = new OrgTask
                         {
@@ -229,18 +231,33 @@ public class TemplateInstantiationService : ITemplateInstantiationService
         return taskCount;
     }
 
-    private static DateOnly? ComputeDeadline(DateOnly start, string? rule, int? days, IReadOnlySet<DateOnly> holidays)
+    private static DateOnly? ComputeDeadline(DateOnly start, string? rule, int? days, string? unitCode, IReadOnlySet<DateOnly> holidays)
     {
         if (string.IsNullOrEmpty(rule) || !days.HasValue) return null;
+
         var deadline = rule switch
         {
+            "FIXED_DAYS" when unitCode == "BUSINESS"
+                => WorkingDayHelper.AddBusinessDays(start, Math.Max(0, days.Value - 1), holidays),
             "FIXED_DAYS" => start.AddDays(Math.Max(0, days.Value - 1)),
+            "AFTER_START" when unitCode == "BUSINESS"
+                => WorkingDayHelper.AddBusinessDays(start, days.Value, holidays),
             "AFTER_START" => start.AddDays(days.Value),
             _ => (DateOnly?)null
         };
-        if (deadline.HasValue && WorkingDayHelper.IsNonWorking(deadline.Value, holidays))
+
+        // Snap только для BUSINESS (для CALENDAR — оставляем как есть)
+        if (unitCode == "BUSINESS" && deadline.HasValue && WorkingDayHelper.IsNonWorking(deadline.Value, holidays))
             return WorkingDayHelper.GetNextWorkingDay(deadline.Value, holidays);
+
         return deadline;
+    }
+
+    private static DateOnly AddOffset(DateOnly date, int offset, string? unitCode, IReadOnlySet<DateOnly> holidays)
+    {
+        if (unitCode == "BUSINESS")
+            return WorkingDayHelper.AddBusinessDays(date, offset, holidays);
+        return date.AddDays(offset);
     }
 
     private static bool ShouldInclude(TplOrgTaskOffer to, LegalEntityCharter? charter, LegalEntityBoardSettings? board, Guid? boardOfDirectorsId, LegalEntityVotingRules? rules)

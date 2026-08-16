@@ -135,4 +135,21 @@ public static class WorkCalendar
         return date;
     }
 
+    /// <summary>
+    /// Добавить N рабочих дней к дате. Считает только рабочие дни (исключает выходные и праздники).
+    /// </summary>
+    public static DateOnly AddBusinessDays(DateOnly date, int businessDays, IReadOnlySet<DateOnly>? holidays = null)
+    {
+        var current = date;
+        var direction = businessDays >= 0 ? 1 : -1;
+        var remaining = Math.Abs(businessDays);
+        while (remaining > 0)
+        {
+            current = current.AddDays(direction);
+            if (!IsNonWorking(current, holidays))
+                remaining--;
+        }
+        return current;
+    }
+
 }
