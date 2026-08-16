@@ -130,6 +130,8 @@ public class TemplateInstantiationService : ITemplateInstantiationService
                 ctx.OrgStages.Add(stage);
                 stageMap[ts.Id] = stage.Id;
 
+                var stageTasks = new List<OrgTask>();
+
                 if (ts.Offers != null)
                 {
                     foreach (var to in ts.Offers.OrderBy(o => o.StartOffsetDays ?? 0).ThenBy(o => o.Name))
@@ -169,11 +171,40 @@ public class TemplateInstantiationService : ITemplateInstantiationService
                         };
                         ctx.OrgTasks.Add(task);
                         taskMap[to.Id] = task.Id;
+                        stageTasks.Add(task);
                         taskCount++;
 
                         // Окончание этапа расширяется до максимальной даты окончания его задач
                         if (taskEnd.HasValue && (stage.PlannedEnd == null || taskEnd.Value > stage.PlannedEnd.Value))
                             stage.PlannedEnd = taskEnd.Value;
+                    }
+                }
+
+                // Определение SS-связей: задачи с одинаковым PlannedStart в рамках этапа
+                if (stageTasks.Count > 1)
+                {
+                    var ssGroups = stageTasks
+                        .GroupBy(t => t.PlannedStart)
+                        .Where(g => g.Count() > 1);
+
+                    foreach (var group in ssGroups)
+                    {
+                        var tasks = group.OrderBy(t => t.Name).ToList();
+                        var firstTaskId = tasks[0].Id;
+
+                        for (int i = 1; i < tasks.Count; i++)
+                        {
+                            var existingPredecessors = string.IsNullOrEmpty(tasks[i].PredecessorTaskIds)
+                                ? new List<Guid>()
+                                : JsonSerializer.Deserialize<List<Guid>>(tasks[i].PredecessorTaskIds!)
+                                  ?? new List<Guid>();
+
+                            if (!existingPredecessors.Contains(firstTaskId))
+                            {
+                                existingPredecessors.Add(firstTaskId);
+                                tasks[i].PredecessorTaskIds = JsonSerializer.Serialize(existingPredecessors);
+                            }
+                        }
                     }
                 }
 
