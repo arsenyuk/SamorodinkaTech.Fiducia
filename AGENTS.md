@@ -1159,6 +1159,9 @@ var scrollLeft = (int)(...) - ScrollToTodayOffsetPx;
 - `AuthHeaderHandler` registered в `Program.cs`: `builder.Services.AddHttpClient("BoardPortal").AddHttpMessageHandler<AuthHeaderHandler>()`.
 - Ручное добавление `Authorization` header при использовании `new HttpClient` — обходной путь,
   который не покрывает все edge cases (обновление токена, обработка ошибок аутентификации).
+- **Запрещено** оборачивать инжектированный `HttpClient` в `using` — DI управляет его
+  жизненным циклом. `using var http = Http;` приводит к `ObjectDisposedException` при
+  повторных вызовах. Использовать `Http` напрямую.
 
 ### Blazor Server: JWT-токен — только из cookie, не из localStorage (КРИТИЧНО)
 

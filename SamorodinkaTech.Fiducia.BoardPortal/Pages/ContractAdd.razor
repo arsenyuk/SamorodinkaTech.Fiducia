@@ -522,7 +522,7 @@
 
         try
         {
-            using var http = Http;
+            var http = Http;
             var response = await http.GetAsync(requestUrl);
             if (response.IsSuccessStatusCode)
             {
@@ -582,7 +582,7 @@
 
         try
         {
-            using var http = Http;
+            var http = Http;
             var fullUrl = new Uri(http.BaseAddress!, requestUrl.TrimStart('/'));
             Logger.LogDebug("Диагностика: GET {Url}, токен={HasToken}", fullUrl, !string.IsNullOrEmpty(_jwtToken) ? "есть" : "ОТСУТСТВУЕТ");
 
@@ -688,7 +688,7 @@
 
         try
         {
-            using var http = Http;
+            var http = Http;
 
             using var content = new MultipartFormDataContent();
             content.Add(new StringContent(_formInn!.Trim()), "contractorInn");
