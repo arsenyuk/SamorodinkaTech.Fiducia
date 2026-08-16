@@ -151,8 +151,8 @@
                             <label class="form-label">Единица измерения</label>
                             <select class="form-select" @bind="_formRegistryPrepUnit">
                                 <option value="">Не указано</option>
-                                <option value="CALENDAR">Календарный день</option>
-                                <option value="BUSINESS">Рабочий день</option>
+                                <option value="CALENDAR">@MeasurementUnit.CALENDAR.GetDisplayName()</option>
+                                <option value="BUSINESS">@MeasurementUnit.BUSINESS.GetDisplayName()</option>
                             </select>
                         </div>
                     </div>
@@ -166,8 +166,8 @@
                             <label class="form-label">Единица измерения</label>
                             <select class="form-select" @bind="_formDividendRegPrepUnit">
                                 <option value="">Не указано</option>
-                                <option value="CALENDAR">Календарный день</option>
-                                <option value="BUSINESS">Рабочий день</option>
+                                <option value="CALENDAR">@MeasurementUnit.CALENDAR.GetDisplayName()</option>
+                                <option value="BUSINESS">@MeasurementUnit.BUSINESS.GetDisplayName()</option>
                             </select>
                         </div>
                     </div>

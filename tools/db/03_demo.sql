@@ -799,7 +799,7 @@ VALUES (gen_random_uuid(), '7726030449', 1315037838974, '1027739216757',
     '107076, Г.МОСКВА, УЛ. СТРОМЫНКА, Д. 18, К. 5Б, ПОМЕЩ. IX',
     '+7 (495) 780-73-63', 'info@rrost.ru', 45, 'город Москва', 'PT,SD,OIP',
     'Active', true, false, false, false, NULL, NULL, NULL, NULL, false,
-    NULL, NULL, NULL, NOW());
+    NULL, 'www.rrost.ru', NULL, NOW());
 
 INSERT INTO ext_cbr_finorg_license (id, organization_inn, vid_id, activity_name, number, name, start_date, end_date, fetched_at)
 VALUES
@@ -814,12 +814,12 @@ VALUES
 
 -- 2. АО ВТБ Регистратор
 INSERT INTO ext_cbr_finorg_organization (id, inn, cbr_id, ogrn, full_name, short_name,
-    address, phones, email, okato, region, fo_types, status, is_sro_member, fetched_at)
+    address, phones, email, okato, region, fo_types, status, is_sro_member, web_sites, fetched_at)
 VALUES (gen_random_uuid(), '5610083568', NULL, NULL,
     'Акционерное общество ВТБ Регистратор',
     'АО ВТБ Регистратор',
     '127015, Г. МОСКВА, УЛ. ПРАВДЫ, Д. 23', NULL, 'oip@vtbreg.ru',
-    45, 'город Москва', 'PT', 'Active', true, NOW());
+    45, 'город Москва', 'PT', 'Active', true, 'www.vtbreg.com', NOW());
 
 INSERT INTO ext_cbr_finorg_license (id, organization_inn, vid_id, activity_name, number, name, start_date, end_date, fetched_at)
 VALUES (gen_random_uuid(), '5610083568', 4, 'Деятельность по ведению реестра владельцев ценных бумаг',
@@ -969,3 +969,225 @@ VALUES (gen_random_uuid(), '9719011583', NULL, NULL,
     'ООО «СКРИН»',
     '125009, Г.МОСКВА', NULL,
     45, 'город Москва', 'IA', 'Active', false, NOW());
+
+-- ============================================================================
+-- Дополнительные регистраторы (недостающие из документации)
+-- Источник: docs/laws/article-registrars.md
+-- ============================================================================
+
+-- 14. АО «Реестр-Протон» (ИНН 9702074105)
+INSERT INTO ext_cbr_finorg_organization (id, inn, full_name, short_name, address, email, region, fo_types, status, web_sites, fetched_at)
+VALUES (gen_random_uuid(), '9702074105', 'Акционерное общество «Реестр-Протон»', 'АО «Реестр-Протон»',
+    '129110, г. Москва', NULL, 'город Москва', 'PT', 'Active', 'www.reestr-proton.ru', NOW());
+INSERT INTO ext_cbr_finorg_license (id, organization_inn, vid_id, activity_name, name, start_date, fetched_at)
+VALUES (gen_random_uuid(), '9702074105', 4, 'Деятельность по ведению реестра владельцев ценных бумаг', 'Ведение реестра', '2002-01-01', NOW());
+
+-- 15. АО «СДК «Сириус»» (ИНН 9703197607)
+INSERT INTO ext_cbr_finorg_organization (id, inn, full_name, short_name, address, email, region, fo_types, status, web_sites, fetched_at)
+VALUES (gen_random_uuid(), '9703197607', 'Акционерное общество «Специализированная депозитарная компания «Сириус»', 'АО «СДК «Сириус»»',
+    '123100, г. Москва', NULL, 'город Москва', 'PT', 'Active', 'www.sdksirius.ru', NOW());
+INSERT INTO ext_cbr_finorg_license (id, organization_inn, vid_id, activity_name, name, start_date, fetched_at)
+VALUES (gen_random_uuid(), '9703197607', 4, 'Деятельность по ведению реестра владельцев ценных бумаг', 'Ведение реестра', '2002-01-01', NOW());
+
+-- 16. АО «Сургутинвестнефть» (ИНН 8602039063)
+INSERT INTO ext_cbr_finorg_organization (id, inn, full_name, short_name, address, email, region, fo_types, status, web_sites, fetched_at)
+VALUES (gen_random_uuid(), '8602039063', 'Акционерное общество «Сургутинвестнефть»', 'АО «Сургутинвестнефть»',
+    '628400, г. Сургут', NULL, 'Ханты-Мансийский автономный округ', 'PT', 'Active', 'www.sineft.ru', NOW());
+INSERT INTO ext_cbr_finorg_license (id, organization_inn, vid_id, activity_name, name, start_date, fetched_at)
+VALUES (gen_random_uuid(), '8602039063', 4, 'Деятельность по ведению реестра владельцев ценных бумаг', 'Ведение реестра', '2002-01-01', NOW());
+
+-- 17. ООО «ЕАР» (ИНН 1660055801)
+INSERT INTO ext_cbr_finorg_organization (id, inn, full_name, short_name, address, email, region, fo_types, status, web_sites, fetched_at)
+VALUES (gen_random_uuid(), '1660055801', 'Общество с ограниченной ответственностью «Евроазиатский Регистратор»', 'ООО «ЕАР»',
+    '420097, г. Казань', NULL, 'Республика Татарстан', 'PT', 'Active', 'www.earc.ru', NOW());
+INSERT INTO ext_cbr_finorg_license (id, organization_inn, vid_id, activity_name, name, start_date, fetched_at)
+VALUES (gen_random_uuid(), '1660055801', 4, 'Деятельность по ведению реестра владельцев ценных бумаг', 'Ведение реестра', '2002-01-01', NOW());
+
+-- 18. ООО «Оборонрегистр» (ИНН 7731513346)
+INSERT INTO ext_cbr_finorg_organization (id, inn, full_name, short_name, address, email, region, fo_types, status, web_sites, fetched_at)
+VALUES (gen_random_uuid(), '7731513346', 'Общество с ограниченной ответственностью «Оборонрегистр»', 'ООО «Оборонрегистр»',
+    '105066, г. Москва, ул. Старая Басманная', NULL, 'город Москва', 'PT', 'Active', 'www.oboronregistr.ru', NOW());
+INSERT INTO ext_cbr_finorg_license (id, organization_inn, vid_id, activity_name, name, start_date, fetched_at)
+VALUES (gen_random_uuid(), '7731513346', 4, 'Деятельность по ведению реестра владельцев ценных бумаг', 'Ведение реестра', '2002-01-01', NOW());
+
+-- 19. ООО «ПАРТНЁР» (ИНН 3528218586)
+INSERT INTO ext_cbr_finorg_organization (id, inn, full_name, short_name, address, email, region, fo_types, status, web_sites, fetched_at)
+VALUES (gen_random_uuid(), '3528218586', 'Общество с ограниченной ответственностью «ПАРТНЁР»', 'ООО «ПАРТНЁР»',
+    '162606, г. Череповец', NULL, 'Вологодская область', 'PT', 'Active', 'www.partner-reestr.ru', NOW());
+INSERT INTO ext_cbr_finorg_license (id, organization_inn, vid_id, activity_name, name, start_date, fetched_at)
+VALUES (gen_random_uuid(), '3528218586', 4, 'Деятельность по ведению реестра владельцев ценных бумаг', 'Ведение реестра', '2002-01-01', NOW());
+
+-- 20. ООО «Регистратор "Гарант"» (ИНН 7703802628)
+INSERT INTO ext_cbr_finorg_organization (id, inn, full_name, short_name, address, email, region, fo_types, status, web_sites, fetched_at)
+VALUES (gen_random_uuid(), '7703802628', 'Общество с ограниченной ответственностью «Регистратор "Гарант"»', 'ООО «Регистратор "Гарант"»',
+    '123100, г. Москва', NULL, 'город Москва', 'PT', 'Active', 'www.invest.reggarant.ru', NOW());
+INSERT INTO ext_cbr_finorg_license (id, organization_inn, vid_id, activity_name, name, start_date, fetched_at)
+VALUES (gen_random_uuid(), '7703802628', 4, 'Деятельность по ведению реестра владельцев ценных бумаг', 'Ведение реестра', '2002-01-01', NOW());
+
+-- 21. АО РК «Центр-Инвест» (ИНН 7726050935)
+INSERT INTO ext_cbr_finorg_organization (id, inn, full_name, short_name, address, email, region, fo_types, status, web_sites, fetched_at)
+VALUES (gen_random_uuid(), '7726050935', 'Акционерное общество «Регистрационная Компания Центр-Инвест»', 'АО РК «Центр-Инвест»',
+    '107023, г. Москва', NULL, 'город Москва', 'PT', 'Active', 'www.centr-invest.ru', NOW());
+INSERT INTO ext_cbr_finorg_license (id, organization_inn, vid_id, activity_name, name, start_date, fetched_at)
+VALUES (gen_random_uuid(), '7726050935', 4, 'Деятельность по ведению реестра владельцев ценных бумаг', 'Ведение реестра', '2002-01-01', NOW());
+
+-- 22. АО «Новый регистратор» (ИНН 7719263354)
+INSERT INTO ext_cbr_finorg_organization (id, inn, full_name, short_name, address, email, region, fo_types, status, web_sites, fetched_at)
+VALUES (gen_random_uuid(), '7719263354', 'Акционерное общество «Новый регистратор»', 'АО «Новый регистратор»',
+    '107996, г. Москва, ул. Буженинова, д. 30', NULL, 'город Москва', 'PT', 'Active', 'www.newreg.ru', NOW());
+INSERT INTO ext_cbr_finorg_license (id, organization_inn, vid_id, activity_name, name, start_date, fetched_at)
+VALUES (gen_random_uuid(), '7719263354', 4, 'Деятельность по ведению реестра владельцев ценных бумаг', 'Ведение реестра', '2002-01-01', NOW());
+
+-- 23. АО «Индустрия-РЕЕСТР» (ИНН 3302021034)
+INSERT INTO ext_cbr_finorg_organization (id, inn, full_name, short_name, address, email, region, fo_types, status, web_sites, fetched_at)
+VALUES (gen_random_uuid(), '3302021034', 'Акционерное общество «Индустрия-РЕЕСТР»', 'АО «Индустрия-РЕЕСТР»',
+    '107113, г. Москва', NULL, 'город Москва', 'PT', 'Active', 'www.industria-reestr.ru', NOW());
+INSERT INTO ext_cbr_finorg_license (id, organization_inn, vid_id, activity_name, name, start_date, fetched_at)
+VALUES (gen_random_uuid(), '3302021034', 4, 'Деятельность по ведению реестра владельцев ценных бумаг', 'Ведение реестра', '2002-01-01', NOW());
+
+-- 24. АО «РДЦ ПАРИТЕТ» (ИНН 7723103642)
+INSERT INTO ext_cbr_finorg_organization (id, inn, full_name, short_name, address, email, region, fo_types, status, web_sites, fetched_at)
+VALUES (gen_random_uuid(), '7723103642', 'Акционерное общество «РДЦ ПАРИТЕТ»', 'АО «РДЦ ПАРИТЕТ»',
+    '115114, г. Москва', NULL, 'город Москва', 'PT', 'Active', 'www.paritet.ru', NOW());
+INSERT INTO ext_cbr_finorg_license (id, organization_inn, vid_id, activity_name, name, start_date, fetched_at)
+VALUES (gen_random_uuid(), '7723103642', 4, 'Деятельность по ведению реестра владельцев ценных бумаг', 'Ведение реестра', '2002-01-01', NOW());
+
+-- 25. АО «РЕГИСТРАТОР ИНТРАКО» (ИНН 5903027161)
+INSERT INTO ext_cbr_finorg_organization (id, inn, full_name, short_name, address, email, region, fo_types, status, web_sites, fetched_at)
+VALUES (gen_random_uuid(), '5903027161', 'Акционерное общество «Регистратор Интрако»', 'АО «РЕГИСТРАТОР ИНТРАКО»',
+    '614000, г. Пермь', NULL, 'Пермский край', 'PT', 'Active', 'www.intraco.ru', NOW());
+INSERT INTO ext_cbr_finorg_license (id, organization_inn, vid_id, activity_name, name, start_date, fetched_at)
+VALUES (gen_random_uuid(), '5903027161', 4, 'Деятельность по ведению реестра владельцев ценных бумаг', 'Ведение реестра', '2002-01-01', NOW());
+
+-- 26. АО «Регистратор-Капитал» (ИНН 6659035711)
+INSERT INTO ext_cbr_finorg_organization (id, inn, full_name, short_name, address, email, region, fo_types, status, web_sites, fetched_at)
+VALUES (gen_random_uuid(), '6659035711', 'Акционерное общество «Регистратор-Капитал»', 'АО «Регистратор-Капитал»',
+    '620041, г. Екатеринбург', NULL, 'Свердловская область', 'PT', 'Active', 'www.regkap.ru', NOW());
+INSERT INTO ext_cbr_finorg_license (id, organization_inn, vid_id, activity_name, name, start_date, fetched_at)
+VALUES (gen_random_uuid(), '6659035711', 4, 'Деятельность по ведению реестра владельцев ценных бумаг', 'Ведение реестра', '2002-01-01', NOW());
+
+-- 27. АО «ВРК» (ИНН 6661049239)
+INSERT INTO ext_cbr_finorg_organization (id, inn, full_name, short_name, address, email, region, fo_types, status, web_sites, fetched_at)
+VALUES (gen_random_uuid(), '6661049239', 'Акционерное общество «Ведение реестров компаний»', 'АО «ВРК»',
+    '620014, г. Екатеринбург', NULL, 'Свердловская область', 'PT', 'Active', 'www.vrk.ru', NOW());
+INSERT INTO ext_cbr_finorg_license (id, organization_inn, vid_id, activity_name, name, start_date, fetched_at)
+VALUES (gen_random_uuid(), '6661049239', 4, 'Деятельность по ведению реестра владельцев ценных бумаг', 'Ведение реестра', '2002-01-01', NOW());
+
+-- 28. АО «ПРЦ» (ИНН 3821010220)
+INSERT INTO ext_cbr_finorg_organization (id, inn, full_name, short_name, address, email, region, fo_types, status, web_sites, fetched_at)
+VALUES (gen_random_uuid(), '3821010220', 'Акционерное общество «Профессиональный регистрационный центр»', 'АО «ПРЦ»',
+    '117452, г. Москва', NULL, 'город Москва', 'PT', 'Active', 'www.profrc.ru', NOW());
+INSERT INTO ext_cbr_finorg_license (id, organization_inn, vid_id, activity_name, name, start_date, fetched_at)
+VALUES (gen_random_uuid(), '3821010220', 4, 'Деятельность по ведению реестра владельцев ценных бумаг', 'Ведение реестра', '2002-01-01', NOW());
+
+-- 29. АО «Сервис-Реестр» (ИНН 8605006147)
+INSERT INTO ext_cbr_finorg_organization (id, inn, full_name, short_name, address, email, region, fo_types, status, web_sites, fetched_at)
+VALUES (gen_random_uuid(), '8605006147', 'Акционерное общество «Сервис-Реестр»', 'АО «Сервис-Реестр»',
+    '107045, г. Москва', NULL, 'город Москва', 'PT', 'Active', 'www.servis-reestr.ru', NOW());
+INSERT INTO ext_cbr_finorg_license (id, organization_inn, vid_id, activity_name, name, start_date, fetched_at)
+VALUES (gen_random_uuid(), '8605006147', 4, 'Деятельность по ведению реестра владельцев ценных бумаг', 'Ведение реестра', '2002-01-01', NOW());
+
+-- 30. АО «СРК «КОМПАС»» (ИНН 4217027573)
+INSERT INTO ext_cbr_finorg_organization (id, inn, full_name, short_name, address, email, region, fo_types, status, web_sites, fetched_at)
+VALUES (gen_random_uuid(), '4217027573', 'Акционерное общество «Специализированный Регистратор "КОМПАС"»', 'АО «СРК «КОМПАС»»',
+    '654005, г. Новокузнецк', NULL, 'Кемеровская область', 'PT', 'Active', 'www.in-ko.ru', NOW());
+INSERT INTO ext_cbr_finorg_license (id, organization_inn, vid_id, activity_name, name, start_date, fetched_at)
+VALUES (gen_random_uuid(), '4217027573', 4, 'Деятельность по ведению реестра владельцев ценных бумаг', 'Ведение реестра', '2002-01-01', NOW());
+
+-- 31. АО «РТ-Регистратор» (ИНН 5407175878)
+INSERT INTO ext_cbr_finorg_organization (id, inn, full_name, short_name, address, email, region, fo_types, status, web_sites, fetched_at)
+VALUES (gen_random_uuid(), '5407175878', 'Акционерное общество «РТ-Регистратор»', 'АО «РТ-Регистратор»',
+    '119049, г. Москва', NULL, 'город Москва', 'PT', 'Active', 'www.rtreg.ru', NOW());
+INSERT INTO ext_cbr_finorg_license (id, organization_inn, vid_id, activity_name, name, start_date, fetched_at)
+VALUES (gen_random_uuid(), '5407175878', 4, 'Деятельность по ведению реестра владельцев ценных бумаг', 'Ведение реестра', '2002-01-01', NOW());
+
+-- 32. АО РСР «ЯФЦ» (ИНН 1435001668)
+INSERT INTO ext_cbr_finorg_organization (id, inn, full_name, short_name, address, email, region, fo_types, status, web_sites, fetched_at)
+VALUES (gen_random_uuid(), '1435001668', 'Акционерное общество «Республиканский специализированный регистратор "Якутский Фондовый Центр"»', 'АО РСР «ЯФЦ»',
+    '677018, г. Якутск', NULL, 'Республика Саха', 'PT', 'Active', 'www.yfc.ru', NOW());
+INSERT INTO ext_cbr_finorg_license (id, organization_inn, vid_id, activity_name, name, start_date, fetched_at)
+VALUES (gen_random_uuid(), '1435001668', 4, 'Деятельность по ведению реестра владельцев ценных бумаг', 'Ведение реестра', '2002-01-01', NOW());
+
+-- 33. АО «Агентство «РНР»» (ИНН 7107039003)
+INSERT INTO ext_cbr_finorg_organization (id, inn, full_name, short_name, address, email, region, fo_types, status, web_sites, fetched_at)
+VALUES (gen_random_uuid(), '7107039003', 'Акционерное общество «Агентство "Региональный независимый регистратор"»', 'АО «Агентство «РНР»»',
+    '398017, г. Липецк', NULL, 'Липецкая область', 'PT', 'Active', 'www.a-rnr.ru', NOW());
+INSERT INTO ext_cbr_finorg_license (id, organization_inn, vid_id, activity_name, name, start_date, fetched_at)
+VALUES (gen_random_uuid(), '7107039003', 4, 'Деятельность по ведению реестра владельцев ценных бумаг', 'Ведение реестра', '2002-01-01', NOW());
+
+-- 34. АО «Вторая линия» (ИНН 9714072529)
+INSERT INTO ext_cbr_finorg_organization (id, inn, full_name, short_name, address, email, region, fo_types, status, web_sites, fetched_at)
+VALUES (gen_random_uuid(), '9714072529', 'Акционерное общество «Вторая линия»', 'АО «Вторая линия»',
+    '125057, г. Москва', NULL, 'город Москва', 'PT', 'Active', 'www.line2.ru', NOW());
+INSERT INTO ext_cbr_finorg_license (id, organization_inn, vid_id, activity_name, name, start_date, fetched_at)
+VALUES (gen_random_uuid(), '9714072529', 4, 'Деятельность по ведению реестра владельцев ценных бумаг', 'Ведение реестра', '2002-01-01', NOW());
+
+-- 35. АО «ФРК» (ИНН 9718273177)
+INSERT INTO ext_cbr_finorg_organization (id, inn, full_name, short_name, address, email, region, fo_types, status, web_sites, fetched_at)
+VALUES (gen_random_uuid(), '9718273177', 'Акционерное общество «Фондовая регистрационная компания»', 'АО «ФРК»',
+    '107076, г. Москва', NULL, 'город Москва', 'PT', 'Active', 'www.frcreg.ru', NOW());
+INSERT INTO ext_cbr_finorg_license (id, organization_inn, vid_id, activity_name, name, start_date, fetched_at)
+VALUES (gen_random_uuid(), '9718273177', 4, 'Деятельность по ведению реестра владельцев ценных бумаг', 'Ведение реестра', '2002-01-01', NOW());
+
+-- 36. АО «МРЦ» (ИНН 1901003859)
+INSERT INTO ext_cbr_finorg_organization (id, inn, full_name, short_name, address, email, region, fo_types, status, web_sites, fetched_at)
+VALUES (gen_random_uuid(), '1901003859', 'Акционерное общество «Межрегиональный регистрационный центр»', 'АО «МРЦ»',
+    '101000, г. Москва', NULL, 'город Москва', 'PT', 'Active', 'www.mrz.ru', NOW());
+INSERT INTO ext_cbr_finorg_license (id, organization_inn, vid_id, activity_name, name, start_date, fetched_at)
+VALUES (gen_random_uuid(), '1901003859', 4, 'Деятельность по ведению реестра владельцев ценных бумаг', 'Ведение реестра', '2002-01-01', NOW());
+
+-- 37. АО «СТАТУС» (ИНН 7707179242)
+INSERT INTO ext_cbr_finorg_organization (id, inn, full_name, short_name, address, email, region, fo_types, status, web_sites, fetched_at)
+VALUES (gen_random_uuid(), '7707179242', 'Акционерное общество «Регистраторское общество "СТАТУС"»', 'АО «СТАТУС»',
+    '109052, г. Москва', NULL, 'город Москва', 'PT', 'Active', 'www.rostatus.ru', NOW());
+INSERT INTO ext_cbr_finorg_license (id, organization_inn, vid_id, activity_name, name, start_date, fetched_at)
+VALUES (gen_random_uuid(), '7707179242', 4, 'Деятельность по ведению реестра владельцев ценных бумаг', 'Ведение реестра', '2002-01-01', NOW());
+
+-- 38. АО «ДРАГА» (ИНН 7704011964)
+INSERT INTO ext_cbr_finorg_organization (id, inn, full_name, short_name, address, email, region, fo_types, status, web_sites, fetched_at)
+VALUES (gen_random_uuid(), '7704011964', 'Акционерное общество «Специализированный регистратор - Держатель реестров акционеров газовой промышленности»', 'АО «ДРАГА»',
+    '190098, г. Санкт-Петербург', NULL, 'город Санкт-Петербург', 'PT', 'Active', 'www.draga.ru', NOW());
+INSERT INTO ext_cbr_finorg_license (id, organization_inn, vid_id, activity_name, name, start_date, fetched_at)
+VALUES (gen_random_uuid(), '7704011964', 4, 'Деятельность по ведению реестра владельцев ценных бумаг', 'Ведение реестра', '2002-01-01', NOW());
+
+-- 39. АО «АЭИ «ПРАЙМ»» (ИНН 7703119309)
+INSERT INTO ext_cbr_finorg_organization (id, inn, full_name, short_name, address, email, region, fo_types, status, web_sites, fetched_at)
+VALUES (gen_random_uuid(), '7703119309', 'Акционерное общество «АЭИ "ПРАЙМ"»', 'АО «АЭИ «ПРАЙМ»»',
+    '125009, г. Москва', NULL, 'город Москва', 'PT', 'Active', 'prime-interfax.ru', NOW());
+INSERT INTO ext_cbr_finorg_license (id, organization_inn, vid_id, activity_name, name, start_date, fetched_at)
+VALUES (gen_random_uuid(), '7703119309', 4, 'Деятельность по ведению реестра владельцев ценных бумаг', 'Ведение реестра', '2002-01-01', NOW());
+
+-- 40. ООО «ЦУР» (ИНН 7842521215)
+INSERT INTO ext_cbr_finorg_organization (id, inn, full_name, short_name, address, email, region, fo_types, status, web_sites, fetched_at)
+VALUES (gen_random_uuid(), '7842521215', 'Общество с ограниченной ответственностью «Центр учета и регистрации»', 'ООО «ЦУР»',
+    '191124, г. Санкт-Петербург', NULL, 'город Санкт-Петербург', 'PT', 'Active', 'www.rrcentre.ru', NOW());
+INSERT INTO ext_cbr_finorg_license (id, organization_inn, vid_id, activity_name, name, start_date, fetched_at)
+VALUES (gen_random_uuid(), '7842521215', 4, 'Деятельность по ведению реестра владельцев ценных бумаг', 'Ведение реестра', '2002-01-01', NOW());
+
+-- 41. ООО «ЮРР» (ИНН 6166032022)
+INSERT INTO ext_cbr_finorg_organization (id, inn, full_name, short_name, address, email, region, fo_types, status, web_sites, fetched_at)
+VALUES (gen_random_uuid(), '6166032022', 'Общество с ограниченной ответственностью «Южно-Региональный регистратор»', 'ООО «ЮРР»',
+    '344029, г. Ростов-на-Дону', NULL, 'Ростовская область', 'PT', 'Active', 'www.ug-rr.ru', NOW());
+INSERT INTO ext_cbr_finorg_license (id, organization_inn, vid_id, activity_name, name, start_date, fetched_at)
+VALUES (gen_random_uuid(), '6166032022', 4, 'Деятельность по ведению реестра владельцев ценных бумаг', 'Ведение реестра', '2002-01-01', NOW());
+
+-- 42. ООО «Московский Фондовый Центр» (ИНН 7708822233)
+INSERT INTO ext_cbr_finorg_organization (id, inn, full_name, short_name, address, email, region, fo_types, status, web_sites, fetched_at)
+VALUES (gen_random_uuid(), '7708822233', 'Общество с ограниченной ответственностью «Московский Фондовый Центр»', 'ООО «МФЦ»',
+    '107078, г. Москва', NULL, 'город Москва', 'PT', 'Active', 'www.srmfc.ru', NOW());
+INSERT INTO ext_cbr_finorg_license (id, organization_inn, vid_id, activity_name, name, start_date, fetched_at)
+VALUES (gen_random_uuid(), '7708822233', 4, 'Деятельность по ведению реестра владельцев ценных бумаг', 'Ведение реестра', '2002-01-01', NOW());
+
+-- 43. ООО «РБРУ СД» (ИНН 9704154155)
+INSERT INTO ext_cbr_finorg_organization (id, inn, full_name, short_name, address, email, region, fo_types, status, web_sites, fetched_at)
+VALUES (gen_random_uuid(), '9704154155', 'Общество с ограниченной ответственностью «РБРУ Специализированный депозитарий»', 'ООО «РБРУ СД»',
+    '119002, г. Москва', NULL, 'город Москва', 'PT', 'Active', 'www.rbru-depository.ru', NOW());
+INSERT INTO ext_cbr_finorg_license (id, organization_inn, vid_id, activity_name, name, start_date, fetched_at)
+VALUES (gen_random_uuid(), '9704154155', 4, 'Деятельность по ведению реестра владельцев ценных бумаг', 'Ведение реестра', '2002-01-01', NOW());
+
+-- 44. ООО «ТЕМИОН» (ИНН 7730337754)
+INSERT INTO ext_cbr_finorg_organization (id, inn, full_name, short_name, address, email, region, fo_types, status, web_sites, fetched_at)
+VALUES (gen_random_uuid(), '7730337754', 'Общество с ограниченной ответственностью «ТЕМИОН»', 'ООО «ТЕМИОН»',
+    '125009, г. Москва', NULL, 'город Москва', 'PT', 'Active', 'www.temion.ru', NOW());
+INSERT INTO ext_cbr_finorg_license (id, organization_inn, vid_id, activity_name, name, start_date, fetched_at)
+VALUES (gen_random_uuid(), '7730337754', 4, 'Деятельность по ведению реестра владельцев ценных бумаг', 'Ведение реестра', '2002-01-01', NOW());

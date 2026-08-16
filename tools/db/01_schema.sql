@@ -240,6 +240,16 @@ CREATE TABLE IF NOT EXISTS ref_gd_term (
     created_by uuid NOT NULL REFERENCES users(id)
 );
 
+CREATE TABLE IF NOT EXISTS ref_measurement_unit (
+    id uuid PRIMARY KEY,
+    code varchar(20) UNIQUE NOT NULL,
+    name varchar(200) NOT NULL,
+    short_name varchar(50) NOT NULL,
+    sort_order int NOT NULL DEFAULT 0,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    created_by uuid NOT NULL REFERENCES users(id)
+);
+
 CREATE TABLE IF NOT EXISTS user_roles (
     id uuid PRIMARY KEY,
     user_id uuid NOT NULL REFERENCES users(id) ON DELETE RESTRICT,

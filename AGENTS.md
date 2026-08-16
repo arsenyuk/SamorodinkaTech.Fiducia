@@ -232,6 +232,18 @@ dotnet format --verify-no-changes
 1. Создать страницу просмотра.
 2. Добавить ссылку в `Dictionaries.razor`.
 
+### Справочник: MeasurementUnit (Единица измерения срока)
+
+| Значение | Отображаемое имя | Краткое |
+|----------|------------------|---------|
+| `CALENDAR` | День (календарный) | календ. дн. |
+| `BUSINESS` | Рабочий день | раб. дн. |
+
+- Источник: `src/Domain/Enums/MeasurementUnit.cs`
+- Display-имена: `src/Domain/Enums/MeasurementUnitExtensions.cs`
+- Использование: `unit.GetDisplayName()` / `unit.GetShortName()`
+- Запрещено хардкодить строки «Календарный день» / «Рабочий день» в razor/cs файлах.
+
 ### Правило: единственный вызов ApplyConfigurationsFromAssembly (КРИТИЧНО)
 
 `ApplyConfigurationsFromAssembly` (и любые методы загрузки конфигураций из сборки)

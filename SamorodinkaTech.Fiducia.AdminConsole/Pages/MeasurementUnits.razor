@@ -1,0 +1,65 @@
+@page "/measurement-units"
+@using Microsoft.EntityFrameworkCore
+@inject IDbContextFactory<SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext> DbFactory
+@inject ILogger<MeasurementUnits> Logger
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "SYS_ADMIN")]
+
+<h3>Единицы измерения сроков</h3>
+
+@if (_units is null)
+{
+    <p><em>Загрузка...</em></p>
+}
+else if (_units.Count == 0)
+{
+    <p class="text-muted">Нет записей.</p>
+}
+else
+{
+    <table class="table table-sm">
+        <thead>
+            <tr>
+                <th>Код</th>
+                <th>Наименование</th>
+                <th>Краткое</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var u in _units)
+            {
+                <tr>
+                    <td><code>@u.Code</code></td>
+                    <td>@u.Name</td>
+                    <td>@u.ShortName</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<UnitVm>? _units;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+            _units = await ctx.RefMeasurementUnits
+                .OrderBy(u => u.SortOrder)
+                .Select(u => new UnitVm { Code = u.Code, Name = u.Name, ShortName = u.ShortName })
+                .ToListAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Ошибка загрузки справочника единиц измерения");
+        }
+    }
+
+    private class UnitVm
+    {
+        public string Code { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+        public string ShortName { get; set; } = string.Empty;
+    }
+}

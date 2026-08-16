@@ -138,6 +138,12 @@ INSERT INTO ref_gd_term(id, code, name, duration_years, sort_order, created_at, 
     ('aaaa0000-0000-0000-0000-000000000006','INDEFINITE','Бессрочно',NULL,6,CURRENT_TIMESTAMP,'00000000-0000-0000-0000-000000000000')
 ON CONFLICT (code) DO NOTHING;
 
+-- Справочник: ref_measurement_unit (единицы измерения сроков)
+INSERT INTO ref_measurement_unit(id, code, name, short_name, sort_order, created_at, created_by) VALUES
+    ('bbbb0000-0000-0000-0000-000000000001','CALENDAR','День (календарный)','календ. дн.',1,CURRENT_TIMESTAMP,'00000000-0000-0000-0000-000000000000'),
+    ('bbbb0000-0000-0000-0000-000000000002','BUSINESS','Рабочий день','раб. дн.',2,CURRENT_TIMESTAMP,'00000000-0000-0000-0000-000000000000')
+ON CONFLICT (code) DO NOTHING;
+
 -- Справочник: ref_board_member_appointment_statuses (статусы назначения членов СД)
 INSERT INTO ref_board_member_appointment_statuses(id, code, name, created_at, created_by) VALUES
     ('6e6bcad9-c361-48a2-9f08-3f86dbab7dc0','ACTIVE','Действующий',CURRENT_TIMESTAMP,'00000000-0000-0000-0000-000000000000'),

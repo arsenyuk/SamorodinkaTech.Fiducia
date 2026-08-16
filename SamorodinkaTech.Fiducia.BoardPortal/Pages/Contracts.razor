@@ -400,12 +400,13 @@
     }
 
     /// <summary>Форматирование единицы измерения срока (календ. / раб. дн.).</summary>
-    private static string FormatUnit(string? unit) => unit switch
+    private static string FormatUnit(string? unit)
     {
-        "CALENDAR" => "календ. дн.",
-        "BUSINESS" => "раб. дн.",
-        _ => ""
-    };
+        if (string.IsNullOrEmpty(unit)) return "";
+        return Enum.TryParse<MeasurementUnit>(unit, true, out var parsed)
+            ? parsed.GetShortName()
+            : unit;
+    }
 
     // ═════════════════════════════════════════════════════════════════════
     // View models

@@ -53,6 +53,7 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
     public DbSet<ExtSparkCompany> ExtSparkCompanies => Set<ExtSparkCompany>();
     public DbSet<RefMeetingForm> MeetingForms => Set<RefMeetingForm>();
     public DbSet<RefGdTerm> RefGdTerms => Set<RefGdTerm>();
+    public DbSet<RefMeasurementUnit> RefMeasurementUnits => Set<RefMeasurementUnit>();
     public DbSet<ExtSparkManager> ExtSparkManagers => Set<ExtSparkManager>();
     public DbSet<ExtSparkFounder> ExtSparkFounders => Set<ExtSparkFounder>();
     public DbSet<ExtCbrFinOrgOrganization> ExtCbrFinOrgOrganizations => Set<ExtCbrFinOrgOrganization>();
@@ -175,6 +176,20 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.HasIndex(x => x.Code).IsUnique().HasDatabaseName("ux_ref_gd_term_code");
             b.Property(x => x.Name).HasColumnName("name").HasMaxLength(200).IsRequired();
             b.Property(x => x.DurationYears).HasColumnName("duration_years");
+            b.Property(x => x.SortOrder).HasColumnName("sort_order");
+            b.Property(x => x.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("CURRENT_TIMESTAMP");
+            b.Property(x => x.CreatedBy).HasColumnName("created_by").IsRequired();
+        });
+
+        modelBuilder.Entity<RefMeasurementUnit>(b =>
+        {
+            b.ToTable("ref_measurement_unit");
+            b.HasKey(x => x.Id);
+            b.Property(x => x.Id).HasColumnName("id");
+            b.Property(x => x.Code).HasColumnName("code").HasMaxLength(20).IsRequired();
+            b.HasIndex(x => x.Code).IsUnique().HasDatabaseName("ux_ref_measurement_unit_code");
+            b.Property(x => x.Name).HasColumnName("name").HasMaxLength(200).IsRequired();
+            b.Property(x => x.ShortName).HasColumnName("short_name").HasMaxLength(50).IsRequired();
             b.Property(x => x.SortOrder).HasColumnName("sort_order");
             b.Property(x => x.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("CURRENT_TIMESTAMP");
             b.Property(x => x.CreatedBy).HasColumnName("created_by").IsRequired();

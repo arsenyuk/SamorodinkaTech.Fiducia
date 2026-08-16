@@ -242,6 +242,7 @@ public static class AoContractorEndpoints
                 isRegistrar,
                 isInfoAgency,
                 cbrStatus = cbrOrg?.Status,
+                webSites = cbrOrg?.WebSites,
                 licenses = cbrLicenses.Select(l => new
                 {
                     l.VidId,
