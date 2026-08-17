@@ -908,6 +908,8 @@ CREATE TABLE IF NOT EXISTS tpl_org_stages (
     start_offset_days int,
     deadline_rule varchar(100),
     deadline_days int,
+    measurement_unit_id uuid REFERENCES ref_measurement_unit(id),
+    dependency_type varchar(10) NOT NULL DEFAULT 'FS',
     predecessor_stage_ids text,
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     created_by uuid REFERENCES users(id)
@@ -936,6 +938,7 @@ CREATE TABLE IF NOT EXISTS tpl_org_offers (
     require_document_flow_legal_electronic boolean,
     require_mandatory_audit boolean,
     require_revision_commission boolean,
+    dependency_type varchar(10) NOT NULL DEFAULT 'FS',
     predecessor_offer_ids text,
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     created_by uuid REFERENCES users(id)
@@ -943,6 +946,27 @@ CREATE TABLE IF NOT EXISTS tpl_org_offers (
 CREATE INDEX IF NOT EXISTS ix_tpl_org_offers_stage ON tpl_org_offers(stage_id);
 CREATE INDEX IF NOT EXISTS ix_tpl_org_offers_assigned_role ON tpl_org_offers(assigned_role_id);
 CREATE INDEX IF NOT EXISTS ix_tpl_org_offers_board_role ON tpl_org_offers(assigned_board_role_id);
+
+-- tpl_org_milestones: шаблоны вех (привязаны к целям/этапам)
+CREATE TABLE IF NOT EXISTS tpl_org_milestones (
+    id uuid PRIMARY KEY,
+    intent_id uuid NOT NULL REFERENCES tpl_org_intents(id) ON DELETE RESTRICT,
+    stage_id uuid REFERENCES tpl_org_stages(id) ON DELETE RESTRICT,
+    name varchar(300) NOT NULL,
+    description text,
+    milestone_type varchar(20) NOT NULL,
+    predecessor_offer_ids text,
+    predecessor_stage_ids text,
+    offset_days int,
+    measurement_unit_id uuid REFERENCES ref_measurement_unit(id),
+    control_offer_id uuid REFERENCES tpl_org_offers(id) ON DELETE RESTRICT,
+    legal_reference varchar(500),
+    sort_order int NOT NULL DEFAULT 0,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    created_by uuid REFERENCES users(id)
+);
+CREATE INDEX IF NOT EXISTS ix_tpl_org_milestones_intent ON tpl_org_milestones(intent_id);
+CREATE INDEX IF NOT EXISTS ix_tpl_org_milestones_stage ON tpl_org_milestones(stage_id);
 
 -- ============================================================================
 -- Реальные планы организационных мероприятий (создаются из шаблонов tpl_org_*)
@@ -975,6 +999,7 @@ CREATE TABLE IF NOT EXISTS org_stages (
     planned_end date,
     actual_start date,
     actual_end date,
+    dependency_type varchar(10) NOT NULL DEFAULT 'FS',
     predecessor_stage_ids text,
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
@@ -993,6 +1018,7 @@ CREATE TABLE IF NOT EXISTS org_tasks (
     assigned_board_role_id uuid REFERENCES ref_board_roles(id),
     candidate_roles text,
     predecessor_task_ids text,
+    dependency_type varchar(10) NOT NULL DEFAULT 'FS',
     planned_start date,
     planned_end date,
     actual_start date,
@@ -1001,6 +1027,26 @@ CREATE TABLE IF NOT EXISTS org_tasks (
 );
 CREATE INDEX IF NOT EXISTS ix_org_tasks_stage ON org_tasks(stage_id);
 CREATE INDEX IF NOT EXISTS ix_org_tasks_user ON org_tasks(assigned_user_id);
+
+-- org_milestones: реальные вехи (создаются из шаблонов tpl_org_milestones)
+CREATE TABLE IF NOT EXISTS org_milestones (
+    id uuid PRIMARY KEY,
+    intent_id uuid NOT NULL REFERENCES org_intents(id) ON DELETE RESTRICT,
+    template_milestone_id uuid REFERENCES tpl_org_milestones(id),
+    stage_id uuid REFERENCES org_stages(id) ON DELETE RESTRICT,
+    name varchar(300) NOT NULL,
+    description text,
+    milestone_type varchar(20) NOT NULL,
+    predecessor_task_ids text,
+    predecessor_stage_ids text,
+    planned_date date,
+    actual_date date,
+    status varchar(20) NOT NULL DEFAULT 'PLANNED',
+    sort_order int NOT NULL DEFAULT 0,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+CREATE INDEX IF NOT EXISTS ix_org_milestones_intent ON org_milestones(intent_id);
+CREATE INDEX IF NOT EXISTS ix_org_milestones_stage ON org_milestones(stage_id);
 
 -- tpl_org_offer_roles: связь офер-роль (пул кандидатов)
 CREATE TABLE IF NOT EXISTS tpl_org_offer_roles (

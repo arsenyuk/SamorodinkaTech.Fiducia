@@ -1,3 +1,5 @@
+using SamorodinkaTech.Fiducia.Domain.Enums;
+
 namespace SamorodinkaTech.Fiducia.Domain.Entities;
 
 /// <summary>
@@ -80,6 +82,9 @@ public class TplOrgTaskOffer
 
     /// <summary>Включать только при обязательной ревизионной комиссии — >15 участников ООО или ПАО/НАО≥50 акционеров (require_revision_commission). null — без проверки.</summary>
     public bool? RequireRevisionCommission { get; set; }
+
+    /// <summary>Тип зависимости: FS — Финиш-Старт, SS — Старт-Старт (dependency_type).</summary>
+    public DependencyType DependencyType { get; set; } = DependencyType.FS;
 
     /// <summary>JSON-массив ID оферов-предшественников (predecessor_offer_ids).</summary>
     public string? PredecessorOfferIds { get; set; }

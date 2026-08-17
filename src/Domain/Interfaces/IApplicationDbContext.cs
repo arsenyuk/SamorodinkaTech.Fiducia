@@ -58,9 +58,11 @@ public interface IApplicationDbContext
     DbSet<TplOrgIntent> TplOrgIntents { get; }
     DbSet<TplOrgStage> TplOrgStages { get; }
     DbSet<TplOrgTaskOffer> TplOrgOffers { get; }
+    DbSet<TplOrgMilestone> TplOrgMilestones { get; }
     DbSet<OrgIntent> OrgIntents { get; }
     DbSet<OrgStage> OrgStages { get; }
     DbSet<OrgTask> OrgTasks { get; }
+    DbSet<OrgMilestone> OrgMilestones { get; }
 
     DbSet<TplOrgOfferRole> TplOrgOfferRoles { get; }
 

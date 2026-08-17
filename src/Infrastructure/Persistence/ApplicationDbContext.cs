@@ -63,9 +63,11 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
     public DbSet<TplOrgIntent> TplOrgIntents => Set<TplOrgIntent>();
     public DbSet<TplOrgStage> TplOrgStages => Set<TplOrgStage>();
     public DbSet<TplOrgTaskOffer> TplOrgOffers => Set<TplOrgTaskOffer>();
+    public DbSet<TplOrgMilestone> TplOrgMilestones => Set<TplOrgMilestone>();
     public DbSet<OrgIntent> OrgIntents => Set<OrgIntent>();
     public DbSet<OrgStage> OrgStages => Set<OrgStage>();
     public DbSet<OrgTask> OrgTasks => Set<OrgTask>();
+    public DbSet<OrgMilestone> OrgMilestones => Set<OrgMilestone>();
 
     public DbSet<TplOrgOfferRole> TplOrgOfferRoles => Set<TplOrgOfferRole>();
 
@@ -608,6 +610,9 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.Property(x => x.StartOffsetDays).HasColumnName("start_offset_days");
             b.Property(x => x.DeadlineRule).HasColumnName("deadline_rule").HasMaxLength(100);
             b.Property(x => x.DeadlineDays).HasColumnName("deadline_days");
+            b.Property(x => x.MeasurementUnitId).HasColumnName("measurement_unit_id");
+            b.HasOne(x => x.MeasurementUnit).WithMany().HasForeignKey(x => x.MeasurementUnitId).OnDelete(DeleteBehavior.Restrict);
+            b.Property(x => x.DependencyType).HasColumnName("dependency_type").HasMaxLength(10).HasDefaultValue("FS");
             b.Property(x => x.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("CURRENT_TIMESTAMP");
             b.HasOne(x => x.Intent).WithMany(x => x.Stages).HasForeignKey(x => x.IntentId);
             b.Property(x => x.PredecessorStageIds).HasColumnName("predecessor_stage_ids");
@@ -640,9 +645,34 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.Property(x => x.RequireDocumentFlowLegalElectronic).HasColumnName("require_document_flow_legal_electronic");
             b.Property(x => x.RequireMandatoryAudit).HasColumnName("require_mandatory_audit");
             b.Property(x => x.RequireRevisionCommission).HasColumnName("require_revision_commission");
+            b.Property(x => x.DependencyType).HasColumnName("dependency_type").HasMaxLength(10).HasDefaultValue("FS");
             b.Property(x => x.PredecessorOfferIds).HasColumnName("predecessor_offer_ids");
             b.HasOne(x => x.AssignedRole).WithMany().HasForeignKey(x => x.AssignedRoleId);
             b.HasOne(x => x.AssignedBoardRole).WithMany().HasForeignKey(x => x.AssignedBoardRoleId);
+        });
+
+        modelBuilder.Entity<TplOrgMilestone>(b =>
+        {
+            b.ToTable("tpl_org_milestones");
+            b.HasKey(x => x.Id);
+            b.Property(x => x.Id).HasColumnName("id");
+            b.Property(x => x.IntentId).HasColumnName("intent_id").IsRequired();
+            b.Property(x => x.StageId).HasColumnName("stage_id");
+            b.Property(x => x.Name).HasColumnName("name").IsRequired().HasMaxLength(300);
+            b.Property(x => x.Description).HasColumnName("description");
+            b.Property(x => x.MilestoneType).HasColumnName("milestone_type").HasMaxLength(20).IsRequired();
+            b.Property(x => x.PredecessorOfferIds).HasColumnName("predecessor_offer_ids");
+            b.Property(x => x.PredecessorStageIds).HasColumnName("predecessor_stage_ids");
+            b.Property(x => x.OffsetDays).HasColumnName("offset_days");
+            b.Property(x => x.MeasurementUnitId).HasColumnName("measurement_unit_id");
+            b.HasOne(x => x.MeasurementUnit).WithMany().HasForeignKey(x => x.MeasurementUnitId).OnDelete(DeleteBehavior.Restrict);
+            b.Property(x => x.ControlOfferId).HasColumnName("control_offer_id");
+            b.HasOne(x => x.ControlOffer).WithMany().HasForeignKey(x => x.ControlOfferId).OnDelete(DeleteBehavior.Restrict);
+            b.Property(x => x.LegalReference).HasColumnName("legal_reference").HasMaxLength(500);
+            b.Property(x => x.SortOrder).HasColumnName("sort_order").HasDefaultValue(0);
+            b.Property(x => x.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("CURRENT_TIMESTAMP");
+            b.HasOne(x => x.Intent).WithMany().HasForeignKey(x => x.IntentId);
+            b.HasOne(x => x.Stage).WithMany(x => x.Milestones).HasForeignKey(x => x.StageId);
         });
 
         modelBuilder.Entity<OrgIntent>(b =>
@@ -681,6 +711,7 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.Property(x => x.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("CURRENT_TIMESTAMP");
             b.HasOne(x => x.Intent).WithMany(x => x.Stages).HasForeignKey(x => x.IntentId);
             b.HasOne(x => x.TemplateStage).WithMany().HasForeignKey(x => x.TemplateStageId);
+            b.Property(x => x.DependencyType).HasColumnName("dependency_type").HasMaxLength(10).HasDefaultValue("FS");
             b.Property(x => x.PredecessorStageIds).HasColumnName("predecessor_stage_ids");
         });
 
@@ -700,6 +731,7 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.Property(x => x.AssignedBoardRoleId).HasColumnName("assigned_board_role_id");
             b.Property(x => x.CandidateRoles).HasColumnName("candidate_roles");
             b.Property(x => x.PredecessorTaskIds).HasColumnName("predecessor_task_ids");
+            b.Property(x => x.DependencyType).HasColumnName("dependency_type").HasMaxLength(10).HasDefaultValue("FS");
             b.Property(x => x.ActualStart).HasColumnName("actual_start").HasColumnType("date");
             b.Property(x => x.ActualEnd).HasColumnName("actual_end").HasColumnType("date");
             b.Property(x => x.PlannedStart).HasColumnName("planned_start").HasColumnType("date");
@@ -710,6 +742,29 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.HasOne(x => x.AssignedUser).WithMany().HasForeignKey(x => x.AssignedUserId);
             b.HasOne(x => x.AssignedRole).WithMany().HasForeignKey(x => x.AssignedRoleId);
             b.HasOne(x => x.AssignedBoardRole).WithMany().HasForeignKey(x => x.AssignedBoardRoleId);
+        });
+
+        modelBuilder.Entity<OrgMilestone>(b =>
+        {
+            b.ToTable("org_milestones");
+            b.HasKey(x => x.Id);
+            b.Property(x => x.Id).HasColumnName("id");
+            b.Property(x => x.IntentId).HasColumnName("intent_id").IsRequired();
+            b.Property(x => x.TemplateMilestoneId).HasColumnName("template_milestone_id");
+            b.Property(x => x.StageId).HasColumnName("stage_id");
+            b.Property(x => x.Name).HasColumnName("name").IsRequired().HasMaxLength(300);
+            b.Property(x => x.Description).HasColumnName("description");
+            b.Property(x => x.MilestoneType).HasColumnName("milestone_type").HasMaxLength(20).IsRequired();
+            b.Property(x => x.PredecessorTaskIds).HasColumnName("predecessor_task_ids");
+            b.Property(x => x.PredecessorStageIds).HasColumnName("predecessor_stage_ids");
+            b.Property(x => x.PlannedDate).HasColumnName("planned_date").HasColumnType("date");
+            b.Property(x => x.ActualDate).HasColumnName("actual_date").HasColumnType("date");
+            b.Property(x => x.Status).HasColumnName("status").HasMaxLength(20).HasDefaultValue("PLANNED");
+            b.Property(x => x.SortOrder).HasColumnName("sort_order").HasDefaultValue(0);
+            b.Property(x => x.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("CURRENT_TIMESTAMP");
+            b.HasOne(x => x.Intent).WithMany().HasForeignKey(x => x.IntentId);
+            b.HasOne(x => x.TemplateMilestone).WithMany().HasForeignKey(x => x.TemplateMilestoneId);
+            b.HasOne(x => x.Stage).WithMany().HasForeignKey(x => x.StageId);
         });
 
 

@@ -1,3 +1,5 @@
+using SamorodinkaTech.Fiducia.Domain.Enums;
+
 namespace SamorodinkaTech.Fiducia.Domain.Entities;
 
 /// <summary>
@@ -43,6 +45,9 @@ public class OrgStage
 
     /// <summary>Плановая дата завершения (planned_end).</summary>
     public DateOnly? PlannedEnd { get; set; }
+
+    /// <summary>Тип зависимости: FS — Финиш-Старт, SS — Старт-Старт (dependency_type).</summary>
+    public DependencyType DependencyType { get; set; } = DependencyType.FS;
 
     /// <summary>Дата и время создания записи (created_at).</summary>
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
