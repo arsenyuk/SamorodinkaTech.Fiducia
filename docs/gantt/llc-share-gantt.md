@@ -216,4 +216,4 @@ gantt
 
 ---
 
-← [Бизнес-процесс: покупка/продажа доли](../business-processes/llc-share-purchase-sale.md) | [Дивиденды](dividend-distribution-gantt.md) | [Модель данных Ганта](gantt-data-model.md)
+← [Бизнес-процесс: покупка/продажа доли](../business-processes/llc-share-purchase-sale.md) | [Дивиденды в ООО](dividend-distribution-ooo-gantt.md) | [Модель данных Ганта](gantt-data-model.md)

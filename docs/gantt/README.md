@@ -27,8 +27,8 @@
 - [Диаграмма Ганта: реорганизация кредитных организаций](reorganization-credit-gantt.md)
 
 ### Выплата дивидендов
-- [Диаграмма Ганта: выплата дивидендов в АО](dividend-distribution-gantt.md)
-- [Диаграмма Ганта: выплата дивидендов в ООО](dividend-distribution-gantt.md#8-выплата-дивидендов-в-ооо)
+- [Диаграмма Ганта: выплата дивидендов в АО](dividend-distribution-ao-gantt.md)
+- [Диаграмма Ганта: выплата дивидендов в ООО](dividend-distribution-ooo-gantt.md)
 
 ### LLC
 - [Диаграмма Ганта: выход участника из ООО](llc-share-gantt.md)
