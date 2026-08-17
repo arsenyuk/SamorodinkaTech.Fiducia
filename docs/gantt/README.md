@@ -35,5 +35,7 @@
 - [Диаграмма Ганта: выплата дивидендов в АО](dividend-distribution-ao-gantt.md)
 - [Диаграмма Ганта: выплата дивидендов в ООО](dividend-distribution-ooo-gantt.md)
 
-### LLC
-- [Диаграмма Ганта: выход участника из ООО](llc-share-gantt.md)
+### Сделки с долями ООО
+- [Диаграмма Ганта: продажа доли третьему лицу](llc-share-sale-gantt.md)
+- [Диаграмма Ганта: выход участника из ООО](llc-share-exit-gantt.md)
+- [Диаграмма Ганта: продажа казначейской доли](llc-share-treasury-gantt.md)
