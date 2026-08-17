@@ -33,3 +33,9 @@
 - [Контрольный список задач](reorganization-checklist.md)
 - [Контрольный список: кредитные организации](reorganization-credit-checklist.md)
 - [Публикация в случае отсутствия ЦБ](reorganization-credit-cb-publication-fallback.md)
+
+#### Смена генерального директора
+- [Контрольный список задач](director-change-checklist.md)
+
+### Справочная информация
+- [Оформление КЭП по биометрии (ФНС)](kep-biometry.md)
