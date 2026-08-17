@@ -72,5 +72,7 @@ public interface IApplicationDbContext
 
     DbSet<AoContractor> AoContractors { get; }
 
+    DbSet<SystemSetting> SystemSettings { get; }
+
     System.Threading.Tasks.Task<int> SaveChangesAsync(System.Threading.CancellationToken cancellationToken = default);
 }

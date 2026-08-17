@@ -445,8 +445,7 @@ CREATE TABLE IF NOT EXISTS current_workplace (
     id uuid PRIMARY KEY,
     full_name varchar(300) NOT NULL,
     position varchar(200),
-    last_selected_legal_entity_id uuid REFERENCES legal_entities(id),
-    gantt_end_padding_weeks int NOT NULL DEFAULT 2
+    last_selected_legal_entity_id uuid REFERENCES legal_entities(id)
 );
 
 -- Singleton: не более одной записи руководителя (одно-компанийный режим, BDR-007)
@@ -1176,3 +1175,13 @@ CREATE TABLE IF NOT EXISTS employee (
 
 CREATE INDEX IF NOT EXISTS ix_employee_person_id ON employee(person_id);
 CREATE INDEX IF NOT EXISTS ix_employee_legal_entity_id ON employee(legal_entity_id);
+
+-- system_settings: системные настройки (ключ-значение)
+CREATE TABLE IF NOT EXISTS system_settings (
+    id uuid PRIMARY KEY,
+    key varchar(100) UNIQUE NOT NULL,
+    value text,
+    description text,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at timestamp with time zone
+);

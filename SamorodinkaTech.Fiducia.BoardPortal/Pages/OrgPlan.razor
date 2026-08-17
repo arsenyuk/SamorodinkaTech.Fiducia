@@ -50,8 +50,10 @@ else
         try
         {
             await using var ctx = await DbFactory.CreateDbContextAsync();
-            var wp = await ctx.CurrentWorkplaces.FirstOrDefaultAsync();
-            var endPaddingWeeks = wp?.GanttEndPaddingWeeks ?? 2;
+
+            // Загружаем настройки
+            var settings = await ctx.SystemSettings.ToDictionaryAsync(x => x.Key, x => x.Value);
+            var endPaddingWeeks = settings.TryGetValue("gantt_end_padding_weeks", out var pw) && int.TryParse(pw, out var w) ? w : 2;
 
             var intents = await ctx.OrgIntents.OrderBy(x => x.SortOrder).ThenBy(x => x.Name).ToListAsync();
             var stages = await ctx.OrgStages

@@ -1145,13 +1145,6 @@
         if (_orgType == OrgType.LLC)
             editHasBoardOfDirectors = string.IsNullOrEmpty(_editCharterNumber) && _customHasBoardOfDirectors;
 
-        // Сохраняем последнее выбранное ЮЛ для авто-открытия
-        if (ip != null)
-        {
-            ip.LastSelectedLegalEntityId = le.Id;
-            await ctx.SaveChangesAsync();
-        }
-
         saveError = null;
         saveSuccess = null;
 
@@ -1224,6 +1217,7 @@
                 {
                     ip.FullName = string.IsNullOrWhiteSpace(editFullName) ? string.Empty : editFullName.Trim();
                     ip.Position = string.IsNullOrWhiteSpace(editPosition) ? null : editPosition.Trim();
+                    ip.LastSelectedLegalEntityId = selectedEntity.Id;
                 }
             }
             else
@@ -1233,7 +1227,8 @@
                 {
                     Id = Guid.NewGuid(),
                     FullName = string.IsNullOrWhiteSpace(editFullName) ? string.Empty : editFullName.Trim(),
-                    Position = string.IsNullOrWhiteSpace(editPosition) ? null : editPosition.Trim()
+                    Position = string.IsNullOrWhiteSpace(editPosition) ? null : editPosition.Trim(),
+                    LastSelectedLegalEntityId = selectedEntity.Id
                 };
                 ctx.CurrentWorkplaces.Add(ip);
                 _influentialPersonId = ip.Id;

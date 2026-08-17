@@ -5,6 +5,33 @@
 <PageTitle>Fiducia — Системные настройки</PageTitle>
 
 <div class="container-fluid">
+    <!-- Текущее юридическое лицо -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Текущее юридическое лицо</h5>
+        </div>
+        <div class="card-body">
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label class="form-label">Выберите организацию</label>
+                    <select class="form-select" @bind="_selectedLeId">
+                        <option value="">— не выбрано —</option>
+                        @foreach (var le in _legalEntities)
+                        {
+                            <option value="@le.Id">@le.Name (ИНН: @le.Inn)</option>
+                        }
+                    </select>
+                    <small class="text-muted">Определяет контекст для шаблонов, заседаний и других страниц</small>
+                </div>
+            </div>
+            @if (!string.IsNullOrEmpty(_leSaveMessage))
+            {
+                <div class="alert alert-success py-2">@_leSaveMessage</div>
+            }
+            <button class="btn btn-primary btn-sm" @onclick="SaveSelectedLegalEntity">Сохранить</button>
+        </div>
+    </div>
+
     <!-- Системные настройки -->
     <div class="card mb-4">
         <div class="card-header">
@@ -315,6 +342,11 @@
     private bool _smtpEnabled = true;
     private bool _smsEnabled = false;
 
+    // Текущее ЮЛ
+    private List<SamorodinkaTech.Fiducia.Domain.Entities.LegalEntity> _legalEntities = new();
+    private string _selectedLeId = "";
+    private string? _leSaveMessage;
+
     // Удалено: настройки логирования приложений перешли в appsettings.* (см. AGENTS.md — Конфигурация логирования)
 
     protected override async Task OnInitializedAsync()
@@ -322,9 +354,37 @@
         try
         {
             await using var ctx = await DbFactory.CreateDbContextAsync();
+
+            // Загружаем список ЮЛ
+            _legalEntities = await ctx.LegalEntities.OrderBy(x => x.Name).ToListAsync();
+
+            // Загружаем текущее место работы
             var wp = await ctx.CurrentWorkplaces.FirstOrDefaultAsync();
             if (wp != null)
-                _ganttPaddingWeeks = wp.GanttEndPaddingWeeks;
+                _selectedLeId = wp.LastSelectedLegalEntityId?.ToString() ?? "";
+
+            // Загружаем системные настройки
+            var settings = await ctx.SystemSettings.ToDictionaryAsync(x => x.Key, x => x.Value);
+            if (settings.TryGetValue("gantt_end_padding_weeks", out var paddingWeeks) && int.TryParse(paddingWeeks, out var pw))
+                _ganttPaddingWeeks = pw;
+        }
+        catch { }
+    }
+
+    private async Task SaveSelectedLegalEntity()
+    {
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+            var wp = await ctx.CurrentWorkplaces.FirstOrDefaultAsync();
+            if (wp != null)
+            {
+                wp.LastSelectedLegalEntityId = string.IsNullOrEmpty(_selectedLeId)
+                    ? null
+                    : Guid.Parse(_selectedLeId);
+                await ctx.SaveChangesAsync();
+                _leSaveMessage = "Юридическое лицо обновлено.";
+            }
         }
         catch { }
     }
@@ -334,12 +394,26 @@
         try
         {
             await using var ctx = await DbFactory.CreateDbContextAsync();
-            var wp = await ctx.CurrentWorkplaces.FirstOrDefaultAsync();
-            if (wp != null)
+
+            // Сохраняем gantt_end_padding_weeks
+            var setting = await ctx.SystemSettings.FirstOrDefaultAsync(x => x.Key == "gantt_end_padding_weeks");
+            if (setting != null)
             {
-                wp.GanttEndPaddingWeeks = _ganttPaddingWeeks;
-                await ctx.SaveChangesAsync();
+                setting.Value = _ganttPaddingWeeks.ToString();
+                setting.UpdatedAt = DateTime.UtcNow;
             }
+            else
+            {
+                ctx.SystemSettings.Add(new SamorodinkaTech.Fiducia.Domain.Entities.SystemSetting
+                {
+                    Id = Guid.NewGuid(),
+                    Key = "gantt_end_padding_weeks",
+                    Value = _ganttPaddingWeeks.ToString(),
+                    Description = "Запас в неделях после окончания последней задачи на диаграмме Ганта"
+                });
+            }
+
+            await ctx.SaveChangesAsync();
         }
         catch { }
     }

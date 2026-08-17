@@ -77,6 +77,8 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
 
     public DbSet<AoContractor> AoContractors => Set<AoContractor>();
 
+    public DbSet<SystemSetting> SystemSettings => Set<SystemSetting>();
+
     // Junction-таблицы файлов (BDR-011)
     public DbSet<MeetingFile> MeetingFiles => Set<MeetingFile>();
     public DbSet<AgendaQuestionFile> AgendaQuestionFiles => Set<AgendaQuestionFile>();
@@ -205,7 +207,6 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.Property(x => x.FullName).HasColumnName("full_name").IsRequired();
             b.Property(x => x.Position).HasColumnName("position").HasMaxLength(200);
             b.Property(x => x.LastSelectedLegalEntityId).HasColumnName("last_selected_legal_entity_id");
-            b.Property(x => x.GanttEndPaddingWeeks).HasColumnName("gantt_end_padding_weeks").HasDefaultValue(2);
         });
 
         modelBuilder.Entity<LegalEntityBoardSettings>(b =>
@@ -596,6 +597,7 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.Property(x => x.IsForLlc).HasColumnName("is_for_llc");
             b.Property(x => x.RequiresBoardOfDirectors).HasColumnName("requires_board_of_directors");
             b.Property(x => x.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("CURRENT_TIMESTAMP");
+            b.Property(x => x.CreatedBy).HasColumnName("created_by");
         });
 
         modelBuilder.Entity<TplOrgStage>(b =>
@@ -612,8 +614,9 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.Property(x => x.DeadlineDays).HasColumnName("deadline_days");
             b.Property(x => x.MeasurementUnitId).HasColumnName("measurement_unit_id");
             b.HasOne(x => x.MeasurementUnit).WithMany().HasForeignKey(x => x.MeasurementUnitId).OnDelete(DeleteBehavior.Restrict);
-            b.Property(x => x.DependencyType).HasColumnName("dependency_type").HasMaxLength(10).HasDefaultValue("FS");
+            b.Property(x => x.DependencyType).HasColumnName("dependency_type").HasConversion<string>().HasDefaultValue(DependencyType.FS);
             b.Property(x => x.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("CURRENT_TIMESTAMP");
+            b.Property(x => x.CreatedBy).HasColumnName("created_by");
             b.HasOne(x => x.Intent).WithMany(x => x.Stages).HasForeignKey(x => x.IntentId);
             b.Property(x => x.PredecessorStageIds).HasColumnName("predecessor_stage_ids");
         });
@@ -632,6 +635,7 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.Property(x => x.MeasurementUnitId).HasColumnName("measurement_unit_id");
             b.HasOne(x => x.MeasurementUnit).WithMany().HasForeignKey(x => x.MeasurementUnitId).OnDelete(DeleteBehavior.Restrict);
             b.Property(x => x.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("CURRENT_TIMESTAMP");
+            b.Property(x => x.CreatedBy).HasColumnName("created_by");
             b.HasOne(x => x.Stage).WithMany(x => x.Offers).HasForeignKey(x => x.StageId);
             b.Property(x => x.AssignedRoleId).HasColumnName("assigned_role_id");
             b.Property(x => x.AssignedBoardRoleId).HasColumnName("assigned_board_role_id");
@@ -645,7 +649,7 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.Property(x => x.RequireDocumentFlowLegalElectronic).HasColumnName("require_document_flow_legal_electronic");
             b.Property(x => x.RequireMandatoryAudit).HasColumnName("require_mandatory_audit");
             b.Property(x => x.RequireRevisionCommission).HasColumnName("require_revision_commission");
-            b.Property(x => x.DependencyType).HasColumnName("dependency_type").HasMaxLength(10).HasDefaultValue("FS");
+            b.Property(x => x.DependencyType).HasColumnName("dependency_type").HasConversion<string>().HasDefaultValue(DependencyType.FS);
             b.Property(x => x.PredecessorOfferIds).HasColumnName("predecessor_offer_ids");
             b.HasOne(x => x.AssignedRole).WithMany().HasForeignKey(x => x.AssignedRoleId);
             b.HasOne(x => x.AssignedBoardRole).WithMany().HasForeignKey(x => x.AssignedBoardRoleId);
@@ -660,7 +664,7 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.Property(x => x.StageId).HasColumnName("stage_id");
             b.Property(x => x.Name).HasColumnName("name").IsRequired().HasMaxLength(300);
             b.Property(x => x.Description).HasColumnName("description");
-            b.Property(x => x.MilestoneType).HasColumnName("milestone_type").HasMaxLength(20).IsRequired();
+            b.Property(x => x.MilestoneType).HasColumnName("milestone_type").HasConversion<string>().IsRequired();
             b.Property(x => x.PredecessorOfferIds).HasColumnName("predecessor_offer_ids");
             b.Property(x => x.PredecessorStageIds).HasColumnName("predecessor_stage_ids");
             b.Property(x => x.OffsetDays).HasColumnName("offset_days");
@@ -671,6 +675,7 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.Property(x => x.LegalReference).HasColumnName("legal_reference").HasMaxLength(500);
             b.Property(x => x.SortOrder).HasColumnName("sort_order").HasDefaultValue(0);
             b.Property(x => x.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("CURRENT_TIMESTAMP");
+            b.Property(x => x.CreatedBy).HasColumnName("created_by");
             b.HasOne(x => x.Intent).WithMany().HasForeignKey(x => x.IntentId);
             b.HasOne(x => x.Stage).WithMany(x => x.Milestones).HasForeignKey(x => x.StageId);
         });
@@ -711,7 +716,7 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.Property(x => x.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("CURRENT_TIMESTAMP");
             b.HasOne(x => x.Intent).WithMany(x => x.Stages).HasForeignKey(x => x.IntentId);
             b.HasOne(x => x.TemplateStage).WithMany().HasForeignKey(x => x.TemplateStageId);
-            b.Property(x => x.DependencyType).HasColumnName("dependency_type").HasMaxLength(10).HasDefaultValue("FS");
+            b.Property(x => x.DependencyType).HasColumnName("dependency_type").HasConversion<string>().HasDefaultValue(DependencyType.FS);
             b.Property(x => x.PredecessorStageIds).HasColumnName("predecessor_stage_ids");
         });
 
@@ -731,7 +736,7 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.Property(x => x.AssignedBoardRoleId).HasColumnName("assigned_board_role_id");
             b.Property(x => x.CandidateRoles).HasColumnName("candidate_roles");
             b.Property(x => x.PredecessorTaskIds).HasColumnName("predecessor_task_ids");
-            b.Property(x => x.DependencyType).HasColumnName("dependency_type").HasMaxLength(10).HasDefaultValue("FS");
+            b.Property(x => x.DependencyType).HasColumnName("dependency_type").HasConversion<string>().HasDefaultValue(DependencyType.FS);
             b.Property(x => x.ActualStart).HasColumnName("actual_start").HasColumnType("date");
             b.Property(x => x.ActualEnd).HasColumnName("actual_end").HasColumnType("date");
             b.Property(x => x.PlannedStart).HasColumnName("planned_start").HasColumnType("date");
@@ -754,7 +759,7 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.Property(x => x.StageId).HasColumnName("stage_id");
             b.Property(x => x.Name).HasColumnName("name").IsRequired().HasMaxLength(300);
             b.Property(x => x.Description).HasColumnName("description");
-            b.Property(x => x.MilestoneType).HasColumnName("milestone_type").HasMaxLength(20).IsRequired();
+            b.Property(x => x.MilestoneType).HasColumnName("milestone_type").HasConversion<string>().IsRequired();
             b.Property(x => x.PredecessorTaskIds).HasColumnName("predecessor_task_ids");
             b.Property(x => x.PredecessorStageIds).HasColumnName("predecessor_stage_ids");
             b.Property(x => x.PlannedDate).HasColumnName("planned_date").HasColumnType("date");
@@ -878,6 +883,19 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.HasOne(x => x.Proposal).WithMany(x => x.Candidacies).HasForeignKey(x => x.ProposalId);
             b.HasOne(x => x.CandidateMember).WithMany().HasForeignKey(x => x.CandidateMemberId);
             b.HasOne(x => x.ConfirmedByMember).WithMany().HasForeignKey(x => x.ConfirmedByMemberId);
+        });
+
+        modelBuilder.Entity<SystemSetting>(b =>
+        {
+            b.ToTable("system_settings");
+            b.HasKey(x => x.Id);
+            b.Property(x => x.Id).HasColumnName("id");
+            b.Property(x => x.Key).HasColumnName("key").IsRequired().HasMaxLength(100);
+            b.Property(x => x.Value).HasColumnName("value");
+            b.Property(x => x.Description).HasColumnName("description");
+            b.Property(x => x.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("CURRENT_TIMESTAMP");
+            b.Property(x => x.UpdatedAt).HasColumnName("updated_at");
+            b.HasIndex(x => x.Key).IsUnique();
         });
 
 

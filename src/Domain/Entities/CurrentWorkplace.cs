@@ -17,7 +17,4 @@ public class CurrentWorkplace
 
     /// <summary>Идентификатор последнего выбранного юридического лица (last_selected_legal_entity_id).</summary>
     public Guid? LastSelectedLegalEntityId { get; set; }
-
-    /// <summary>Запас в неделях после окончания последней задачи на диаграмме Ганта (gantt_end_padding_weeks).</summary>
-    public int GanttEndPaddingWeeks { get; set; } = 2;
 }
