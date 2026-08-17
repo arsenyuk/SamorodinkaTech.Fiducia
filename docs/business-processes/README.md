@@ -16,4 +16,5 @@
 - [Вопросы, рассматриваемые ОСУ в ООО (включая продажу долей)](osu-ooo-questions.md)
 - [Покупка и продажа доли в ООО](llc-share-purchase-sale.md)
 - [Проверка финансовых ограничений на выплату дивидендов](dividend-payment-restrictions-check.md)
+- [Проверка финансовых ограничений на выплату дивидендов (ООО)](dividend-payment-restrictions-check-llc.md)
 - [Проведение первого заседания Совета директоров](../first-bod-meeting/)
