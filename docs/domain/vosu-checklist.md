@@ -107,4 +107,4 @@
 
 ---
 
-← [Назад к справочникам](vosu.md) | [Диаграмма Ганта](vosu-gantt.md) | [ООСУ](oosu-checklist.md)
+← [Назад к справочникам](vosu.md) | [Диаграмма Ганта](../gantt/vosu-gantt.md) | [ООСУ](oosu-checklist.md)

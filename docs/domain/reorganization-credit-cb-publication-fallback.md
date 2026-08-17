@@ -41,7 +41,7 @@
 ## Связанные документы
 
 - [Контрольный список задач](reorganization-credit-checklist.md)
-- [Диаграмма Ганта](reorganization-credit-gantt.md)
+- [Диаграмма Ганта](../gantt/reorganization-credit-gantt.md)
 - [Статья 18.1–18.2 395-ФЗ](../laws/article-395fz-18.md)
 
 ← [Назад к чеклисту](reorganization-credit-checklist.md)

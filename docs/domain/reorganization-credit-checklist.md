@@ -167,4 +167,4 @@
 | 395-ФЗ | ст. 38 | Лицензирование банковских операций |
 | Закон о ЦБ РФ | [ст. 24](../laws/article-cb-24.md) | Полномочия Банка России по регулированию |
 
-← [Назад к справочникам](README.md) | [Диаграмма Ганта](reorganization-credit-gantt.md) | [Общий порядок](reorganization-checklist.md)
+← [Назад к справочникам](README.md) | [Диаграмма Ганта](../gantt/reorganization-credit-gantt.md) | [Общий порядок](reorganization-checklist.md)

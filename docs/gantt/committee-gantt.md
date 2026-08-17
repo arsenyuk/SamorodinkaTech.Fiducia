@@ -111,4 +111,4 @@ gantt
 
 ---
 
-← [Документация по комитетам СД](3 commitee.md) | [Заседания СД](bod-gantt.md) | [Модель данных Ганта](gantt-data-model.md)
+← [Документация по комитетам СД](../domain/3%20commitee.md) | [Заседания СД](bod-gantt.md) | [Модель данных Ганта](gantt-data-model.md)

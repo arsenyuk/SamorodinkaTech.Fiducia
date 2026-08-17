@@ -176,4 +176,4 @@
 | 129-ФЗ | [п. 2 ст. 13.1](../laws/article-129fz-13.1.md) | Сроки уведомления кредиторов и публикации |
 | 402-ФЗ | — | Особенности бухгалтерского учёта при преобразовании |
 
-← [Назад к справочникам](README.md) | [Диаграмма Ганта](reorganization-gantt.md) | [Кредитные организации](reorganization-credit-checklist.md)
+← [Назад к справочникам](README.md) | [Диаграмма Ганта](../gantt/reorganization-gantt.md) | [Кредитные организации](reorganization-credit-checklist.md)

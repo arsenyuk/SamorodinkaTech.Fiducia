@@ -95,7 +95,7 @@ SOAPAction: http://web.cbr.ru/Search
 
 ## Связанные документы
 
-- [Выплата дивидендов в АО через регистратора](../domain/dividend-distribution-gantt.md) — диаграмма Ганта процесса выплаты
+- [Выплата дивидендов в АО через регистратора](../gantt/dividend-distribution-gantt.md) — диаграмма Ганта процесса выплаты
 - [Запрос списка акционеров у регистратора](../business-processes/shareholders-list-request.md) — бизнес-процесс
 - [Ключевые статьи о регистраторе (39-ФЗ)](article-39fz-registrar.md) — ст. 8, 8.6-1, 8.9
 - [Веб-сервис ЦБ РФ (FinOrg)](article-cbr-finorg-api.md) — SOAP-интерфейс для проверки участников рынка

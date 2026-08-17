@@ -289,4 +289,4 @@ gantt
   └── Дни 177+: Завершение (уведомления, передача архива)               │
 ```
 
-← [Назад к чеклисту](reorganization-credit-checklist.md) | [Общий порядок](reorganization-gantt.md) | [Модель данных Ганта](gantt-data-model.md)
+← [Назад к чеклисту](../domain/reorganization-credit-checklist.md) | [Общий порядок](reorganization-gantt.md) | [Модель данных Ганта](gantt-data-model.md)

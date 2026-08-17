@@ -285,4 +285,4 @@ gantt
   └── Дни 106-110: Завершение (уведомления, передача архива)            │
 ```
 
-← [Назад к чеклисту](reorganization-checklist.md) | [Кредитные организации](reorganization-credit-gantt.md) | [Модель данных Ганта](gantt-data-model.md)
+← [Назад к чеклисту](../domain/reorganization-checklist.md) | [Кредитные организации](reorganization-credit-gantt.md) | [Модель данных Ганта](gantt-data-model.md)
