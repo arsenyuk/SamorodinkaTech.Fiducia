@@ -36,8 +36,11 @@ public partial class GanttChart : ComponentBase, IAsyncDisposable
     /// <summary>Шаблон содержимого tooltip-а. Страница формирует, компонент позиционирует.</summary>
     [Parameter] public RenderFragment<GanttNode>? TooltipTemplate { get; set; }
 
-    /// <summary>Колбэк двойного клика по узлу (задача/веха).</summary>
-    [Parameter] public EventCallback<GanttNode> OnNodeDoubleClick { get; set; }
+    /// <summary>Колбэк одиночного клика по бару задачи в рабочей области.</summary>
+    [Parameter] public EventCallback<GanttNode> OnTaskBarClick { get; set; }
+
+    /// <summary>Колбэк двойного клика по бару задачи в рабочей области.</summary>
+    [Parameter] public EventCallback<GanttNode> OnTaskBarDoubleClick { get; set; }
 
     // ── Состояние ──────────────────────────────────────────────────────
 

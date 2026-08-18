@@ -63,7 +63,7 @@ else
                     TaskColor="#42a5f5" StageColor="#78909c"
                     MilestoneColor="#9c27b0" OverdueColor="#d32f2f"
                     ProgressColor="rgba(0,0,0,0.15)"
-                    OnNodeDoubleClick="HandleDoubleClick">
+                    OnTaskBarClick="HandleDoubleClick">
             <TooltipTemplate>
                 <div class="gantt-tooltip-name">@context.Name</div>
                 <div class="gantt-tooltip-path">@context.BreadcrumbPath</div>
@@ -78,6 +78,114 @@ else
     </div>
 }</div>
 
+@if (_showOfferModal && _modalOffer != null)
+{
+    <div class="modal show d-block" tabindex="-1" style="background-color:rgba(0,0,0,0.5)" @onclick="CloseOfferModal">
+        <div class="modal-dialog modal-lg" @onclick:stopPropagation>
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">@_modalOffer.Name</h5>
+                    <button type="button" class="btn-close" @onclick="CloseOfferModal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Этап</label>
+                            <div>@(_modalStageName ?? "—")</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Шаблон</label>
+                            <div>@(_modalIntentName ?? "—")</div>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-semibold">Описание</label>
+                            <div class="@(string.IsNullOrEmpty(_modalOffer.Description) ? "text-muted" : "")">
+                                @(_modalOffer.Description ?? "—")
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold">Смещение</label>
+                            <div>@(_modalOffer.StartOffsetDays?.ToString() ?? "—")</div>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold">Дедлайн</label>
+                            <div>
+                                @(_modalOffer.DeadlineRule switch
+                                {
+                                    "FIXED_DAYS" => $"+{_modalOffer.DeadlineDays} {_modalOffer.MeasurementUnit?.ShortName ?? "дн."}",
+                                    "AFTER_START" => $"после нач. +{_modalOffer.DeadlineDays} {_modalOffer.MeasurementUnit?.ShortName ?? "дн."}",
+                                    _ => "—"
+                                })
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold">Должность СД</label>
+                            <div>@(_modalOffer.AssignedBoardRole?.Name ?? "—")</div>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold">Роль исполнителя</label>
+                            <div>@(_modalOffer.AssignedRole?.Name ?? "—")</div>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-semibold">Кандидаты (роли)</label>
+                            <div>
+                                @if (_modalOfferRoleNames.Count > 0)
+                                {
+                                    @string.Join(", ", _modalOfferRoleNames.Values)
+                                }
+                                else
+                                {
+                                    <span class="text-muted">—</span>
+                                }
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-semibold">Условия включения</label>
+                            <div>
+                                @if (_modalOffer.RequireNotaryConfirmation == true) { <span class="badge bg-secondary me-1">Нотариус</span> }
+                                @if (_modalOffer.RequireAllSignConfirmation == true) { <span class="badge bg-secondary me-1">Подп. всеми</span> }
+                                @if (_modalOffer.RequireCommittees == true) { <span class="badge bg-secondary me-1">Комитеты</span> }
+                                @if (_modalOffer.RequireBoardRegulation == true) { <span class="badge bg-secondary me-1">Положение СД</span> }
+                                @if (_modalOffer.RequireCustomCharter == true) { <span class="badge bg-secondary me-1">Нетиповой устав</span> }
+                                @if (_modalOffer.RequireExecutiveBodyA == true) { <span class="badge bg-secondary me-1">Гендиректор</span> }
+                                @if (_modalOffer.RequireBoardOfDirectors == true) { <span class="badge bg-secondary me-1">Совет директоров</span> }
+                                @if (_modalOffer.RequireDocumentFlowLegalElectronic == true) { <span class="badge bg-secondary me-1">ЮЗЭДО</span> }
+                                @if (_modalOffer.RequireMandatoryAudit == true) { <span class="badge bg-secondary me-1">Обяз. аудит</span> }
+                                @if (_modalOffer.RequireRevisionCommission == true) { <span class="badge bg-secondary me-1">Ревиз. комиссия</span> }
+                                @if (!_modalOffer.RequireNotaryConfirmation.HasValue && !_modalOffer.RequireAllSignConfirmation.HasValue
+                                    && !_modalOffer.RequireCommittees.HasValue && !_modalOffer.RequireBoardRegulation.HasValue
+                                    && !_modalOffer.RequireCustomCharter.HasValue && !_modalOffer.RequireExecutiveBodyA.HasValue
+                                    && !_modalOffer.RequireBoardOfDirectors.HasValue && !_modalOffer.RequireDocumentFlowLegalElectronic.HasValue
+                                    && !_modalOffer.RequireMandatoryAudit.HasValue && !_modalOffer.RequireRevisionCommission.HasValue)
+                                {
+                                    <span class="text-muted">—</span>
+                                }
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-semibold">Предшественники</label>
+                            <div>
+                                @if (_modalPredecessorNames.Count > 0)
+                                {
+                                    @string.Join(", ", _modalPredecessorNames.Values)
+                                }
+                                else
+                                {
+                                    <span class="text-muted">—</span>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <a class="btn btn-outline-primary" href="/org-templates/stages/@_modalOffer.StageId/offers">Редактировать</a>
+                    <button class="btn btn-secondary" @onclick="CloseOfferModal">Закрыть</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
 @code {
     [Parameter] public Guid IntentId { get; set; }
 
@@ -85,6 +193,16 @@ else
     private string? _intentName;
     private string? _error;
     private Dictionary<Guid, Guid> _offerStageMap = new();
+
+    // ── Модальное окно задачи ──────────────────────────────────────────
+    private bool _showOfferModal;
+    private TplOrgTaskOffer? _modalOffer;
+    private string? _modalStageName;
+    private string? _modalIntentName;
+    private List<RefRole> _modalRoles = new();
+    private List<RefBoardRole> _modalBoardRoles = new();
+    private Dictionary<Guid, string> _modalOfferRoleNames = new();
+    private Dictionary<Guid, string> _modalPredecessorNames = new();
 
     // ── Маркеры (теги) ─────────────────────────────────────────────────
 
@@ -438,7 +556,65 @@ else
         StateHasChanged();
     }
 
-    // ── Навигация ──────────────────────────────────────────────────────
+    // ── Модальное окно задачи ──────────────────────────────────────────
+
+    private async Task OpenOfferModal(Guid offerId)
+    {
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+            _modalOffer = await ctx.TplOrgOffers
+                .Include(x => x.Stage).ThenInclude(x => x!.Intent)
+                .Include(x => x.MeasurementUnit)
+                .Include(x => x.AssignedBoardRole)
+                .Include(x => x.AssignedRole)
+                .FirstOrDefaultAsync(x => x.Id == offerId);
+            if (_modalOffer == null) return;
+
+            _modalStageName = _modalOffer.Stage?.Name;
+            _modalIntentName = _modalOffer.Stage?.Intent?.Name;
+
+            _modalRoles = await ctx.Roles.OrderBy(x => x.Name).ToListAsync();
+            _modalBoardRoles = await ctx.BoardRoles.OrderBy(x => x.SortOrder).ThenBy(x => x.Name).ToListAsync();
+
+            var links = await ctx.TplOrgOfferRoles.Where(x => x.TplOfferId == offerId).ToListAsync();
+            _modalOfferRoleNames = links
+                .Select(l => new { l.RoleId, Name = ctx.Roles.FirstOrDefault(r => r.Id == l.RoleId)?.Name })
+                .Where(x => x.Name != null)
+                .ToDictionary(x => x.RoleId, x => x.Name!);
+
+            var stageIds = await ctx.TplOrgStages.Where(x => x.IntentId == IntentId).Select(x => x.Id).ToListAsync();
+            var allOffers = await ctx.TplOrgOffers.Where(x => stageIds.Contains(x.StageId)).ToListAsync();
+            var lookup = allOffers.ToDictionary(x => x.Id);
+            _modalPredecessorNames = new();
+            if (!string.IsNullOrEmpty(_modalOffer.PredecessorOfferIds))
+            {
+                try
+                {
+                    var predIds = System.Text.Json.JsonSerializer.Deserialize<Guid[]>(_modalOffer.PredecessorOfferIds);
+                    if (predIds != null)
+                        _modalPredecessorNames = predIds
+                            .Where(id => lookup.ContainsKey(id))
+                            .ToDictionary(id => id, id => lookup[id].Name);
+                }
+                catch { }
+            }
+
+            _showOfferModal = true;
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Ошибка загрузки задачи для модалки");
+            _error = ExceptionFlattener.Unwrap(ex);
+        }
+    }
+
+    private void CloseOfferModal()
+    {
+        _showOfferModal = false;
+        _modalOffer = null;
+    }
 
     private async Task HandleDoubleClick(GanttNode node)
     {
@@ -446,11 +622,7 @@ else
         if (node.Id.StartsWith("offer-"))
         {
             var offerId = Guid.Parse(node.Id[6..]);
-            if (_offerStageMap.TryGetValue(offerId, out var stageId))
-            {
-                Logger.LogDebug("Navigating to stage offers: {StageId}", stageId);
-                Nav.NavigateTo($"/org-templates/stages/{stageId}/offers");
-            }
+            await OpenOfferModal(offerId);
         }
     }
 

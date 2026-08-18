@@ -205,9 +205,10 @@
                                     <div class="gantt-bar gantt-bar-task task-solid"
                                          style="position:relative; margin-left:@(inset)px;margin-right:@(inset)px;
                                                 flex-grow:1; flex-shrink:1; height:@(RowHeight - 8)px; border-radius:3px;"
+                                         @onclick="() => OnTaskBarClick.InvokeAsync(node)"
                                          @onmouseover="() => OnBarMouseOver(node, bar)"
                                          @onmouseout="OnBarMouseOut"
-                                         @ondblclick="() => OnNodeDoubleClick.InvokeAsync(node)">
+                                         @ondblclick="() => OnTaskBarDoubleClick.InvokeAsync(node)">
                                         <div class="gantt-bar-progress task-progress" style="background:@ProgressColor"></div>
                                         @if (bar.WidthPx > 40)
                                         {
