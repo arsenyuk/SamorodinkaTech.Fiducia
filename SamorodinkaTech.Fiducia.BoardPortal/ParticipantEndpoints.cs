@@ -1,14 +1,20 @@
 using Microsoft.EntityFrameworkCore;
 using SamorodinkaTech.Fiducia.Domain.Entities;
+using SamorodinkaTech.Fiducia.Domain.Interfaces;
 using SamorodinkaTech.Fiducia.Infrastructure.Persistence;
 
 namespace SamorodinkaTech.Fiducia.BoardPortal;
 
 /// <summary>
 /// Minimal API endpoints для реестра участников общества (Board Portal).
+/// Доступно только для ООО (ОКОПФ 12300). Все попытки доступа логируются в аудит.
 /// </summary>
 public static class ParticipantEndpoints
 {
+    private const string LlcOkopfCode = "12300";
+    private const string AuditActionMutation = "PARTICIPANT_MUTATION";
+    private const string AuditActionDenied = "PARTICIPANT_ACCESS_DENIED";
+
     /// <summary>
     /// Регистрирует все endpoint'ы группы Participants.
     /// </summary>
@@ -54,22 +60,21 @@ public static class ParticipantEndpoints
         participants.MapPost("/", async (
             HttpContext http,
             BoardParticipantDto dto,
+            ISecurityAuditService audit,
             IDbContextFactory<FiduciaDbContext> dbFactory) =>
         {
-            if (!HasRole(http.User, "CHAIRMAN"))
-                return Results.Forbid();
-
             await using var ctx = await dbFactory.CreateDbContextAsync();
+            var llcCheck = await CheckIsLlcAsync(ctx, http, audit);
+            if (llcCheck is not null) return llcCheck;
+
             var workplace = await ctx.CurrentWorkplaces.FirstOrDefaultAsync();
-            var leId = workplace?.LastSelectedLegalEntityId;
-            if (leId is null || leId == Guid.Empty)
-                return Results.BadRequest(new { error = "Юридическое лицо не выбрано" });
+            var leId = workplace!.LastSelectedLegalEntityId!.Value;
 
             var maxSort = await ctx.BoardParticipants
-                .Where(p => p.LegalEntityId == leId.Value)
+                .Where(p => p.LegalEntityId == leId)
                 .MaxAsync(p => (int?)p.SortOrder) ?? 0;
 
-            var entity = MapDtoToEntity(dto, leId.Value);
+            var entity = MapDtoToEntity(dto, leId);
             entity.Id = Guid.NewGuid();
             entity.SortOrder = maxSort + 1;
             entity.CreatedAt = DateTime.UtcNow;
@@ -77,6 +82,10 @@ public static class ParticipantEndpoints
 
             ctx.BoardParticipants.Add(entity);
             await ctx.SaveChangesAsync();
+
+            await audit.LogEventAsync(AuditActionMutation, GetClientIp(http),
+                $"Добавлен участник: {entity.FullName ?? entity.CompanyName}, доля={entity.SharePercent}%",
+                entityName: "BoardParticipant", entityId: entity.Id);
 
             return Results.Ok(MapParticipantToDto(entity));
         });
@@ -86,12 +95,13 @@ public static class ParticipantEndpoints
             Guid id,
             HttpContext http,
             BoardParticipantDto dto,
+            ISecurityAuditService audit,
             IDbContextFactory<FiduciaDbContext> dbFactory) =>
         {
-            if (!HasRole(http.User, "CHAIRMAN"))
-                return Results.Forbid();
-
             await using var ctx = await dbFactory.CreateDbContextAsync();
+            var llcCheck = await CheckIsLlcAsync(ctx, http, audit);
+            if (llcCheck is not null) return llcCheck;
+
             var entity = await ctx.BoardParticipants.FindAsync(id);
             if (entity is null) return Results.NotFound();
 
@@ -121,39 +131,52 @@ public static class ParticipantEndpoints
             entity.UpdatedAt = DateTime.UtcNow;
 
             await ctx.SaveChangesAsync();
+
+            await audit.LogEventAsync(AuditActionMutation, GetClientIp(http),
+                $"Обновлён участник: {entity.FullName ?? entity.CompanyName}, id={id}",
+                entityName: "BoardParticipant", entityId: id);
+
             return Results.Ok(MapParticipantToDto(entity));
         });
 
         // DELETE: удаление участника
-        participants.MapDelete("/{id}", async (Guid id, HttpContext http, IDbContextFactory<FiduciaDbContext> dbFactory) =>
+        participants.MapDelete("/{id}", async (
+            Guid id,
+            HttpContext http,
+            ISecurityAuditService audit,
+            IDbContextFactory<FiduciaDbContext> dbFactory) =>
         {
-            if (!HasRole(http.User, "CHAIRMAN"))
-                return Results.Forbid();
-
             await using var ctx = await dbFactory.CreateDbContextAsync();
+            var llcCheck = await CheckIsLlcAsync(ctx, http, audit);
+            if (llcCheck is not null) return llcCheck;
+
             var entity = await ctx.BoardParticipants.FindAsync(id);
             if (entity is null) return Results.NotFound();
 
             ctx.BoardParticipants.Remove(entity);
             await ctx.SaveChangesAsync();
+
+            await audit.LogEventAsync(AuditActionMutation, GetClientIp(http),
+                $"Удалён участник: {entity.FullName ?? entity.CompanyName}, id={id}",
+                entityName: "BoardParticipant", entityId: id);
+
             return Results.Ok();
         });
 
         // POST: импорт участников из СПАРК
         participants.MapPost("/import-from-spark", async (
             HttpContext http,
+            ISecurityAuditService audit,
             IDbContextFactory<FiduciaDbContext> dbFactory) =>
         {
-            if (!HasRole(http.User, "CHAIRMAN"))
-                return Results.Forbid();
-
             await using var ctx = await dbFactory.CreateDbContextAsync();
-            var workplace = await ctx.CurrentWorkplaces.FirstOrDefaultAsync();
-            var leId = workplace?.LastSelectedLegalEntityId;
-            if (leId is null || leId == Guid.Empty)
-                return Results.BadRequest(new { error = "Юридическое лицо не выбрано" });
+            var llcCheck = await CheckIsLlcAsync(ctx, http, audit);
+            if (llcCheck is not null) return llcCheck;
 
-            var le = await ctx.LegalEntities.FirstOrDefaultAsync(x => x.Id == leId.Value);
+            var workplace = await ctx.CurrentWorkplaces.FirstOrDefaultAsync();
+            var leId = workplace!.LastSelectedLegalEntityId!.Value;
+
+            var le = await ctx.LegalEntities.FirstOrDefaultAsync(x => x.Id == leId);
             if (le is null)
                 return Results.BadRequest(new { error = "Юридическое лицо не найдено" });
 
@@ -166,7 +189,7 @@ public static class ParticipantEndpoints
 
             // Удаляем существующих участников этого ЮЛ
             var existing = await ctx.BoardParticipants
-                .Where(p => p.LegalEntityId == leId.Value)
+                .Where(p => p.LegalEntityId == leId)
                 .ToListAsync();
             ctx.BoardParticipants.RemoveRange(existing);
 
@@ -178,7 +201,7 @@ public static class ParticipantEndpoints
                 var entity = new BoardParticipant
                 {
                     Id = Guid.NewGuid(),
-                    LegalEntityId = leId.Value,
+                    LegalEntityId = leId,
                     ParticipantType = !string.IsNullOrEmpty(f.Name) ? "FL" : (f.IsEntrepreneur ? "IP" : "FL"),
                     FullName = f.FullName,
                     PersonInn = f.PersonInn,
@@ -202,6 +225,11 @@ public static class ParticipantEndpoints
             }
 
             await ctx.SaveChangesAsync();
+
+            await audit.LogEventAsync(AuditActionMutation, GetClientIp(http),
+                $"Импорт из СПАРК: {imported.Count} участников, ЮЛ={le.Inn}",
+                entityName: "BoardParticipant");
+
             return Results.Ok(new { imported = imported.Count, participants = imported });
         });
 
@@ -238,25 +266,24 @@ public static class ParticipantEndpoints
         treasuryShares.MapPost("/", async (
             HttpContext http,
             BoardTreasuryShareDto dto,
+            ISecurityAuditService audit,
             IDbContextFactory<FiduciaDbContext> dbFactory) =>
         {
-            if (!HasRole(http.User, "CHAIRMAN"))
-                return Results.Forbid();
-
             await using var ctx = await dbFactory.CreateDbContextAsync();
+            var llcCheck = await CheckIsLlcAsync(ctx, http, audit);
+            if (llcCheck is not null) return llcCheck;
+
             var workplace = await ctx.CurrentWorkplaces.FirstOrDefaultAsync();
-            var leId = workplace?.LastSelectedLegalEntityId;
-            if (leId is null || leId == Guid.Empty)
-                return Results.BadRequest(new { error = "Юридическое лицо не выбрано" });
+            var leId = workplace!.LastSelectedLegalEntityId!.Value;
 
             var maxSort = await ctx.BoardTreasuryShares
-                .Where(t => t.LegalEntityId == leId.Value)
+                .Where(t => t.LegalEntityId == leId)
                 .MaxAsync(t => (int?)t.SortOrder) ?? 0;
 
             var entity = new BoardTreasuryShare
             {
                 Id = Guid.NewGuid(),
-                LegalEntityId = leId.Value,
+                LegalEntityId = leId,
                 SharePercent = dto.SharePercent,
                 ShareAmount = dto.ShareAmount,
                 AcquiredDate = dto.AcquiredDate,
@@ -269,6 +296,10 @@ public static class ParticipantEndpoints
             ctx.BoardTreasuryShares.Add(entity);
             await ctx.SaveChangesAsync();
 
+            await audit.LogEventAsync(AuditActionMutation, GetClientIp(http),
+                $"Добавлена казначейская доля: {entity.SharePercent}%, id={entity.Id}",
+                entityName: "BoardTreasuryShare", entityId: entity.Id);
+
             return Results.Ok(MapTreasuryToDto(entity));
         });
 
@@ -277,12 +308,13 @@ public static class ParticipantEndpoints
             Guid id,
             HttpContext http,
             BoardTreasuryShareDto dto,
+            ISecurityAuditService audit,
             IDbContextFactory<FiduciaDbContext> dbFactory) =>
         {
-            if (!HasRole(http.User, "CHAIRMAN"))
-                return Results.Forbid();
-
             await using var ctx = await dbFactory.CreateDbContextAsync();
+            var llcCheck = await CheckIsLlcAsync(ctx, http, audit);
+            if (llcCheck is not null) return llcCheck;
+
             var entity = await ctx.BoardTreasuryShares.FindAsync(id);
             if (entity is null) return Results.NotFound();
 
@@ -293,24 +325,73 @@ public static class ParticipantEndpoints
             entity.UpdatedAt = DateTime.UtcNow;
 
             await ctx.SaveChangesAsync();
+
+            await audit.LogEventAsync(AuditActionMutation, GetClientIp(http),
+                $"Обновлена казначейская доля: {entity.SharePercent}%, id={id}",
+                entityName: "BoardTreasuryShare", entityId: id);
+
             return Results.Ok(MapTreasuryToDto(entity));
         });
 
         // DELETE: удаление казначейской доли
-        treasuryShares.MapDelete("/{id}", async (Guid id, HttpContext http, IDbContextFactory<FiduciaDbContext> dbFactory) =>
+        treasuryShares.MapDelete("/{id}", async (
+            Guid id,
+            HttpContext http,
+            ISecurityAuditService audit,
+            IDbContextFactory<FiduciaDbContext> dbFactory) =>
         {
-            if (!HasRole(http.User, "CHAIRMAN"))
-                return Results.Forbid();
-
             await using var ctx = await dbFactory.CreateDbContextAsync();
+            var llcCheck = await CheckIsLlcAsync(ctx, http, audit);
+            if (llcCheck is not null) return llcCheck;
+
             var entity = await ctx.BoardTreasuryShares.FindAsync(id);
             if (entity is null) return Results.NotFound();
 
             ctx.BoardTreasuryShares.Remove(entity);
             await ctx.SaveChangesAsync();
+
+            await audit.LogEventAsync(AuditActionMutation, GetClientIp(http),
+                $"Удалена казначейская доля: {entity.SharePercent}%, id={id}",
+                entityName: "BoardTreasuryShare", entityId: id);
+
             return Results.Ok();
         });
     }
+
+    /// <summary>
+    /// Проверяет, является ли текущее ЮЛ ООО (ОКОПФ 12300).
+    /// Если нет — логирует попытку доступа и возвращает Forbid.
+    /// </summary>
+    private static async Task<IResult?> CheckIsLlcAsync(
+        FiduciaDbContext ctx,
+        HttpContext http,
+        ISecurityAuditService audit)
+    {
+        var workplace = await ctx.CurrentWorkplaces.FirstOrDefaultAsync();
+        var leId = workplace?.LastSelectedLegalEntityId;
+        if (leId is null || leId == Guid.Empty)
+            return Results.BadRequest(new { error = "Юридическое лицо не выбрано" });
+
+        var le = await ctx.LegalEntities
+            .Include(x => x.RefOkopf)
+            .FirstOrDefaultAsync(x => x.Id == leId.Value);
+
+        if (le is null)
+            return Results.BadRequest(new { error = "Юридическое лицо не найдено" });
+
+        if (le.RefOkopf?.Code != LlcOkopfCode)
+        {
+            await audit.LogEventAsync(AuditActionDenied, GetClientIp(http),
+                $"Доступ к реестру участников запрещён: ЮЛ «{le.Name}» (ОКОПФ {le.RefOkopf?.Code}) не является ООО",
+                entityName: "LegalEntity", entityId: le.Id);
+            return Results.Forbid();
+        }
+
+        return null;
+    }
+
+    private static string GetClientIp(HttpContext http) =>
+        http.Connection.RemoteIpAddress?.ToString() ?? "unknown";
 
     private static object MapParticipantToDto(BoardParticipant p) => new
     {
@@ -416,15 +497,5 @@ public static class ParticipantEndpoints
         public decimal? ShareAmount { get; init; }
         public DateOnly? AcquiredDate { get; init; }
         public string? AcquisitionBasis { get; init; }
-    }
-
-    /// <summary>
-    /// Проверяет, содержит ли пользователь указанную роль (включая составные роли через запятую).
-    /// </summary>
-    private static bool HasRole(System.Security.Claims.ClaimsPrincipal user, string role)
-    {
-        var roleClaim = user.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value ?? "";
-        return roleClaim.Split(',', StringSplitOptions.RemoveEmptyEntries)
-            .Any(r => r.Trim().Equals(role, StringComparison.OrdinalIgnoreCase));
     }
 }
