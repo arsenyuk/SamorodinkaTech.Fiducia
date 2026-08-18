@@ -24,6 +24,9 @@ public sealed record GanttNode
     /// <summary>Дата вехи (для Milestone).</summary>
     public DateOnly? MilestoneDate { get; init; }
 
+    /// <summary>Тип вехи (для визуального различия: Regular, Legal, Control и т.д.).</summary>
+    public GanttMilestoneType MilestoneType { get; init; }
+
     /// <summary>Прогресс выполнения (0.0 – 1.0).</summary>
     public double Progress { get; init; }
 

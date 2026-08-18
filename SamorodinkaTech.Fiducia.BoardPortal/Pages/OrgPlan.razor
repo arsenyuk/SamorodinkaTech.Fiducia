@@ -1,5 +1,6 @@
 @page "/org-plan"
 @using Microsoft.EntityFrameworkCore
+@using SamorodinkaTech.Fiducia.Domain.Enums
 @using SamorodinkaTech.Fiducia.Domain.Entities
 @using SamorodinkaTech.Fiducia.Timeline.Components
 @using SamorodinkaTech.Fiducia.Timeline.Models
@@ -63,6 +64,9 @@ else
                 .Include(t => t.AssignedUser)
                 .OrderBy(x => x.SortOrder).ThenBy(x => x.Name).ToListAsync();
 
+            var milestones = await ctx.OrgMilestones
+                .OrderBy(x => x.SortOrder).ThenBy(x => x.Name).ToListAsync();
+
             var nodes = new List<GanttNode>();
             var dependencies = new List<GanttDependency>();
             var sort = 0;
@@ -110,6 +114,24 @@ else
                                 : null
                         });
                     }
+                }
+
+                // Вехи цели
+                var intentMilestones = milestones.Where(m => m.IntentId == intent.Id).ToList();
+                foreach (var ms in intentMilestones)
+                {
+                    var msDate = ms.ActualDate ?? ms.PlannedDate;
+                    if (msDate == null) continue;
+                    var parentId = ms.StageId.HasValue ? $"stage-{ms.StageId.Value}" : intentId;
+                    nodes.Add(new GanttNode
+                    {
+                        Id = $"milestone-{ms.Id}", ParentId = parentId, Name = ms.Name,
+                        NodeType = GanttNodeType.Milestone,
+                        MilestoneDate = msDate,
+                        MilestoneType = MapMilestoneType(ms.MilestoneType),
+                        SortOrder = sort++,
+                        BreadcrumbPath = $"Активность > {ms.Name}"
+                    });
                 }
             }
 
@@ -207,4 +229,14 @@ else
     }
 
     private static string FormatDate(DateOnly? d) => d.HasValue ? d.Value.ToString("dd.MM.yyyy") : "—";
+
+    private static GanttMilestoneType MapMilestoneType(MilestoneType src) => src switch
+    {
+        MilestoneType.REGULAR => GanttMilestoneType.Regular,
+        MilestoneType.PHASE_GATE => GanttMilestoneType.PhaseGate,
+        MilestoneType.LEGAL => GanttMilestoneType.Legal,
+        MilestoneType.CONTROL => GanttMilestoneType.Control,
+        MilestoneType.INTEGRATION => GanttMilestoneType.Integration,
+        _ => GanttMilestoneType.Regular
+    };
 }

@@ -65,6 +65,20 @@ else
             },
             new()
             {
+                Id = "milestone-legal-1", ParentId = "stage-1", Name = "⚡ЮВ1: Уведомление акционеров — дедлайн",
+                NodeType = GanttNodeType.Milestone,
+                MilestoneDate = new DateOnly(2026, 3, 20), SortOrder = 4,
+                MilestoneType = GanttMilestoneType.Legal
+            },
+            new()
+            {
+                Id = "milestone-control-1", ParentId = "stage-1", Name = "⚡КВ1: Согласование бюджета",
+                NodeType = GanttNodeType.Milestone,
+                MilestoneDate = new DateOnly(2026, 3, 25), SortOrder = 5,
+                MilestoneType = GanttMilestoneType.Control
+            },
+            new()
+            {
                 Id = "stage-2", ParentId = "project-1", Name = "Разработка", NodeType = GanttNodeType.Stage,
                 StartDate = new DateOnly(2026, 3, 16), EndDate = new DateOnly(2026, 7, 31),
                 SortOrder = 2, Expanded = true

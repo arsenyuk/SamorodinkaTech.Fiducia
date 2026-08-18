@@ -54,7 +54,7 @@
                         }
                         @if (node.NodeType == GanttNodeType.Milestone)
                         {
-                            <span class="gantt-milestone-icon">◆</span>
+                            <span class="gantt-milestone-icon @(node.MilestoneType == GanttMilestoneType.Legal ? "gantt-milestone-legal" : "")">◆</span>
                         }
                         <span class="gantt-name" title="@node.Name">@node.Name</span>
                     </div>
@@ -85,6 +85,14 @@
                         var startDN = Data.CalendarDays[0].Date.DayNumber;
                         var todayPos = (int)((todayDN - startDN) * _dayCellWidth + _dayCellWidth / 2.0);
                         <div class="gantt-today-line" style="left:@(todayPos)px; height:@(_totalHeightPx)px"></div>
+                    }
+
+                    <!-- Вертикальные пунктиры для юридических/контрольных вех -->
+                    @foreach (var bar in _barInfos.Where(b => b.IsMilestone && b.MilestoneType is GanttMilestoneType.Legal or GanttMilestoneType.Control))
+                    {
+                        var vlineColor = bar.MilestoneType == GanttMilestoneType.Legal ? "#c62828" : "#e65100";
+                        <div class="gantt-milestone-vline"
+                             style="left:@(bar.LeftPx + MilestoneHalfWidthPx)px; height:@(_totalHeightPx)px; border-left-color:@(vlineColor)"></div>
                     }
 
                     <!-- Полосы зебры — после баров (visual priority) -->
@@ -159,8 +167,11 @@
 
                         if (bar.IsMilestone)
                         {
-                            <div class="gantt-bar-milestone @(onStrip ? "milestone-on-strip" : "")"
-                                 style="left:@(bar.LeftPx)px; top:@(bar.RowIndex * RowHeight + (RowHeight - 14) / 2)px; color:@MilestoneColor"
+                            var isLegal = bar.MilestoneType == GanttMilestoneType.Legal;
+                            var msSize = isLegal ? 20 : 14;
+                            var msTop = bar.RowIndex * RowHeight + (RowHeight - msSize) / 2;
+                            <div class="gantt-bar-milestone @(isLegal ? "milestone-legal" : "") @(onStrip ? "milestone-on-strip" : "")"
+                                 style="left:@(bar.LeftPx + (14 - msSize) / 2)px; top:@(msTop)px; width:@(msSize)px; height:@(msSize)px; font-size:@(msSize)px; color:@MilestoneColor"
                                  @onmouseover="() => OnBarMouseOver(node, bar)"
                                  @onmouseout="OnBarMouseOut">◆</div>
                         }

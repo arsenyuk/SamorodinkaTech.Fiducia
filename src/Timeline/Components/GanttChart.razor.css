@@ -225,6 +225,13 @@
     flex-shrink: 0;
 }
 
+/* Legal milestone icon — larger */
+
+.gantt-milestone-icon.gantt-milestone-legal {
+    font-size: 18px;
+    color: #c62828;
+}
+
 .gantt-row-clickable {
     cursor: pointer;
 }
@@ -409,6 +416,16 @@
     transform: scale(1.2);
 }
 
+/* Legal milestone — larger diamond */
+
+.milestone-legal {
+    filter: drop-shadow(0 0 4px rgba(198, 40, 40, 0.5));
+}
+
+.milestone-legal:hover {
+    filter: drop-shadow(0 0 6px rgba(198, 40, 40, 0.7));
+}
+
 /* ── Column stripes (weekend / holiday zebra) ──────────── */
 
 .gantt-col-stripe {
@@ -433,6 +450,17 @@
     top: 0;
     width: 2px;
     background: #d32f2f;
+    pointer-events: none;
+    z-index: 3;
+}
+
+/* ── Milestone vertical dashed line (Legal / Control) ──── */
+
+.gantt-milestone-vline {
+    position: absolute;
+    top: 0;
+    width: 0;
+    border-left: 2px dashed;
     pointer-events: none;
     z-index: 3;
 }

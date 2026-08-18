@@ -20,4 +20,7 @@ public readonly record struct GanttBarInfo
 
     /// <summary>Является ли вехой (для выбора формы рендеринга).</summary>
     public bool IsMilestone { get; init; }
+
+    /// <summary>Тип вехи (для визуального различия).</summary>
+    public GanttMilestoneType MilestoneType { get; init; }
 }

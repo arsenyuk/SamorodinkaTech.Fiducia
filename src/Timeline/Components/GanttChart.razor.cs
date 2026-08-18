@@ -246,7 +246,8 @@ public partial class GanttChart : ComponentBase, IAsyncDisposable
                     WidthPx = MilestoneWidthPx,
                     NodeType = GanttNodeType.Milestone,
                     Progress = node.Progress,
-                    IsMilestone = true
+                    IsMilestone = true,
+                    MilestoneType = node.MilestoneType
                 });
             }
             else if (endDate.HasValue)
