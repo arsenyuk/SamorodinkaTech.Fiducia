@@ -37,7 +37,7 @@ public class NotFoundLoggingMiddleware
             if (string.IsNullOrWhiteSpace(referer)) referer = "(none)";
             referer = referer.Replace("\r", " ").Replace("\n", " ");
 
-            var ip = context.Connection.RemoteIpAddress?.ToString() ?? "(n/a)";
+            var ip = ClientIpHelper.GetClientIp(context);
             var ua = context.Request.Headers["User-Agent"].ToString();
             ua = ua.Replace("\r", " ").Replace("\n", " ");
 

@@ -40,7 +40,7 @@ public class PageAccessAuditMiddleware
         }
 
         var userId = GetUserId(context);
-        var userIp = context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+        var userIp = ClientIpHelper.GetClientIp(context);
         var method = context.Request.Method;
         var userAgent = context.Request.Headers["User-Agent"].ToString().Replace("\r", " ").Replace("\n", " ");
 
