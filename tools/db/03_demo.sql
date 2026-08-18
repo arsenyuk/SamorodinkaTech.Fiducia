@@ -125,7 +125,7 @@ INSERT INTO ext_spark_company (id, inn, ogrn, full_name, short_name, okopf_code,
     legal_address, status, registration_date, fetched_at)
 VALUES (gen_random_uuid(), '7726030449', '1027739216757',
     'Акционерное общество «Независимая регистраторская компания Р.О.С.Т.»',
-    'АО «НРК - Р.О.С.Т.»', '12247', 'АО',
+    'АО «НРК - Р.О.С.Т.»', '12247', 'ПАО',
     '107076, г. Москва, ул. Стромынка, д. 18, к. 5Б',
     'Действующее', '2002-10-10', NOW());
 
@@ -150,7 +150,7 @@ INSERT INTO ext_spark_company (id, inn, ogrn, full_name, short_name, okopf_code,
     legal_address, status, registration_date, fetched_at)
 VALUES (gen_random_uuid(), '7704028206', '1027700047275',
     'Акционерное общество «Реестр»',
-    'АО «Реестр»', '12247', 'АО',
+    'АО «Реестр»', '12247', 'ПАО',
     '129090, г. Москва, пер. Большой Балканский, д. 20, стр. 1',
     'Действующее', '2002-06-18', NOW());
 
@@ -189,7 +189,7 @@ INSERT INTO ext_spark_company (id, inn, ogrn, full_name, short_name, okopf_code,
     legal_address, status, registration_date, fetched_at)
 VALUES (gen_random_uuid(), '6661049239', NULL,
     'Акционерное общество "Ведение реестров компаний"',
-    'АО "ВРК"', '12247', 'АО',
+    'АО "ВРК"', '12247', 'ПАО',
     '620014, г. Екатеринбург', 'Действующее', '2002-01-01', NOW());
 INSERT INTO ext_spark_manager (id, inn, full_name, position, person_inn, start_date, fetched_at)
 VALUES (gen_random_uuid(), '6661049239', 'Козлов Андрей Викторович', 'Генеральный директор', '666101234567', '2010-01-01', NOW());
@@ -206,7 +206,7 @@ INSERT INTO ext_spark_company (id, inn, ogrn, full_name, short_name, okopf_code,
     legal_address, status, registration_date, fetched_at)
 VALUES (gen_random_uuid(), '3302021034', NULL,
     'Акционерное общество "Индустрия-РЕЕСТР"',
-    'АО "Индустрия-РЕЕСТР"', '12247', 'АО',
+    'АО "Индустрия-РЕЕСТР"', '12247', 'ПАО',
     '107113, г. Москва', 'Действующее', '2002-01-01', NOW());
 INSERT INTO ext_spark_manager (id, inn, full_name, position, person_inn, start_date, fetched_at)
 VALUES (gen_random_uuid(), '3302021034', 'Михайлов Дмитрий Сергеевич', 'Генеральный директор', '330201234567', '2012-06-15', NOW());
@@ -223,7 +223,7 @@ INSERT INTO ext_spark_company (id, inn, ogrn, full_name, short_name, okopf_code,
     legal_address, status, registration_date, fetched_at)
 VALUES (gen_random_uuid(), '7719263354', NULL,
     'Акционерное общество "Новый регистратор"',
-    'АО "Новый регистратор"', '12247', 'АО',
+    'АО "Новый регистратор"', '12247', 'ПАО',
     '107996, г. Москва, ул. Буженинова, д. 30', 'Действующее', '2002-01-01', NOW());
 INSERT INTO ext_spark_manager (id, inn, full_name, position, person_inn, start_date, fetched_at)
 VALUES (gen_random_uuid(), '7719263354', 'Новиков Павел Александрович', 'Генеральный директор', '771901234567', '2014-09-01', NOW());
@@ -240,7 +240,7 @@ INSERT INTO ext_spark_company (id, inn, ogrn, full_name, short_name, okopf_code,
     legal_address, status, registration_date, fetched_at)
 VALUES (gen_random_uuid(), '3821010220', NULL,
     'Акционерное общество "Профессиональный регистрационный центр"',
-    'АО "ПРЦ"', '12247', 'АО',
+    'АО "ПРЦ"', '12247', 'ПАО',
     '117452, г. Москва, пр-кт Балаклавский', 'Действующее', '2002-01-01', NOW());
 INSERT INTO ext_spark_manager (id, inn, full_name, position, person_inn, start_date, fetched_at)
 VALUES (gen_random_uuid(), '3821010220', 'Кузнецов Игорь Михайлович', 'Генеральный директор', '382101234567', '2011-03-10', NOW());
@@ -257,7 +257,7 @@ INSERT INTO ext_spark_company (id, inn, ogrn, full_name, short_name, okopf_code,
     legal_address, status, registration_date, fetched_at)
 VALUES (gen_random_uuid(), '7723103642', NULL,
     'Акционерное общество "РДЦ ПАРИТЕТ"',
-    'АО "РДЦ ПАРИТЕТ"', '12247', 'АО',
+    'АО "РДЦ ПАРИТЕТ"', '12247', 'ПАО',
     '115114, г. Москва', 'Действующее', '2002-01-01', NOW());
 INSERT INTO ext_spark_manager (id, inn, full_name, position, person_inn, start_date, fetched_at)
 VALUES (gen_random_uuid(), '7723103642', 'Соколов Виктор Петрович', 'Генеральный директор', '772301234567', '2013-07-20', NOW());
@@ -274,7 +274,7 @@ INSERT INTO ext_spark_company (id, inn, ogrn, full_name, short_name, okopf_code,
     legal_address, status, registration_date, fetched_at)
 VALUES (gen_random_uuid(), '5903027161', NULL,
     'Акционерное общество "Регистратор Интрако"',
-    'АО "РЕГИСТРАТОР ИНТРАКО"', '12247', 'АО',
+    'АО "РЕГИСТРАТОР ИНТРАКО"', '12247', 'ПАО',
     '614000, г. Пермь, ул. Ленина', 'Действующее', '2002-01-01', NOW());
 INSERT INTO ext_spark_manager (id, inn, full_name, position, person_inn, start_date, fetched_at)
 VALUES (gen_random_uuid(), '5903027161', 'Волков Сергей Николаевич', 'Генеральный директор', '590301234567', '2015-01-15', NOW());
@@ -291,7 +291,7 @@ INSERT INTO ext_spark_company (id, inn, ogrn, full_name, short_name, okopf_code,
     legal_address, status, registration_date, fetched_at)
 VALUES (gen_random_uuid(), '6659035711', NULL,
     'Акционерное общество "Регистратор-Капитал"',
-    'АО "Регистратор-Капитал"', '12247', 'АО',
+    'АО "Регистратор-Капитал"', '12247', 'ПАО',
     '620041, г. Екатеринбург', 'Действующее', '2002-01-01', NOW());
 INSERT INTO ext_spark_manager (id, inn, full_name, position, person_inn, start_date, fetched_at)
 VALUES (gen_random_uuid(), '6659035711', 'Лебедев Олег Владимирович', 'Генеральный директор', '665901234567', '2016-05-01', NOW());
@@ -308,7 +308,7 @@ INSERT INTO ext_spark_company (id, inn, ogrn, full_name, short_name, okopf_code,
     legal_address, status, registration_date, fetched_at)
 VALUES (gen_random_uuid(), '7707179242', NULL,
     'Акционерное общество "Регистраторское общество "СТАТУС"',
-    'АО "СТАТУС"', '12247', 'АО',
+    'АО "СТАТУС"', '12247', 'ПАО',
     '109052, г. Москва, ул. Новоховловская', 'Действующее', '2002-01-01', NOW());
 INSERT INTO ext_spark_manager (id, inn, full_name, position, person_inn, start_date, fetched_at)
 VALUES (gen_random_uuid(), '7707179242', 'Фёдоров Артём Леонидович', 'Генеральный директор', '770701234567', '2014-11-10', NOW());
@@ -325,7 +325,7 @@ INSERT INTO ext_spark_company (id, inn, ogrn, full_name, short_name, okopf_code,
     legal_address, status, registration_date, fetched_at)
 VALUES (gen_random_uuid(), '7726050935', NULL,
     'Акционерное общество "Регистрационная Компания Центр-Инвест"',
-    'АО РК "Центр-Инвест"', '12247', 'АО',
+    'АО РК "Центр-Инвест"', '12247', 'ПАО',
     '107023, г. Москва, пер. Мажоров', 'Действующее', '2002-01-01', NOW());
 INSERT INTO ext_spark_manager (id, inn, full_name, position, person_inn, start_date, fetched_at)
 VALUES (gen_random_uuid(), '7726050935', 'Белов Александр Юрьевич', 'Генеральный директор', '772601234567', '2013-02-20', NOW());
@@ -342,7 +342,7 @@ INSERT INTO ext_spark_company (id, inn, ogrn, full_name, short_name, okopf_code,
     legal_address, status, registration_date, fetched_at)
 VALUES (gen_random_uuid(), '1435001668', NULL,
     'Акционерное общество "Республиканский специализированный регистратор "Якутский Фондовый Центр"',
-    'АО РСР "ЯФЦ"', '12247', 'АО',
+    'АО РСР "ЯФЦ"', '12247', 'ПАО',
     '677018, г. Якутск', 'Действующее', '2002-01-01', NOW());
 INSERT INTO ext_spark_manager (id, inn, full_name, position, person_inn, start_date, fetched_at)
 VALUES (gen_random_uuid(), '1435001668', 'Попов Николай Алексеевич', 'Генеральный директор', '143501234567', '2011-08-01', NOW());
@@ -359,7 +359,7 @@ INSERT INTO ext_spark_company (id, inn, ogrn, full_name, short_name, okopf_code,
     legal_address, status, registration_date, fetched_at)
 VALUES (gen_random_uuid(), '5407175878', NULL,
     'Акционерное общество "РТ-Регистратор"',
-    'АО "РТ-Регистратор"', '12247', 'АО',
+    'АО "РТ-Регистратор"', '12247', 'ПАО',
     '119049, г. Москва, ул. Донская', 'Действующее', '2002-01-01', NOW());
 INSERT INTO ext_spark_manager (id, inn, full_name, position, person_inn, start_date, fetched_at)
 VALUES (gen_random_uuid(), '5407175878', 'Морозов Сергей Иванович', 'Генеральный директор', '540701234567', '2017-04-01', NOW());
@@ -376,7 +376,7 @@ INSERT INTO ext_spark_company (id, inn, ogrn, full_name, short_name, okopf_code,
     legal_address, status, registration_date, fetched_at)
 VALUES (gen_random_uuid(), '8605006147', NULL,
     'Акционерное общество "Сервис-Реестр"',
-    'АО "Сервис-Реестр"', '12247', 'АО',
+    'АО "Сервис-Реестр"', '12247', 'ПАО',
     '107045, г. Москва, ул. Сретенка', 'Действующее', '2002-01-01', NOW());
 INSERT INTO ext_spark_manager (id, inn, full_name, position, person_inn, start_date, fetched_at)
 VALUES (gen_random_uuid(), '8605006147', 'Козлов Денис Андреевич', 'Генеральный директор', '860501234567', '2018-06-15', NOW());
@@ -393,7 +393,7 @@ INSERT INTO ext_spark_company (id, inn, ogrn, full_name, short_name, okopf_code,
     legal_address, status, registration_date, fetched_at)
 VALUES (gen_random_uuid(), '4217027573', NULL,
     'акционерное общество "Специализированный Регистратор "КОМПАС"',
-    'АО "СРК"', '12247', 'АО',
+    'АО "СРК"', '12247', 'ПАО',
     '654005, г. Новокузнецк', 'Действующее', '2002-01-01', NOW());
 INSERT INTO ext_spark_manager (id, inn, full_name, position, person_inn, start_date, fetched_at)
 VALUES (gen_random_uuid(), '4217027573', 'Тарасов Олег Николаевич', 'Генеральный директор', '421701234567', '2015-09-01', NOW());
@@ -410,7 +410,7 @@ INSERT INTO ext_spark_company (id, inn, ogrn, full_name, short_name, okopf_code,
     legal_address, status, registration_date, fetched_at)
 VALUES (gen_random_uuid(), '7107039003', NULL,
     'Акционерное общество «Агентство «Региональный независимый регистратор»',
-    'АО «Агентство «РНР»»', '12247', 'АО',
+    'АО «Агентство «РНР»»', '12247', 'ПАО',
     '398017, г. Липецк', 'Действующее', '2002-01-01', NOW());
 INSERT INTO ext_spark_manager (id, inn, full_name, position, person_inn, start_date, fetched_at)
 VALUES (gen_random_uuid(), '7107039003', 'Захаров Игорь Сергеевич', 'Генеральный директор', '710701234567', '2014-03-01', NOW());
@@ -427,7 +427,7 @@ INSERT INTO ext_spark_company (id, inn, ogrn, full_name, short_name, okopf_code,
     legal_address, status, registration_date, fetched_at)
 VALUES (gen_random_uuid(), '9714072529', NULL,
     'Акционерное общество «Вторая линия»',
-    'АО «Вторая линия»', '12247', 'АО',
+    'АО «Вторая линия»', '12247', 'ПАО',
     '125057, г. Москва', 'Действующее', '2002-01-01', NOW());
 INSERT INTO ext_spark_manager (id, inn, full_name, position, person_inn, start_date, fetched_at)
 VALUES (gen_random_uuid(), '9714072529', 'Семёнов Алексей Викторович', 'Генеральный директор', '971401234567', '2016-07-01', NOW());
@@ -444,7 +444,7 @@ INSERT INTO ext_spark_company (id, inn, ogrn, full_name, short_name, okopf_code,
     legal_address, status, registration_date, fetched_at)
 VALUES (gen_random_uuid(), '1901003859', NULL,
     'АКЦИОНЕРНОЕ ОБЩЕСТВО «МЕЖРЕГИОНАЛЬНЫЙ РЕГИСТРАТОРСКИЙ ЦЕНТР»',
-    'АО «МРЦ»', '12247', 'АО',
+    'АО «МРЦ»', '12247', 'ПАО',
     '101000, г. Москва, пер. Подсосенский', 'Действующее', '2002-01-01', NOW());
 INSERT INTO ext_spark_manager (id, inn, full_name, position, person_inn, start_date, fetched_at)
 VALUES (gen_random_uuid(), '1901003859', 'Орлов Максим Андреевич', 'Генеральный директор', '190101234567', '2012-01-15', NOW());
@@ -461,7 +461,7 @@ INSERT INTO ext_spark_company (id, inn, ogrn, full_name, short_name, okopf_code,
     legal_address, status, registration_date, fetched_at)
 VALUES (gen_random_uuid(), '9702074105', NULL,
     'Акционерное общество «Реестр-Протон»',
-    'АО «Реестр-Протон»', '12247', 'АО',
+    'АО «Реестр-Протон»', '12247', 'ПАО',
     '129110, г. Москва', 'Действующее', '2002-01-01', NOW());
 INSERT INTO ext_spark_manager (id, inn, full_name, position, person_inn, start_date, fetched_at)
 VALUES (gen_random_uuid(), '9702074105', 'Николаев Дмитрий Олегович', 'Генеральный директор', '970201234567', '2017-02-01', NOW());
@@ -478,7 +478,7 @@ INSERT INTO ext_spark_company (id, inn, ogrn, full_name, short_name, okopf_code,
     legal_address, status, registration_date, fetched_at)
 VALUES (gen_random_uuid(), '9703197607', NULL,
     'Акционерное общество «Специализированная депозитарная компания «Сириус»',
-    'АО «СДК «Сириус»»', '12247', 'АО',
+    'АО «СДК «Сириус»»', '12247', 'ПАО',
     '123100, г. Москва', 'Действующее', '2002-01-01', NOW());
 INSERT INTO ext_spark_manager (id, inn, full_name, position, person_inn, start_date, fetched_at)
 VALUES (gen_random_uuid(), '9703197607', 'Васильев Андрей Николаевич', 'Генеральный директор', '970301234567', '2015-05-01', NOW());
@@ -495,7 +495,7 @@ INSERT INTO ext_spark_company (id, inn, ogrn, full_name, short_name, okopf_code,
     legal_address, status, registration_date, fetched_at)
 VALUES (gen_random_uuid(), '7704011964', NULL,
     'Акционерное общество «Специализированный регистратор - Держатель реестров акционеров газовой промышленности»',
-    'АО «ДРАГА»', '12247', 'АО',
+    'АО «ДРАГА»', '12247', 'ПАО',
     '190098, г. Санкт-Петербург', 'Действующее', '2002-01-01', NOW());
 INSERT INTO ext_spark_manager (id, inn, full_name, position, person_inn, start_date, fetched_at)
 VALUES (gen_random_uuid(), '7704011964', 'Громов Сергей Петрович', 'Генеральный директор', '770401234568', '2013-08-01', NOW());
@@ -512,7 +512,7 @@ INSERT INTO ext_spark_company (id, inn, ogrn, full_name, short_name, okopf_code,
     legal_address, status, registration_date, fetched_at)
 VALUES (gen_random_uuid(), '9718273177', NULL,
     'Акционерное общество «Фондовая регистрационная компания»',
-    'АО «ФРК»', '12247', 'АО',
+    'АО «ФРК»', '12247', 'ПАО',
     '107076, г. Москва', 'Действующее', '2002-01-01', NOW());
 INSERT INTO ext_spark_manager (id, inn, full_name, position, person_inn, start_date, fetched_at)
 VALUES (gen_random_uuid(), '9718273177', 'Романов Кирилл Александрович', 'Генеральный директор', '971801234567', '2016-01-15', NOW());
@@ -529,7 +529,7 @@ INSERT INTO ext_spark_company (id, inn, ogrn, full_name, short_name, okopf_code,
     legal_address, status, registration_date, fetched_at)
 VALUES (gen_random_uuid(), '5610083568', NULL,
     'Акционерное общество ВТБ Регистратор',
-    'АО ВТБ Регистратор', '12247', 'АО',
+    'АО ВТБ Регистратор', '12247', 'ПАО',
     '127015, г. Москва, ул. Правды', 'Действующее', '2002-01-01', NOW());
 INSERT INTO ext_spark_manager (id, inn, full_name, position, person_inn, start_date, fetched_at)
 VALUES (gen_random_uuid(), '5610083568', 'Ковалёв Дмитрий Сергеевич', 'Генеральный директор', '561001234567', '2014-04-01', NOW());
@@ -716,7 +716,7 @@ INSERT INTO ext_spark_company (id, inn, ogrn, full_name, short_name, okopf_code,
     legal_address, status, registration_date, fetched_at)
 VALUES (gen_random_uuid(), '8602039063', NULL,
     'Акционерное общество "Сургутинвестнефть"',
-    'АО "Сургутинвестнефть"', '12247', 'АО',
+    'АО "Сургутинвестнефть"', '12247', 'ПАО',
     '628415, г. Сургут', 'Действующее', '2002-01-01', NOW());
 INSERT INTO ext_spark_manager (id, inn, full_name, position, person_inn, start_date, fetched_at)
 VALUES (gen_random_uuid(), '8602039063', 'Тарасов Алексей Николаевич', 'Генеральный директор', '860201234567', '2016-03-01', NOW());
