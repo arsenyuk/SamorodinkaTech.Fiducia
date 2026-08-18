@@ -1196,6 +1196,24 @@ var scrollLeft = (int)(...) - ScrollToTodayOffsetPx;
 2. Перезапустить приложение (kill + запуск заново).
 3. Обновить страницу в браузере (Ctrl/Cmd+R).
 
+### Blazor: пересборка consuming-проекта после изменения .cs в библиотеках (КРИТИЧНО)
+
+При изменении `.cs`-файлов в библиотечных проектах (`src/Domain`, `src/Infrastructure`,
+`src/Common`) — **недостаточно** пересобрать только изменённый проект. Consuming-проекты
+(AdminConsole, BoardPortal) используют **свою копию** DLL в `bin/`, и `dotnet build src/Domain`
+не обновляет её.
+
+Правило: после изменения `.cs` в библиотеке **всегда** пересобирать
+consuming-проект:
+```bash
+dotnet build SamorodinkaTech.Fiducia.AdminConsole
+dotnet build SamorodinkaTech.Fiducia.BoardPortal
+```
+Затем kill + `./start.sh` + Ctrl/Cmd+R в браузере.
+
+Аналогично: после изменения `.razor`-файлов в consuming-проекте —
+hot-reload **не работает** в Blazor Server. Нужен kill + перезапуск.
+
 ### Blazor: Razor-параметры — `@` для C#-выражений (КРИТИЧНО)
 
 - В Razor-шаблонах параметр компонента `Prop="value"` передаёт **литеральную строку**.
