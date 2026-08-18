@@ -830,8 +830,23 @@
     private int gosaEndDay = 30;
     private bool gosaIsPjsc;
 
-    private DateOnly GosaStart => new DateOnly(DateTime.UtcNow.Year, gosaStartMonth, gosaStartDay);
-    private DateOnly GosaEnd => new DateOnly(DateTime.UtcNow.Year, gosaEndMonth, gosaEndDay);
+    private DateOnly GosaStart
+    {
+        get
+        {
+            var maxDay = DateTime.DaysInMonth(DateTime.UtcNow.Year, gosaStartMonth);
+            return new DateOnly(DateTime.UtcNow.Year, gosaStartMonth, Math.Min(gosaStartDay, maxDay));
+        }
+    }
+
+    private DateOnly GosaEnd
+    {
+        get
+        {
+            var maxDay = DateTime.DaysInMonth(DateTime.UtcNow.Year, gosaEndMonth);
+            return new DateOnly(DateTime.UtcNow.Year, gosaEndMonth, Math.Min(gosaEndDay, maxDay));
+        }
+    }
     private string? gosaError;
     private string? saveError;
     private string? saveSuccess;
