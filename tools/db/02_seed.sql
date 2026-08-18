@@ -338,13 +338,12 @@ INSERT INTO tpl_org_intents (id, code, name, description, sort_order, is_for_ao,
 ON CONFLICT DO NOTHING;
 
 INSERT INTO tpl_org_stages (id, intent_id, name, description, sort_order, start_offset_days, deadline_rule, deadline_days, measurement_unit_id, dependency_type, created_at, created_by) VALUES
-    ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbb41', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa50', 'Запуск', 'Постановка задачи бухгалтерии о подготовке годовой отчётности', 1, 0, 'FIXED_DAYS', 1, 'bbbb0000-0000-0000-0000-000000000002', 'FS', CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000'),
-    ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbb42', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa50', 'Подготовка отчётности', 'Подготовка годового отчёта и баланса, формирование повестки ООСУ', 2, 1, 'FIXED_DAYS', 3, 'bbbb0000-0000-0000-0000-000000000004', 'FS', CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000'),
-    ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbb43', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa50', 'Проверка отчётности', 'Ревизия и аудит отчётности, приём заключений', 3, 19, 'FIXED_DAYS', 8, 'bbbb0000-0000-0000-0000-000000000003', 'FS', CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000'),
-    ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbb44', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa50', 'Подготовка к собранию', 'Сборка материалов, уведомление участников и нотариуса, доп. вопросы', 4, 59, 'FIXED_DAYS', 6, 'bbbb0000-0000-0000-0000-000000000003', 'FS', CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000'),
-    ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbb45', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa50', 'Проведение ООСУ', 'Проведение собрания, оформление протокола', 5, 89, 'FIXED_DAYS', 2, 'bbbb0000-0000-0000-0000-000000000002', 'FS', CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000'),
-    ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbb46', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa50', 'Регистрация изменений', 'Подача Р13014 в ФНС, уведомление банка о смене директора', 6, 91, 'FIXED_DAYS', 2, 'bbbb0000-0000-0000-0000-000000000003', 'FS', CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000'),
-    ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbb47', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa50', 'Завершение', 'Фиксация результатов, хранение, исполнение решений', 7, 105, 'FIXED_DAYS', 3, 'bbbb0000-0000-0000-0000-000000000002', 'FS', CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000')
+    ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbb42', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa50', 'Подготовка отчётности', 'Подготовка годового отчёта и баланса, формирование повестки ООСУ', 1, 1, 'FIXED_DAYS', 3, 'bbbb0000-0000-0000-0000-000000000004', 'FS', CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000'),
+    ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbb43', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa50', 'Проверка отчётности', 'Ревизия и аудит отчётности, приём заключений', 2, 19, 'FIXED_DAYS', 8, 'bbbb0000-0000-0000-0000-000000000003', 'FS', CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000'),
+    ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbb44', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa50', 'Подготовка к собранию', 'Сборка материалов, уведомление участников и нотариуса, доп. вопросы', 3, 59, 'FIXED_DAYS', 6, 'bbbb0000-0000-0000-0000-000000000003', 'FS', CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000'),
+    ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbb45', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa50', 'Проведение ООСУ', 'Проведение собрания, оформление протокола', 4, 89, 'FIXED_DAYS', 2, 'bbbb0000-0000-0000-0000-000000000002', 'FS', CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000'),
+    ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbb46', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa50', 'Регистрация изменений', 'Подача Р13014 в ФНС, уведомление банка о смене директора', 5, 91, 'FIXED_DAYS', 2, 'bbbb0000-0000-0000-0000-000000000003', 'FS', CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000'),
+    ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbb47', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa50', 'Завершение', 'Фиксация результатов, хранение, исполнение решений', 6, 105, 'FIXED_DAYS', 3, 'bbbb0000-0000-0000-0000-000000000002', 'FS', CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000')
 ON CONFLICT DO NOTHING;
 
 -- Оферы ООСУ: каждый офер — шаблон одной задачи, с predecessor_offer_ids и предикатами
@@ -352,16 +351,11 @@ ON CONFLICT DO NOTHING;
 INSERT INTO tpl_org_offers (id, stage_id, name, description, start_offset_days, deadline_rule, deadline_days,
     measurement_unit_id, predecessor_offer_ids, dependency_type, require_notary_confirmation, require_executive_body_a,
     require_mandatory_audit, require_revision_commission, created_at, created_by) VALUES
-    -- Фаза 1: Запуск
-    ('cccccccc-cccc-cccc-cccc-cccccccccc91', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbb41',
-     'Постановка задачи бухгалтерии',
-     'Приказ/поручение о подготовке годовой отчётности (Б1)',
-     0, 'FIXED_DAYS', 1, 'bbbb0000-0000-0000-0000-000000000002', NULL, 'FS', NULL, NULL, NULL, NULL, CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000'),
-    -- Фаза 2: Подготовка отчётности
+    -- Фаза 1: Подготовка отчётности
     ('cccccccc-cccc-cccc-cccc-cccccccccc92', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbb42',
      'Подготовка годового отчёта и баланса',
      'Формирование годового отчёта и бухгалтерского баланса (Б2)',
-     0, 'FIXED_DAYS', 15, 'bbbb0000-0000-0000-0000-000000000002', '["cccccccc-cccc-cccc-cccc-cccccccccc91"]', 'FS', NULL, NULL, NULL, NULL, CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000'),
+     0, 'FIXED_DAYS', 15, 'bbbb0000-0000-0000-0000-000000000002', NULL, 'FS', NULL, NULL, NULL, NULL, CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000'),
     ('cccccccc-cccc-cccc-cccc-cccccccccc93', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbb42',
      'Формирование повестки ООСУ',
      'Формирование перечня вопросов с учётом результатов года (П1)',
