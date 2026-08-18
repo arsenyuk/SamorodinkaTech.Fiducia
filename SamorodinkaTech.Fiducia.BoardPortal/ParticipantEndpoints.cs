@@ -52,9 +52,13 @@ public static class ParticipantEndpoints
 
         // POST: добавление участника
         participants.MapPost("/", async (
+            HttpContext http,
             BoardParticipantDto dto,
             IDbContextFactory<FiduciaDbContext> dbFactory) =>
         {
+            if (!HasRole(http.User, "CHAIRMAN"))
+                return Results.Forbid();
+
             await using var ctx = await dbFactory.CreateDbContextAsync();
             var workplace = await ctx.CurrentWorkplaces.FirstOrDefaultAsync();
             var leId = workplace?.LastSelectedLegalEntityId;
@@ -80,9 +84,13 @@ public static class ParticipantEndpoints
         // PUT: обновление участника
         participants.MapPut("/{id}", async (
             Guid id,
+            HttpContext http,
             BoardParticipantDto dto,
             IDbContextFactory<FiduciaDbContext> dbFactory) =>
         {
+            if (!HasRole(http.User, "CHAIRMAN"))
+                return Results.Forbid();
+
             await using var ctx = await dbFactory.CreateDbContextAsync();
             var entity = await ctx.BoardParticipants.FindAsync(id);
             if (entity is null) return Results.NotFound();
@@ -117,8 +125,11 @@ public static class ParticipantEndpoints
         });
 
         // DELETE: удаление участника
-        participants.MapDelete("/{id}", async (Guid id, IDbContextFactory<FiduciaDbContext> dbFactory) =>
+        participants.MapDelete("/{id}", async (Guid id, HttpContext http, IDbContextFactory<FiduciaDbContext> dbFactory) =>
         {
+            if (!HasRole(http.User, "CHAIRMAN"))
+                return Results.Forbid();
+
             await using var ctx = await dbFactory.CreateDbContextAsync();
             var entity = await ctx.BoardParticipants.FindAsync(id);
             if (entity is null) return Results.NotFound();
@@ -130,8 +141,12 @@ public static class ParticipantEndpoints
 
         // POST: импорт участников из СПАРК
         participants.MapPost("/import-from-spark", async (
+            HttpContext http,
             IDbContextFactory<FiduciaDbContext> dbFactory) =>
         {
+            if (!HasRole(http.User, "CHAIRMAN"))
+                return Results.Forbid();
+
             await using var ctx = await dbFactory.CreateDbContextAsync();
             var workplace = await ctx.CurrentWorkplaces.FirstOrDefaultAsync();
             var leId = workplace?.LastSelectedLegalEntityId;
@@ -221,9 +236,13 @@ public static class ParticipantEndpoints
 
         // POST: добавление казначейской доли
         treasuryShares.MapPost("/", async (
+            HttpContext http,
             BoardTreasuryShareDto dto,
             IDbContextFactory<FiduciaDbContext> dbFactory) =>
         {
+            if (!HasRole(http.User, "CHAIRMAN"))
+                return Results.Forbid();
+
             await using var ctx = await dbFactory.CreateDbContextAsync();
             var workplace = await ctx.CurrentWorkplaces.FirstOrDefaultAsync();
             var leId = workplace?.LastSelectedLegalEntityId;
@@ -256,9 +275,13 @@ public static class ParticipantEndpoints
         // PUT: обновление казначейской доли
         treasuryShares.MapPut("/{id}", async (
             Guid id,
+            HttpContext http,
             BoardTreasuryShareDto dto,
             IDbContextFactory<FiduciaDbContext> dbFactory) =>
         {
+            if (!HasRole(http.User, "CHAIRMAN"))
+                return Results.Forbid();
+
             await using var ctx = await dbFactory.CreateDbContextAsync();
             var entity = await ctx.BoardTreasuryShares.FindAsync(id);
             if (entity is null) return Results.NotFound();
@@ -274,8 +297,11 @@ public static class ParticipantEndpoints
         });
 
         // DELETE: удаление казначейской доли
-        treasuryShares.MapDelete("/{id}", async (Guid id, IDbContextFactory<FiduciaDbContext> dbFactory) =>
+        treasuryShares.MapDelete("/{id}", async (Guid id, HttpContext http, IDbContextFactory<FiduciaDbContext> dbFactory) =>
         {
+            if (!HasRole(http.User, "CHAIRMAN"))
+                return Results.Forbid();
+
             await using var ctx = await dbFactory.CreateDbContextAsync();
             var entity = await ctx.BoardTreasuryShares.FindAsync(id);
             if (entity is null) return Results.NotFound();
@@ -390,5 +416,15 @@ public static class ParticipantEndpoints
         public decimal? ShareAmount { get; init; }
         public DateOnly? AcquiredDate { get; init; }
         public string? AcquisitionBasis { get; init; }
+    }
+
+    /// <summary>
+    /// Проверяет, содержит ли пользователь указанную роль (включая составные роли через запятую).
+    /// </summary>
+    private static bool HasRole(System.Security.Claims.ClaimsPrincipal user, string role)
+    {
+        var roleClaim = user.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value ?? "";
+        return roleClaim.Split(',', StringSplitOptions.RemoveEmptyEntries)
+            .Any(r => r.Trim().Equals(role, StringComparison.OrdinalIgnoreCase));
     }
 }
