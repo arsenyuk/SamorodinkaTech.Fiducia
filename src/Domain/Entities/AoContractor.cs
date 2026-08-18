@@ -58,14 +58,20 @@ public class AoContractor
     /// <summary>Срок подготовки реестра акционеров — количество единиц (registry_preparation_days).</summary>
     public int? RegistryPreparationDays { get; set; }
 
-    /// <summary>Единица измерения срока подготовки реестра: CALENDAR или BUSINESS (registry_preparation_unit).</summary>
-    public MeasurementUnit? RegistryPreparationUnit { get; set; }
+    /// <summary>Единица измерения срока подготовки реестра (registry_preparation_unit).</summary>
+    public Guid? RegistryPreparationUnitId { get; set; }
+
+    /// <summary>Справочник единиц измерения.</summary>
+    public RefMeasurementUnit? RegistryPreparationUnit { get; set; }
 
     /// <summary>Срок подготовки реестра для выплаты дивидендов — количество единиц (dividend_registry_preparation_days).</summary>
     public int? DividendRegistryPreparationDays { get; set; }
 
-    /// <summary>Единица измерения срока подготовки дивидендного реестра: CALENDAR или BUSINESS (dividend_registry_preparation_unit).</summary>
-    public MeasurementUnit? DividendRegistryPreparationUnit { get; set; }
+    /// <summary>Единица измерения срока подготовки дивидендного реестра (dividend_registry_preparation_unit).</summary>
+    public Guid? DividendRegistryPreparationUnitId { get; set; }
+
+    /// <summary>Справочник единиц измерения.</summary>
+    public RefMeasurementUnit? DividendRegistryPreparationUnit { get; set; }
 
     // ── Правила ведения реестра (только для REGISTRAR) ──
 

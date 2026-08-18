@@ -279,9 +279,9 @@ public static class AoContractorEndpoints
                 c.IsIndefinite,
                 c.ContractDocumentId,
                 c.RegistryPreparationDays,
-                RegistryPreparationUnit = c.RegistryPreparationUnit?.ToString(),
+                RegistryPreparationUnit = c.RegistryPreparationUnit?.Code,
                 c.DividendRegistryPreparationDays,
-                DividendRegistryPreparationUnit = c.DividendRegistryPreparationUnit?.ToString(),
+                DividendRegistryPreparationUnit = c.DividendRegistryPreparationUnit?.Code,
                 c.RegistryRulesUrl,
                 c.RegistryRulesDocumentId,
                 c.IsActive,
@@ -343,9 +343,9 @@ public static class AoContractorEndpoints
                     c.IsIndefinite,
                     c.ContractDocumentId,
                     c.RegistryPreparationDays,
-                    RegistryPreparationUnit = c.RegistryPreparationUnit?.ToString(),
+                    RegistryPreparationUnit = c.RegistryPreparationUnit?.Code,
                     c.DividendRegistryPreparationDays,
-                    DividendRegistryPreparationUnit = c.DividendRegistryPreparationUnit?.ToString(),
+                    DividendRegistryPreparationUnit = c.DividendRegistryPreparationUnit?.Code,
                     c.RegistryRulesUrl,
                     c.RegistryRulesDocumentId,
                     c.IsActive,
@@ -440,9 +440,13 @@ public static class AoContractorEndpoints
                 IsIndefinite = !bool.TryParse(isIndefiniteStr, out var ii) || ii,
                 ContractDocumentId = documentId,
                 RegistryPreparationDays = int.TryParse(registryPrepDaysStr, out var rpd) ? rpd : null,
-                RegistryPreparationUnit = Enum.TryParse<SamorodinkaTech.Fiducia.Domain.Enums.MeasurementUnit>(registryPrepUnitStr, true, out var rpu) ? rpu : null,
+                RegistryPreparationUnitId = !string.IsNullOrEmpty(registryPrepUnitStr)
+                    ? (await ctx.RefMeasurementUnits.FirstOrDefaultAsync(x => x.Code == registryPrepUnitStr))?.Id
+                    : null,
                 DividendRegistryPreparationDays = int.TryParse(dividendRegPrepDaysStr, out var drpd) ? drpd : null,
-                DividendRegistryPreparationUnit = Enum.TryParse<SamorodinkaTech.Fiducia.Domain.Enums.MeasurementUnit>(dividendRegPrepUnitStr, true, out var drpu) ? drpu : null,
+                DividendRegistryPreparationUnitId = !string.IsNullOrEmpty(dividendRegPrepUnitStr)
+                    ? (await ctx.RefMeasurementUnits.FirstOrDefaultAsync(x => x.Code == dividendRegPrepUnitStr))?.Id
+                    : null,
                 RegistryRulesUrl = registryRulesUrl,
                 RegistryRulesDocumentId = rulesDocId,
                 IsActive = true,
@@ -484,9 +488,13 @@ public static class AoContractorEndpoints
             contractor.ContractValidTo = DateOnly.TryParse(contractValidToStr, out var cvt) ? cvt : null;
             contractor.IsIndefinite = !bool.TryParse(isIndefiniteStr, out var ii) || ii;
             contractor.RegistryPreparationDays = int.TryParse(registryPrepDaysStr, out var rpd) ? rpd : null;
-            contractor.RegistryPreparationUnit = Enum.TryParse<SamorodinkaTech.Fiducia.Domain.Enums.MeasurementUnit>(registryPrepUnitStr, true, out var rpu) ? rpu : null;
+            contractor.RegistryPreparationUnitId = !string.IsNullOrEmpty(registryPrepUnitStr)
+                ? (await ctx.RefMeasurementUnits.FirstOrDefaultAsync(x => x.Code == registryPrepUnitStr))?.Id
+                : null;
             contractor.DividendRegistryPreparationDays = int.TryParse(dividendRegPrepDaysStr, out var drpd) ? drpd : null;
-            contractor.DividendRegistryPreparationUnit = Enum.TryParse<SamorodinkaTech.Fiducia.Domain.Enums.MeasurementUnit>(dividendRegPrepUnitStr, true, out var drpu) ? drpu : null;
+            contractor.DividendRegistryPreparationUnitId = !string.IsNullOrEmpty(dividendRegPrepUnitStr)
+                ? (await ctx.RefMeasurementUnits.FirstOrDefaultAsync(x => x.Code == dividendRegPrepUnitStr))?.Id
+                : null;
             contractor.RegistryRulesUrl = registryRulesUrl;
 
             // Обработка загруженных файлов (замена)

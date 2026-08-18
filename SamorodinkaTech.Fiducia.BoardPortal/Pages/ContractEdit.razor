@@ -1,7 +1,6 @@
 @page "/contracts/{Id:guid}"
 @using Microsoft.EntityFrameworkCore
 @using SamorodinkaTech.Fiducia.Domain.Entities
-@using SamorodinkaTech.Fiducia.Domain.Enums
 @inject IDbContextFactory<SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext> DbFactory
 @inject HttpClient Http
 @inject ILogger<ContractEdit> Logger
@@ -151,8 +150,10 @@
                             <label class="form-label">Единица измерения</label>
                             <select class="form-select" @bind="_formRegistryPrepUnit">
                                 <option value="">Не указано</option>
-                                <option value="CALENDAR">@MeasurementUnit.CALENDAR.GetDisplayName()</option>
-                                <option value="BUSINESS">@MeasurementUnit.BUSINESS.GetDisplayName()</option>
+                                @foreach (var unit in _measurementUnits)
+                                {
+                                    <option value="@unit.Code">@unit.Name</option>
+                                }
                             </select>
                         </div>
                     </div>
@@ -166,8 +167,10 @@
                             <label class="form-label">Единица измерения</label>
                             <select class="form-select" @bind="_formDividendRegPrepUnit">
                                 <option value="">Не указано</option>
-                                <option value="CALENDAR">@MeasurementUnit.CALENDAR.GetDisplayName()</option>
-                                <option value="BUSINESS">@MeasurementUnit.BUSINESS.GetDisplayName()</option>
+                                @foreach (var unit in _measurementUnits)
+                                {
+                                    <option value="@unit.Code">@unit.Name</option>
+                                }
                             </select>
                         </div>
                     </div>
@@ -238,12 +241,13 @@
     private Guid? _formRulesDocumentId;
     private string? _formRulesDocumentName;
     private string? _legalEntityName;
+    private List<RefMeasurementUnit> _measurementUnits = new();
 
     protected override async Task OnInitializedAsync()
     {
         _jwtToken = HttpContextAccessor.HttpContext?.Request.Cookies["SessionToken"];
 
-        // Загружаем имя текущего ЮЛ
+        // Загружаем имя текущего ЮЛ и единицы измерения
         try
         {
             await using var ctx = await DbFactory.CreateDbContextAsync();
@@ -257,6 +261,7 @@
                     .FirstOrDefaultAsync();
                 _legalEntityName = le?.ShortName;
             }
+            _measurementUnits = await ctx.RefMeasurementUnits.OrderBy(x => x.SortOrder).ToListAsync();
         }
         catch { /* fallback: поле не показывается */ }
 

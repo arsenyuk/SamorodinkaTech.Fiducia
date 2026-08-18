@@ -253,13 +253,14 @@
 
     /// <summary>Проверка ЦБР — ID контрагента, для которого идёт запрос.</summary>
     private Guid? _checkingCbrId;
+    private Dictionary<string, string> _measurementUnitShortNames = new();
 
     protected override async Task OnInitializedAsync()
     {
         var role = await JS.InvokeAsync<string>("localStorage.getItem", "currentUserRole");
         _isLawyer = role?.Contains("LAWYER", StringComparison.OrdinalIgnoreCase) == true;
 
-        // Определяем ОКОПФ текущего ЮЛ
+        // Определяем ОКОПФ текущего ЮЛ и загружаем единицы измерения
         try
         {
             await using var ctx = await DbFactory.CreateDbContextAsync();
@@ -274,6 +275,8 @@
                 _isPjsc = OkopfTypeMapper.IsPjsc(le?.Code);
                 _legalEntityName = le?.ShortName;
             }
+            _measurementUnitShortNames = await ctx.RefMeasurementUnits
+                .ToDictionaryAsync(x => x.Code, x => x.ShortName);
         }
         catch (Exception ex)
         {
@@ -400,12 +403,10 @@
     }
 
     /// <summary>Форматирование единицы измерения срока (календ. / раб. дн.).</summary>
-    private static string FormatUnit(string? unit)
+    private string FormatUnit(string? unit)
     {
         if (string.IsNullOrEmpty(unit)) return "";
-        return Enum.TryParse<MeasurementUnit>(unit, true, out var parsed)
-            ? parsed.GetShortName()
-            : unit;
+        return _measurementUnitShortNames.TryGetValue(unit, out var shortName) ? shortName : unit;
     }
 
     // ═════════════════════════════════════════════════════════════════════

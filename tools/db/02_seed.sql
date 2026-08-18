@@ -141,7 +141,10 @@ ON CONFLICT (code) DO NOTHING;
 -- Справочник: ref_measurement_unit (единицы измерения сроков)
 INSERT INTO ref_measurement_unit(id, code, name, short_name, sort_order, created_at, created_by) VALUES
     ('bbbb0000-0000-0000-0000-000000000001','CALENDAR','День (календарный)','календ. дн.',1,CURRENT_TIMESTAMP,'00000000-0000-0000-0000-000000000000'),
-    ('bbbb0000-0000-0000-0000-000000000002','BUSINESS','Рабочий день','раб. дн.',2,CURRENT_TIMESTAMP,'00000000-0000-0000-0000-000000000000')
+    ('bbbb0000-0000-0000-0000-000000000002','BUSINESS','Рабочий день','раб. дн.',2,CURRENT_TIMESTAMP,'00000000-0000-0000-0000-000000000000'),
+    ('bbbb0000-0000-0000-0000-000000000003','WEEK','Неделя','нед.',3,CURRENT_TIMESTAMP,'00000000-0000-0000-0000-000000000000'),
+    ('bbbb0000-0000-0000-0000-000000000004','MONTH','Месяц','мес.',4,CURRENT_TIMESTAMP,'00000000-0000-0000-0000-000000000000'),
+    ('bbbb0000-0000-0000-0000-000000000005','YEAR','Год','год',5,CURRENT_TIMESTAMP,'00000000-0000-0000-0000-000000000000')
 ON CONFLICT (code) DO NOTHING;
 
 -- Справочник: ref_board_member_appointment_statuses (статусы назначения членов СД)
@@ -227,7 +230,7 @@ INSERT INTO tpl_org_offers (id, stage_id, name, description, start_offset_days, 
     ('cccccccc-cccc-cccc-cccc-000000000006', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbb02', 'Передача документов ревизору', 'Передача документов ревизору', 0, 'FIXED_DAYS', 1, 'bbbb0000-0000-0000-0000-000000000001', '["cccccccc-cccc-cccc-cccc-000000000002"]', 'FS', CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000'),
     ('cccccccc-cccc-cccc-cccc-000000000007', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbb02', 'Передача документов аудитору', 'Передача документов аудитору', 0, 'FIXED_DAYS', 1, 'bbbb0000-0000-0000-0000-000000000001', '["cccccccc-cccc-cccc-cccc-000000000002","cccccccc-cccc-cccc-cccc-000000000005"]', 'FS', CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000'),
     ('cccccccc-cccc-cccc-cccc-000000000008', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbb02', 'Проверка отчётности ревизором', 'Проверка отчётности ревизором', 1, 'FIXED_DAYS', 10, 'bbbb0000-0000-0000-0000-000000000001', '["cccccccc-cccc-cccc-cccc-000000000006"]', 'FS', CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000'),
-    ('cccccccc-cccc-cccc-cccc-000000000009', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbb02', 'Проведение аудита', 'Проведение аудита', 1, 'FIXED_DAYS', 40, 'bbbb0000-0000-0000-0000-000000000001', '["cccccccc-cccc-cccc-cccc-000000000007"]', 'FS', CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000'),
+    ('cccccccc-cccc-cccc-cccc-000000000009', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbb02', 'Проведение аудита', 'Проведение аудита', 1, 'FIXED_DAYS', 8, 'bbbb0000-0000-0000-0000-000000000003', '["cccccccc-cccc-cccc-cccc-000000000007"]', 'FS', CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000'),
     ('cccccccc-cccc-cccc-cccc-000000000010', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbb02', 'Приём заключения ревизора', 'Приём заключения ревизора', 15, 'FIXED_DAYS', 1, 'bbbb0000-0000-0000-0000-000000000001', '["cccccccc-cccc-cccc-cccc-000000000008"]', 'FS', CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000'),
     ('cccccccc-cccc-cccc-cccc-000000000011', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbb02', 'Приём аудиторского заключения', 'Приём аудиторского заключения', 57, 'FIXED_DAYS', 1, 'bbbb0000-0000-0000-0000-000000000001', '["cccccccc-cccc-cccc-cccc-000000000009"]', 'FS', CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000'),
     ('cccccccc-cccc-cccc-cccc-000000000012', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbb03', 'Заседание СД: утверждение годового отчёта', 'Заседание СД: утверждение годового отчёта', 0, 'FIXED_DAYS', 1, 'bbbb0000-0000-0000-0000-000000000001', '["cccccccc-cccc-cccc-cccc-000000000010"]', 'FS', CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000'),
@@ -336,11 +339,11 @@ ON CONFLICT DO NOTHING;
 
 INSERT INTO tpl_org_stages (id, intent_id, name, description, sort_order, start_offset_days, deadline_rule, deadline_days, measurement_unit_id, dependency_type, created_at, created_by) VALUES
     ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbb41', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa50', 'Запуск', 'Постановка задачи бухгалтерии о подготовке годовой отчётности', 1, 0, 'FIXED_DAYS', 1, 'bbbb0000-0000-0000-0000-000000000002', 'FS', CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000'),
-    ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbb42', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa50', 'Подготовка отчётности', 'Подготовка годового отчёта и баланса, формирование повестки ООСУ', 2, 1, 'FIXED_DAYS', 18, 'bbbb0000-0000-0000-0000-000000000002', 'FS', CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000'),
-    ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbb43', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa50', 'Проверка отчётности', 'Ревизия и аудит отчётности, приём заключений', 3, 19, 'FIXED_DAYS', 40, 'bbbb0000-0000-0000-0000-000000000002', 'FS', CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000'),
-    ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbb44', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa50', 'Подготовка к собранию', 'Сборка материалов, уведомление участников и нотариуса, доп. вопросы', 4, 59, 'FIXED_DAYS', 30, 'bbbb0000-0000-0000-0000-000000000002', 'FS', CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000'),
+    ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbb42', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa50', 'Подготовка отчётности', 'Подготовка годового отчёта и баланса, формирование повестки ООСУ', 2, 1, 'FIXED_DAYS', 3, 'bbbb0000-0000-0000-0000-000000000004', 'FS', CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000'),
+    ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbb43', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa50', 'Проверка отчётности', 'Ревизия и аудит отчётности, приём заключений', 3, 19, 'FIXED_DAYS', 8, 'bbbb0000-0000-0000-0000-000000000003', 'FS', CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000'),
+    ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbb44', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa50', 'Подготовка к собранию', 'Сборка материалов, уведомление участников и нотариуса, доп. вопросы', 4, 59, 'FIXED_DAYS', 6, 'bbbb0000-0000-0000-0000-000000000003', 'FS', CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000'),
     ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbb45', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa50', 'Проведение ООСУ', 'Проведение собрания, оформление протокола', 5, 89, 'FIXED_DAYS', 2, 'bbbb0000-0000-0000-0000-000000000002', 'FS', CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000'),
-    ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbb46', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa50', 'Регистрация изменений', 'Подача Р13014 в ФНС, уведомление банка о смене директора', 6, 91, 'FIXED_DAYS', 14, 'bbbb0000-0000-0000-0000-000000000002', 'FS', CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000'),
+    ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbb46', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa50', 'Регистрация изменений', 'Подача Р13014 в ФНС, уведомление банка о смене директора', 6, 91, 'FIXED_DAYS', 2, 'bbbb0000-0000-0000-0000-000000000003', 'FS', CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000'),
     ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbb47', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa50', 'Завершение', 'Фиксация результатов, хранение, исполнение решений', 7, 105, 'FIXED_DAYS', 3, 'bbbb0000-0000-0000-0000-000000000002', 'FS', CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000')
 ON CONFLICT DO NOTHING;
 
@@ -386,8 +389,8 @@ INSERT INTO tpl_org_offers (id, stage_id, name, description, start_offset_days, 
      0, 'FIXED_DAYS', 1, 'bbbb0000-0000-0000-0000-000000000002', '["cccccccc-cccc-cccc-cccc-cccccccccc92"]', 'FS', NULL, NULL, TRUE, NULL, CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000'),
     ('cccccccc-cccc-cccc-cccc-cccccccccc99', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbb43',
      'Проведение аудита',
-     'Проверка отчётности аудитором. ⚠️ Критический путь (35 р.д.). Только при обязательном аудите (А3)',
-     1, 'FIXED_DAYS', 35, 'bbbb0000-0000-0000-0000-000000000002', '["cccccccc-cccc-cccc-cccc-cccccccccc98"]', 'FS', NULL, NULL, TRUE, NULL, CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000'),
+     'Проверка отчётности аудитором. ⚠️ Критический путь (7 нед.). Только при обязательном аудите (А3)',
+     1, 'FIXED_DAYS', 7, 'bbbb0000-0000-0000-0000-000000000003', '["cccccccc-cccc-cccc-cccc-cccccccccc98"]', 'FS', NULL, NULL, TRUE, NULL, CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000'),
     ('cccccccc-cccc-cccc-cccc-cccccccccc9A', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbb43',
      'Приём аудиторского заключения',
      'Проверка формы (приказ Минфина №46н), подписей, даты. ⚠️ Только при обязательном аудите (А4)',

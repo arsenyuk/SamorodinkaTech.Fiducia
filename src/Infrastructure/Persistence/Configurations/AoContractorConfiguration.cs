@@ -32,16 +32,12 @@ public class AoContractorConfiguration : IEntityTypeConfiguration<AoContractor>
         builder.Property(c => c.ContractDocumentId).HasColumnName("contract_document_id");
 
         builder.Property(c => c.RegistryPreparationDays).HasColumnName("registry_preparation_days");
-        builder.Property(c => c.RegistryPreparationUnit)
-            .HasColumnName("registry_preparation_unit")
-            .HasConversion<string>()
-            .HasMaxLength(20);
+        builder.Property(c => c.RegistryPreparationUnitId).HasColumnName("registry_preparation_unit");
+        builder.HasOne(c => c.RegistryPreparationUnit).WithMany().HasForeignKey(c => c.RegistryPreparationUnitId).OnDelete(DeleteBehavior.Restrict);
 
         builder.Property(c => c.DividendRegistryPreparationDays).HasColumnName("dividend_registry_preparation_days");
-        builder.Property(c => c.DividendRegistryPreparationUnit)
-            .HasColumnName("dividend_registry_preparation_unit")
-            .HasConversion<string>()
-            .HasMaxLength(20);
+        builder.Property(c => c.DividendRegistryPreparationUnitId).HasColumnName("dividend_registry_preparation_unit");
+        builder.HasOne(c => c.DividendRegistryPreparationUnit).WithMany().HasForeignKey(c => c.DividendRegistryPreparationUnitId).OnDelete(DeleteBehavior.Restrict);
 
         builder.Property(c => c.RegistryRulesUrl).HasColumnName("registry_rules_url").HasMaxLength(1000);
         builder.Property(c => c.RegistryRulesDocumentId).HasColumnName("registry_rules_document_id");
