@@ -30,8 +30,6 @@ public static class LegalEntityValidator
 
         var orgType = OkopfTypeMapper.DetectType(model.OkopfCode);
 
-        ValidateShareholders(model, orgType, result);
-        ValidateBoardMembers(model, result);
         ValidateGosaWindow(model, orgType, result);
         ValidateDirector(model, result);
         ValidateStandardCharter(model, orgType, result);
@@ -70,20 +68,6 @@ public static class LegalEntityValidator
         }
     }
 
-    private static void ValidateBoardMembers(
-        LegalEntitySaveValidationModel model,
-        LegalEntitySaveValidationResult result)
-    {
-        if (!model.BoardMinNumber.HasValue || !model.BoardMemberNumber.HasValue)
-            return;
-
-        if (model.BoardMemberNumber.Value < model.BoardMinNumber.Value)
-        {
-            result.AddError(
-                $"Количество членов СД ({model.BoardMemberNumber.Value}) меньше минимального ({model.BoardMinNumber.Value}).");
-        }
-    }
-
     private static void ValidateGosaWindow(
         LegalEntitySaveValidationModel model,
         OrgValidationType orgType,
@@ -113,7 +97,7 @@ public static class LegalEntityValidator
         {
             if (model.GosaWindowStart.Value != min || model.GosaWindowEnd.Value != max)
             {
-                result.AddError("Для АО/НАО интервал ГОСА фиксирован: 01.03–30.06.");
+                result.AddError("Для НАО интервал ГОСА фиксирован: 01.03–30.06.");
             }
         }
     }
