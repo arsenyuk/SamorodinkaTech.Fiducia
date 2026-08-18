@@ -440,6 +440,9 @@ fileGroup.MapDelete("/{id}", async (Guid id, IApplicationDbContext db, IFileStor
 // ── AO Contractors API (Регистратор / Информационное агентство) ──────────
 app.MapAoContractorEndpoints();
 
+// ── Participants API (Реестр участников общества) ──────────────────────
+app.MapParticipantEndpoints();
+
 app.MapBlazorHub();
 app.MapFallbackToPage("/_Host");
 

@@ -1185,3 +1185,63 @@ CREATE TABLE IF NOT EXISTS system_settings (
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at timestamp with time zone
 );
+
+-- ============================================================================
+-- Реестр участников общества (Board Portal)
+-- Хранит актуальный состав участников с данными ДУЛ/реквизитов ЮЛ.
+-- Источник: ручной ввод или импорт из СПАРК.
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS board_participant (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    legal_entity_id uuid NOT NULL REFERENCES legal_entities(id) ON DELETE RESTRICT,
+    participant_type varchar(20) NOT NULL DEFAULT 'FL',
+    full_name varchar(300),
+    passport_series varchar(10),
+    passport_number varchar(10),
+    passport_issued_by varchar(500),
+    passport_issue_date date,
+    passport_department_code varchar(10),
+    passport_registration_address text,
+    person_inn varchar(12),
+    citizenship varchar(100),
+    company_name varchar(500),
+    company_inn varchar(12),
+    company_ogrn varchar(15),
+    company_kpp varchar(9),
+    company_address text,
+    ogrnip varchar(15),
+    share_percent numeric(5,2),
+    share_amount numeric(18,2),
+    payment_info varchar(500),
+    share_registration_info varchar(500),
+    entry_date date,
+    exit_date date,
+    is_active boolean NOT NULL DEFAULT true,
+    sort_order int NOT NULL DEFAULT 0,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    created_by uuid
+);
+
+CREATE INDEX IF NOT EXISTS ix_board_participant_legal_entity ON board_participant(legal_entity_id);
+CREATE UNIQUE INDEX IF NOT EXISTS ux_board_participant_le_sort ON board_participant(legal_entity_id, sort_order);
+
+-- ============================================================================
+-- Доли, принадлежащие Обществу (казначейские доли)
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS board_treasury_share (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    legal_entity_id uuid NOT NULL REFERENCES legal_entities(id) ON DELETE RESTRICT,
+    share_percent numeric(5,2),
+    share_amount numeric(18,2),
+    acquired_date date,
+    acquisition_basis varchar(500),
+    sort_order int NOT NULL DEFAULT 0,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    created_by uuid
+);
+
+CREATE INDEX IF NOT EXISTS ix_board_treasury_share_legal_entity ON board_treasury_share(legal_entity_id);

@@ -1,12 +1,14 @@
 @page "/participants"
 @using Microsoft.EntityFrameworkCore
+@using SamorodinkaTech.Fiducia.Domain.Entities
 @inject IDbContextFactory<SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext> DbFactory
+@inject HttpClient Http
 @inject ILogger<Participants> Logger
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 
-<PageTitle>Fiducia — Состав участников</PageTitle>
+<PageTitle>Fiducia — Участники</PageTitle>
 
-<h3>Состав участников</h3>
+<h3>Участники</h3>
 
 @if (_error is not null)
 {
@@ -16,171 +18,534 @@ else if (!_isLLC)
 {
     <div class="text-muted">Раздел доступен только для обществ с ограниченной ответственностью (ООО).</div>
 }
-else if (_founders.Count == 0)
+else
 {
-    <div class="text-muted">
-        Данные об участниках не загружены.
-        @if (_lastFetch is not null)
+    @* ── Вкладки ──────────────────────────────────────────────── *@
+    <ul class="nav nav-tabs mb-3">
+        <li class="nav-item">
+            <button type="button" class="nav-link @(_activeTab == 0 ? "active fw-bold" : "")"
+                    @onclick="() => _activeTab = 0">
+                Участники общества
+            </button>
+        </li>
+        <li class="nav-item">
+            <button type="button" class="nav-link @(_activeTab == 1 ? "active fw-bold" : "")"
+                    @onclick="() => _activeTab = 1">
+                Доли, принадлежащие Обществу
+            </button>
+        </li>
+    </ul>
+
+    @* ── Вкладка 1: Участники общества ────────────────────────── *@
+    @if (_activeTab == 0)
+    {
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div class="d-flex align-items-center gap-2">
+                <button class="btn btn-primary btn-sm" @onclick="OpenAddParticipant">
+                    Добавить участника
+                </button>
+                <button class="btn btn-outline-secondary btn-sm" @onclick="ImportFromSpark" disabled="@_importing">
+                    @if (_importing)
+                    {
+                        <span class="spinner-border spinner-border-sm me-1"></span>
+                    }
+                    Импорт из СПАРК
+                </button>
+            </div>
+            <div class="d-flex align-items-center gap-3 text-nowrap">
+                <label class="form-label mb-0" for="status-filter">Статус:</label>
+                <select id="status-filter" class="form-select form-select-sm" style="width: auto;" @bind="_statusFilter">
+                    <option value="active">Действующий</option>
+                    <option value="exited">Выбывший</option>
+                    <option value="all">Все</option>
+                </select>
+            </div>
+        </div>
+
+        @if (_loading)
         {
-            <span>Последний запрос к СПАРК: <strong>@_lastFetch.Value.ToString("dd.MM.yyyy HH:mm")</strong> (МСК)</span>
+            <div class="text-center py-4">
+                <div class="spinner-border text-primary"></div>
+            </div>
+        }
+        else if (_participants.Count == 0)
+        {
+            <div class="text-muted">Участники не добавлены. Используйте кнопку «Добавить участника» или «Импорт из СПАРК».</div>
         }
         else
         {
-            <span>Загрузите данные через кнопку «СПАРК» в Административной консоли (раздел «Юридические лица»).</span>
+            <div class="table-responsive">
+                <table class="table table-striped align-middle">
+                    <thead>
+                        <tr>
+                            <th style="width: 40px;">№</th>
+                            <th>Данные участника (ДУЛ / реквизиты)</th>
+                            <th style="width: 90px;">Доля %</th>
+                            <th style="width: 120px;">Номинал (руб.)</th>
+                            <th>Оплата доли</th>
+                            <th>Регистрация операций</th>
+                            <th style="width: 100px;"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var (p, idx) in _filteredParticipants.Select((p, i) => (p, i)))
+                        {
+                            var isExited = !string.IsNullOrEmpty(p.ExitDate);
+                            <tr class="@(isExited ? "text-muted text-decoration-line-through" : "")">
+                                <td>@(idx + 1)</td>
+                                <td>
+                                    @if (p.ParticipantType == "FL")
+                                    {
+                                        <div class="fw-semibold">@(p.FullName ?? "—")</div>
+                                        <div class="small text-muted">
+                                            @if (!string.IsNullOrEmpty(p.PassportSeries) || !string.IsNullOrEmpty(p.PassportNumber))
+                                            {
+                                                <span>паспорт @p.PassportSeries @p.PassportNumber</span>
+                                            }
+                                            @if (!string.IsNullOrEmpty(p.PassportDepartmentCode))
+                                            {
+                                                <span>, код подр. @p.PassportDepartmentCode</span>
+                                            }
+                                        </div>
+                                        @if (!string.IsNullOrEmpty(p.PersonInn))
+                                        {
+                                            <div class="small font-monospace">ИНН: @p.PersonInn</div>
+                                        }
+                                        @if (!string.IsNullOrEmpty(p.Citizenship))
+                                        {
+                                            <div class="small">@p.Citizenship</div>
+                                        }
+                                    }
+                                    else if (p.ParticipantType == "UL")
+                                    {
+                                        <div class="fw-semibold">@(p.CompanyName ?? "—")</div>
+                                        <div class="small font-monospace">
+                                            ОГРН: @(p.CompanyOgrn ?? "—") · ИНН: @(p.CompanyInn ?? "—")
+                                        </div>
+                                        @if (!string.IsNullOrEmpty(p.CompanyAddress))
+                                        {
+                                            <div class="small text-muted">@p.CompanyAddress</div>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <div class="fw-semibold">@(p.FullName ?? "—")</div>
+                                        <div class="small font-monospace">ОГРНИП: @(p.Ogrnip ?? "—")</div>
+                                        @if (!string.IsNullOrEmpty(p.PersonInn))
+                                        {
+                                            <div class="small font-monospace">ИНН: @p.PersonInn</div>
+                                        }
+                                    }
+                                </td>
+                                <td>
+                                    @if (p.SharePercent.HasValue)
+                                    {
+                                        <span class="fw-bold">@p.SharePercent.Value.ToString("0.##")%</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">—</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (p.ShareAmount.HasValue)
+                                    {
+                                        <span>@p.ShareAmount.Value.ToString("N2") ₽</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">—</span>
+                                    }
+                                </td>
+                                <td class="small">
+                                    @(p.PaymentInfo ?? "—")
+                                </td>
+                                <td class="small">
+                                    @(p.ShareRegistrationInfo ?? "—")
+                                </td>
+                                <td>
+                                    <div class="d-flex gap-1">
+                                        <button class="btn btn-outline-primary btn-sm" @onclick="() => OpenEditParticipant(p)">
+                                            ✎
+                                        </button>
+                                        <button class="btn btn-outline-danger btn-sm" @onclick="() => DeleteParticipant(p.Id)">
+                                            ✕
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
         }
+    }
+
+    @* ── Вкладка 2: Доли, принадлежащие Обществу ──────────────── *@
+    @if (_activeTab == 1)
+    {
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <button class="btn btn-primary btn-sm" @onclick="OpenAddTreasury">
+                Добавить запись
+            </button>
+        </div>
+
+        @if (_loading)
+        {
+            <div class="text-center py-4">
+                <div class="spinner-border text-primary"></div>
+            </div>
+        }
+        else if (_treasuryShares.Count == 0)
+        {
+            <div class="text-muted">Доли, принадлежащие Обществу, отсутствуют.</div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-striped align-middle">
+                    <thead>
+                        <tr>
+                            <th style="width: 40px;">№</th>
+                            <th style="width: 100px;">Доля %</th>
+                            <th style="width: 140px;">Номинальная стоимость (руб.)</th>
+                            <th>Дата перехода доли к Обществу</th>
+                            <th>Основание перехода доли</th>
+                            <th style="width: 100px;"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var (t, idx) in _treasuryShares.Select((t, i) => (t, i)))
+                        {
+                            <tr>
+                                <td>@(idx + 1)</td>
+                                <td>
+                                    @if (t.SharePercent.HasValue)
+                                    {
+                                        <span class="fw-bold">@t.SharePercent.Value.ToString("0.##")%</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">—</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (t.ShareAmount.HasValue)
+                                    {
+                                        <span>@t.ShareAmount.Value.ToString("N2") ₽</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">—</span>
+                                    }
+                                </td>
+                                <td class="small">
+                                    @(t.AcquiredDate ?? "—")
+                                </td>
+                                <td class="small">
+                                    @(t.AcquisitionBasis ?? "—")
+                                </td>
+                                <td>
+                                    <div class="d-flex gap-1">
+                                        <button class="btn btn-outline-primary btn-sm" @onclick="() => OpenEditTreasury(t)">
+                                            ✎
+                                        </button>
+                                        <button class="btn btn-outline-danger btn-sm" @onclick="() => DeleteTreasury(t.Id)">
+                                            ✕
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    }
+}
+
+@* ── Модалка: добавление/редактирование участника ──────────────── *@
+@if (_showParticipantModal)
+{
+    <div class="modal show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">@(_editingParticipant is null ? "Добавить участника" : "Редактировать участника")</h5>
+                    <button type="button" class="btn-close" @onclick="CloseParticipantModal"></button>
+                </div>
+                <div class="modal-body">
+                    @if (!string.IsNullOrEmpty(_participantError))
+                    {
+                        <div class="alert alert-danger">@_participantError</div>
+                    }
+
+                    <div class="mb-3">
+                        <label class="form-label">Тип участника</label>
+                        <select class="form-select" @bind="_formParticipantType">
+                            <option value="FL">Физическое лицо</option>
+                            <option value="UL">Юридическое лицо</option>
+                            <option value="IP">Индивидуальный предприниматель</option>
+                        </select>
+                    </div>
+
+                    @if (_formParticipantType == "FL")
+                    {
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">ФИО</label>
+                                <input class="form-control" @bind="_formFullName" />
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Серия паспорта</label>
+                                <input class="form-control" @bind="_formPassportSeries" />
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Номер паспорта</label>
+                                <input class="form-control" @bind="_formPassportNumber" />
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Кем выдан</label>
+                                <input class="form-control" @bind="_formPassportIssuedBy" />
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Дата выдачи</label>
+                                <input type="date" class="form-control" value="@_formPassportIssueDateStr"
+                                       @onchange="e => _formPassportIssueDateStr = e.Value?.ToString()" />
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Код подразделения</label>
+                                <input class="form-control" @bind="_formPassportDepartmentCode" />
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Адрес регистрации</label>
+                            <input class="form-control" @bind="_formPassportRegistrationAddress" />
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <label class="form-label">ИНН</label>
+                                <input class="form-control" @bind="_formPersonInn" />
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Гражданство</label>
+                                <input class="form-control" @bind="_formCitizenship" />
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">ОГРНИП</label>
+                                <input class="form-control" @bind="_formOgrnip" />
+                            </div>
+                        </div>
+                    }
+                    else if (_formParticipantType == "UL")
+                    {
+                        <div class="mb-3">
+                            <label class="form-label">Наименование</label>
+                            <input class="form-control" @bind="_formCompanyName" />
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-3">
+                                <label class="form-label">ИНН</label>
+                                <input class="form-control" @bind="_formCompanyInn" />
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">ОГРН</label>
+                                <input class="form-control" @bind="_formCompanyOgrn" />
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">КПП</label>
+                                <input class="form-control" @bind="_formCompanyKpp" />
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Адрес</label>
+                                <input class="form-control" @bind="_formCompanyAddress" />
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">ФИО</label>
+                                <input class="form-control" @bind="_formFullName" />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">ОГРНИП</label>
+                                <input class="form-control" @bind="_formOgrnip" />
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">ИНН</label>
+                            <input class="form-control" @bind="_formPersonInn" />
+                        </div>
+                    }
+
+                    <hr />
+                    <h6>Доля в уставном капитале</h6>
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Размер доли (%)</label>
+                            <input type="number" step="0.01" class="form-control" @bind="_formSharePercent" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Номинальная стоимость (руб.)</label>
+                            <input type="number" step="0.01" class="form-control" @bind="_formShareAmount" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Оплата доли</label>
+                            <input class="form-control" @bind="_formPaymentInfo" />
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Регистрация операций с долей</label>
+                            <input class="form-control" @bind="_formShareRegistrationInfo" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Дата входа</label>
+                            <input type="date" class="form-control" value="@_formEntryDateStr"
+                                   @onchange="e => _formEntryDateStr = e.Value?.ToString()" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Дата выхода</label>
+                            <input type="date" class="form-control" value="@_formExitDateStr"
+                                   @onchange="e => _formExitDateStr = e.Value?.ToString()" />
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseParticipantModal">Отмена</button>
+                    <button type="button" class="btn btn-primary" @onclick="SaveParticipant" disabled="@_savingParticipant">
+                        @if (_savingParticipant)
+                        {
+                            <span class="spinner-border spinner-border-sm me-1"></span>
+                        }
+                        Сохранить
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
 }
-else
+
+@* ── Модалка: добавление/редактирование казначейской доли ──────── *@
+@if (_showTreasuryModal)
 {
-    @if (_treasuryShare > 0m)
-    {
-        <div class="mb-1">Казначейская доля: <strong class="text-success">@(((decimal)_treasuryShare).ToString("0.##"))%</strong></div>
-    }
-    @if (_lastFetch is not null)
-    {
-        <div class="text-muted small mb-3">Время обновления: @_lastFetch.Value.ToString("dd.MM.yyyy HH:mm") (МСК)</div>
-    }
-    <div class="d-flex justify-content-end align-items-center mb-3">
-        <div class="d-flex align-items-center gap-3 text-nowrap">
-            <label class="form-label mb-0" for="status-filter">Статус:</label>
-            <select id="status-filter" class="form-select form-select-sm" style="width: auto;" @bind="_statusFilter">
-                <option value="active">Действующий</option>
-                <option value="exited">Выбывший</option>
-                <option value="all">Все</option>
-            </select>
+    <div class="modal show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">@(_editingTreasury is null ? "Добавить казначейскую долю" : "Редактировать казначейскую долю")</h5>
+                    <button type="button" class="btn-close" @onclick="CloseTreasuryModal"></button>
+                </div>
+                <div class="modal-body">
+                    @if (!string.IsNullOrEmpty(_treasuryError))
+                    {
+                        <div class="alert alert-danger">@_treasuryError</div>
+                    }
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Размер доли (%)</label>
+                            <input type="number" step="0.01" class="form-control" @bind="_formTreasurySharePercent" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Номинальная стоимость (руб.)</label>
+                            <input type="number" step="0.01" class="form-control" @bind="_formTreasuryShareAmount" />
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Дата перехода доли к Обществу</label>
+                            <input type="date" class="form-control" value="@_formTreasuryAcquiredDateStr"
+                                   @onchange="e => _formTreasuryAcquiredDateStr = e.Value?.ToString()" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Основание перехода доли</label>
+                            <input class="form-control" @bind="_formTreasuryAcquisitionBasis" />
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseTreasuryModal">Отмена</button>
+                    <button type="button" class="btn btn-primary" @onclick="SaveTreasury" disabled="@_savingTreasury">
+                        @if (_savingTreasury)
+                        {
+                            <span class="spinner-border spinner-border-sm me-1"></span>
+                        }
+                        Сохранить
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
-    <div class="table-responsive">
-        <table class="table table-striped align-middle">
-            <thead>
-                <tr>
-                    <th>Участник</th>
-                    <th>Тип</th>
-                    <th>ИНН</th>
-                    <th>ОГРН(ИП)</th>
-                    <th>Страна</th>
-                    <th>Доля</th>
-                    <th>В составе с</th>
-                    <th>Статус</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var f in _filteredFounders)
-                {
-                    var isExited = f.ExitDate.HasValue;
-                    var isUL = !string.IsNullOrEmpty(f.Name);
-                    var displayName = f.FullName ?? f.Name ?? "—";
-
-                    <tr class="@(isExited ? "text-muted text-decoration-line-through" : "")">
-                        <td>
-                            <div class="fw-semibold">@displayName</div>
-                            @if (f.IsForeign)
-                            {
-                                <span class="badge bg-warning text-dark">Иностранное ЮЛ</span>
-                            }
-                            @if (f.HeadOfOther is > 0)
-                            {
-                                <span class="badge bg-info">Руководит @f.HeadOfOther орг.</span>
-                            }
-                            @if (f.FounderOfOther is > 0)
-                            {
-                                <span class="badge bg-secondary">Учредитель в @f.FounderOfOther орг.</span>
-                            }
-                        </td>
-                        <td>
-                            @if (isUL)
-                            {
-                                @("ЮЛ")
-                            }
-                            else if (f.IsEntrepreneur)
-                            {
-                                @("ФЛ (ИП)")
-                            }
-                            else
-                            {
-                                @("ФЛ")
-                            }
-                        </td>
-                        <td class="small font-monospace">
-                            @(f.PersonInn ?? f.Inn ?? "—")
-                        </td>
-                        <td class="small font-monospace">
-                            @(f.Ogrn ?? f.Ogrnip ?? "—")
-                        </td>
-                        <td class="small">
-                            @if (isUL)
-                            {
-                                @(f.Country ?? "—")
-                            }
-                            else
-                            {
-                                @(f.Citizenship ?? "—")
-                            }
-                        </td>
-                        <td>
-                            @if (f.SharePercent.HasValue)
-                            {
-                                <span class="fw-bold">@f.SharePercent.Value.ToString("0.##")%</span>
-                            }
-                            @if (f.ShareAmount.HasValue)
-                            {
-                                <span class="text-muted small d-block">@f.ShareAmount.Value.ToString("N2") ₽</span>
-                            }
-                            else if (!f.SharePercent.HasValue)
-                            {
-                                <span class="text-muted">—</span>
-                            }
-                        </td>
-                        <td class="small">
-                            @f.EntryDate?.ToString("dd.MM.yyyy")
-                        </td>
-                        <td>
-                            @if (isExited)
-                            {
-                                <span class="badge bg-secondary">Выбыл @f.ExitDate?.ToString("dd.MM.yyyy")</span>
-                            }
-                            else
-                            {
-                                <span class="badge bg-success">Действующий</span>
-                            }
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-    </div>
-
-    @if (_lastFetch is not null)
-    {
-        <div class="text-muted small mt-2">
-            Данные загружены из СПАРК: <strong>@_lastFetch.Value.ToString("dd.MM.yyyy HH:mm")</strong> (МСК)
-        </div>
-    }
 }
 
 @code {
     private bool _isLLC;
-    private DateTime? _lastFetch;
     private string? _error;
+    private int _activeTab;
+    private bool _loading = true;
     private string _statusFilter = "active";
-    private List<SparkFounderRow> _founders = new();
+    private bool _importing;
 
-    // Казначейская доля = остаток от 100% минуса суммарная доля всех участников (для текущего фильтра)
-    private decimal _treasuryShare => Math.Max(0m, 100m - _filteredFounders.Where(f => f.SharePercent.HasValue).Sum(f => f.SharePercent!.Value));
+    private List<ParticipantRow> _participants = new();
+    private List<TreasuryRow> _treasuryShares = new();
 
-    private List<SparkFounderRow> _filteredFounders => _statusFilter switch
+    private List<ParticipantRow> _filteredParticipants => _statusFilter switch
     {
-        "active" => _founders.Where(f => !f.ExitDate.HasValue).ToList(),
-        "exited" => _founders.Where(f => f.ExitDate.HasValue).ToList(),
-        _ => _founders
+        "active" => _participants.Where(p => p.ExitDate is null).ToList(),
+        "exited" => _participants.Where(p => p.ExitDate is not null).ToList(),
+        _ => _participants
     };
+
+    // ── Participant modal state ────────────────────────────────────
+    private bool _showParticipantModal;
+    private bool _savingParticipant;
+    private string? _participantError;
+    private ParticipantRow? _editingParticipant;
+
+    private string _formParticipantType = "FL";
+    private string? _formFullName;
+    private string? _formPassportSeries;
+    private string? _formPassportNumber;
+    private string? _formPassportIssuedBy;
+    private string? _formPassportIssueDateStr;
+    private string? _formPassportDepartmentCode;
+    private string? _formPassportRegistrationAddress;
+    private string? _formPersonInn;
+    private string? _formCitizenship;
+    private string? _formCompanyName;
+    private string? _formCompanyInn;
+    private string? _formCompanyOgrn;
+    private string? _formCompanyKpp;
+    private string? _formCompanyAddress;
+    private string? _formOgrnip;
+    private decimal? _formSharePercent;
+    private decimal? _formShareAmount;
+    private string? _formPaymentInfo;
+    private string? _formShareRegistrationInfo;
+    private string? _formEntryDateStr;
+    private string? _formExitDateStr;
+
+    // ── Treasury modal state ───────────────────────────────────────
+    private bool _showTreasuryModal;
+    private bool _savingTreasury;
+    private string? _treasuryError;
+    private TreasuryRow? _editingTreasury;
+
+    private decimal? _formTreasurySharePercent;
+    private decimal? _formTreasuryShareAmount;
+    private string? _formTreasuryAcquiredDateStr;
+    private string? _formTreasuryAcquisitionBasis;
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
             await using var ctx = await DbFactory.CreateDbContextAsync();
-
             var workplace = await ctx.CurrentWorkplaces.FirstOrDefaultAsync();
             if (workplace?.LastSelectedLegalEntityId is null)
             {
@@ -199,61 +564,350 @@ else
             }
 
             _isLLC = le.RefOkopf?.Code == "12300";
+            if (!_isLLC) return;
 
-            if (!_isLLC)
-                return;
-
-            var founders = await ctx.ExtSparkFounders
-                .Where(x => x.Inn == le.Inn)
-                .OrderByDescending(x => x.SharePercent)
-                .ToListAsync();
-
-            _founders = founders.Select(f => new SparkFounderRow
-            {
-                FullName = f.FullName,
-                Name = f.Name,
-                PersonInn = f.PersonInn,
-                Inn = f.FounderInn,
-                Ogrn = f.FounderOgrn,
-                Country = f.Country,
-                IsForeign = f.IsForeign,
-                Citizenship = f.Citizenship,
-                HeadOfOther = f.HeadOfOther,
-                FounderOfOther = f.FounderOfOther,
-                IsEntrepreneur = f.IsEntrepreneur,
-                Ogrnip = f.Ogrnip,
-                SharePercent = f.SharePercent,
-                ShareAmount = f.ShareAmount,
-                EntryDate = f.EntryDate,
-                ExitDate = f.ExitDate
-            }).ToList();
-
-            _lastFetch = founders.FirstOrDefault()?.FetchedAt;
+            await LoadData();
         }
         catch (Exception ex)
         {
-            Logger.LogWarning(ex, "Ошибка загрузки состава участников");
+            Logger.LogWarning(ex, "Ошибка загрузки участников");
             _error = "Не удалось загрузить данные.";
         }
     }
 
-    private class SparkFounderRow
+    private async Task LoadData()
     {
-        public string? FullName { get; init; }
-        public string? Name { get; init; }
-        public string? PersonInn { get; init; }
-        public string? Inn { get; init; }
-        public string? Ogrn { get; init; }
-        public string? Country { get; init; }
-        public bool IsForeign { get; init; }
-        public string? Citizenship { get; init; }
-        public int? HeadOfOther { get; init; }
-        public int? FounderOfOther { get; init; }
-        public bool IsEntrepreneur { get; init; }
-        public string? Ogrnip { get; init; }
-        public decimal? SharePercent { get; init; }
-        public decimal? ShareAmount { get; init; }
-        public DateTime? EntryDate { get; init; }
-        public DateTime? ExitDate { get; init; }
+        _loading = true;
+        StateHasChanged();
+
+        try
+        {
+            var participants = await Http.GetFromJsonAsync<List<ParticipantRow>>("/api/participants");
+            _participants = participants ?? new();
+
+            var treasury = await Http.GetFromJsonAsync<List<TreasuryRow>>("/api/treasury-shares");
+            _treasuryShares = treasury ?? new();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Ошибка загрузки данных участников");
+            _error = "Не удалось загрузить данные.";
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    // ── Participant CRUD ───────────────────────────────────────────
+
+    private void OpenAddParticipant()
+    {
+        _editingParticipant = null;
+        ResetParticipantForm();
+        _showParticipantModal = true;
+    }
+
+    private void OpenEditParticipant(ParticipantRow p)
+    {
+        _editingParticipant = p;
+        _formParticipantType = p.ParticipantType ?? "FL";
+        _formFullName = p.FullName;
+        _formPassportSeries = p.PassportSeries;
+        _formPassportNumber = p.PassportNumber;
+        _formPassportIssuedBy = p.PassportIssuedBy;
+        _formPassportIssueDateStr = ToHtmlDate(p.PassportIssueDate);
+        _formPassportDepartmentCode = p.PassportDepartmentCode;
+        _formPassportRegistrationAddress = p.PassportRegistrationAddress;
+        _formPersonInn = p.PersonInn;
+        _formCitizenship = p.Citizenship;
+        _formCompanyName = p.CompanyName;
+        _formCompanyInn = p.CompanyInn;
+        _formCompanyOgrn = p.CompanyOgrn;
+        _formCompanyKpp = p.CompanyKpp;
+        _formCompanyAddress = p.CompanyAddress;
+        _formOgrnip = p.Ogrnip;
+        _formSharePercent = p.SharePercent;
+        _formShareAmount = p.ShareAmount;
+        _formPaymentInfo = p.PaymentInfo;
+        _formShareRegistrationInfo = p.ShareRegistrationInfo;
+        _formEntryDateStr = ToHtmlDate(p.EntryDate);
+        _formExitDateStr = ToHtmlDate(p.ExitDate);
+        _showParticipantModal = true;
+    }
+
+    private void CloseParticipantModal()
+    {
+        _showParticipantModal = false;
+        _participantError = null;
+    }
+
+    private void ResetParticipantForm()
+    {
+        _formParticipantType = "FL";
+        _formFullName = null;
+        _formPassportSeries = null;
+        _formPassportNumber = null;
+        _formPassportIssuedBy = null;
+        _formPassportIssueDateStr = null;
+        _formPassportDepartmentCode = null;
+        _formPassportRegistrationAddress = null;
+        _formPersonInn = null;
+        _formCitizenship = null;
+        _formCompanyName = null;
+        _formCompanyInn = null;
+        _formCompanyOgrn = null;
+        _formCompanyKpp = null;
+        _formCompanyAddress = null;
+        _formOgrnip = null;
+        _formSharePercent = null;
+        _formShareAmount = null;
+        _formPaymentInfo = null;
+        _formShareRegistrationInfo = null;
+        _formEntryDateStr = null;
+        _formExitDateStr = null;
+    }
+
+    private async Task SaveParticipant()
+    {
+        _savingParticipant = true;
+        _participantError = null;
+        StateHasChanged();
+
+        try
+        {
+            var dto = new
+            {
+                participantType = _formParticipantType,
+                fullName = _formFullName,
+                passportSeries = _formPassportSeries,
+                passportNumber = _formPassportNumber,
+                passportIssuedBy = _formPassportIssuedBy,
+                passportIssueDate = DateOnly.TryParse(_formPassportIssueDateStr, out var pid) ? pid : (DateOnly?)null,
+                passportDepartmentCode = _formPassportDepartmentCode,
+                passportRegistrationAddress = _formPassportRegistrationAddress,
+                personInn = _formPersonInn,
+                citizenship = _formCitizenship,
+                companyName = _formCompanyName,
+                companyInn = _formCompanyInn,
+                companyOgrn = _formCompanyOgrn,
+                companyKpp = _formCompanyKpp,
+                companyAddress = _formCompanyAddress,
+                ogrnip = _formOgrnip,
+                sharePercent = _formSharePercent,
+                shareAmount = _formShareAmount,
+                paymentInfo = _formPaymentInfo,
+                shareRegistrationInfo = _formShareRegistrationInfo,
+                entryDate = DateOnly.TryParse(_formEntryDateStr, out var ed) ? ed : (DateOnly?)null,
+                exitDate = DateOnly.TryParse(_formExitDateStr, out var xd) ? xd : (DateOnly?)null,
+                isActive = string.IsNullOrEmpty(_formExitDateStr)
+            };
+
+            HttpResponseMessage response;
+            if (_editingParticipant is null)
+            {
+                response = await Http.PostAsJsonAsync("/api/participants", dto);
+            }
+            else
+            {
+                response = await Http.PutAsJsonAsync($"/api/participants/{_editingParticipant.Id}", dto);
+            }
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var body = await response.Content.ReadAsStringAsync();
+                _participantError = $"Ошибка ({(int)response.StatusCode}): {body}";
+                return;
+            }
+
+            CloseParticipantModal();
+            await LoadData();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Ошибка сохранения участника");
+            _participantError = "Не удалось сохранить участника.";
+        }
+        finally
+        {
+            _savingParticipant = false;
+        }
+    }
+
+    private async Task DeleteParticipant(Guid id)
+    {
+        try
+        {
+            var response = await Http.DeleteAsync($"/api/participants/{id}");
+            if (response.IsSuccessStatusCode)
+                await LoadData();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Ошибка удаления участника");
+        }
+    }
+
+    private async Task ImportFromSpark()
+    {
+        _importing = true;
+        StateHasChanged();
+
+        try
+        {
+            var response = await Http.PostAsync("/api/participants/import-from-spark", null);
+            if (response.IsSuccessStatusCode)
+                await LoadData();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Ошибка импорта из СПАРК");
+        }
+        finally
+        {
+            _importing = false;
+        }
+    }
+
+    // ── Treasury CRUD ──────────────────────────────────────────────
+
+    private void OpenAddTreasury()
+    {
+        _editingTreasury = null;
+        ResetTreasuryForm();
+        _showTreasuryModal = true;
+    }
+
+    private void OpenEditTreasury(TreasuryRow t)
+    {
+        _editingTreasury = t;
+        _formTreasurySharePercent = t.SharePercent;
+        _formTreasuryShareAmount = t.ShareAmount;
+        _formTreasuryAcquiredDateStr = ToHtmlDate(t.AcquiredDate);
+        _formTreasuryAcquisitionBasis = t.AcquisitionBasis;
+        _showTreasuryModal = true;
+    }
+
+    private void CloseTreasuryModal()
+    {
+        _showTreasuryModal = false;
+        _treasuryError = null;
+    }
+
+    private void ResetTreasuryForm()
+    {
+        _formTreasurySharePercent = null;
+        _formTreasuryShareAmount = null;
+        _formTreasuryAcquiredDateStr = null;
+        _formTreasuryAcquisitionBasis = null;
+    }
+
+    private async Task SaveTreasury()
+    {
+        _savingTreasury = true;
+        _treasuryError = null;
+        StateHasChanged();
+
+        try
+        {
+            var dto = new
+            {
+                sharePercent = _formTreasurySharePercent,
+                shareAmount = _formTreasuryShareAmount,
+                acquiredDate = DateOnly.TryParse(_formTreasuryAcquiredDateStr, out var ad) ? ad : (DateOnly?)null,
+                acquisitionBasis = _formTreasuryAcquisitionBasis
+            };
+
+            HttpResponseMessage response;
+            if (_editingTreasury is null)
+            {
+                response = await Http.PostAsJsonAsync("/api/treasury-shares", dto);
+            }
+            else
+            {
+                response = await Http.PutAsJsonAsync($"/api/treasury-shares/{_editingTreasury.Id}", dto);
+            }
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var body = await response.Content.ReadAsStringAsync();
+                _treasuryError = $"Ошибка ({(int)response.StatusCode}): {body}";
+                return;
+            }
+
+            CloseTreasuryModal();
+            await LoadData();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Ошибка сохранения казначейской доли");
+            _treasuryError = "Не удалось сохранить казначейскую долю.";
+        }
+        finally
+        {
+            _savingTreasury = false;
+        }
+    }
+
+    private async Task DeleteTreasury(Guid id)
+    {
+        try
+        {
+            var response = await Http.DeleteAsync($"/api/treasury-shares/{id}");
+            if (response.IsSuccessStatusCode)
+                await LoadData();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Ошибка удаления казначейской доли");
+        }
+    }
+
+    // ── Models ─────────────────────────────────────────────────────
+
+    private class ParticipantRow
+    {
+        public Guid Id { get; set; }
+        public string? ParticipantType { get; set; }
+        public string? FullName { get; set; }
+        public string? PassportSeries { get; set; }
+        public string? PassportNumber { get; set; }
+        public string? PassportIssuedBy { get; set; }
+        public string? PassportIssueDate { get; set; }
+        public string? PassportDepartmentCode { get; set; }
+        public string? PassportRegistrationAddress { get; set; }
+        public string? PersonInn { get; set; }
+        public string? Citizenship { get; set; }
+        public string? CompanyName { get; set; }
+        public string? CompanyInn { get; set; }
+        public string? CompanyOgrn { get; set; }
+        public string? CompanyKpp { get; set; }
+        public string? CompanyAddress { get; set; }
+        public string? Ogrnip { get; set; }
+        public decimal? SharePercent { get; set; }
+        public decimal? ShareAmount { get; set; }
+        public string? PaymentInfo { get; set; }
+        public string? ShareRegistrationInfo { get; set; }
+        public string? EntryDate { get; set; }
+        public string? ExitDate { get; set; }
+        public bool IsActive { get; set; }
+    }
+
+    private class TreasuryRow
+    {
+        public Guid Id { get; set; }
+        public decimal? SharePercent { get; set; }
+        public decimal? ShareAmount { get; set; }
+        public string? AcquiredDate { get; set; }
+        public string? AcquisitionBasis { get; set; }
+    }
+
+    /// <summary>Конвертирует дату из формата dd.MM.yyyy в yyyy-MM-dd для HTML date input.</summary>
+    private static string? ToHtmlDate(string? dateStr)
+    {
+        if (string.IsNullOrEmpty(dateStr)) return null;
+        if (DateOnly.TryParseExact(dateStr, "dd.MM.yyyy", out var d))
+            return d.ToString("yyyy-MM-dd");
+        return dateStr;
     }
 }

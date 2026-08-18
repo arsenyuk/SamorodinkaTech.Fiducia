@@ -79,6 +79,9 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
 
     public DbSet<SystemSetting> SystemSettings => Set<SystemSetting>();
 
+    public DbSet<BoardParticipant> BoardParticipants => Set<BoardParticipant>();
+    public DbSet<BoardTreasuryShare> BoardTreasuryShares => Set<BoardTreasuryShare>();
+
     // Junction-таблицы файлов (BDR-011)
     public DbSet<MeetingFile> MeetingFiles => Set<MeetingFile>();
     public DbSet<AgendaQuestionFile> AgendaQuestionFiles => Set<AgendaQuestionFile>();
@@ -534,6 +537,59 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.Property(x => x.EntryDate).HasColumnName("entry_date");
             b.Property(x => x.ExitDate).HasColumnName("exit_date");
             b.Property(x => x.FetchedAt).HasColumnName("fetched_at").IsRequired();
+        });
+
+        modelBuilder.Entity<BoardParticipant>(b =>
+        {
+            b.ToTable("board_participant");
+            b.HasKey(x => x.Id);
+            b.Property(x => x.Id).HasColumnName("id");
+            b.Property(x => x.LegalEntityId).HasColumnName("legal_entity_id").IsRequired();
+            b.Property(x => x.ParticipantType).HasColumnName("participant_type").HasMaxLength(20).IsRequired().HasDefaultValue("FL");
+            b.Property(x => x.FullName).HasColumnName("full_name").HasMaxLength(300);
+            b.Property(x => x.PassportSeries).HasColumnName("passport_series").HasMaxLength(10);
+            b.Property(x => x.PassportNumber).HasColumnName("passport_number").HasMaxLength(10);
+            b.Property(x => x.PassportIssuedBy).HasColumnName("passport_issued_by").HasMaxLength(500);
+            b.Property(x => x.PassportIssueDate).HasColumnName("passport_issue_date");
+            b.Property(x => x.PassportDepartmentCode).HasColumnName("passport_department_code").HasMaxLength(10);
+            b.Property(x => x.PassportRegistrationAddress).HasColumnName("passport_registration_address");
+            b.Property(x => x.PersonInn).HasColumnName("person_inn").HasMaxLength(12);
+            b.Property(x => x.Citizenship).HasColumnName("citizenship").HasMaxLength(100);
+            b.Property(x => x.CompanyName).HasColumnName("company_name").HasMaxLength(500);
+            b.Property(x => x.CompanyInn).HasColumnName("company_inn").HasMaxLength(12);
+            b.Property(x => x.CompanyOgrn).HasColumnName("company_ogrn").HasMaxLength(15);
+            b.Property(x => x.CompanyKpp).HasColumnName("company_kpp").HasMaxLength(9);
+            b.Property(x => x.CompanyAddress).HasColumnName("company_address");
+            b.Property(x => x.Ogrnip).HasColumnName("ogrnip").HasMaxLength(15);
+            b.Property(x => x.SharePercent).HasColumnName("share_percent").HasColumnType("numeric(5,2)");
+            b.Property(x => x.ShareAmount).HasColumnName("share_amount").HasColumnType("numeric(18,2)");
+            b.Property(x => x.PaymentInfo).HasColumnName("payment_info").HasMaxLength(500);
+            b.Property(x => x.ShareRegistrationInfo).HasColumnName("share_registration_info").HasMaxLength(500);
+            b.Property(x => x.EntryDate).HasColumnName("entry_date");
+            b.Property(x => x.ExitDate).HasColumnName("exit_date");
+            b.Property(x => x.IsActive).HasColumnName("is_active").HasDefaultValue(true);
+            b.Property(x => x.SortOrder).HasColumnName("sort_order").HasDefaultValue(0);
+            b.Property(x => x.CreatedAt).HasColumnName("created_at").IsRequired();
+            b.Property(x => x.UpdatedAt).HasColumnName("updated_at").IsRequired();
+            b.Property(x => x.CreatedBy).HasColumnName("created_by");
+            b.HasIndex(x => x.LegalEntityId).HasDatabaseName("ix_board_participant_legal_entity");
+        });
+
+        modelBuilder.Entity<BoardTreasuryShare>(b =>
+        {
+            b.ToTable("board_treasury_share");
+            b.HasKey(x => x.Id);
+            b.Property(x => x.Id).HasColumnName("id");
+            b.Property(x => x.LegalEntityId).HasColumnName("legal_entity_id").IsRequired();
+            b.Property(x => x.SharePercent).HasColumnName("share_percent").HasColumnType("numeric(5,2)");
+            b.Property(x => x.ShareAmount).HasColumnName("share_amount").HasColumnType("numeric(18,2)");
+            b.Property(x => x.AcquiredDate).HasColumnName("acquired_date");
+            b.Property(x => x.AcquisitionBasis).HasColumnName("acquisition_basis").HasMaxLength(500);
+            b.Property(x => x.SortOrder).HasColumnName("sort_order").HasDefaultValue(0);
+            b.Property(x => x.CreatedAt).HasColumnName("created_at").IsRequired();
+            b.Property(x => x.UpdatedAt).HasColumnName("updated_at").IsRequired();
+            b.Property(x => x.CreatedBy).HasColumnName("created_by");
+            b.HasIndex(x => x.LegalEntityId).HasDatabaseName("ix_board_treasury_share_legal_entity");
         });
 
         modelBuilder.Entity<ExtCbrFinOrgOrganization>(b =>
