@@ -79,9 +79,18 @@ else
             },
             new()
             {
+                Id = "milestone-phasegate-1", ParentId = "project-1",
+                Name = "▼ВР1: Проектирование завершено",
+                NodeType = GanttNodeType.Milestone,
+                MilestoneDate = new DateOnly(2026, 3, 13),
+                MilestoneType = GanttMilestoneType.PhaseGate,
+                SortOrder = 2
+            },
+            new()
+            {
                 Id = "stage-2", ParentId = "project-1", Name = "Разработка", NodeType = GanttNodeType.Stage,
                 StartDate = new DateOnly(2026, 3, 16), EndDate = new DateOnly(2026, 7, 31),
-                SortOrder = 2, Expanded = true
+                SortOrder = 3, Expanded = true
             },
             new()
             {
@@ -101,7 +110,7 @@ else
             {
                 Id = "stage-3", ParentId = "project-1", Name = "Тестирование", NodeType = GanttNodeType.Stage,
                 StartDate = new DateOnly(2026, 7, 20), EndDate = new DateOnly(2026, 10, 1),
-                SortOrder = 3, Expanded = true
+                SortOrder = 4, Expanded = true
             },
             new()
             {

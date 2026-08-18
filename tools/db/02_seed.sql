@@ -463,6 +463,36 @@ INSERT INTO tpl_org_offers (id, stage_id, name, description, start_offset_days, 
      2, 'FIXED_DAYS', 1, 'bbbb0000-0000-0000-0000-000000000002', '["cccccccc-cccc-cccc-cccc-ccccccccccA7"]', 'FS', NULL, NULL, NULL, NULL, CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000')
 ON CONFLICT DO NOTHING;
 
+-- Вехи ООСУ: межэтапные (PhaseGate) и юридические (Legal)
+INSERT INTO tpl_org_milestones (id, intent_id, stage_id, name, description, milestone_type,
+    predecessor_offer_ids, predecessor_stage_ids, offset_days, measurement_unit_id,
+    control_offer_id, legal_reference, sort_order, created_at, created_by) VALUES
+    -- Межэтапные вехи (PHASE_GATE) — разделители между фазами
+    ('dddddddd-dddd-dddd-dddd-dddddddddd01', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa50', NULL,
+     'Отчётность готова', 'Фаза 1 завершена: годовой отчёт и баланс сформированы', 'PHASE_GATE',
+     '["cccccccc-cccc-cccc-cccc-cccccccccc92"]', NULL, NULL, NULL, NULL, NULL,
+     1, CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000'),
+    ('dddddddd-dddd-dddd-dddd-dddddddddd02', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa50', NULL,
+     'Заключения получены', 'Фаза 2 завершена: заключения ревизора и аудитора получены', 'PHASE_GATE',
+     '["cccccccc-cccc-cccc-cccc-cccccccccc97","cccccccc-cccc-cccc-cccc-cccccccccc9A"]', NULL, NULL, NULL, NULL, NULL,
+     2, CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000'),
+    ('dddddddd-dddd-dddd-dddd-dddddddddd03', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa50', NULL,
+     'Материалы разосланы', 'Фаза 3 завершена: уведомления и материалы участникам разосланы', 'PHASE_GATE',
+     '["cccccccc-cccc-cccc-cccc-ccccccccccA1"]', NULL, NULL, NULL, NULL, NULL,
+     3, CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000'),
+    -- Юридические вехи (LEGAL) — дедлайны по закону
+    ('dddddddd-dddd-dddd-dddd-dddddddddd04', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa50', NULL,
+     'Уведомление участников — дедлайн', 'Не позднее 30 кал. дн. до ООСУ (ст. 36 14-ФЗ)', 'LEGAL',
+     NULL, NULL, -30, 'bbbb0000-0000-0000-0000-000000000004',
+     'cccccccc-cccc-cccc-cccc-cccccccccc9D', 'ст. 36 14-ФЗ',
+     4, CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000'),
+    ('dddddddd-dddd-dddd-dddd-dddddddddd05', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa50', NULL,
+     'Подача Р13014 — дедлайн', 'Не более 7 раб. дн. после ООСУ (ст. 5 129-ФЗ)', 'LEGAL',
+     NULL, NULL, 7, 'bbbb0000-0000-0000-0000-000000000001',
+     'cccccccc-cccc-cccc-cccc-ccccccccccA4', 'ст. 5 129-ФЗ',
+     5, CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000')
+ON CONFLICT DO NOTHING;
+
 -- Шаблон «Подготовка к ВОСУ» (aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa60)
 -- Каждый офер = одна задача (как в ГОСА/ВОСА). Предикаты управляют условным включением.
 INSERT INTO tpl_org_intents (id, code, name, description, sort_order, is_for_ao, is_for_llc, requires_board_of_directors, created_at, created_by) VALUES

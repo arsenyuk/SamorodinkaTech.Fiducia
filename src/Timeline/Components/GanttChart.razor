@@ -87,10 +87,12 @@
                         <div class="gantt-today-line" style="left:@(todayPos)px; height:@(_totalHeightPx)px"></div>
                     }
 
-                    <!-- Вертикальные пунктиры для юридических/контрольных вех -->
-                    @foreach (var bar in _barInfos.Where(b => b.IsMilestone && b.MilestoneType is GanttMilestoneType.Legal or GanttMilestoneType.Control))
+                    <!-- Вертикальные пунктиры для юридических/контрольных/межэтапных вех -->
+                    @foreach (var bar in _barInfos.Where(b => b.IsMilestone && b.MilestoneType is GanttMilestoneType.Legal or GanttMilestoneType.Control or GanttMilestoneType.PhaseGate))
                     {
-                        var vlineColor = bar.MilestoneType == GanttMilestoneType.Legal ? "#c62828" : "#e65100";
+                        var vlineColor = bar.MilestoneType == GanttMilestoneType.Legal ? "#c62828"
+                            : bar.MilestoneType == GanttMilestoneType.Control ? "#e65100"
+                            : "#616161";
                         <div class="gantt-milestone-vline"
                              style="left:@(bar.LeftPx + MilestoneHalfWidthPx)px; height:@(_totalHeightPx)px; border-left-color:@(vlineColor)"></div>
                     }
