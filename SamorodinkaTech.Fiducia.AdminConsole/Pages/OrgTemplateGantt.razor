@@ -1,6 +1,7 @@
 @page "/org-templates/intents/{IntentId:guid}/gantt"
 @using Microsoft.EntityFrameworkCore
 @using SamorodinkaTech.Fiducia.Domain.Enums
+@using SamorodinkaTech.Fiducia.Domain.Entities
 @using SamorodinkaTech.Fiducia.Timeline.Services
 @using SamorodinkaTech.Fiducia.Timeline.Models
 @using SamorodinkaTech.Fiducia.Infrastructure.Services
@@ -16,6 +17,29 @@
     <a href="/org-templates/intents/@IntentId/stages" class="text-decoration-none">@(_intentName ?? "Этапы")</a> →
     Диаграмма Ганта
 </h3>
+
+@if (_availableMarkers.Count > 0)
+{
+    <div class="d-flex flex-wrap align-items-center gap-1 mb-2">
+        <span class="small text-muted me-1">Маркеры:</span>
+        @foreach (var marker in _availableMarkers)
+        {
+            var isActive = _activeMarkers[marker.Key];
+            <button type="button"
+                    class="btn btn-sm @(isActive ? "btn-outline-primary" : "btn-outline-secondary text-decoration-line-through")"
+                    @onclick="() => ToggleMarker(marker.Key)">
+                @marker.Label
+            </button>
+        }
+        @if (_activeMarkers.Values.Any(v => !v))
+        {
+            <button type="button" class="btn btn-sm btn-link text-decoration-none"
+                    @onclick="EnableAllMarkers">
+                Сбросить фильтр
+            </button>
+        }
+    </div>
+}
 
 @if (!string.IsNullOrEmpty(_error))
 {
@@ -62,6 +86,42 @@ else
     private string? _error;
     private Dictionary<Guid, Guid> _offerStageMap = new();
 
+    // ── Маркеры (теги) ─────────────────────────────────────────────────
+
+    /// <summary>Описание маркера (ключ свойства + отображаемое имя).</summary>
+    private sealed record MarkerDef(string Key, string Label);
+
+    /// <summary>Маппинг boolean-свойств TplOrgTaskOffer на отображаемые имена маркеров.</summary>
+    private static readonly MarkerDef[] AllMarkerDefs =
+    [
+        new(nameof(TplOrgTaskOffer.RequireNotaryConfirmation), "Нотариус"),
+        new(nameof(TplOrgTaskOffer.RequireAllSignConfirmation), "Подп. всеми"),
+        new(nameof(TplOrgTaskOffer.RequireCommittees), "Комитеты"),
+        new(nameof(TplOrgTaskOffer.RequireBoardRegulation), "Положение СД"),
+        new(nameof(TplOrgTaskOffer.RequireCustomCharter), "Нетиповой устав"),
+        new(nameof(TplOrgTaskOffer.RequireExecutiveBodyA), "Гендиректор"),
+        new(nameof(TplOrgTaskOffer.RequireBoardOfDirectors), "Совет директоров"),
+        new(nameof(TplOrgTaskOffer.RequireDocumentFlowLegalElectronic), "ЮЗЭДО"),
+        new(nameof(TplOrgTaskOffer.RequireMandatoryAudit), "Обяз. аудит"),
+        new(nameof(TplOrgTaskOffer.RequireRevisionCommission), "Ревиз. комиссия"),
+    ];
+
+    /// <summary>Маркеры, которые реально встречаются в задачах текущей диаграммы.</summary>
+    private List<MarkerDef> _availableMarkers = new();
+
+    /// <summary>Состояние включения/отключения каждого маркера.</summary>
+    private Dictionary<string, bool> _activeMarkers = new();
+
+    // ── Сырые данные, загружаемые из БД один раз ──────────────────────
+
+    private List<TplOrgStage> _stages = new();
+    private List<TplOrgTaskOffer> _allOffers = new();
+    private List<TplOrgMilestone> _milestones = new();
+    private HashSet<DateOnly> _holidays = new();
+    private DateOnly _planStart;
+
+    // ── Константы ─────────────────────────────────────────────────────
+
     /// <summary>Отступ в днях до начала первого этапа на диаграмме.</summary>
     private const int ChartStartPaddingDays = 7;
 
@@ -70,6 +130,8 @@ else
 
     /// <summary>Отступ в днях после максимальной даты в ComputeChartEnd.</summary>
     private const int ComputeChartEndPaddingDays = 14;
+
+    // ── Инициализация ──────────────────────────────────────────────────
 
     protected override async Task OnInitializedAsync()
     {
@@ -80,160 +142,197 @@ else
             if (intent == null) { _error = "Шаблон не найден."; return; }
             _intentName = intent.Name;
 
-            var stages = await ctx.TplOrgStages
+            _stages = await ctx.TplOrgStages
                 .Where(x => x.IntentId == IntentId)
                 .OrderBy(x => x.SortOrder).ThenBy(x => x.Name).ToListAsync();
 
-            var stageIds = stages.Select(s => s.Id).ToList();
-            var offers = await ctx.TplOrgOffers
+            var stageIds = _stages.Select(s => s.Id).ToList();
+            _allOffers = await ctx.TplOrgOffers
                 .Where(x => stageIds.Contains(x.StageId))
                 .OrderBy(x => x.StartOffsetDays ?? 0).ThenBy(x => x.Name).ToListAsync();
 
-            var milestones = await ctx.TplOrgMilestones
+            _milestones = await ctx.TplOrgMilestones
                 .Where(x => x.IntentId == IntentId)
                 .OrderBy(x => x.SortOrder).ThenBy(x => x.Name).ToListAsync();
 
             var today = DateOnly.FromDateTime(DateTime.Today);
-            var planStart = today.AddDays(1);
-            var holidays = WorkingDayHelper.GetHolidays(today.Year);
-            holidays.UnionWith(WorkingDayHelper.GetHolidays(today.Year + 1));
-            var nodes = new List<GanttNode>();
-            var dependencies = new List<GanttDependency>();
-            var computedStageStart = new Dictionary<Guid, DateOnly>();
-            var computedStageEnd = new Dictionary<Guid, DateOnly>();
-            var computedOfferDates = new Dictionary<Guid, (DateOnly Start, DateOnly End)>();
+            _planStart = today.AddDays(1);
+            _holidays = WorkingDayHelper.GetHolidays(today.Year);
+            _holidays.UnionWith(WorkingDayHelper.GetHolidays(today.Year + 1));
 
-            // ── Проход 1: вычисление дат с каскадным сдвигом и расширением ──
-            DateOnly? maxEndSoFar = null;
-            foreach (var stage in stages)
+            // Сбор уникальных маркеров из задач
+            var presentMarkers = new HashSet<string>();
+            foreach (var offer in _allOffers)
             {
-                var rawStart = planStart.AddDays(stage.StartOffsetDays ?? 0);
-
-                // Каскад: этап не может начаться раньше следующего дня после конца предыдущего
-                if (maxEndSoFar.HasValue && maxEndSoFar.Value > rawStart)
-                    rawStart = maxEndSoFar.Value.AddDays(1);
-
-                // Явные предшественники
-                if (!string.IsNullOrEmpty(stage.PredecessorStageIds))
-                {
-                    try
-                    {
-                        var predIds = System.Text.Json.JsonSerializer.Deserialize<Guid[]>(stage.PredecessorStageIds!);
-                        if (predIds != null)
-                        {
-                            foreach (var pid in predIds)
-                            {
-                                if (computedStageEnd.TryGetValue(pid, out var pe) && pe > rawStart)
-                                    rawStart = pe.AddDays(1);
-                            }
-                        }
-                    }
-                    catch { }
-                }
-
-                var stageStart = WorkingDayHelper.GetNextWorkingDay(rawStart, holidays);
-                DateOnly? stageEnd = null;
-                if (!string.IsNullOrEmpty(stage.DeadlineRule) && stage.DeadlineDays.HasValue)
-                {
-                    var raw = stageStart.AddDays(Math.Max(0, stage.DeadlineDays.Value - 1));
-                    stageEnd = WorkingDayHelper.IsNonWorking(raw, holidays)
-                        ? WorkingDayHelper.GetNextWorkingDay(raw, holidays)
-                        : raw;
-                }
-
-                // Задачи этапа — расширяют stageEnd
-                var stageOffers = offers.Where(o => o.StageId == stage.Id).ToList();
-                foreach (var offer in stageOffers)
-                {
-                    var offerStart = WorkingDayHelper.GetNextWorkingDay(
-                        stageStart.AddDays(offer.StartOffsetDays ?? 0), holidays);
-                    DateOnly? offerEnd = null;
-                    if (!string.IsNullOrEmpty(offer.DeadlineRule) && offer.DeadlineDays.HasValue)
-                    {
-                        var raw = offerStart.AddDays(Math.Max(0, offer.DeadlineDays.Value - 1));
-                        offerEnd = WorkingDayHelper.IsNonWorking(raw, holidays)
-                            ? WorkingDayHelper.GetNextWorkingDay(raw, holidays)
-                            : raw;
-                    }
-                    var end = offerEnd ?? offerStart.AddDays(1);
-                    computedOfferDates[offer.Id] = (offerStart, end);
-                    if (end > (stageEnd ?? stageStart))
-                        stageEnd = end;
-                }
-
-                var finalEnd = stageEnd ?? stageStart;
-                computedStageStart[stage.Id] = stageStart;
-                computedStageEnd[stage.Id] = finalEnd;
-                if (!maxEndSoFar.HasValue || finalEnd > maxEndSoFar.Value)
-                    maxEndSoFar = finalEnd;
+                foreach (var key in GetOfferMarkers(offer))
+                    presentMarkers.Add(key);
             }
+            _availableMarkers = AllMarkerDefs
+                .Where(m => presentMarkers.Contains(m.Key))
+                .ToList();
+            _activeMarkers = _availableMarkers.ToDictionary(m => m.Key, _ => true);
 
-            // ── Проход 2: создание узлов в исходном порядке (stage → offers) ──
-            var sort = 0;
-            var intentId = $"intent-{IntentId}";
-            nodes.Add(new GanttNode
-            {
-                Id = intentId, Name = intent.Name, NodeType = GanttNodeType.Project,
-                SortOrder = sort++, Expanded = true
-            });
+            RebuildGanttInput();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Ошибка загрузки диаграммы Ганта");
+            _error = ExceptionFlattener.Unwrap(ex);
+        }
+    }
 
-            foreach (var stage in stages)
-            {
-                var stageStart = computedStageStart[stage.Id];
-                var stageEnd = computedStageEnd[stage.Id];
-                var stageId = $"stage-{stage.Id}";
-                nodes.Add(new GanttNode
-                {
-                    Id = stageId, ParentId = intentId, Name = stage.Name,
-                    NodeType = GanttNodeType.Stage,
-                    StartDate = stageStart,
-                    EndDate = stageEnd,
-                    SortOrder = sort++,
-                    BreadcrumbPath = $"{intent.Name} > {stage.Name}"
-                });
+    // ── Пересборка диаграммы ───────────────────────────────────────────
 
-                var stageOffers = offers.Where(o => o.StageId == stage.Id).ToList();
-                foreach (var offer in stageOffers)
-                {
-                    _offerStageMap[offer.Id] = stage.Id;
-                    var (offerStart, offerEnd) = computedOfferDates[offer.Id];
-                    nodes.Add(new GanttNode
-                    {
-                        Id = $"offer-{offer.Id}", ParentId = stageId, Name = offer.Name,
-                        NodeType = GanttNodeType.Task,
-                        StartDate = offerStart,
-                        EndDate = offerEnd,
-                        SortOrder = sort++,
-                        BreadcrumbPath = $"{intent.Name} > {stage.Name}"
-                    });
-                }
-            }
+    /// <summary>Пересобирает GanttChartInput с учётом текущего фильтра маркеров.</summary>
+    private void RebuildGanttInput()
+    {
+        var filteredOffers = _allOffers.Where(IsOfferVisible).ToList();
 
-            // Вехи
-            foreach (var ms in milestones)
-            {
-                var msDate = planStart.AddDays(ms.OffsetDays ?? 0);
-                var parentId = ms.StageId.HasValue ? $"stage-{ms.StageId.Value}" : intentId;
-                nodes.Add(new GanttNode
-                {
-                    Id = $"milestone-{ms.Id}", ParentId = parentId, Name = ms.Name,
-                    NodeType = GanttNodeType.Milestone,
-                    MilestoneDate = msDate,
-                    MilestoneType = MapMilestoneType(ms.MilestoneType),
-                    SortOrder = sort++,
-                    BreadcrumbPath = $"{intent.Name} > {ms.Name}"
-                });
-            }
+        var nodes = new List<GanttNode>();
+        var dependencies = new List<GanttDependency>();
+        var computedStageStart = new Dictionary<Guid, DateOnly>();
+        var computedStageEnd = new Dictionary<Guid, DateOnly>();
+        var computedOfferDates = new Dictionary<Guid, (DateOnly Start, DateOnly End)>();
+        _offerStageMap.Clear();
 
-            // Связи между этапами
-            foreach (var stage in stages.Where(s => !string.IsNullOrEmpty(s.PredecessorStageIds)))
+        // ── Проход 1: вычисление дат с каскадным сдвигом и расширением ──
+        DateOnly? maxEndSoFar = null;
+        foreach (var stage in _stages)
+        {
+            var rawStart = _planStart.AddDays(stage.StartOffsetDays ?? 0);
+
+            if (maxEndSoFar.HasValue && maxEndSoFar.Value > rawStart)
+                rawStart = maxEndSoFar.Value.AddDays(1);
+
+            if (!string.IsNullOrEmpty(stage.PredecessorStageIds))
             {
                 try
                 {
                     var predIds = System.Text.Json.JsonSerializer.Deserialize<Guid[]>(stage.PredecessorStageIds!);
                     if (predIds != null)
                     {
-                        foreach (var predId in predIds)
+                        foreach (var pid in predIds)
+                        {
+                            if (computedStageEnd.TryGetValue(pid, out var pe) && pe > rawStart)
+                                rawStart = pe.AddDays(1);
+                        }
+                    }
+                }
+                catch { }
+            }
+
+            var stageStart = WorkingDayHelper.GetNextWorkingDay(rawStart, _holidays);
+            DateOnly? stageEnd = null;
+            if (!string.IsNullOrEmpty(stage.DeadlineRule) && stage.DeadlineDays.HasValue)
+            {
+                var raw = stageStart.AddDays(Math.Max(0, stage.DeadlineDays.Value - 1));
+                stageEnd = WorkingDayHelper.IsNonWorking(raw, _holidays)
+                    ? WorkingDayHelper.GetNextWorkingDay(raw, _holidays)
+                    : raw;
+            }
+
+            var stageOffers = filteredOffers.Where(o => o.StageId == stage.Id).ToList();
+            foreach (var offer in stageOffers)
+            {
+                var offerStart = WorkingDayHelper.GetNextWorkingDay(
+                    stageStart.AddDays(offer.StartOffsetDays ?? 0), _holidays);
+                DateOnly? offerEnd = null;
+                if (!string.IsNullOrEmpty(offer.DeadlineRule) && offer.DeadlineDays.HasValue)
+                {
+                    var raw = offerStart.AddDays(Math.Max(0, offer.DeadlineDays.Value - 1));
+                    offerEnd = WorkingDayHelper.IsNonWorking(raw, _holidays)
+                        ? WorkingDayHelper.GetNextWorkingDay(raw, _holidays)
+                        : raw;
+                }
+                var end = offerEnd ?? offerStart.AddDays(1);
+                computedOfferDates[offer.Id] = (offerStart, end);
+                if (end > (stageEnd ?? stageStart))
+                    stageEnd = end;
+            }
+
+            var finalEnd = stageEnd ?? stageStart;
+            computedStageStart[stage.Id] = stageStart;
+            computedStageEnd[stage.Id] = finalEnd;
+            if (!maxEndSoFar.HasValue || finalEnd > maxEndSoFar.Value)
+                maxEndSoFar = finalEnd;
+        }
+
+        // ── Проход 2: создание узлов ──
+        var sort = 0;
+        var intentId = $"intent-{IntentId}";
+        nodes.Add(new GanttNode
+        {
+            Id = intentId, Name = _intentName ?? "", NodeType = GanttNodeType.Project,
+            SortOrder = sort++, Expanded = true
+        });
+
+        foreach (var stage in _stages)
+        {
+            var stageOffers = filteredOffers.Where(o => o.StageId == stage.Id).ToList();
+            if (stageOffers.Count == 0) continue;
+
+            var stageStart = computedStageStart[stage.Id];
+            var stageEnd = computedStageEnd[stage.Id];
+            var stageId = $"stage-{stage.Id}";
+            nodes.Add(new GanttNode
+            {
+                Id = stageId, ParentId = intentId, Name = stage.Name,
+                NodeType = GanttNodeType.Stage,
+                StartDate = stageStart,
+                EndDate = stageEnd,
+                SortOrder = sort++,
+                BreadcrumbPath = $"{_intentName} > {stage.Name}"
+            });
+
+            foreach (var offer in stageOffers)
+            {
+                _offerStageMap[offer.Id] = stage.Id;
+                var (offerStart, offerEnd) = computedOfferDates[offer.Id];
+                nodes.Add(new GanttNode
+                {
+                    Id = $"offer-{offer.Id}", ParentId = stageId, Name = offer.Name,
+                    NodeType = GanttNodeType.Task,
+                    StartDate = offerStart,
+                    EndDate = offerEnd,
+                    SortOrder = sort++,
+                    BreadcrumbPath = $"{_intentName} > {stage.Name}"
+                });
+            }
+        }
+
+        // Вехи — всегда видимы
+        foreach (var ms in _milestones)
+        {
+            var msDate = _planStart.AddDays(ms.OffsetDays ?? 0);
+            var parentId = ms.StageId.HasValue
+                && nodes.Any(n => n.Id == $"stage-{ms.StageId.Value}")
+                    ? $"stage-{ms.StageId.Value}"
+                    : intentId;
+            nodes.Add(new GanttNode
+            {
+                Id = $"milestone-{ms.Id}", ParentId = parentId, Name = ms.Name,
+                NodeType = GanttNodeType.Milestone,
+                MilestoneDate = msDate,
+                MilestoneType = MapMilestoneType(ms.MilestoneType),
+                SortOrder = sort++,
+                BreadcrumbPath = $"{_intentName} > {ms.Name}"
+            });
+        }
+
+        // Зависимости — только между видимыми узлами
+        var nodeIds = new HashSet<string>(nodes.Select(n => n.Id));
+
+        foreach (var stage in _stages.Where(s => !string.IsNullOrEmpty(s.PredecessorStageIds)))
+        {
+            if (!nodeIds.Contains($"stage-{stage.Id}")) continue;
+            try
+            {
+                var predIds = System.Text.Json.JsonSerializer.Deserialize<Guid[]>(stage.PredecessorStageIds!);
+                if (predIds != null)
+                {
+                    foreach (var predId in predIds)
+                    {
+                        if (nodeIds.Contains($"stage-{predId}"))
                         {
                             dependencies.Add(new GanttDependency
                             {
@@ -244,18 +343,21 @@ else
                         }
                     }
                 }
-                catch { }
             }
+            catch { }
+        }
 
-            // Связи между оферами
-            foreach (var offer in offers.Where(o => !string.IsNullOrEmpty(o.PredecessorOfferIds)))
+        foreach (var offer in filteredOffers.Where(o => !string.IsNullOrEmpty(o.PredecessorOfferIds)))
+        {
+            if (!nodeIds.Contains($"offer-{offer.Id}")) continue;
+            try
             {
-                try
+                var predIds = System.Text.Json.JsonSerializer.Deserialize<Guid[]>(offer.PredecessorOfferIds!);
+                if (predIds != null)
                 {
-                    var predIds = System.Text.Json.JsonSerializer.Deserialize<Guid[]>(offer.PredecessorOfferIds!);
-                    if (predIds != null)
+                    foreach (var predId in predIds)
                     {
-                        foreach (var predId in predIds)
+                        if (nodeIds.Contains($"offer-{predId}"))
                         {
                             dependencies.Add(new GanttDependency
                             {
@@ -266,32 +368,77 @@ else
                         }
                     }
                 }
-                catch { }
             }
-
-            var chartStart = ComputeChartStart(nodes).AddDays(-ChartStartPaddingDays);
-            var chartEnd = ComputeChartEnd(nodes).AddDays(ChartEndPaddingDays);
-
-            var allDays = WorkCalendar.GenerateCalendar(chartStart.Year, chartEnd.Year);
-            var calendarDays = allDays.Where(d => d.Date >= chartStart && d.Date <= chartEnd).ToList();
-
-            _ganttInput = new GanttChartInput
-            {
-                Nodes = nodes,
-                CalendarDays = calendarDays,
-                StartDate = chartStart,
-                EndDate = chartEnd,
-                Today = today,
-                EndPaddingWeeks = 0,
-                Dependencies = dependencies
-            };
+            catch { }
         }
-        catch (Exception ex)
+
+        var chartStart = ComputeChartStart(nodes).AddDays(-ChartStartPaddingDays);
+        var chartEnd = ComputeChartEnd(nodes).AddDays(ChartEndPaddingDays);
+
+        var allDays = WorkCalendar.GenerateCalendar(chartStart.Year, chartEnd.Year);
+        var calendarDays = allDays.Where(d => d.Date >= chartStart && d.Date <= chartEnd).ToList();
+
+        _ganttInput = new GanttChartInput
         {
-            Logger.LogWarning(ex, "Ошибка загрузки диаграммы Ганта");
-            _error = ExceptionFlattener.Unwrap(ex);
-        }
+            Nodes = nodes,
+            CalendarDays = calendarDays,
+            StartDate = chartStart,
+            EndDate = chartEnd,
+            Today = DateOnly.FromDateTime(DateTime.Today),
+            EndPaddingWeeks = 0,
+            Dependencies = dependencies
+        };
     }
+
+    // ── Маркеры: логика ────────────────────────────────────────────────
+
+    /// <summary>Возвращает набор ключей маркеров, установленных у задачи (true).</summary>
+    private static HashSet<string> GetOfferMarkers(TplOrgTaskOffer offer)
+    {
+        var result = new HashSet<string>();
+        if (offer.RequireNotaryConfirmation == true) result.Add(nameof(TplOrgTaskOffer.RequireNotaryConfirmation));
+        if (offer.RequireAllSignConfirmation == true) result.Add(nameof(TplOrgTaskOffer.RequireAllSignConfirmation));
+        if (offer.RequireCommittees == true) result.Add(nameof(TplOrgTaskOffer.RequireCommittees));
+        if (offer.RequireBoardRegulation == true) result.Add(nameof(TplOrgTaskOffer.RequireBoardRegulation));
+        if (offer.RequireCustomCharter == true) result.Add(nameof(TplOrgTaskOffer.RequireCustomCharter));
+        if (offer.RequireExecutiveBodyA == true) result.Add(nameof(TplOrgTaskOffer.RequireExecutiveBodyA));
+        if (offer.RequireBoardOfDirectors == true) result.Add(nameof(TplOrgTaskOffer.RequireBoardOfDirectors));
+        if (offer.RequireDocumentFlowLegalElectronic == true) result.Add(nameof(TplOrgTaskOffer.RequireDocumentFlowLegalElectronic));
+        if (offer.RequireMandatoryAudit == true) result.Add(nameof(TplOrgTaskOffer.RequireMandatoryAudit));
+        if (offer.RequireRevisionCommission == true) result.Add(nameof(TplOrgTaskOffer.RequireRevisionCommission));
+        return result;
+    }
+
+    /// <summary>Проверяет, видна ли задача при текущем состоянии фильтра.
+    /// Задача видима, если все её маркеры включены (или у неё нет маркеров).</summary>
+    private bool IsOfferVisible(TplOrgTaskOffer offer)
+    {
+        foreach (var key in GetOfferMarkers(offer))
+        {
+            if (_activeMarkers.TryGetValue(key, out var active) && !active)
+                return false;
+        }
+        return true;
+    }
+
+    /// <summary>Переключает состояние маркера и пересобирает диаграмму.</summary>
+    private void ToggleMarker(string key)
+    {
+        _activeMarkers[key] = !_activeMarkers[key];
+        RebuildGanttInput();
+        StateHasChanged();
+    }
+
+    /// <summary>Включает все маркеры и пересобирает диаграмму.</summary>
+    private void EnableAllMarkers()
+    {
+        foreach (var key in _activeMarkers.Keys.ToList())
+            _activeMarkers[key] = true;
+        RebuildGanttInput();
+        StateHasChanged();
+    }
+
+    // ── Навигация ──────────────────────────────────────────────────────
 
     private async Task HandleDoubleClick(GanttNode node)
     {
@@ -306,6 +453,8 @@ else
             }
         }
     }
+
+    // ── Вспомогательные методы ─────────────────────────────────────────
 
     private static DateOnly ComputeChartStart(List<GanttNode> nodes)
     {
