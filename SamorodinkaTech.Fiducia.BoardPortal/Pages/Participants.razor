@@ -4,6 +4,7 @@
 @inject IDbContextFactory<SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext> DbFactory
 @inject HttpClient Http
 @inject ILogger<Participants> Logger
+@inject NavigationManager Nav
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 
 <PageTitle>Fiducia — Участники</PageTitle>
@@ -16,7 +17,7 @@
 }
 else if (!_isLLC)
 {
-    <div class="text-muted">Раздел доступен только для обществ с ограниченной ответственностью (ООО).</div>
+    <div class="text-muted">Раздел доступен только для ООО.</div>
 }
 else
 {
@@ -564,7 +565,11 @@ else
             }
 
             _isLLC = le.RefOkopf?.Code == "12300";
-            if (!_isLLC) return;
+            if (!_isLLC)
+            {
+                Nav.NavigateTo("/main");
+                return;
+            }
 
             await LoadData();
         }
