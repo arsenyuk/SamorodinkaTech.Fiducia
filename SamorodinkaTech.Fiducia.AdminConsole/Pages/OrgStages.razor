@@ -1,5 +1,6 @@
 @page "/org-templates/intents/{IntentId:guid}/stages"
 @using Microsoft.EntityFrameworkCore
+@using SamorodinkaTech.Fiducia.Domain.Enums
 @inject IDbContextFactory<SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext> DbFactory
 @inject ILogger<OrgTemplates> Logger
 @inject NavigationManager Nav
@@ -11,7 +12,8 @@
 </h3>
 
 <div class="mb-2 d-flex gap-2">
-    <button class="btn btn-primary btn-sm" @onclick="() => _showForm = true">Добавить этап</button>
+    <button class="btn btn-primary btn-sm" @onclick="() => _showStageForm = true">Добавить этап</button>
+    <button class="btn btn-outline-primary btn-sm" @onclick="AddIntentMilestone">Добавить веху цели</button>
     <a href="/org-templates/intents/@IntentId/gantt" class="btn btn-outline-info btn-sm">Диаграмма Ганта</a>
 </div>
 
@@ -20,22 +22,29 @@
     <div class="alert alert-danger">@_error</div>
 }
 
-@if (_showForm)
+@if (!string.IsNullOrEmpty(_success))
+{
+    <div class="alert alert-success">@_success</div>
+}
+
+@* ── Форма этапа ──────────────────────────────────────────────────── *@
+@if (_showStageForm)
 {
     <div class="card mb-3">
         <div class="card-body">
+            <h6 class="card-title">@(_editingStageId.HasValue ? "Редактировать этап" : "Добавить этап")</h6>
             <div class="row g-2 align-items-end">
                 <div class="col-md-3">
                     <label class="form-label">Название</label>
-                    <input class="form-control" @bind="_editName" />
+                    <input class="form-control" @bind="_editStageName" />
                 </div>
                 <div class="col-md-2">
                     <label class="form-label">Смещение (дни)</label>
-                    <input class="form-control" type="number" @bind="_editOffset" />
+                    <input class="form-control" type="number" @bind="_editStageOffset" />
                 </div>
                 <div class="col-md-2">
                     <label class="form-label">Правило дедлайна</label>
-                    <select class="form-select" @bind="_editDeadlineRule">
+                    <select class="form-select" @bind="_editStageDeadlineRule">
                         <option value="">— нет —</option>
                         <option value="FIXED_DAYS">Через N дней</option>
                         <option value="AFTER_START">После начала этапа</option>
@@ -43,24 +52,105 @@
                 </div>
                 <div class="col-md-1">
                     <label class="form-label">Дни</label>
-                    <input class="form-control" type="number" @bind="_editDeadlineDays" />
+                    <input class="form-control" type="number" @bind="_editStageDeadlineDays" />
                 </div>
                 <div class="col-md-1">
                     <label class="form-label">Порядок</label>
-                    <input class="form-control" type="number" @bind="_editSort" />
+                    <input class="form-control" type="number" @bind="_editStageSort" />
                 </div>
                 <div class="col-md-1 d-flex gap-1">
-                    <button class="btn btn-success btn-sm" @onclick="Save">✓</button>
-                    <button class="btn btn-outline-secondary btn-sm" @onclick="CancelForm">✕</button>
+                    <button class="btn btn-success btn-sm" @onclick="SaveStage">✓</button>
+                    <button class="btn btn-outline-secondary btn-sm" @onclick="CancelStageForm">✕</button>
                 </div>
             </div>
         </div>
     </div>
 }
 
+@* ── Форма вехи ────────────────────────────────────────────────────── *@
+@if (_showMilestoneForm)
+{
+    <div class="card mb-3 border-primary">
+        <div class="card-body">
+            <h6 class="card-title">@(_editingMilestoneId.HasValue ? "Редактировать веху" : "Добавить веху") к этапу «@_milestoneStageName»</h6>
+            <div class="row g-2 align-items-end">
+                <div class="col-md-3">
+                    <label class="form-label">Название</label>
+                    <input class="form-control" @bind="_editMilestoneName" />
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Тип вехи</label>
+                    <select class="form-select" @bind="_editMilestoneType">
+                        @foreach (MilestoneType t in Enum.GetValues<MilestoneType>())
+                        {
+                            <option value="@t">@t.GetMarker() — @t.GetDisplayName()</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Ссылка на норму</label>
+                    <input class="form-control" @bind="_editMilestoneLegalRef" placeholder="ст. 44 208-ФЗ" />
+                </div>
+                <div class="col-md-1">
+                    <label class="form-label">Порядок</label>
+                    <input class="form-control" type="number" @bind="_editMilestoneSort" />
+                </div>
+                <div class="col-md-1 d-flex gap-1">
+                    <button class="btn btn-success btn-sm" @onclick="SaveMilestone">✓</button>
+                    <button class="btn btn-outline-secondary btn-sm" @onclick="CancelMilestoneForm">✕</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@* ── Таблица этапов и вех ──────────────────────────────────────────── *@
+
+@if (_intentMilestones.Count > 0)
+{
+    <h6 class="mb-2">Вехи цели (не привязаны к этапам)</h6>
+    <table class="table table-sm table-hover mb-4">
+        <thead>
+            <tr>
+                <th>Название</th>
+                <th>Тип</th>
+                <th>Ссылка на норму</th>
+                <th style="width:80px">Порядок</th>
+                <th style="width:100px">Действия</th>
+            </tr>
+        </thead>
+        <tbody>
+        @foreach (var ms in _intentMilestones)
+        {
+            <tr class="table-light">
+                <td>
+                    <span class="badge @GetMilestoneBadgeClass(ms.MilestoneType) me-1">@ms.MilestoneType.GetMarker()</span>
+                    @ms.Name
+                </td>
+                <td class="small text-muted">@ms.MilestoneType.GetDisplayName()</td>
+                <td class="small text-muted">@(ms.LegalReference ?? "—")</td>
+                <td>@ms.SortOrder</td>
+                <td>
+                    <button class="btn btn-outline-secondary btn-sm me-1" @onclick="() => EditIntentMilestone(ms)">✏️</button>
+                    <button class="btn btn-outline-danger btn-sm" @onclick="() => DeleteMilestone(ms.Id)">✕</button>
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+}
+
+<h6 class="mb-2">Этапы</h6>
 <table class="table table-sm table-hover">
     <thead>
-        <tr><th>Название</th><th>Смещение</th><th>Дедлайн</th><th>Предшественник</th><th style="width:80px">Порядок</th><th style="width:100px">Действия</th></tr>
+        <tr>
+            <th>Название</th>
+            <th>Смещение</th>
+            <th>Дедлайн</th>
+            <th>Предшественник</th>
+            <th style="width:80px">Порядок</th>
+            <th style="width:100px">Действия</th>
+        </tr>
     </thead>
     <tbody>
     @foreach (var s in _items)
@@ -71,18 +161,47 @@
             "AFTER_START" => $"после нач. +{s.DeadlineDays} дн.",
             _ => "—"
         };
-        <tr>
+        var milestones = (s.Milestones ?? Enumerable.Empty<TplOrgMilestone>()).OrderBy(m => m.SortOrder).ToList();
+
+        <tr class="table-primary">
             <td>
-                <a href="/org-templates/stages/@s.Id/offers" class="text-decoration-none">@s.Name</a>
+                <a href="/org-templates/stages/@s.Id/offers" class="text-decoration-none fw-bold">@s.Name</a>
             </td>
             <td>@(s.StartOffsetDays?.ToString() ?? "—")</td>
             <td>@deadlineLabel</td>
             <td class="small text-muted">@(_predecessorNames.GetValueOrDefault(s.Id, "—"))</td>
             <td>@s.SortOrder</td>
             <td>
-                <button class="btn btn-outline-secondary btn-sm me-1" @onclick="() => Edit(s)">✏️</button>
+                <button class="btn btn-outline-secondary btn-sm me-1" @onclick="() => EditStage(s)">✏️</button>
+                <button class="btn btn-outline-primary btn-sm" @onclick="() => AddMilestone(s)" title="Добавить веху">◆+</button>
             </td>
         </tr>
+
+        @if (milestones.Count > 0)
+        {
+            @foreach (var ms in milestones)
+            {
+                <tr class="table-light">
+                    <td class="ps-4">
+                        <span class="badge @GetMilestoneBadgeClass(ms.MilestoneType) me-1">@ms.MilestoneType.GetMarker()</span>
+                        @ms.Name
+                    </td>
+                    <td colspan="2" class="small text-muted">@ms.MilestoneType.GetDisplayName()</td>
+                    <td class="small text-muted">@(ms.LegalReference ?? "—")</td>
+                    <td>@ms.SortOrder</td>
+                    <td>
+                        <button class="btn btn-outline-secondary btn-sm me-1" @onclick="() => EditMilestone(ms, s)">✏️</button>
+                        <button class="btn btn-outline-danger btn-sm" @onclick="() => DeleteMilestone(ms.Id)">✕</button>
+                    </td>
+                </tr>
+            }
+        }
+        else
+        {
+            <tr class="table-light">
+                <td colspan="6" class="ps-4 small text-muted fst-italic">Вех нет</td>
+            </tr>
+        }
     }
     </tbody>
 </table>
@@ -91,17 +210,30 @@
     [Parameter] public Guid IntentId { get; set; }
 
     private List<TplOrgStage> _items = new();
+    private List<TplOrgMilestone> _intentMilestones = new();
     private Dictionary<Guid, string> _predecessorNames = new();
     private string? _intentName;
     private string? _error;
     private string? _success;
-    private bool _showForm;
-    private string _editName = "";
-    private int? _editOffset;
-    private string _editDeadlineRule = "";
-    private int? _editDeadlineDays;
-    private int _editSort;
-    private Guid? _editingId;
+
+    // ── Stage form ───────────────────────────────────────────────────
+    private bool _showStageForm;
+    private string _editStageName = "";
+    private int? _editStageOffset;
+    private string _editStageDeadlineRule = "";
+    private int? _editStageDeadlineDays;
+    private int _editStageSort;
+    private Guid? _editingStageId;
+
+    // ── Milestone form ───────────────────────────────────────────────
+    private bool _showMilestoneForm;
+    private string _editMilestoneName = "";
+    private MilestoneType _editMilestoneType = MilestoneType.REGULAR;
+    private string? _editMilestoneLegalRef;
+    private int _editMilestoneSort;
+    private Guid? _editingMilestoneId;
+    private Guid _editMilestoneStageId;
+    private string _milestoneStageName = "";
 
     protected override async Task OnInitializedAsync() { await LoadAsync(); }
 
@@ -111,7 +243,16 @@
         {
             await using var ctx = await DbFactory.CreateDbContextAsync();
             _intentName = (await ctx.TplOrgIntents.FirstOrDefaultAsync(x => x.Id == IntentId))?.Name;
-            _items = await ctx.TplOrgStages.Where(x => x.IntentId == IntentId).OrderBy(x => x.SortOrder).ThenBy(x => x.Name).ToListAsync();
+            _items = await ctx.TplOrgStages
+                .Include(x => x.Milestones)
+                .Where(x => x.IntentId == IntentId)
+                .OrderBy(x => x.SortOrder)
+                .ThenBy(x => x.Name)
+                .ToListAsync();
+            _intentMilestones = await ctx.TplOrgMilestones
+                .Where(x => x.IntentId == IntentId && x.StageId == null)
+                .OrderBy(x => x.SortOrder)
+                .ToListAsync();
             _predecessorNames = _items.Where(s => !string.IsNullOrEmpty(s.PredecessorStageIds)).SelectMany(s =>
             {
                 try
@@ -125,42 +266,160 @@
         catch (Exception ex) { Logger.LogWarning(ex, "Ошибка загрузки этапов"); _error = ExceptionFlattener.Unwrap(ex); }
     }
 
-    private void Edit(TplOrgStage s)
+    // ── Stage CRUD ───────────────────────────────────────────────────
+
+    private void EditStage(TplOrgStage s)
     {
-        _editingId = s.Id; _editName = s.Name; _editOffset = s.StartOffsetDays;
-        _editDeadlineRule = s.DeadlineRule ?? ""; _editDeadlineDays = s.DeadlineDays;
-        _editSort = s.SortOrder; _showForm = true;
+        _editingStageId = s.Id; _editStageName = s.Name; _editStageOffset = s.StartOffsetDays;
+        _editStageDeadlineRule = s.DeadlineRule ?? ""; _editStageDeadlineDays = s.DeadlineDays;
+        _editStageSort = s.SortOrder; _showStageForm = true;
     }
 
-    private void CancelForm() { _showForm = false; _editingId = null; }
+    private void CancelStageForm() { _showStageForm = false; _editingStageId = null; }
 
-    private async Task Save()
+    private async Task SaveStage()
     {
-        if (string.IsNullOrWhiteSpace(_editName)) return;
+        if (string.IsNullOrWhiteSpace(_editStageName)) return;
         try
         {
             await using var ctx = await DbFactory.CreateDbContextAsync();
-            if (_editingId.HasValue)
+            if (_editingStageId.HasValue)
             {
-                var e = await ctx.TplOrgStages.FirstOrDefaultAsync(x => x.Id == _editingId.Value);
+                var e = await ctx.TplOrgStages.FirstOrDefaultAsync(x => x.Id == _editingStageId.Value);
                 if (e != null)
                 {
-                    e.Name = _editName.Trim(); e.StartOffsetDays = _editOffset;
-                    e.DeadlineRule = (string.IsNullOrWhiteSpace(_editDeadlineRule) ? null : _editDeadlineRule.Trim()); e.DeadlineDays = _editDeadlineDays;
-                    e.SortOrder = _editSort;
+                    e.Name = _editStageName.Trim(); e.StartOffsetDays = _editStageOffset;
+                    e.DeadlineRule = (string.IsNullOrWhiteSpace(_editStageDeadlineRule) ? null : _editStageDeadlineRule.Trim()); e.DeadlineDays = _editStageDeadlineDays;
+                    e.SortOrder = _editStageSort;
                 }
             }
             else
             {
-                ctx.TplOrgStages.Add(new TplOrgStage { Id = Guid.NewGuid(), Name = _editName.Trim(), IntentId = IntentId,
-                    StartOffsetDays = _editOffset, DeadlineRule = (string.IsNullOrWhiteSpace(_editDeadlineRule) ? null : _editDeadlineRule.Trim()), DeadlineDays = _editDeadlineDays,
-                    SortOrder = _editSort });
+                ctx.TplOrgStages.Add(new TplOrgStage { Id = Guid.NewGuid(), Name = _editStageName.Trim(), IntentId = IntentId,
+                    StartOffsetDays = _editStageOffset, DeadlineRule = (string.IsNullOrWhiteSpace(_editStageDeadlineRule) ? null : _editStageDeadlineRule.Trim()), DeadlineDays = _editStageDeadlineDays,
+                    SortOrder = _editStageSort });
             }
             await ctx.SaveChangesAsync();
-            CancelForm(); await LoadAsync();
-            _success = _editingId.HasValue ? "Этап обновлён." : "Этап создан.";
+            CancelStageForm(); await LoadAsync();
+            _success = _editingStageId.HasValue ? "Этап обновлён." : "Этап создан.";
         }
-        catch (Exception ex) { Logger.LogWarning(ex, "Ошибка сохранения"); _error = ExceptionFlattener.Unwrap(ex); }
+        catch (Exception ex) { Logger.LogWarning(ex, "Ошибка сохранения этапа"); _error = ExceptionFlattener.Unwrap(ex); }
     }
 
+    // ── Milestone CRUD ───────────────────────────────────────────────
+
+    private void AddMilestone(TplOrgStage stage)
+    {
+        _editingMilestoneId = null;
+        _editMilestoneName = "";
+        _editMilestoneType = MilestoneType.REGULAR;
+        _editMilestoneLegalRef = null;
+        _editMilestoneSort = 0;
+        _editMilestoneStageId = stage.Id;
+        _milestoneStageName = stage.Name;
+        _showMilestoneForm = true;
+    }
+
+    private void AddIntentMilestone()
+    {
+        _editingMilestoneId = null;
+        _editMilestoneName = "";
+        _editMilestoneType = MilestoneType.REGULAR;
+        _editMilestoneLegalRef = null;
+        _editMilestoneSort = 0;
+        _editMilestoneStageId = Guid.Empty; // Будет null в БД
+        _milestoneStageName = "цель";
+        _showMilestoneForm = true;
+    }
+
+    private void EditIntentMilestone(TplOrgMilestone ms)
+    {
+        _editingMilestoneId = ms.Id;
+        _editMilestoneName = ms.Name;
+        _editMilestoneType = ms.MilestoneType;
+        _editMilestoneLegalRef = ms.LegalReference;
+        _editMilestoneSort = ms.SortOrder;
+        _editMilestoneStageId = Guid.Empty; // Будет null в БД
+        _milestoneStageName = "цель";
+        _showMilestoneForm = true;
+    }
+
+    private void EditMilestone(TplOrgMilestone ms, TplOrgStage stage)
+    {
+        _editingMilestoneId = ms.Id;
+        _editMilestoneName = ms.Name;
+        _editMilestoneType = ms.MilestoneType;
+        _editMilestoneLegalRef = ms.LegalReference;
+        _editMilestoneSort = ms.SortOrder;
+        _editMilestoneStageId = ms.StageId ?? stage.Id;
+        _milestoneStageName = stage.Name;
+        _showMilestoneForm = true;
+    }
+
+    private void CancelMilestoneForm() { _showMilestoneForm = false; _editingMilestoneId = null; }
+
+    private async Task SaveMilestone()
+    {
+        if (string.IsNullOrWhiteSpace(_editMilestoneName)) return;
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+            var stageId = _editMilestoneStageId == Guid.Empty ? (Guid?)null : _editMilestoneStageId;
+            if (_editingMilestoneId.HasValue)
+            {
+                var e = await ctx.TplOrgMilestones.FirstOrDefaultAsync(x => x.Id == _editingMilestoneId.Value);
+                if (e != null)
+                {
+                    e.Name = _editMilestoneName.Trim();
+                    e.MilestoneType = _editMilestoneType;
+                    e.StageId = stageId;
+                    e.LegalReference = string.IsNullOrWhiteSpace(_editMilestoneLegalRef) ? null : _editMilestoneLegalRef.Trim();
+                    e.SortOrder = _editMilestoneSort;
+                }
+            }
+            else
+            {
+                ctx.TplOrgMilestones.Add(new TplOrgMilestone
+                {
+                    Id = Guid.NewGuid(),
+                    IntentId = IntentId,
+                    StageId = stageId,
+                    Name = _editMilestoneName.Trim(),
+                    MilestoneType = _editMilestoneType,
+                    LegalReference = string.IsNullOrWhiteSpace(_editMilestoneLegalRef) ? null : _editMilestoneLegalRef.Trim(),
+                    SortOrder = _editMilestoneSort
+                });
+            }
+            await ctx.SaveChangesAsync();
+            CancelMilestoneForm(); await LoadAsync();
+            _success = _editingMilestoneId.HasValue ? "Веха обновлена." : "Веха создана.";
+        }
+        catch (Exception ex) { Logger.LogWarning(ex, "Ошибка сохранения вехи"); _error = ExceptionFlattener.Unwrap(ex); }
+    }
+
+    private async Task DeleteMilestone(Guid id)
+    {
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+            var e = await ctx.TplOrgMilestones.FirstOrDefaultAsync(x => x.Id == id);
+            if (e != null)
+            {
+                ctx.TplOrgMilestones.Remove(e);
+                await ctx.SaveChangesAsync();
+                await LoadAsync();
+                _success = "Веха удалена.";
+            }
+        }
+        catch (Exception ex) { Logger.LogWarning(ex, "Ошибка удаления вехи"); _error = ExceptionFlattener.Unwrap(ex); }
+    }
+
+    private static string GetMilestoneBadgeClass(MilestoneType type) => type switch
+    {
+        MilestoneType.LEGAL => "bg-danger",
+        MilestoneType.CONTROL => "bg-warning text-dark",
+        MilestoneType.PHASE_GATE => "bg-info",
+        MilestoneType.INTEGRATION => "bg-dark",
+        _ => "bg-secondary"
+    };
 }
