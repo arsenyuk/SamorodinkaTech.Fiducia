@@ -840,6 +840,13 @@ public class MeetingCreatedHandler : INotificationHandler<MeetingCreatedEvent>
 
 ## Правила кодирования
 
+### Размещение файлов endpoints (КРИТИЧНО)
+
+- Файлы Minimal API endpoints (`*Endpoints.cs`) размещаются в подпапке
+  `Endpoints/` внутри проекта BoardPortal/AdminConsole, а **не в корне** проекта.
+- Пример: `SamorodinkaTech.Fiducia.BoardPortal/Endpoints/ParticipantEndpoints.cs`
+- Пространство имён при этом не меняется.
+
 ### Терминология (КРИТИЧНО)
 
 - Запрещено использовать слово «функционал» для обозначения функций/возможностей системы.

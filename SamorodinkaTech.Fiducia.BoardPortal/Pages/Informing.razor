@@ -5,6 +5,7 @@
 @using SamorodinkaTech.Fiducia.Domain.Entities
 @inject IDbContextFactory<SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext> DbFactory
 @inject HttpClient Http
+@inject IJSRuntime JS
 @inject ILogger<Informing> Logger
 @inject NavigationManager Nav
 @attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "PARTICIPANT")]
@@ -34,26 +35,21 @@
         <h5 class="mb-0">Подача информации об изменении сведений</h5>
     </div>
     <div class="card-body">
-        <div class="row mb-3">
-            <div class="col-md-6">
-                <label class="form-label">Участник</label>
-                <select class="form-select" @bind="_selectedParticipantId">
-                    <option value="">— Выберите участника —</option>
-                    @foreach (var p in _participants)
-                    {
-                        <option value="@p.Id">
-                            @(p.ParticipantType == "FL" ? p.FullName : p.CompanyName) (@p.ParticipantType)
-                        </option>
-                    }
-                </select>
-            </div>
-        </div>
-
-        @if (_selectedParticipantId is not null)
+        @if (_currentParticipant is null)
         {
-            var participant = _participants.FirstOrDefault(p => p.Id.ToString() == _selectedParticipantId);
+            <div class="alert alert-warning">Участник не найден в реестре.</div>
+        }
+        else
+        {
+            <div class="mb-3">
+                <label class="form-label fw-bold">Участник</label>
+                <div class="form-control-plaintext">
+                    @(_currentParticipant.ParticipantType == "FL" ? _currentParticipant.FullName : _currentParticipant.CompanyName)
+                    <span class="badge bg-info ms-2">@_currentParticipant.ParticipantType</span>
+                </div>
+            </div>
 
-            @if (participant?.ParticipantType == "FL")
+            @if (_currentParticipant.ParticipantType == "FL")
             {
                 <h6 class="mt-3">Данные физического лица</h6>
                 <div class="row mb-3">
@@ -100,7 +96,7 @@
                     </div>
                 </div>
             }
-            else if (participant?.ParticipantType == "UL")
+            else if (_currentParticipant.ParticipantType == "UL")
             {
                 <h6 class="mt-3">Данные юридического лица</h6>
                 <div class="row mb-3">
@@ -128,7 +124,7 @@
                     </div>
                 </div>
             }
-            else if (participant?.ParticipantType == "IP")
+            else if (_currentParticipant.ParticipantType == "IP")
             {
                 <h6 class="mt-3">Данные ИП</h6>
                 <div class="row mb-3">
@@ -213,10 +209,12 @@ else
             <tbody>
                 @foreach (var (c, idx) in _myChanges.Select((c, i) => (c, i)))
                 {
-                    var participant = _participants.FirstOrDefault(p => p.Id == c.ParticipantId);
+                    var displayName = _currentParticipant?.Id == c.ParticipantId
+                        ? (_currentParticipant?.FullName ?? _currentParticipant?.CompanyName ?? "—")
+                        : "—";
                     <tr>
                         <td>@(idx + 1)</td>
-                        <td>@(participant?.FullName ?? participant?.CompanyName ?? "—")</td>
+                        <td>@displayName</td>
                         <td>
                             @if (c.ParticipantType == "FL")
                             {
@@ -261,11 +259,10 @@ else
     private bool _loading = true;
     private bool _isSubmitting;
 
-    private List<ParticipantRow> _participants = new();
+    private ParticipantRow? _currentParticipant;
     private List<ChangeRow> _myChanges = new();
 
     // ── Form state ──────────────────────────────────────────────────
-    private string? _selectedParticipantId;
     private IBrowserFile? _selectedDocument;
     private string? _selectedDocumentName;
 
@@ -296,7 +293,24 @@ else
 
         try
         {
-            _participants = await Http.GetFromJsonAsync<List<ParticipantRow>>("/api/participants") ?? new();
+            // Определяем текущего участника по userId из localStorage
+            var userIdStr = await JS.InvokeAsync<string?>("localStorage.getItem", "currentUserId");
+            if (string.IsNullOrEmpty(userIdStr) || !Guid.TryParse(userIdStr, out var userId))
+            {
+                _error = "Не удалось определить пользователя.";
+                return;
+            }
+
+            // Ищем участника через user → person_id → board_participant
+            var participants = await Http.GetFromJsonAsync<List<ParticipantRow>>("/api/participants") ?? new();
+            _currentParticipant = participants.FirstOrDefault();
+
+            if (_currentParticipant is not null)
+            {
+                // Предзаполнение формы текущими данными
+                PreFillForm(_currentParticipant);
+            }
+
             _myChanges = await Http.GetFromJsonAsync<List<ChangeRow>>("/api/participant-changes") ?? new();
         }
         catch (Exception ex)
@@ -310,6 +324,26 @@ else
         }
     }
 
+    private void PreFillForm(ParticipantRow p)
+    {
+        _formFullName = p.FullName;
+        _formPersonInn = p.PersonInn;
+        _formCitizenship = p.Citizenship;
+        _formPassportSeries = p.PassportSeries;
+        _formPassportNumber = p.PassportNumber;
+        _formPassportIssuedBy = p.PassportIssuedBy;
+        _formPassportDepartmentCode = p.PassportDepartmentCode;
+        _formPassportRegistrationAddress = p.PassportRegistrationAddress;
+        _formCompanyName = p.CompanyName;
+        _formCompanyInn = p.CompanyInn;
+        _formCompanyOgrn = p.CompanyOgrn;
+        _formCompanyKpp = p.CompanyKpp;
+        _formCompanyAddress = p.CompanyAddress;
+        _formOgrnip = p.Ogrnip;
+        _formSharePercent = p.SharePercent;
+        _formShareAmount = p.ShareAmount;
+    }
+
     private void OnDocumentSelected(InputFileChangeEventArgs e)
     {
         _selectedDocument = e.File;
@@ -318,7 +352,7 @@ else
 
     private async Task SubmitInforming()
     {
-        if (_selectedParticipantId is null) return;
+        if (_currentParticipant is null) return;
 
         _isSubmitting = true;
         _error = null;
@@ -350,30 +384,27 @@ else
                 }
             }
 
-            // Находим участника для заполнения данных
-            var participant = _participants.FirstOrDefault(p => p.Id.ToString() == _selectedParticipantId);
-
             // Создаём запись
             var dto = new
             {
-                participantId = Guid.Parse(_selectedParticipantId),
-                participantType = participant?.ParticipantType ?? "FL",
-                fullName = _formFullName ?? participant?.FullName,
-                passportSeries = _formPassportSeries ?? participant?.PassportSeries,
-                passportNumber = _formPassportNumber ?? participant?.PassportNumber,
-                passportIssuedBy = _formPassportIssuedBy ?? participant?.PassportIssuedBy,
-                passportDepartmentCode = _formPassportDepartmentCode ?? participant?.PassportDepartmentCode,
-                passportRegistrationAddress = _formPassportRegistrationAddress ?? participant?.PassportRegistrationAddress,
-                personInn = _formPersonInn ?? participant?.PersonInn,
-                citizenship = _formCitizenship ?? participant?.Citizenship,
-                companyName = _formCompanyName ?? participant?.CompanyName,
-                companyInn = _formCompanyInn ?? participant?.CompanyInn,
-                companyOgrn = _formCompanyOgrn ?? participant?.CompanyOgrn,
-                companyKpp = _formCompanyKpp ?? participant?.CompanyKpp,
-                companyAddress = _formCompanyAddress ?? participant?.CompanyAddress,
-                ogrnip = _formOgrnip ?? participant?.Ogrnip,
-                sharePercent = _formSharePercent ?? participant?.SharePercent,
-                shareAmount = _formShareAmount ?? participant?.ShareAmount,
+                participantId = _currentParticipant.Id,
+                participantType = _currentParticipant.ParticipantType ?? "FL",
+                fullName = _formFullName ?? _currentParticipant.FullName,
+                passportSeries = _formPassportSeries ?? _currentParticipant.PassportSeries,
+                passportNumber = _formPassportNumber ?? _currentParticipant.PassportNumber,
+                passportIssuedBy = _formPassportIssuedBy ?? _currentParticipant.PassportIssuedBy,
+                passportDepartmentCode = _formPassportDepartmentCode ?? _currentParticipant.PassportDepartmentCode,
+                passportRegistrationAddress = _formPassportRegistrationAddress ?? _currentParticipant.PassportRegistrationAddress,
+                personInn = _formPersonInn ?? _currentParticipant.PersonInn,
+                citizenship = _formCitizenship ?? _currentParticipant.Citizenship,
+                companyName = _formCompanyName ?? _currentParticipant.CompanyName,
+                companyInn = _formCompanyInn ?? _currentParticipant.CompanyInn,
+                companyOgrn = _formCompanyOgrn ?? _currentParticipant.CompanyOgrn,
+                companyKpp = _formCompanyKpp ?? _currentParticipant.CompanyKpp,
+                companyAddress = _formCompanyAddress ?? _currentParticipant.CompanyAddress,
+                ogrnip = _formOgrnip ?? _currentParticipant.Ogrnip,
+                sharePercent = _formSharePercent ?? _currentParticipant.SharePercent,
+                shareAmount = _formShareAmount ?? _currentParticipant.ShareAmount,
                 documentFileId,
                 documentOriginalName
             };
@@ -403,26 +434,11 @@ else
 
     private void ResetForm()
     {
-        _selectedParticipantId = null;
         _selectedDocument = null;
         _selectedDocumentName = null;
-        _formFullName = null;
-        _formPersonInn = null;
-        _formCitizenship = null;
-        _formPassportSeries = null;
-        _formPassportNumber = null;
-        _formPassportIssuedBy = null;
-        _formPassportIssueDateStr = null;
-        _formPassportDepartmentCode = null;
-        _formPassportRegistrationAddress = null;
-        _formCompanyName = null;
-        _formCompanyInn = null;
-        _formCompanyOgrn = null;
-        _formCompanyKpp = null;
-        _formCompanyAddress = null;
-        _formOgrnip = null;
-        _formSharePercent = null;
-        _formShareAmount = null;
+        // Предзаполняем заново из текущего участника
+        if (_currentParticipant is not null)
+            PreFillForm(_currentParticipant);
     }
 
     private class ParticipantRow
