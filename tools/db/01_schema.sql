@@ -1318,6 +1318,30 @@ CREATE INDEX IF NOT EXISTS ix_board_participant_change_le ON board_participant_c
 CREATE INDEX IF NOT EXISTS ix_board_participant_change_participant ON board_participant_change(participant_id);
 
 -- ============================================================================
+-- Нотариальные заверения (notarization) — единая таблица
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS notarization (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    legal_entity_id uuid NOT NULL REFERENCES legal_entities(id) ON DELETE RESTRICT,
+    document_type varchar(50) NOT NULL,
+    related_entity_id uuid,
+    related_entity_type varchar(50),
+    document_file_id uuid NOT NULL REFERENCES files(id) ON DELETE RESTRICT,
+    notary_full_name varchar(300) NOT NULL,
+    notary_license_number varchar(100),
+    registry_number varchar(100),
+    notarization_date date NOT NULL,
+    valid_from date,
+    valid_until date,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    created_by uuid REFERENCES users(id) ON DELETE SET NULL
+);
+
+CREATE INDEX IF NOT EXISTS ix_notarization_le ON notarization(legal_entity_id);
+CREATE INDEX IF NOT EXISTS ix_notarization_type ON notarization(document_type);
+CREATE INDEX IF NOT EXISTS ix_notarization_related ON notarization(related_entity_type, related_entity_id);
+
+-- ============================================================================
 -- Запросы участника ООО в общество (share_request)
 -- ============================================================================
 CREATE TABLE IF NOT EXISTS share_request (
@@ -1327,6 +1351,10 @@ CREATE TABLE IF NOT EXISTS share_request (
     request_type varchar(50) NOT NULL,
     status varchar(20) NOT NULL DEFAULT 'pending',
     payload jsonb,
+    notarization_id uuid REFERENCES notarization(id) ON DELETE SET NULL,
+    revoked_at timestamp with time zone,
+    revoked_by_notarized boolean NOT NULL DEFAULT FALSE,
+    visible_to_all boolean NOT NULL DEFAULT FALSE,
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     completed_at timestamp with time zone,
     created_by uuid REFERENCES users(id) ON DELETE SET NULL
@@ -1336,3 +1364,4 @@ CREATE INDEX IF NOT EXISTS ix_share_request_le ON share_request(legal_entity_id)
 CREATE INDEX IF NOT EXISTS ix_share_request_participant ON share_request(participant_id);
 CREATE INDEX IF NOT EXISTS ix_share_request_type ON share_request(request_type);
 CREATE INDEX IF NOT EXISTS ix_share_request_status ON share_request(status);
+CREATE INDEX IF NOT EXISTS ix_share_request_visible ON share_request(visible_to_all) WHERE visible_to_all = TRUE;

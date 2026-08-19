@@ -166,6 +166,62 @@ public static class ShareRequestEndpoints
             return Results.Ok(participants);
         });
 
+        // POST: отзыв оферты в пределах 24 часов
+        shareRequests.MapPost("/{id}/revoke", async (
+            Guid id,
+            ShareRequestRevokeDto dto,
+            IDbContextFactory<FiduciaDbContext> dbFactory,
+            HttpContext http) =>
+        {
+            await using var ctx = await dbFactory.CreateDbContextAsync();
+            var (leId, participantId, error) = await ResolveParticipantAsync(ctx, http);
+            if (error is not null) return error;
+
+            var item = await ctx.ShareRequests
+                .FirstOrDefaultAsync(r => r.Id == id && r.LegalEntityId == leId && r.ParticipantId == participantId);
+
+            if (item is null) return Results.NotFound(new { error = "Запрос не найден" });
+            if (item.RequestType != "NOTARIAL_OFFER")
+                return Results.BadRequest(new { error = "Отзыв доступен только для нотариальных офертов" });
+            if (item.Status != "pending")
+                return Results.BadRequest(new { error = $"Нельзя отозвать запрос со статусом {item.Status}" });
+            if (item.RevokedAt.HasValue)
+                return Results.BadRequest(new { error = "Запрос уже отозван" });
+
+            var hoursSinceCreated = (DateTime.UtcNow - item.CreatedAt).TotalHours;
+            if (hoursSinceCreated >= 24)
+                return Results.BadRequest(new { error = "Срок отзыва истёк (более 24 часов)" });
+
+            item.Status = "revoked";
+            item.RevokedAt = DateTime.UtcNow;
+            item.RevokedByNotarized = true; // отзыв оферты всегда нотариальный
+
+            await ctx.SaveChangesAsync();
+            return Results.Ok(MapToDto(item));
+        });
+
+        // GET: входящий список требований (оферты, видимые всем участникам и сотрудникам)
+        shareRequests.MapGet("/incoming", async (
+            IDbContextFactory<FiduciaDbContext> dbFactory,
+            HttpContext http) =>
+        {
+            await using var ctx = await dbFactory.CreateDbContextAsync();
+            var workplace = await ctx.CurrentWorkplaces.FirstOrDefaultAsync();
+            var leId = workplace?.LastSelectedLegalEntityId;
+            if (leId is null || leId == Guid.Empty)
+                return Results.Ok(Array.Empty<object>());
+
+            var items = await ctx.ShareRequests
+                .Where(r => r.LegalEntityId == leId.Value
+                    && r.RequestType == "NOTARIAL_OFFER"
+                    && r.VisibleToAll
+                    && r.Status != "revoked")
+                .OrderByDescending(r => r.CreatedAt)
+                .ToListAsync();
+
+            return Results.Ok(items.Select(MapToDto));
+        });
+
         // GET: текущий устав ООО (для UI — определение доступных типов запросов)
         app.MapGet("/api/charter/current", async (
             IDbContextFactory<FiduciaDbContext> dbFactory) =>
@@ -224,9 +280,13 @@ public static class ShareRequestEndpoints
         r.Status,
         r.Payload,
         r.CreatedAt,
-        r.CompletedAt
+        r.CompletedAt,
+        r.RevokedAt,
+        r.RevokedByNotarized,
+        r.VisibleToAll
     };
 }
 
 public record ShareRequestCreateDto(string RequestType, string? Payload);
 public record ShareRequestCompleteDto(string? Status, string? Payload);
+public record ShareRequestRevokeDto(bool Notarized);

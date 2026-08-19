@@ -129,9 +129,10 @@ else
         "pending" => new("<span class='badge bg-warning'>В обработке</span>"),
         "completed" => new("<span class='badge bg-success'>Завершён</span>"),
         "rejected" => new("<span class='badge bg-danger'>Отклонён</span>"),
+        "revoked" => new("<span class='badge bg-secondary'>Отозван</span>"),
         _ => new($"<span class='badge bg-secondary'>{status}</span>")
     };
 
-    private record ShareRequestDto(Guid Id, string RequestType, string Status, string? Payload, DateTime CreatedAt, DateTime? CompletedAt);
+    private record ShareRequestDto(Guid Id, string RequestType, string Status, string? Payload, DateTime CreatedAt, DateTime? CompletedAt, DateTime? RevokedAt, bool RevokedByNotarized, bool VisibleToAll);
     private record ParticipantResultDto(Guid ParticipantId, string? FullName, string? CompanyName, string ParticipantType, decimal? SharePercent, decimal? ShareAmount);
 }

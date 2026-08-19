@@ -21,6 +21,10 @@ public class ShareRequestConfiguration : IEntityTypeConfiguration<ShareRequest>
         builder.Property(r => r.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("CURRENT_TIMESTAMP");
         builder.Property(r => r.CompletedAt).HasColumnName("completed_at");
         builder.Property(r => r.CreatedBy).HasColumnName("created_by");
+        builder.Property(r => r.RevokedAt).HasColumnName("revoked_at");
+        builder.Property(r => r.RevokedByNotarized).HasColumnName("revoked_by_notarized").HasDefaultValue(false);
+        builder.Property(r => r.VisibleToAll).HasColumnName("visible_to_all").HasDefaultValue(false);
+        builder.Property(r => r.NotarizationId).HasColumnName("notarization_id");
 
         builder.HasIndex(r => r.LegalEntityId);
         builder.HasIndex(r => r.ParticipantId);
@@ -40,6 +44,11 @@ public class ShareRequestConfiguration : IEntityTypeConfiguration<ShareRequest>
         builder.HasOne(r => r.Creator)
             .WithMany()
             .HasForeignKey(r => r.CreatedBy)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasOne(r => r.Notarization)
+            .WithMany()
+            .HasForeignKey(r => r.NotarizationId)
             .OnDelete(DeleteBehavior.SetNull);
     }
 }

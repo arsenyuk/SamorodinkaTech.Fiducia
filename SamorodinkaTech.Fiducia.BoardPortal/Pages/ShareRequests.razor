@@ -2,6 +2,7 @@
 @using System.Net.Http.Json
 @inject HttpClient Http
 @inject NavigationManager Nav
+@inject IJSRuntime JS
 @inject ILogger<ShareRequests> Logger
 @attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "PARTICIPANT")]
 
@@ -86,8 +87,12 @@ else
                         <td>@GetTypeLabel(r.RequestType)</td>
                         <td>@GetStatusBadge(r.Status)</td>
                         <td>@r.CreatedAt.ToString("dd.MM.yyyy HH:mm")</td>
-                        <td>
+                        <td class="d-flex gap-1">
                             <a href="/share-requests/@r.Id" class="btn btn-sm btn-outline-secondary">Подробнее</a>
+                            @if (r.RequestType == "NOTARIAL_OFFER" && r.Status == "pending" && !r.RevokedAt.HasValue && (DateTime.UtcNow - r.CreatedAt).TotalHours < 24)
+                            {
+                                <button class="btn btn-sm btn-outline-danger" @onclick="() => RequestRevoke(r.Id)">Отозвать</button>
+                            }
                         </td>
                     </tr>
                 }
@@ -151,6 +156,37 @@ else
         }
     }
 
+    private async Task RequestRevoke(Guid id)
+    {
+        var confirmed = await JS.InvokeAsync<bool>("confirm",
+            "Оферта была заверена нотариусом. Для отзыва также необходимо нотариальное заверение. Отзыв будет проведён с нотариальным заверением. Продолжить?");
+        if (!confirmed) return;
+
+        await RevokeRequest(id);
+    }
+
+    private async Task RevokeRequest(Guid id)
+    {
+        try
+        {
+            var response = await Http.PostAsJsonAsync($"/api/share-requests/{id}/revoke", new { });
+            if (response.IsSuccessStatusCode)
+            {
+                Nav.NavigateTo("/share-requests", forceLoad: true);
+            }
+            else
+            {
+                var body = await response.Content.ReadAsStringAsync();
+                _error = $"Ошибка отзыва: {body}";
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Ошибка отзыва запроса");
+            _error = "Ошибка отзыва запроса";
+        }
+    }
+
     private static string GetTypeLabel(string type) => type switch
     {
         "PREEMPTIVE_LIST" => "Список участников с правом выкупа",
@@ -165,9 +201,10 @@ else
         "pending" => new("<span class='badge bg-warning'>В обработке</span>"),
         "completed" => new("<span class='badge bg-success'>Завершён</span>"),
         "rejected" => new("<span class='badge bg-danger'>Отклонён</span>"),
+        "revoked" => new("<span class='badge bg-secondary'>Отозван</span>"),
         _ => new($"<span class='badge bg-secondary'>{status}</span>")
     };
 
-    private record ShareRequestDto(Guid Id, string RequestType, string Status, string? Payload, DateTime CreatedAt, DateTime? CompletedAt);
+    private record ShareRequestDto(Guid Id, string RequestType, string Status, string? Payload, DateTime CreatedAt, DateTime? CompletedAt, DateTime? RevokedAt, bool RevokedByNotarized, bool VisibleToAll);
     private record CharterDto(bool PreemptiveRight, bool ExitAllowed, bool TransferToThirdPartiesWithoutConsent);
 }

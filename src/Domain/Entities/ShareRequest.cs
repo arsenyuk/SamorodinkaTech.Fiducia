@@ -33,6 +33,18 @@ public class ShareRequest
     /// <summary>Идентификатор создателя запроса (created_by).</summary>
     public Guid CreatedBy { get; set; }
 
+    /// <summary>Дата и время отзыва запроса (revoked_at).</summary>
+    public DateTime? RevokedAt { get; set; }
+
+    /// <summary>Отзыв с нотариальным заверением (revoked_by_notarized).</summary>
+    public bool RevokedByNotarized { get; set; }
+
+    /// <summary>Видимость во входящем списке для всех (visible_to_all).</summary>
+    public bool VisibleToAll { get; set; }
+
+    /// <summary>Идентификатор нотариального заверения (notarization_id).</summary>
+    public Guid? NotarizationId { get; set; }
+
     /// <summary>Юридическое лицо.</summary>
     public LegalEntity? LegalEntity { get; set; }
 
@@ -41,4 +53,7 @@ public class ShareRequest
 
     /// <summary>Создатель запроса (пользователь).</summary>
     public User? Creator { get; set; }
+
+    /// <summary>Нотариальное заверение.</summary>
+    public Notarization? Notarization { get; set; }
 }
