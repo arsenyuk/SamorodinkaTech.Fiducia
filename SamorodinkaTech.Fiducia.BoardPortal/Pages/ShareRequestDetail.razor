@@ -1,0 +1,137 @@
+@page "/share-requests/{Id:guid}"
+@using System.Net.Http.Json
+@inject HttpClient Http
+@inject NavigationManager Nav
+@inject ILogger<ShareRequestDetail> Logger
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "PARTICIPANT")]
+
+<PageTitle>Fiducia — Детали запроса</PageTitle>
+
+<a href="/share-requests" class="btn btn-sm btn-outline-secondary mb-3">&larr; Назад к списку</a>
+
+@if (_loading)
+{
+    <div class="text-center py-4">
+        <div class="spinner-border text-primary" role="status"></div>
+    </div>
+}
+else if (_request is null)
+{
+    <div class="alert alert-warning">Запрос не найден.</div>
+}
+else
+{
+    <h3>@GetTypeLabel(_request.RequestType)</h3>
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <strong>Статус:</strong> @GetStatusBadge(_request.Status)
+                </div>
+                <div class="col-md-6">
+                    <strong>Дата создания:</strong> @_request.CreatedAt.ToString("dd.MM.yyyy HH:mm")
+                </div>
+            </div>
+            @if (_request.CompletedAt.HasValue)
+            {
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <strong>Дата завершения:</strong> @_request.CompletedAt.Value.ToString("dd.MM.yyyy HH:mm")
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+
+    @* ── Результат для PREEMPTIVE_LIST ────────────────────────────── *@
+    @if (_request.RequestType == "PREEMPTIVE_LIST" && _request.Status == "completed")
+    {
+        <h4>Участники с правом преимущественного выкупа</h4>
+        @if (_resultParticipants.Count == 0)
+        {
+            <div class="text-muted">Нет других участников.</div>
+        }
+        else
+        {
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Участник</th>
+                        <th>Тип</th>
+                        <th>Доля, %</th>
+                        <th>Номинал, ₽</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var p in _resultParticipants)
+                    {
+                        <tr>
+                            <td>@(p.FullName ?? p.CompanyName)</td>
+                            <td>@p.ParticipantType</td>
+                            <td>@p.SharePercent?.ToString("N2")</td>
+                            <td>@p.ShareAmount?.ToString("N2")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    }
+
+    @* ── Payload для других типов ──────────────────────────────────── *@
+    @if (_request.RequestType != "PREEMPTIVE_LIST" && !string.IsNullOrEmpty(_request.Payload))
+    {
+        <h4>Данные запроса</h4>
+        <pre class="bg-light p-3 rounded"><code>@_request.Payload</code></pre>
+    }
+}
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+
+    private ShareRequestDto? _request;
+    private List<ParticipantResultDto> _resultParticipants = new();
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _request = await Http.GetFromJsonAsync<ShareRequestDto>($"/api/share-requests/{Id}");
+
+            if (_request?.RequestType == "PREEMPTIVE_LIST" && _request.Status == "completed")
+            {
+                _resultParticipants = await Http.GetFromJsonAsync<List<ParticipantResultDto>>(
+                    $"/api/share-requests/{Id}/result") ?? new();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Ошибка загрузки запроса {Id}", Id);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private static string GetTypeLabel(string type) => type switch
+    {
+        "PREEMPTIVE_LIST" => "Запрос списка участников с правом выкупа",
+        "NOTARIAL_OFFER" => "Нотариальная оферта о продаже доли",
+        "EXIT_APPLICATION" => "Заявление о выходе из ООО",
+        "MANDATORY_BUYBACK" => "Требование обязательного выкупа доли",
+        _ => type
+    };
+
+    private static MarkupString GetStatusBadge(string status) => status switch
+    {
+        "pending" => new("<span class='badge bg-warning'>В обработке</span>"),
+        "completed" => new("<span class='badge bg-success'>Завершён</span>"),
+        "rejected" => new("<span class='badge bg-danger'>Отклонён</span>"),
+        _ => new($"<span class='badge bg-secondary'>{status}</span>")
+    };
+
+    private record ShareRequestDto(Guid Id, string RequestType, string Status, string? Payload, DateTime CreatedAt, DateTime? CompletedAt);
+    private record ParticipantResultDto(Guid ParticipantId, string? FullName, string? CompanyName, string ParticipantType, decimal? SharePercent, decimal? ShareAmount);
+}

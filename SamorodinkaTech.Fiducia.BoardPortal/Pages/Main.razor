@@ -1,63 +1,69 @@
 @page "/main"
-@using SamorodinkaTech.Fiducia.Domain.Entities
-@using SamorodinkaTech.Fiducia.Domain.Interfaces
-@inject IApplicationDbContext DbContext
+@inject IJSRuntime JS
 
 <PageTitle>Fiducia — Главная</PageTitle>
 
 <div class="container-fluid">
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="card bg-primary text-white">
-                <div class="card-body">
-                    <h2>Добро пожаловать!</h2>
-                    <p class="mb-0">Личный кабинет члена СД</p>
+    @if (_showGreeting)
+    {
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card bg-primary text-white">
+                    <div class="card-body">
+                        <h2>@_greetingText</h2>
+                        <p class="mb-0">Личный кабинет члена СД</p>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
-
-    <div class="row mb-4">
-        <div class="col-md-4">
-            <div class="card">
-                <div class="card-body text-center">
-                    <h5 class="card-title text-muted">Активных заседаний</h5>
-                    <h2 class="text-primary">@_activeMeetings</h2>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="card">
-                <div class="card-body text-center">
-                    <h5 class="card-title text-muted">Ожидают подписания</h5>
-                    <h2 class="text-warning">@_pendingSignatures</h2>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="card">
-                <div class="card-body text-center">
-                    <h5 class="card-title text-muted">Поручения комитетам</h5>
-                    <h2 class="text-success">@_activeTasks</h2>
-                </div>
-            </div>
-        </div>
-    </div>
+    }
 </div>
 
+@if (_isParticipant)
+{
+    <div class="row mb-4">
+        <div class="col-12">
+            <a href="/informing" class="card text-decoration-none">
+                <div class="card-body d-flex align-items-center justify-content-between">
+                    <div>
+                        <h4 class="mb-1">Информирование</h4>
+                        <p class="text-muted mb-0">Подать сведения об изменении данных участника</p>
+                    </div>
+                    <span class="oi oi-chevron-right"></span>
+                </div>
+            </a>
+        </div>
+    </div>
+}
+
 @code {
-    private int _activeMeetings;
-    private int _pendingSignatures;
-    private int _activeTasks;
+    private bool _showGreeting;
+    private bool _isParticipant;
+    private string _greetingText = "Добро пожаловать!";
+
+    /// <summary>Время суток для приветствия (UTC-часы).</summary>
+    private static string GetGreetingPrefix(int utcHour) => utcHour switch
+    {
+        < 12 => "Доброе утро",
+        < 18 => "Добрый день",
+        _ => "Добрый вечер"
+    };
 
     protected override async Task OnInitializedAsync()
     {
-        _activeMeetings = await DbContext.Meetings
-            .CountAsync(m => m.Status == SamorodinkaTech.Fiducia.Domain.Enums.MeetingStatus.VOTING
-                          || m.Status == SamorodinkaTech.Fiducia.Domain.Enums.MeetingStatus.NOTIFIED);
+        var role = await JS.InvokeAsync<string?>("localStorage.getItem", "currentUserRole");
+        _isParticipant = role == "PARTICIPANT";
 
-        _pendingSignatures = 3; // TODO
-        _activeTasks = await DbContext.CommitteeTasks
-            .CountAsync(t => t.Status == SamorodinkaTech.Fiducia.Domain.Enums.CommitteeTaskStatus.IN_WORK);
+        var shownAt = await JS.InvokeAsync<string?>("localStorage.getItem", "greetingShownAt");
+        if (string.IsNullOrEmpty(shownAt) || !DateTime.TryParse(shownAt, out var parsed) || parsed.Date != DateTime.UtcNow.Date)
+        {
+            var userName = await JS.InvokeAsync<string?>("localStorage.getItem", "currentUserName") ?? "";
+            var prefix = GetGreetingPrefix(DateTime.UtcNow.Hour);
+            _greetingText = string.IsNullOrWhiteSpace(userName)
+                ? $"{prefix}!"
+                : $"{prefix}, {userName}!";
+            _showGreeting = true;
+            await JS.InvokeVoidAsync("localStorage.setItem", "greetingShownAt", DateTime.UtcNow.ToString("o"));
+        }
     }
 }

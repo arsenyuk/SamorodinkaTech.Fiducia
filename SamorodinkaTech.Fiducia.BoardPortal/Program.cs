@@ -443,6 +443,9 @@ app.MapAoContractorEndpoints();
 // ── Participants API (Реестр участников общества) ──────────────────────
 app.MapParticipantEndpoints();
 
+// ── Share Requests API (Запросы участника в общество) ──────────────────
+app.MapShareRequestEndpoints();
+
 app.MapBlazorHub();
 app.MapFallbackToPage("/_Host");
 

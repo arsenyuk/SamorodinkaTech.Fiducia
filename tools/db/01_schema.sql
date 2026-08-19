@@ -1316,3 +1316,23 @@ CREATE TABLE IF NOT EXISTS board_participant_change (
 
 CREATE INDEX IF NOT EXISTS ix_board_participant_change_le ON board_participant_change(legal_entity_id);
 CREATE INDEX IF NOT EXISTS ix_board_participant_change_participant ON board_participant_change(participant_id);
+
+-- ============================================================================
+-- Запросы участника ООО в общество (share_request)
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS share_request (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    legal_entity_id uuid NOT NULL REFERENCES legal_entities(id) ON DELETE RESTRICT,
+    participant_id uuid NOT NULL REFERENCES board_participant(id) ON DELETE RESTRICT,
+    request_type varchar(50) NOT NULL,
+    status varchar(20) NOT NULL DEFAULT 'pending',
+    payload jsonb,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    completed_at timestamp with time zone,
+    created_by uuid REFERENCES users(id) ON DELETE SET NULL
+);
+
+CREATE INDEX IF NOT EXISTS ix_share_request_le ON share_request(legal_entity_id);
+CREATE INDEX IF NOT EXISTS ix_share_request_participant ON share_request(participant_id);
+CREATE INDEX IF NOT EXISTS ix_share_request_type ON share_request(request_type);
+CREATE INDEX IF NOT EXISTS ix_share_request_status ON share_request(status);

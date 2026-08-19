@@ -83,6 +83,7 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
     public DbSet<BoardTreasuryShare> BoardTreasuryShares => Set<BoardTreasuryShare>();
     public DbSet<BoardRegistryUpload> BoardRegistryUploads => Set<BoardRegistryUpload>();
     public DbSet<BoardParticipantChange> BoardParticipantChanges => Set<BoardParticipantChange>();
+    public DbSet<ShareRequest> ShareRequests => Set<ShareRequest>();
 
     // Junction-таблицы файлов (BDR-011)
     public DbSet<MeetingFile> MeetingFiles => Set<MeetingFile>();

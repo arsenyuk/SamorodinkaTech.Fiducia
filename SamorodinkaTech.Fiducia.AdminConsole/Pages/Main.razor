@@ -3,10 +3,25 @@
 @using SamorodinkaTech.Fiducia.Domain.Entities
 @using SamorodinkaTech.Fiducia.Domain.Interfaces
 @inject IApplicationDbContext DbContext
+@inject IJSRuntime JS
 
 <PageTitle>Fiducia — Admin Console</PageTitle>
 
 <div class="container-fluid">
+    @if (_showGreeting)
+    {
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card bg-primary text-white">
+                    <div class="card-body">
+                        <h2>@_greetingText</h2>
+                        <p class="mb-0">Панель управления</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
     <h3 class="mb-4">Дашборд</h3>
 
     <div class="row mb-4">
@@ -41,11 +56,30 @@
     private int _userCount;
     private int _committeeCount;
     private int _meetingCount;
+    private bool _showGreeting;
+    private string _greetingText = "Добро пожаловать!";
+
+    /// <summary>Время суток для приветствия (UTC-часы).</summary>
+    private static string GetGreetingPrefix(int utcHour) => utcHour switch
+    {
+        < 12 => "Доброе утро",
+        < 18 => "Добрый день",
+        _ => "Добрый вечер"
+    };
 
     protected override async Task OnInitializedAsync()
     {
         _userCount = await DbContext.Users.CountAsync(u => !u.IsSystem);
         _committeeCount = await DbContext.Committees.CountAsync(c => c.IsActive);
         _meetingCount = await DbContext.Meetings.CountAsync();
+
+        var shownAt = await JS.InvokeAsync<string?>("localStorage.getItem", "greetingShownAt");
+        if (string.IsNullOrEmpty(shownAt) || !DateTime.TryParse(shownAt, out var parsed) || parsed.Date != DateTime.UtcNow.Date)
+        {
+            var prefix = GetGreetingPrefix(DateTime.UtcNow.Hour);
+            _greetingText = $"{prefix}!";
+            _showGreeting = true;
+            await JS.InvokeVoidAsync("localStorage.setItem", "greetingShownAt", DateTime.UtcNow.ToString("o"));
+        }
     }
 }

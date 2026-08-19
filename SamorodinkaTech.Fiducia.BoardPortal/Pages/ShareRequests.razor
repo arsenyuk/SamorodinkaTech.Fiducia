@@ -1,0 +1,173 @@
+@page "/share-requests"
+@using System.Net.Http.Json
+@inject HttpClient Http
+@inject NavigationManager Nav
+@inject ILogger<ShareRequests> Logger
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "PARTICIPANT")]
+
+<PageTitle>Fiducia — Мои запросы</PageTitle>
+
+<h3>Мои запросы в общество</h3>
+
+@if (_error is not null)
+{
+    <div class="alert alert-danger">@_error</div>
+}
+
+@if (_loading)
+{
+    <div class="text-center py-4">
+        <div class="spinner-border text-primary" role="status"></div>
+    </div>
+}
+else
+{
+    @* ── Кнопки создания ──────────────────────────────────────────── *@
+    <div class="row mb-4">
+        @if (_charter?.PreemptiveRight == true)
+        {
+            <div class="col-md-6 mb-2">
+                <button class="btn btn-outline-primary w-100" @onclick="CreatePreemptiveList">
+                    <span class="oi oi-list"></span> Запросить список участников с правом выкупа
+                </button>
+            </div>
+            <div class="col-md-6 mb-2">
+                <button class="btn btn-outline-primary w-100" @onclick="CreateNotarialOffer">
+                    <span class="oi oi-envelope"></span> Направить нотариальную оферту
+                </button>
+            </div>
+        }
+        @if (_charter?.ExitAllowed == true)
+        {
+            <div class="col-md-6 mb-2">
+                <button class="btn btn-outline-warning w-100" @onclick="CreateExitApplication">
+                    <span class="oi oi-account-logout"></span> Подать заявление о выходе из ООО
+                </button>
+            </div>
+        }
+        <div class="col-md-6 mb-2">
+            <button class="btn btn-outline-danger w-100" @onclick="CreateMandatoryBuyback">
+                <span class="oi oi-briefcase"></span> Требование обязательного выкупа доли
+            </button>
+        </div>
+    </div>
+
+    @* ── Фильтр ────────────────────────────────────────────────────── *@
+    <div class="mb-3">
+        <select class="form-select form-select-sm" @bind="_filterType" style="width: auto;">
+            <option value="">Все типы</option>
+            <option value="PREEMPTIVE_LIST">Список участников с правом выкупа</option>
+            <option value="NOTARIAL_OFFER">Нотариальная оферта</option>
+            <option value="EXIT_APPLICATION">Заявление о выходе</option>
+            <option value="MANDATORY_BUYBACK">Обязательный выкуп</option>
+        </select>
+    </div>
+
+    @* ── Таблица ────────────────────────────────────────────────────── *@
+    @if (_requests.Count == 0)
+    {
+        <div class="text-muted py-3">Запросов пока нет.</div>
+    }
+    else
+    {
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Тип</th>
+                    <th>Статус</th>
+                    <th>Дата</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var r in _filteredRequests)
+                {
+                    <tr>
+                        <td>@GetTypeLabel(r.RequestType)</td>
+                        <td>@GetStatusBadge(r.Status)</td>
+                        <td>@r.CreatedAt.ToString("dd.MM.yyyy HH:mm")</td>
+                        <td>
+                            <a href="/share-requests/@r.Id" class="btn btn-sm btn-outline-secondary">Подробнее</a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+}
+
+@code {
+    private List<ShareRequestDto> _requests = new();
+    private List<ShareRequestDto> _filteredRequests => string.IsNullOrEmpty(_filterType)
+        ? _requests
+        : _requests.Where(r => r.RequestType == _filterType).ToList();
+    private CharterDto? _charter;
+    private string? _filterType;
+    private bool _loading = true;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _charter = await Http.GetFromJsonAsync<CharterDto>("/api/charter/current");
+            _requests = await Http.GetFromJsonAsync<List<ShareRequestDto>>("/api/share-requests") ?? new();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Ошибка загрузки запросов");
+            _error = "Ошибка загрузки данных";
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task CreatePreemptiveList() => await CreateRequest("PREEMPTIVE_LIST", null);
+    private async Task CreateNotarialOffer() => await CreateRequest("NOTARIAL_OFFER", null);
+    private async Task CreateExitApplication() => await CreateRequest("EXIT_APPLICATION", null);
+    private async Task CreateMandatoryBuyback() => await CreateRequest("MANDATORY_BUYBACK", null);
+
+    private async Task CreateRequest(string type, string? payload)
+    {
+        try
+        {
+            var response = await Http.PostAsJsonAsync("/api/share-requests", new { RequestType = type, Payload = payload });
+            if (response.IsSuccessStatusCode)
+            {
+                Nav.NavigateTo("/share-requests", forceLoad: true);
+            }
+            else
+            {
+                var body = await response.Content.ReadAsStringAsync();
+                _error = $"Ошибка создания запроса: {body}";
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Ошибка создания запроса");
+            _error = "Ошибка создания запроса";
+        }
+    }
+
+    private static string GetTypeLabel(string type) => type switch
+    {
+        "PREEMPTIVE_LIST" => "Список участников с правом выкупа",
+        "NOTARIAL_OFFER" => "Нотариальная оферта",
+        "EXIT_APPLICATION" => "Заявление о выходе",
+        "MANDATORY_BUYBACK" => "Обязательный выкуп",
+        _ => type
+    };
+
+    private static MarkupString GetStatusBadge(string status) => status switch
+    {
+        "pending" => new("<span class='badge bg-warning'>В обработке</span>"),
+        "completed" => new("<span class='badge bg-success'>Завершён</span>"),
+        "rejected" => new("<span class='badge bg-danger'>Отклонён</span>"),
+        _ => new($"<span class='badge bg-secondary'>{status}</span>")
+    };
+
+    private record ShareRequestDto(Guid Id, string RequestType, string Status, string? Payload, DateTime CreatedAt, DateTime? CompletedAt);
+    private record CharterDto(bool PreemptiveRight, bool ExitAllowed, bool TransferToThirdPartiesWithoutConsent);
+}

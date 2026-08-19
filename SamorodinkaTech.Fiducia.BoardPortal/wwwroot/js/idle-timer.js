@@ -27,6 +27,7 @@ window.idleTimer = {
                 localStorage.removeItem('currentUserId');
                 localStorage.removeItem('currentUserName');
                 localStorage.removeItem('currentUserRole');
+                localStorage.removeItem('greetingShownAt');
 
                 // Очистка cookie
                 document.cookie.split(';').forEach(function (c) {

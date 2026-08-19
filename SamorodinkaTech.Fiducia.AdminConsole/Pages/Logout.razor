@@ -106,6 +106,7 @@
         await JS.InvokeVoidAsync("localStorage.removeItem", "currentUserId");
         await JS.InvokeVoidAsync("localStorage.removeItem", "currentUserName");
         await JS.InvokeVoidAsync("localStorage.removeItem", "currentUserRole");
+        await JS.InvokeVoidAsync("localStorage.removeItem", "greetingShownAt");
 
         NavigationManager.NavigateTo("/login");
     }

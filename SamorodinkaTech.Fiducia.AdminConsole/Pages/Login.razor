@@ -165,6 +165,7 @@
             await JS.InvokeVoidAsync("localStorage.setItem", "currentUserId", result.UserId?.ToString() ?? "");
             await JS.InvokeVoidAsync("localStorage.setItem", "currentUserName", result.UserName ?? "");
             await JS.InvokeVoidAsync("localStorage.setItem", "currentUserRole", role);
+            await JS.InvokeVoidAsync("localStorage.setItem", "greetingShownAt", DateTime.UtcNow.ToString("o"));
 
             // Установка HttpOnly JWT cookie через браузерный fetch
             // (серверный HttpClient не доставляет Set-Cookie до браузера)
