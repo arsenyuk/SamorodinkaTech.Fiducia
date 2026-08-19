@@ -980,6 +980,87 @@ var scrollLeft = (int)(...) - ScrollToTodayOffsetPx;
   _cacheTtl = TimeSpan.FromHours(options?.Value?.CacheTtlHours ?? DefaultCacheTtlHours);
   ```
 
+### Паттерн Builder для сложных объектов (КРИТИЧНО)
+
+При создании объектов с **≥ 4 параметрами** обязателен паттерн **Builder**
+с валидацией в `Build()`.
+
+**Когда применять:** фильтры, отчёты, DTO, параметры пагинации/сортировки.
+
+**Структура:**
+```csharp
+public class MeetingFilterBuilder
+{
+    private readonly MeetingFilter _filter = new();
+
+    public MeetingFilterBuilder WithStatus(string status)
+    {
+        _filter.Status = status;
+        return this;
+    }
+
+    public MeetingFilterBuilder WithDateRange(DateOnly from, DateOnly to)
+    {
+        if (from > to) throw new ArgumentException("Дата начала больше даты окончания");
+        _filter.DateFrom = from;
+        _filter.DateTo = to;
+        return this;
+    }
+
+    public MeetingFilter Build()
+    {
+        if (string.IsNullOrEmpty(_filter.Status))
+            throw new InvalidOperationException("Статус обязателен");
+        return _filter;
+    }
+}
+```
+
+**Размещение:**
+
+| Условие | Размещение |
+|---------|-----------|
+| Зависимости / асинхронный `BuildAsync()` / >1 места использования | Отдельный `public` класс |
+| Простое преобразование, без зависимостей | Внутренний класс страницы |
+
+**Запрещено:** конструкторы с > 3 параметрами; `new { ... }` с > 3 свойствами;
+валидация вне `Build()`.
+
+### Fluent API (опциональная цепочка)
+
+Fluent-интерфейс используется в Builder'ах и сервисах. **Все методы-настройщики
+опциональны** — их вызов не обязателен для работы объекта.
+
+**Требования:**
+1. Объект должен быть полностью работоспособен сразу после создания (без вызова цепочки).
+2. Все методы возвращают `this` для построения цепочки.
+3. Если метод пропущен — используется значение по умолчанию.
+4. Терминатор (`Build()`) выбрасывает исключение, если пропущен обязательный параметр.
+5. Единый стиль именования: `With*` для всех fluent-методов в проекте.
+6. **Fluent-методы запрещены**, если класс инстанцируется только один раз в коде.
+   В этом случае свойства задаются напрямую через `new { ... }` или инициализатор.
+
+**Пример:**
+```csharp
+// Объект работоспособен без вызова With*
+var dto = new ParticipantDtoBuilder()
+    .WithFullName("Иванов")      // опционально
+    .WithPersonInn("7701234")    // опционально
+    .Build();                     // обязательный терминатор
+
+// Пропущенные методы → значения по умолчанию
+var filter = new MeetingFilterBuilder()
+    .WithStatus("active")        // обязательный — иначе исключение
+    .Build();                     // dateFrom, dateTo = null
+
+// ❌ Запрещено: класс используется только один раз
+var builder = new SimpleDtoBuilder();
+builder.WithName("test");
+builder.WithValue(123);
+var dto = builder.Build();
+// Проще: var dto = new SimpleDto { Name = "test", Value = 123 };
+```
+
 ### Обработка ошибок (КРИТИЧНО)
 
 - Пустые блоки `catch { }` или `catch { /* ignore */ }` **запрещены** — подавление
