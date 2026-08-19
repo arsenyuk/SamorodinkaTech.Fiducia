@@ -1,6 +1,7 @@
 @inject NavigationManager Navigation
 @inject IDbContextFactory<SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext> DbFactory
 @inject SamorodinkaTech.Fiducia.Domain.Interfaces.ILegalEntityGosaIntervalService GosaSvc
+@inject AuthenticationStateProvider AuthState
 
 <div class="top-row ps-3 navbar navbar-dark">
     <div class="container-fluid">
@@ -63,17 +64,21 @@
                 <span class="oi oi-project" aria-hidden="true"></span> План
             </NavLink>
         </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="trueconf-test">
-                <span class="oi oi-video" aria-hidden="true"></span> TrueConf Тест
-            </NavLink>
-        </div>
+        @if (_isSysAdmin)
+        {
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="trueconf-test">
+                    <span class="oi oi-video" aria-hidden="true"></span> TrueConf Тест
+                </NavLink>
+            </div>
+        }
     </nav>
 </div>
 
 @code {
     private bool collapseNavMenu = true;
     private bool _isLlc;
+    private bool _isSysAdmin;
     private string _legalEntityName = "Fiducia";
 
     private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
@@ -82,6 +87,10 @@
     {
         try
         {
+            var authState = await AuthState.GetAuthenticationStateAsync();
+            var user = authState.User;
+            _isSysAdmin = user.IsInRole("SYS_ADMIN");
+
             await using var ctx = await DbFactory.CreateDbContextAsync();
             var workplace = await ctx.CurrentWorkplaces.FirstOrDefaultAsync();
             var leId = workplace?.LastSelectedLegalEntityId;
