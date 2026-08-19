@@ -76,6 +76,8 @@ public interface IApplicationDbContext
 
     DbSet<BoardParticipant> BoardParticipants { get; }
     DbSet<BoardTreasuryShare> BoardTreasuryShares { get; }
+    DbSet<BoardRegistryUpload> BoardRegistryUploads { get; }
+    DbSet<BoardParticipantChange> BoardParticipantChanges { get; }
 
     System.Threading.Tasks.Task<int> SaveChangesAsync(System.Threading.CancellationToken cancellationToken = default);
 }

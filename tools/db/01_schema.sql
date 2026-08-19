@@ -1245,3 +1245,70 @@ CREATE TABLE IF NOT EXISTS board_treasury_share (
 );
 
 CREATE INDEX IF NOT EXISTS ix_board_treasury_share_legal_entity ON board_treasury_share(legal_entity_id);
+
+-- ============================================================================
+-- Акты загрузки реестра участников (XML + подпись)
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS board_registry_upload (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    legal_entity_id uuid NOT NULL REFERENCES legal_entities(id) ON DELETE RESTRICT,
+    xml_file_id uuid REFERENCES files(id) ON DELETE SET NULL,
+    signature_file_id uuid REFERENCES files(id) ON DELETE SET NULL,
+    xml_original_name varchar(255),
+    signature_original_name varchar(255),
+    status varchar(20) NOT NULL DEFAULT 'uploaded',
+    participant_count int,
+    uploaded_by uuid REFERENCES users(id) ON DELETE SET NULL,
+    uploaded_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS ix_board_registry_upload_le ON board_registry_upload(legal_entity_id);
+
+-- ============================================================================
+-- Информирование об изменении сведений участника
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS board_participant_change (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    legal_entity_id uuid NOT NULL REFERENCES legal_entities(id) ON DELETE RESTRICT,
+    participant_id uuid NOT NULL REFERENCES board_participant(id) ON DELETE RESTRICT,
+    participant_type varchar(20) NOT NULL,
+    -- ФЛ
+    full_name varchar(300),
+    passport_series varchar(10),
+    passport_number varchar(10),
+    passport_issued_by varchar(500),
+    passport_issue_date date,
+    passport_department_code varchar(10),
+    passport_registration_address text,
+    person_inn varchar(12),
+    citizenship varchar(100),
+    -- ЮЛ
+    company_name varchar(500),
+    company_inn varchar(12),
+    company_ogrn varchar(15),
+    company_kpp varchar(9),
+    company_address text,
+    -- ИП
+    ogrnip varchar(15),
+    -- Доля
+    share_percent numeric(5,2),
+    share_amount numeric(18,2),
+    -- Мета
+    document_file_id uuid REFERENCES files(id) ON DELETE SET NULL,
+    document_original_name varchar(255),
+    submitted_by uuid REFERENCES users(id) ON DELETE SET NULL,
+    submitted_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    status varchar(20) NOT NULL DEFAULT 'pending',
+    review_comment text,
+    reviewed_by uuid REFERENCES users(id) ON DELETE SET NULL,
+    reviewed_at timestamp with time zone,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS ix_board_participant_change_le ON board_participant_change(legal_entity_id);
+CREATE INDEX IF NOT EXISTS ix_board_participant_change_participant ON board_participant_change(participant_id);

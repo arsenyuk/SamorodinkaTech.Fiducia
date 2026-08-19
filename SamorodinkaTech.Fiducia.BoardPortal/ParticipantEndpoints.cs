@@ -419,6 +419,403 @@ public static class ParticipantEndpoints
                 return Results.BadRequest(new { error = UnwrapException(ex) });
             }
         });
+
+        // ── Registry Uploads API ─────────────────────────────────────────────
+
+        var registryUploads = app.MapGroup("/api/registry-uploads")
+            .RequireAuthorization()
+            .WithTags("Registry Uploads");
+
+        // GET: список актов загрузки реестра
+        registryUploads.MapGet("/", async (
+            IDbContextFactory<FiduciaDbContext> dbFactory) =>
+        {
+            await using var ctx = await dbFactory.CreateDbContextAsync();
+            var workplace = await ctx.CurrentWorkplaces.FirstOrDefaultAsync();
+            var leId = workplace?.LastSelectedLegalEntityId;
+            if (leId is null || leId == Guid.Empty)
+                return Results.Ok(Array.Empty<object>());
+
+            var items = await ctx.BoardRegistryUploads
+                .Where(u => u.LegalEntityId == leId.Value)
+                .OrderByDescending(u => u.UploadedAt)
+                .ToListAsync();
+
+            return Results.Ok(items.Select(MapRegistryUploadToDto));
+        });
+
+        // POST: загрузка XML-файла реестра
+        registryUploads.MapPost("/upload-xml", async (
+            HttpContext http,
+            IFormFile file,
+            ISecurityAuditService audit,
+            ILoggerFactory loggerFactory,
+            IDbContextFactory<FiduciaDbContext> dbFactory,
+            IFileStorage fileStorage) =>
+        {
+            var logger = loggerFactory.CreateLogger("Participants.RegistryUpload");
+            try
+            {
+                await using var ctx = await dbFactory.CreateDbContextAsync();
+                var llcCheck = await ValidateAccessAsync(ctx, http, audit);
+                if (llcCheck is not null) return llcCheck;
+
+                var workplace = await ctx.CurrentWorkplaces.FirstOrDefaultAsync();
+                var leId = workplace!.LastSelectedLegalEntityId!.Value;
+
+                // Сохраняем файл через IFileStorage
+                await using var stream = file.OpenReadStream();
+                var storageKey = await fileStorage.SaveAsync(stream, file.FileName, file.ContentType);
+
+                var userIdStr = http.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                Guid? userId = Guid.TryParse(userIdStr, out var uid) ? uid : null;
+
+                var entity = new BoardRegistryUpload
+                {
+                    Id = Guid.NewGuid(),
+                    LegalEntityId = leId,
+                    XmlOriginalName = file.FileName,
+                    Status = "uploaded",
+                    UploadedBy = userId,
+                    UploadedAt = DateTime.UtcNow,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                };
+
+                // Создаём запись в files для ссылки
+                var fileEntry = new FileEntry
+                {
+                    Id = Guid.NewGuid(),
+                    OriginalName = file.FileName,
+                    ContentType = file.ContentType,
+                    SizeBytes = file.Length,
+                    StorageProvider = "LOCAL",
+                    StorageKeyOrPath = storageKey,
+                    IsUploaded = true,
+                    Extension = System.IO.Path.GetExtension(file.FileName)?.TrimStart('.')
+                };
+                ctx.Files.Add(fileEntry);
+                entity.XmlFileId = fileEntry.Id;
+
+                ctx.BoardRegistryUploads.Add(entity);
+                await ctx.SaveChangesAsync();
+
+                logger.LogInformation("[{Ip}] Загружен XML реестра: {FileName}, id={Id}",
+                    ClientIpHelper.GetClientIp(http), file.FileName, entity.Id);
+
+                return Results.Ok(MapRegistryUploadToDto(entity));
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Ошибка загрузки XML реестра: {Error}", UnwrapException(ex));
+                return Results.BadRequest(new { error = UnwrapException(ex) });
+            }
+        });
+
+        // POST: загрузка файла подписи к акту
+        registryUploads.MapPost("/{id}/upload-signature", async (
+            Guid id,
+            HttpContext http,
+            IFormFile file,
+            ISecurityAuditService audit,
+            ILoggerFactory loggerFactory,
+            IDbContextFactory<FiduciaDbContext> dbFactory,
+            IFileStorage fileStorage) =>
+        {
+            var logger = loggerFactory.CreateLogger("Participants.RegistryUpload");
+            try
+            {
+                await using var ctx = await dbFactory.CreateDbContextAsync();
+                var llcCheck = await ValidateAccessAsync(ctx, http, audit);
+                if (llcCheck is not null) return llcCheck;
+
+                var entity = await ctx.BoardRegistryUploads.FindAsync(id);
+                if (entity is null) return Results.NotFound();
+
+                await using var stream = file.OpenReadStream();
+                var storageKey = await fileStorage.SaveAsync(stream, file.FileName, file.ContentType);
+
+                var fileEntry = new FileEntry
+                {
+                    Id = Guid.NewGuid(),
+                    OriginalName = file.FileName,
+                    ContentType = file.ContentType,
+                    SizeBytes = file.Length,
+                    StorageProvider = "LOCAL",
+                    StorageKeyOrPath = storageKey,
+                    IsUploaded = true,
+                    Extension = System.IO.Path.GetExtension(file.FileName)?.TrimStart('.')
+                };
+                ctx.Files.Add(fileEntry);
+
+                entity.SignatureFileId = fileEntry.Id;
+                entity.SignatureOriginalName = file.FileName;
+                entity.UpdatedAt = DateTime.UtcNow;
+
+                await ctx.SaveChangesAsync();
+
+                logger.LogInformation("[{Ip}] Загружена подпись к акту {Id}: {FileName}",
+                    ClientIpHelper.GetClientIp(http), id, file.FileName);
+
+                return Results.Ok(MapRegistryUploadToDto(entity));
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Ошибка загрузки подписи к акту id={Id}: {Error}", id, UnwrapException(ex));
+                return Results.BadRequest(new { error = UnwrapException(ex) });
+            }
+        });
+
+        // DELETE: удаление акта загрузки
+        registryUploads.MapDelete("/{id}", async (
+            Guid id,
+            HttpContext http,
+            ISecurityAuditService audit,
+            ILoggerFactory loggerFactory,
+            IDbContextFactory<FiduciaDbContext> dbFactory) =>
+        {
+            var logger = loggerFactory.CreateLogger("Participants.RegistryUpload");
+            try
+            {
+                await using var ctx = await dbFactory.CreateDbContextAsync();
+                var llcCheck = await ValidateAccessAsync(ctx, http, audit);
+                if (llcCheck is not null) return llcCheck;
+
+                var entity = await ctx.BoardRegistryUploads.FindAsync(id);
+                if (entity is null) return Results.NotFound();
+
+                ctx.BoardRegistryUploads.Remove(entity);
+                await ctx.SaveChangesAsync();
+
+                logger.LogInformation("[{Ip}] Удалён акт загрузки реестра: id={Id}",
+                    ClientIpHelper.GetClientIp(http), id);
+
+                return Results.Ok();
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Ошибка удаления акта загрузки id={Id}: {Error}", id, UnwrapException(ex));
+                return Results.BadRequest(new { error = UnwrapException(ex) });
+            }
+        });
+
+        // ── Participant Changes API ─────────────────────────────────────────
+
+        var participantChanges = app.MapGroup("/api/participant-changes")
+            .RequireAuthorization()
+            .WithTags("Participant Changes");
+
+        // GET: список информирований об изменении сведений
+        participantChanges.MapGet("/", async (
+            Guid? participantId,
+            IDbContextFactory<FiduciaDbContext> dbFactory) =>
+        {
+            await using var ctx = await dbFactory.CreateDbContextAsync();
+            var workplace = await ctx.CurrentWorkplaces.FirstOrDefaultAsync();
+            var leId = workplace?.LastSelectedLegalEntityId;
+            if (leId is null || leId == Guid.Empty)
+                return Results.Ok(Array.Empty<object>());
+
+            var query = ctx.BoardParticipantChanges
+                .Where(c => c.LegalEntityId == leId.Value);
+
+            if (participantId.HasValue)
+                query = query.Where(c => c.ParticipantId == participantId.Value);
+
+            var items = await query
+                .OrderByDescending(c => c.SubmittedAt)
+                .ToListAsync();
+
+            return Results.Ok(items.Select(MapParticipantChangeToDto));
+        });
+
+        // POST: создание записи об изменении сведений
+        participantChanges.MapPost("/", async (
+            HttpContext http,
+            BoardParticipantChangeDto dto,
+            ISecurityAuditService audit,
+            ILoggerFactory loggerFactory,
+            IDbContextFactory<FiduciaDbContext> dbFactory) =>
+        {
+            var logger = loggerFactory.CreateLogger("Participants.Change");
+            try
+            {
+                await using var ctx = await dbFactory.CreateDbContextAsync();
+                var llcCheck = await ValidateParticipantAccessAsync(ctx, http, audit);
+                if (llcCheck is not null) return llcCheck;
+
+                var workplace = await ctx.CurrentWorkplaces.FirstOrDefaultAsync();
+                var leId = workplace!.LastSelectedLegalEntityId!.Value;
+
+                var userIdStr = http.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                Guid? userId = Guid.TryParse(userIdStr, out var uid) ? uid : null;
+
+                var entity = new BoardParticipantChange
+                {
+                    Id = Guid.NewGuid(),
+                    LegalEntityId = leId,
+                    ParticipantId = dto.ParticipantId,
+                    ParticipantType = dto.ParticipantType ?? "FL",
+                    FullName = dto.FullName,
+                    PassportSeries = dto.PassportSeries,
+                    PassportNumber = dto.PassportNumber,
+                    PassportIssuedBy = dto.PassportIssuedBy,
+                    PassportIssueDate = dto.PassportIssueDate,
+                    PassportDepartmentCode = dto.PassportDepartmentCode,
+                    PassportRegistrationAddress = dto.PassportRegistrationAddress,
+                    PersonInn = dto.PersonInn,
+                    Citizenship = dto.Citizenship,
+                    CompanyName = dto.CompanyName,
+                    CompanyInn = dto.CompanyInn,
+                    CompanyOgrn = dto.CompanyOgrn,
+                    CompanyKpp = dto.CompanyKpp,
+                    CompanyAddress = dto.CompanyAddress,
+                    Ogrnip = dto.Ogrnip,
+                    SharePercent = dto.SharePercent,
+                    ShareAmount = dto.ShareAmount,
+                    DocumentFileId = dto.DocumentFileId,
+                    DocumentOriginalName = dto.DocumentOriginalName,
+                    SubmittedBy = userId,
+                    SubmittedAt = DateTime.UtcNow,
+                    Status = "pending",
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                };
+
+                ctx.BoardParticipantChanges.Add(entity);
+                await ctx.SaveChangesAsync();
+
+                logger.LogInformation("[{Ip}] Создано информирование об изменении сведений: participant={ParticipantId}, id={Id}",
+                    ClientIpHelper.GetClientIp(http), dto.ParticipantId, entity.Id);
+
+                return Results.Ok(MapParticipantChangeToDto(entity));
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Ошибка создания информирования: {Error}", UnwrapException(ex));
+                return Results.BadRequest(new { error = UnwrapException(ex) });
+            }
+        });
+
+        // POST: загрузка документа-подтверждения
+        participantChanges.MapPost("/upload-document", async (
+            HttpContext http,
+            IFormFile file,
+            ISecurityAuditService audit,
+            ILoggerFactory loggerFactory,
+            IDbContextFactory<FiduciaDbContext> dbFactory,
+            IFileStorage fileStorage) =>
+        {
+            var logger = loggerFactory.CreateLogger("Participants.Change");
+            try
+            {
+                await using var ctx = await dbFactory.CreateDbContextAsync();
+                var llcCheck = await ValidateParticipantAccessAsync(ctx, http, audit);
+                if (llcCheck is not null) return llcCheck;
+
+                await using var stream = file.OpenReadStream();
+                var storageKey = await fileStorage.SaveAsync(stream, file.FileName, file.ContentType);
+
+                var fileEntry = new FileEntry
+                {
+                    Id = Guid.NewGuid(),
+                    OriginalName = file.FileName,
+                    ContentType = file.ContentType,
+                    SizeBytes = file.Length,
+                    StorageProvider = "LOCAL",
+                    StorageKeyOrPath = storageKey,
+                    IsUploaded = true,
+                    Extension = System.IO.Path.GetExtension(file.FileName)?.TrimStart('.')
+                };
+                ctx.Files.Add(fileEntry);
+                await ctx.SaveChangesAsync();
+
+                logger.LogInformation("[{Ip}] Загружен документ к информированию: {FileName}, fileId={FileId}",
+                    ClientIpHelper.GetClientIp(http), file.FileName, fileEntry.Id);
+
+                return Results.Ok(new { fileId = fileEntry.Id, originalName = file.FileName });
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Ошибка загрузки документа: {Error}", UnwrapException(ex));
+                return Results.BadRequest(new { error = UnwrapException(ex) });
+            }
+        });
+
+        // PUT: рассмотрение заявки (утвердить/отклонить)
+        participantChanges.MapPut("/{id}/review", async (
+            Guid id,
+            HttpContext http,
+            ReviewDto dto,
+            ISecurityAuditService audit,
+            ILoggerFactory loggerFactory,
+            IDbContextFactory<FiduciaDbContext> dbFactory) =>
+        {
+            var logger = loggerFactory.CreateLogger("Participants.Change");
+            try
+            {
+                await using var ctx = await dbFactory.CreateDbContextAsync();
+                var llcCheck = await ValidateAccessAsync(ctx, http, audit);
+                if (llcCheck is not null) return llcCheck;
+
+                var entity = await ctx.BoardParticipantChanges.FindAsync(id);
+                if (entity is null) return Results.NotFound();
+
+                var userIdStr = http.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                Guid? userId = Guid.TryParse(userIdStr, out var uid) ? uid : null;
+
+                entity.Status = dto.Status;
+                entity.ReviewComment = dto.Comment;
+                entity.ReviewedBy = userId;
+                entity.ReviewedAt = DateTime.UtcNow;
+                entity.UpdatedAt = DateTime.UtcNow;
+
+                await ctx.SaveChangesAsync();
+
+                logger.LogInformation("[{Ip}] Рассмотрено информирование {Id}: статус={Status}",
+                    ClientIpHelper.GetClientIp(http), id, dto.Status);
+
+                return Results.Ok(MapParticipantChangeToDto(entity));
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Ошибка рассмотрения информирования id={Id}: {Error}", id, UnwrapException(ex));
+                return Results.BadRequest(new { error = UnwrapException(ex) });
+            }
+        });
+
+        // DELETE: удаление записи
+        participantChanges.MapDelete("/{id}", async (
+            Guid id,
+            HttpContext http,
+            ISecurityAuditService audit,
+            ILoggerFactory loggerFactory,
+            IDbContextFactory<FiduciaDbContext> dbFactory) =>
+        {
+            var logger = loggerFactory.CreateLogger("Participants.Change");
+            try
+            {
+                await using var ctx = await dbFactory.CreateDbContextAsync();
+                var llcCheck = await ValidateAccessAsync(ctx, http, audit);
+                if (llcCheck is not null) return llcCheck;
+
+                var entity = await ctx.BoardParticipantChanges.FindAsync(id);
+                if (entity is null) return Results.NotFound();
+
+                ctx.BoardParticipantChanges.Remove(entity);
+                await ctx.SaveChangesAsync();
+
+                logger.LogInformation("[{Ip}] Удалено информирование об изменении сведений: id={Id}",
+                    ClientIpHelper.GetClientIp(http), id);
+
+                return Results.Ok();
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Ошибка удаления информирования id={Id}: {Error}", id, UnwrapException(ex));
+                return Results.BadRequest(new { error = UnwrapException(ex) });
+            }
+        });
     }
 
     /// <summary>
@@ -455,6 +852,65 @@ public static class ParticipantEndpoints
 
         await audit.LogEventAsync(AuditActionAccess, clientIp,
             $"Доступ разрешён: пользователь {login} ({fullName}), ЮЛ «{le.Name}» (ООО), реестр участников",
+            entityName: "LegalEntity", entityId: le.Id);
+
+        return null;
+    }
+
+    /// <summary>
+    /// Проверка прав участника: ЮЛ является ООО + пользователь имеет роль PARTICIPANT.
+    /// </summary>
+    private static async Task<IResult?> ValidateParticipantAccessAsync(
+        FiduciaDbContext ctx,
+        HttpContext http,
+        ISecurityAuditService audit)
+    {
+        var workplace = await ctx.CurrentWorkplaces.FirstOrDefaultAsync();
+        var leId = workplace?.LastSelectedLegalEntityId;
+        if (leId is null || leId == Guid.Empty)
+            return Results.BadRequest(new { error = "Юридическое лицо не выбрано" });
+
+        var le = await ctx.LegalEntities
+            .Include(x => x.RefOkopf)
+            .FirstOrDefaultAsync(x => x.Id == leId.Value);
+
+        if (le is null)
+            return Results.BadRequest(new { error = "Юридическое лицо не найдено" });
+
+        var clientIp = ClientIpHelper.GetClientIp(http);
+        var (login, fullName) = await GetUserInfoAsync(ctx, http);
+
+        if (le.RefOkopf?.Code != LlcOkopfCode)
+        {
+            await audit.LogEventAsync(AuditActionAccess, clientIp,
+                $"Доступ запрещён: пользователь {login} ({fullName}), ЮЛ «{le.Name}» (ОКОПФ {le.RefOkopf?.Code}) не является ООО",
+                entityName: "LegalEntity", entityId: le.Id);
+            return Results.Forbid();
+        }
+
+        // Проверка роли PARTICIPANT
+        var userIdStr = http.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(userIdStr) || !Guid.TryParse(userIdStr, out var userId))
+        {
+            await audit.LogEventAsync(AuditActionAccess, clientIp,
+                $"Доступ запрещён: пользователь не аутентифицирован, информирование об изменении сведений",
+                entityName: "LegalEntity", entityId: le.Id);
+            return Results.Forbid();
+        }
+
+        var hasParticipantRole = await ctx.UserRoles
+            .AnyAsync(ur => ur.UserId == userId && ur.Role != null && ur.Role.Code == "PARTICIPANT");
+
+        if (!hasParticipantRole)
+        {
+            await audit.LogEventAsync(AuditActionAccess, clientIp,
+                $"Доступ запрещён: пользователь {login} ({fullName}) не имеет роль PARTICIPANT, информирование об изменении сведений",
+                entityName: "LegalEntity", entityId: le.Id);
+            return Results.Forbid();
+        }
+
+        await audit.LogEventAsync(AuditActionAccess, clientIp,
+            $"Доступ разрешён: пользователь {login} ({fullName}), роль PARTICIPANT, ЮЛ «{le.Name}» (ООО)",
             entityName: "LegalEntity", entityId: le.Id);
 
         return null;
@@ -564,6 +1020,53 @@ public static class ParticipantEndpoints
         t.SortOrder
     };
 
+    private static object MapRegistryUploadToDto(BoardRegistryUpload u) => new
+    {
+        u.Id,
+        u.LegalEntityId,
+        u.XmlFileId,
+        u.SignatureFileId,
+        u.XmlOriginalName,
+        u.SignatureOriginalName,
+        u.Status,
+        u.ParticipantCount,
+        UploadedAt = u.UploadedAt.ToString("dd.MM.yyyy HH:mm"),
+        u.UploadedBy
+    };
+
+    private static object MapParticipantChangeToDto(BoardParticipantChange c) => new
+    {
+        c.Id,
+        c.LegalEntityId,
+        c.ParticipantId,
+        c.ParticipantType,
+        c.FullName,
+        c.PassportSeries,
+        c.PassportNumber,
+        c.PassportIssuedBy,
+        PassportIssueDate = c.PassportIssueDate?.ToString("dd.MM.yyyy"),
+        c.PassportDepartmentCode,
+        c.PassportRegistrationAddress,
+        c.PersonInn,
+        c.Citizenship,
+        c.CompanyName,
+        c.CompanyInn,
+        c.CompanyOgrn,
+        c.CompanyKpp,
+        c.CompanyAddress,
+        c.Ogrnip,
+        c.SharePercent,
+        c.ShareAmount,
+        c.DocumentFileId,
+        c.DocumentOriginalName,
+        SubmittedAt = c.SubmittedAt.ToString("dd.MM.yyyy HH:mm"),
+        c.SubmittedBy,
+        c.Status,
+        c.ReviewComment,
+        c.ReviewedBy,
+        ReviewedAt = c.ReviewedAt?.ToString("dd.MM.yyyy HH:mm")
+    };
+
     /// <summary>DTO для участника общества.</summary>
     public record BoardParticipantDto
     {
@@ -599,5 +1102,38 @@ public static class ParticipantEndpoints
         public decimal? ShareAmount { get; init; }
         public DateOnly? AcquiredDate { get; init; }
         public string? AcquisitionBasis { get; init; }
+    }
+
+    /// <summary>DTO для информирования об изменении сведений участника.</summary>
+    public record BoardParticipantChangeDto
+    {
+        public Guid ParticipantId { get; init; }
+        public string? ParticipantType { get; init; }
+        public string? FullName { get; init; }
+        public string? PassportSeries { get; init; }
+        public string? PassportNumber { get; init; }
+        public string? PassportIssuedBy { get; init; }
+        public DateOnly? PassportIssueDate { get; init; }
+        public string? PassportDepartmentCode { get; init; }
+        public string? PassportRegistrationAddress { get; init; }
+        public string? PersonInn { get; init; }
+        public string? Citizenship { get; init; }
+        public string? CompanyName { get; init; }
+        public string? CompanyInn { get; init; }
+        public string? CompanyOgrn { get; init; }
+        public string? CompanyKpp { get; init; }
+        public string? CompanyAddress { get; init; }
+        public string? Ogrnip { get; init; }
+        public decimal? SharePercent { get; init; }
+        public decimal? ShareAmount { get; init; }
+        public Guid? DocumentFileId { get; init; }
+        public string? DocumentOriginalName { get; init; }
+    }
+
+    /// <summary>DTO для рассмотрения заявки.</summary>
+    public record ReviewDto
+    {
+        public string Status { get; init; } = "pending";
+        public string? Comment { get; init; }
     }
 }

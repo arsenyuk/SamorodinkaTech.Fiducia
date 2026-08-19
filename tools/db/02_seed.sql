@@ -49,7 +49,8 @@ INSERT INTO ref_roles (id, code, name, created_at, created_by, is_assignable) VA
     ('77777777-7777-7777-7777-777777777777','COMMITTEE_CHAIR','Председатель комитета',CURRENT_TIMESTAMP,'00000000-0000-0000-0000-000000000000',FALSE),
     ('88888888-8888-8888-8888-888888888888','COMMITTEE_MEMBER','Член комитета',CURRENT_TIMESTAMP,'00000000-0000-0000-0000-000000000000',FALSE),
     ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaad2','DEPUTY_CHAIR','Заместитель председателя СД',CURRENT_TIMESTAMP,'00000000-0000-0000-0000-000000000000',FALSE),
-    ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaad3','LAWYER','Юрист',CURRENT_TIMESTAMP,'00000000-0000-0000-0000-000000000000',TRUE)
+    ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaad3','LAWYER','Юрист',CURRENT_TIMESTAMP,'00000000-0000-0000-0000-000000000000',TRUE),
+    ('99999999-9999-9999-9999-999999999999','PARTICIPANT','Участник',CURRENT_TIMESTAMP,'00000000-0000-0000-0000-000000000000',TRUE)
 ON CONFLICT (code) DO NOTHING;
 
 -- Роли тестовых пользователей
@@ -59,6 +60,21 @@ INSERT INTO user_roles (id, user_id, role_id) VALUES
     ('aaaa0000-0000-0000-0000-000000000003', '11111111-1111-1111-1111-111111111114', '55555555-5555-5555-5555-555555555555'), -- Сидоров = EXTERNAL_DIRECTOR
     ('aaaa0000-0000-0000-0000-000000000004', '11111111-1111-1111-1111-111111111115', '55555555-5555-5555-5555-555555555555'), -- Козлова = EXTERNAL_DIRECTOR
     ('aaaa0000-0000-0000-0000-000000000005', '11111111-1111-1111-1111-111111111116', '33333333-3333-3333-3333-333333333333')  -- Новиков = CHAIR_BOARD
+ON CONFLICT (user_id, role_id) DO NOTHING;
+
+-- ============================================================================
+-- Тестовый участник ООО
+-- ============================================================================
+INSERT INTO persons (id, last_name, first_name, middle_name, email, phone, inn, created_at, created_by) VALUES
+    ('bbbb0000-0000-0000-0000-000000000001', 'Участников', 'Тест', 'Тестович', 'participant@test.ru', '+79009998877', '770999887766', CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO users (id, person_id, last_name, first_name, email, phone, is_external, created_at, created_by, is_system) VALUES
+    ('bbbb0000-0000-0000-0000-000000000002', 'bbbb0000-0000-0000-0000-000000000001', 'Участников', 'Тест', 'participant@test.ru', '+79009998877', FALSE, CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000', FALSE)
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO user_roles (id, user_id, role_id) VALUES
+    ('bbbb0000-0000-0000-0000-000000000010', 'bbbb0000-0000-0000-0000-000000000002', '99999999-9999-9999-9999-999999999999')
 ON CONFLICT (user_id, role_id) DO NOTHING;
 
 -- ОКОПФ (базовые записи)

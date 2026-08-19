@@ -81,6 +81,8 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
 
     public DbSet<BoardParticipant> BoardParticipants => Set<BoardParticipant>();
     public DbSet<BoardTreasuryShare> BoardTreasuryShares => Set<BoardTreasuryShare>();
+    public DbSet<BoardRegistryUpload> BoardRegistryUploads => Set<BoardRegistryUpload>();
+    public DbSet<BoardParticipantChange> BoardParticipantChanges => Set<BoardParticipantChange>();
 
     // Junction-таблицы файлов (BDR-011)
     public DbSet<MeetingFile> MeetingFiles => Set<MeetingFile>();
@@ -590,6 +592,64 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.Property(x => x.UpdatedAt).HasColumnName("updated_at").IsRequired();
             b.Property(x => x.CreatedBy).HasColumnName("created_by");
             b.HasIndex(x => x.LegalEntityId).HasDatabaseName("ix_board_treasury_share_legal_entity");
+        });
+
+        modelBuilder.Entity<BoardRegistryUpload>(b =>
+        {
+            b.ToTable("board_registry_upload");
+            b.HasKey(x => x.Id);
+            b.Property(x => x.Id).HasColumnName("id");
+            b.Property(x => x.LegalEntityId).HasColumnName("legal_entity_id").IsRequired();
+            b.Property(x => x.XmlFileId).HasColumnName("xml_file_id");
+            b.Property(x => x.SignatureFileId).HasColumnName("signature_file_id");
+            b.Property(x => x.XmlOriginalName).HasColumnName("xml_original_name").HasMaxLength(255);
+            b.Property(x => x.SignatureOriginalName).HasColumnName("signature_original_name").HasMaxLength(255);
+            b.Property(x => x.Status).HasColumnName("status").HasMaxLength(20).IsRequired().HasDefaultValue("uploaded");
+            b.Property(x => x.ParticipantCount).HasColumnName("participant_count");
+            b.Property(x => x.UploadedBy).HasColumnName("uploaded_by");
+            b.Property(x => x.UploadedAt).HasColumnName("uploaded_at").IsRequired();
+            b.Property(x => x.CreatedAt).HasColumnName("created_at").IsRequired();
+            b.Property(x => x.UpdatedAt).HasColumnName("updated_at").IsRequired();
+            b.HasIndex(x => x.LegalEntityId).HasDatabaseName("ix_board_registry_upload_le");
+        });
+
+        modelBuilder.Entity<BoardParticipantChange>(b =>
+        {
+            b.ToTable("board_participant_change");
+            b.HasKey(x => x.Id);
+            b.Property(x => x.Id).HasColumnName("id");
+            b.Property(x => x.LegalEntityId).HasColumnName("legal_entity_id").IsRequired();
+            b.Property(x => x.ParticipantId).HasColumnName("participant_id").IsRequired();
+            b.Property(x => x.ParticipantType).HasColumnName("participant_type").HasMaxLength(20).IsRequired();
+            b.Property(x => x.FullName).HasColumnName("full_name").HasMaxLength(300);
+            b.Property(x => x.PassportSeries).HasColumnName("passport_series").HasMaxLength(10);
+            b.Property(x => x.PassportNumber).HasColumnName("passport_number").HasMaxLength(10);
+            b.Property(x => x.PassportIssuedBy).HasColumnName("passport_issued_by").HasMaxLength(500);
+            b.Property(x => x.PassportIssueDate).HasColumnName("passport_issue_date");
+            b.Property(x => x.PassportDepartmentCode).HasColumnName("passport_department_code").HasMaxLength(10);
+            b.Property(x => x.PassportRegistrationAddress).HasColumnName("passport_registration_address");
+            b.Property(x => x.PersonInn).HasColumnName("person_inn").HasMaxLength(12);
+            b.Property(x => x.Citizenship).HasColumnName("citizenship").HasMaxLength(100);
+            b.Property(x => x.CompanyName).HasColumnName("company_name").HasMaxLength(500);
+            b.Property(x => x.CompanyInn).HasColumnName("company_inn").HasMaxLength(12);
+            b.Property(x => x.CompanyOgrn).HasColumnName("company_ogrn").HasMaxLength(15);
+            b.Property(x => x.CompanyKpp).HasColumnName("company_kpp").HasMaxLength(9);
+            b.Property(x => x.CompanyAddress).HasColumnName("company_address");
+            b.Property(x => x.Ogrnip).HasColumnName("ogrnip").HasMaxLength(15);
+            b.Property(x => x.SharePercent).HasColumnName("share_percent").HasColumnType("numeric(5,2)");
+            b.Property(x => x.ShareAmount).HasColumnName("share_amount").HasColumnType("numeric(18,2)");
+            b.Property(x => x.DocumentFileId).HasColumnName("document_file_id");
+            b.Property(x => x.DocumentOriginalName).HasColumnName("document_original_name").HasMaxLength(255);
+            b.Property(x => x.SubmittedBy).HasColumnName("submitted_by");
+            b.Property(x => x.SubmittedAt).HasColumnName("submitted_at").IsRequired();
+            b.Property(x => x.Status).HasColumnName("status").HasMaxLength(20).IsRequired().HasDefaultValue("pending");
+            b.Property(x => x.ReviewComment).HasColumnName("review_comment");
+            b.Property(x => x.ReviewedBy).HasColumnName("reviewed_by");
+            b.Property(x => x.ReviewedAt).HasColumnName("reviewed_at");
+            b.Property(x => x.CreatedAt).HasColumnName("created_at").IsRequired();
+            b.Property(x => x.UpdatedAt).HasColumnName("updated_at").IsRequired();
+            b.HasIndex(x => x.LegalEntityId).HasDatabaseName("ix_board_participant_change_le");
+            b.HasIndex(x => x.ParticipantId).HasDatabaseName("ix_board_participant_change_participant");
         });
 
         modelBuilder.Entity<ExtCbrFinOrgOrganization>(b =>
