@@ -46,7 +46,7 @@ else
         <li class="nav-item">
             <button type="button" class="nav-link @(_activeTab == 3 ? "active fw-bold" : "")"
                     @onclick="() => _activeTab = 3">
-                Изменение сведений
+                Информирование
             </button>
         </li>
     </ul>
@@ -396,18 +396,24 @@ else
         }
     }
 
-    @* ── Вкладка 4: Изменение сведений ────────────────────────── *@
+    @* ── Вкладка 4: Информирование ──────────────────────────────── *@
     @if (_activeTab == 3)
     {
-        <div class="card mb-3">
+        @* Форма ручного ввода бумажного информирования *@
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Регистрация бумажного информирования</h5>
+            </div>
             <div class="card-body">
-                <h6 class="card-title">Подача thông об изменении сведений участника</h6>
-                <p class="text-muted small">Согласно п. 3 ст. 31.1 Закона № 14-ФЗ, участник обязан информировать общество об изменении сведений.</p>
+                <p class="text-muted small mb-3">
+                    Внесение данных из бумажного информирования участника об изменении сведений
+                    (п. 3 ст. 31.1 Закона № 14-ФЗ).
+                </p>
 
                 <div class="row mb-3">
                     <div class="col-md-6">
                         <label class="form-label">Участник</label>
-                        <select class="form-select form-select-sm" @bind="_changeParticipantId">
+                        <select class="form-select" @bind="_paperParticipantId">
                             <option value="">— Выберите участника —</option>
                             @foreach (var p in _participants)
                             {
@@ -417,34 +423,94 @@ else
                             }
                         </select>
                     </div>
-                    <div class="col-md-6">
-                        <label class="form-label">Документ-подтверждение</label>
-                        <InputFile OnChange="OnChangeDocumentSelected" accept=".pdf,.doc,.docx,.jpg,.png"
-                                   class="form-control form-control-sm" disabled="@_isSubmittingChange" />
-                        @if (_selectedChangeDocumentName is not null)
-                        {
-                            <div class="form-text">Выбран: @_selectedChangeDocumentName</div>
-                        }
+                    <div class="col-md-3">
+                        <label class="form-label">Дата информирования</label>
+                        <input type="date" class="form-control" value="@_paperDateStr"
+                               @onchange="e => _paperDateStr = e.Value?.ToString()" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">№ бумажного документа</label>
+                        <input class="form-control" @bind="_paperDocNumber" placeholder="Исх. №" />
                     </div>
                 </div>
 
-                @if (!string.IsNullOrEmpty(_changeFormError))
+                @if (_paperParticipantId is not null)
                 {
-                    <div class="alert alert-danger py-1 px-2 mb-2 small">@_changeFormError</div>
-                }
+                    var participant = _participants.FirstOrDefault(p => p.Id.ToString() == _paperParticipantId);
 
-                <button class="btn btn-primary btn-sm" @onclick="SubmitParticipantChange"
-                        disabled="@(_changeParticipantId is null || _isSubmittingChange)">
-                    @if (_isSubmittingChange)
+                    @if (participant?.ParticipantType == "FL")
                     {
-                        <span class="spinner-border spinner-border-sm me-1"></span>
+                        <h6>Данные ФЛ</h6>
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <label class="form-label">ФИО</label>
+                                <input class="form-control" @bind="_paperFullName" />
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">ИНН</label>
+                                <input class="form-control" @bind="_paperPersonInn" />
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Адрес</label>
+                                <input class="form-control" @bind="_paperAddress" />
+                            </div>
+                        </div>
                     }
-                    Отправить
-                </button>
+                    else if (participant?.ParticipantType == "UL")
+                    {
+                        <h6>Данные ЮЛ</h6>
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <label class="form-label">Наименование</label>
+                                <input class="form-control" @bind="_paperCompanyName" />
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">ИНН</label>
+                                <input class="form-control" @bind="_paperCompanyInn" />
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Адрес</label>
+                                <input class="form-control" @bind="_paperAddress" />
+                            </div>
+                        </div>
+                    }
+
+                    <h6>Доля</h6>
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Размер доли (%)</label>
+                            <input type="number" step="0.01" class="form-control" @bind="_paperSharePercent" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Номинал (руб.)</label>
+                            <input type="number" step="0.01" class="form-control" @bind="_paperShareAmount" />
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Примечание</label>
+                        <input class="form-control" @bind="_paperComment" placeholder="Комментарий к записи" />
+                    </div>
+
+                    @if (!string.IsNullOrEmpty(_paperError))
+                    {
+                        <div class="alert alert-danger py-1 px-2 mb-2 small">@_paperError</div>
+                    }
+
+                    <button class="btn btn-primary btn-sm" @onclick="SavePaperInforming" disabled="@_savingPaper">
+                        @if (_savingPaper)
+                        {
+                            <span class="spinner-border spinner-border-sm me-1"></span>
+                        }
+                        Зарегистрировать
+                    </button>
+                }
             </div>
         </div>
 
-        <h6>Список информирований</h6>
+        @* Таблица информирований (бумажные + электронные) *@
+        <h5>Журнал информирований</h5>
+
         @if (_loadingChanges)
         {
             <div class="text-center py-4">
@@ -453,7 +519,7 @@ else
         }
         else if (_participantChanges.Count == 0)
         {
-            <div class="text-muted">Информирования об изменении сведений отсутствуют.</div>
+            <div class="text-muted">Информирования отсутствуют.</div>
         }
         else
         {
@@ -464,10 +530,11 @@ else
                             <th style="width: 40px;">№</th>
                             <th>Участник</th>
                             <th>Тип</th>
+                            <th>Источник</th>
                             <th>Документ</th>
-                            <th>Дата подачи</th>
+                            <th>Дата</th>
                             <th>Статус</th>
-                            <th style="width: 100px;"></th>
+                            <th>Примечание</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -476,9 +543,7 @@ else
                             var participant = _participants.FirstOrDefault(p => p.Id == c.ParticipantId);
                             <tr>
                                 <td>@(idx + 1)</td>
-                                <td>
-                                    @(participant?.FullName ?? participant?.CompanyName ?? "—")
-                                </td>
+                                <td>@(participant?.FullName ?? participant?.CompanyName ?? c.ParticipantName ?? "—")</td>
                                 <td>
                                     @if (c.ParticipantType == "FL")
                                     {
@@ -493,8 +558,18 @@ else
                                         <span class="badge bg-secondary">ИП</span>
                                     }
                                 </td>
-                                <td class="small">@(c.DocumentOriginalName ?? "—")</td>
-                                <td class="small">@c.SubmittedAt</td>
+                                <td>
+                                    @if (c.Source == "paper")
+                                    {
+                                        <span class="badge bg-secondary">Бумажное</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-success">Электронное</span>
+                                    }
+                                </td>
+                                <td class="small">@(c.DocumentOriginalName ?? c.PaperDocNumber ?? "—")</td>
+                                <td class="small">@(c.Date ?? c.SubmittedAt ?? "—")</td>
                                 <td>
                                     @if (c.Status == "pending")
                                     {
@@ -504,21 +579,16 @@ else
                                     {
                                         <span class="badge bg-success">Утверждено</span>
                                     }
-                                    else
+                                    else if (c.Status == "rejected")
                                     {
                                         <span class="badge bg-danger">Отклонено</span>
                                     }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary">@c.Status</span>
+                                    }
                                 </td>
-                                <td>
-                                    <div class="d-flex gap-1">
-                                        @if (c.Status == "pending")
-                                        {
-                                            <button class="btn btn-outline-danger btn-sm" @onclick="() => DeleteParticipantChange(c.Id)">
-                                                ✕
-                                            </button>
-                                        }
-                                    </div>
-                                </td>
+                                <td class="small">@(c.Comment ?? "—")</td>
                             </tr>
                         }
                     </tbody>
@@ -815,14 +885,24 @@ else
     private IBrowserFile? _selectedSignatureFile;
     private string? _selectedSignatureFileName;
 
-    // ── Participant changes state ──────────────────────────────────
+    // ── Participant changes (read-only) ────────────────────────────
     private bool _loadingChanges = true;
-    private bool _isSubmittingChange;
-    private string? _changeFormError;
     private List<ParticipantChangeRow> _participantChanges = new();
-    private string? _changeParticipantId;
-    private IBrowserFile? _selectedChangeDocument;
-    private string? _selectedChangeDocumentName;
+
+    // ── Paper informing form ───────────────────────────────────────
+    private bool _savingPaper;
+    private string? _paperError;
+    private string? _paperParticipantId;
+    private string? _paperDateStr;
+    private string? _paperDocNumber;
+    private string? _paperFullName;
+    private string? _paperPersonInn;
+    private string? _paperAddress;
+    private string? _paperCompanyName;
+    private string? _paperCompanyInn;
+    private decimal? _paperSharePercent;
+    private decimal? _paperShareAmount;
+    private string? _paperComment;
 
     protected override async Task OnInitializedAsync()
     {
@@ -1031,7 +1111,7 @@ else
         }
     }
 
-    // ── Participant changes ────────────────────────────────────────
+    // ── Participant changes (read-only) ────────────────────────────
 
     private async Task LoadParticipantChanges()
     {
@@ -1053,111 +1133,66 @@ else
         }
     }
 
-    private void OnChangeDocumentSelected(InputFileChangeEventArgs e)
+    private async Task SavePaperInforming()
     {
-        _selectedChangeDocument = e.File;
-        _selectedChangeDocumentName = e.File.Name;
-        _changeFormError = null;
-    }
+        if (_paperParticipantId is null) return;
 
-    private async Task SubmitParticipantChange()
-    {
-        if (_changeParticipantId is null) return;
-
-        _isSubmittingChange = true;
-        _changeFormError = null;
+        _savingPaper = true;
+        _paperError = null;
         StateHasChanged();
 
         try
         {
-            // Загружаем документ, если выбран
-            Guid? documentFileId = null;
-            string? documentOriginalName = null;
+            var participant = _participants.FirstOrDefault(p => p.Id.ToString() == _paperParticipantId);
 
-            if (_selectedChangeDocument is not null)
-            {
-                using var docContent = new MultipartFormDataContent();
-                using var docStream = _selectedChangeDocument.OpenReadStream(10 * 1024 * 1024);
-                using var docMs = new MemoryStream();
-                await docStream.CopyToAsync(docMs);
-                docMs.Position = 0;
-                var docBytes = docMs.ToArray();
-                docContent.Add(new ByteArrayContent(docBytes), "file", _selectedChangeDocumentName ?? "document.pdf");
-
-                var docResponse = await Http.PostAsync("/api/participant-changes/upload-document", docContent);
-                if (docResponse.IsSuccessStatusCode)
-                {
-                    var docResult = await docResponse.Content.ReadFromJsonAsync<UploadDocumentResult>();
-                    documentFileId = docResult?.FileId;
-                    documentOriginalName = docResult?.OriginalName;
-                }
-            }
-
-            // Находим участника для заполнения данных
-            var participant = _participants.FirstOrDefault(p => p.Id.ToString() == _changeParticipantId);
-
-            // Создаём запись об изменении сведений
             var dto = new
             {
-                participantId = Guid.Parse(_changeParticipantId),
+                participantId = Guid.Parse(_paperParticipantId),
                 participantType = participant?.ParticipantType ?? "FL",
-                fullName = participant?.FullName,
-                passportSeries = participant?.PassportSeries,
-                passportNumber = participant?.PassportNumber,
-                passportIssuedBy = participant?.PassportIssuedBy,
-                passportDepartmentCode = participant?.PassportDepartmentCode,
-                passportRegistrationAddress = participant?.PassportRegistrationAddress,
-                personInn = participant?.PersonInn,
-                citizenship = participant?.Citizenship,
-                companyName = participant?.CompanyName,
-                companyInn = participant?.CompanyInn,
-                companyOgrn = participant?.CompanyOgrn,
-                companyKpp = participant?.CompanyKpp,
-                companyAddress = participant?.CompanyAddress,
-                ogrnip = participant?.Ogrnip,
-                sharePercent = participant?.SharePercent,
-                shareAmount = participant?.ShareAmount,
-                documentFileId,
-                documentOriginalName
+                fullName = _paperFullName ?? participant?.FullName,
+                personInn = _paperPersonInn ?? participant?.PersonInn,
+                companyName = _paperCompanyName ?? participant?.CompanyName,
+                companyInn = _paperCompanyInn ?? participant?.CompanyInn,
+                sharePercent = _paperSharePercent ?? participant?.SharePercent,
+                shareAmount = _paperShareAmount ?? participant?.ShareAmount,
+                source = "paper",
+                date = _paperDateStr,
+                paperDocNumber = _paperDocNumber,
+                comment = _paperComment,
+                status = "approved"
             };
 
             var response = await Http.PostAsJsonAsync("/api/participant-changes", dto);
             if (!response.IsSuccessStatusCode)
             {
                 var body = await response.Content.ReadAsStringAsync();
-                _changeFormError = $"Ошибка ({(int)response.StatusCode}): {body}";
+                _paperError = $"Ошибка ({(int)response.StatusCode}): {body}";
                 return;
             }
 
-            // Сбрасываем форму
-            _changeParticipantId = null;
-            _selectedChangeDocument = null;
-            _selectedChangeDocumentName = null;
+            // Сброс формы
+            _paperParticipantId = null;
+            _paperDateStr = null;
+            _paperDocNumber = null;
+            _paperFullName = null;
+            _paperPersonInn = null;
+            _paperAddress = null;
+            _paperCompanyName = null;
+            _paperCompanyInn = null;
+            _paperSharePercent = null;
+            _paperShareAmount = null;
+            _paperComment = null;
 
             await LoadParticipantChanges();
         }
         catch (Exception ex)
         {
-            Logger.LogWarning(ex, "Ошибка подачи информирования");
-            _changeFormError = "Не удалось отправить информирование.";
+            Logger.LogWarning(ex, "Ошибка сохранения бумажного информирования");
+            _paperError = "Не удалось сохранить запись.";
         }
         finally
         {
-            _isSubmittingChange = false;
-        }
-    }
-
-    private async Task DeleteParticipantChange(Guid id)
-    {
-        try
-        {
-            var response = await Http.DeleteAsync($"/api/participant-changes/{id}");
-            if (response.IsSuccessStatusCode)
-                await LoadParticipantChanges();
-        }
-        catch (Exception ex)
-        {
-            Logger.LogWarning(ex, "Ошибка удаления информирования {Id}", id);
+            _savingPaper = false;
         }
     }
 
@@ -1481,17 +1516,15 @@ else
         public Guid Id { get; set; }
         public Guid ParticipantId { get; set; }
         public string? ParticipantType { get; set; }
-        public string? FullName { get; set; }
-        public string? CompanyName { get; set; }
+        public string? ParticipantName { get; set; }
         public string? DocumentOriginalName { get; set; }
         public string? SubmittedAt { get; set; }
         public string? Status { get; set; }
-    }
-
-    private class UploadDocumentResult
-    {
-        public Guid FileId { get; set; }
-        public string OriginalName { get; set; } = null!;
+        public string? ReviewComment { get; set; }
+        public string? Source { get; set; }
+        public string? Date { get; set; }
+        public string? PaperDocNumber { get; set; }
+        public string? Comment { get; set; }
     }
 
     /// <summary>Конвертирует дату из формата dd.MM.yyyy в yyyy-MM-dd для HTML date input.</summary>

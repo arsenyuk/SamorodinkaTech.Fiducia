@@ -675,6 +675,10 @@ public static class ParticipantEndpoints
                     ShareAmount = dto.ShareAmount,
                     DocumentFileId = dto.DocumentFileId,
                     DocumentOriginalName = dto.DocumentOriginalName,
+                    Source = dto.Source ?? "electronic",
+                    Date = dto.Date,
+                    PaperDocNumber = dto.PaperDocNumber,
+                    Comment = dto.Comment,
                     SubmittedBy = userId,
                     SubmittedAt = DateTime.UtcNow,
                     Status = "pending",
@@ -1059,6 +1063,10 @@ public static class ParticipantEndpoints
         c.ShareAmount,
         c.DocumentFileId,
         c.DocumentOriginalName,
+        c.Source,
+        c.Date,
+        c.PaperDocNumber,
+        c.Comment,
         SubmittedAt = c.SubmittedAt.ToString("dd.MM.yyyy HH:mm"),
         c.SubmittedBy,
         c.Status,
@@ -1128,6 +1136,10 @@ public static class ParticipantEndpoints
         public decimal? ShareAmount { get; init; }
         public Guid? DocumentFileId { get; init; }
         public string? DocumentOriginalName { get; init; }
+        public string? Source { get; init; }
+        public string? Date { get; init; }
+        public string? PaperDocNumber { get; init; }
+        public string? Comment { get; init; }
     }
 
     /// <summary>DTO для рассмотрения заявки.</summary>

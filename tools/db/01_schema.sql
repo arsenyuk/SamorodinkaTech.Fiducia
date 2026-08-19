@@ -1300,6 +1300,10 @@ CREATE TABLE IF NOT EXISTS board_participant_change (
     -- Мета
     document_file_id uuid REFERENCES files(id) ON DELETE SET NULL,
     document_original_name varchar(255),
+    source varchar(20),
+    date varchar(50),
+    paper_doc_number varchar(100),
+    comment text,
     submitted_by uuid REFERENCES users(id) ON DELETE SET NULL,
     submitted_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     status varchar(20) NOT NULL DEFAULT 'pending',

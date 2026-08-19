@@ -59,6 +59,14 @@
                 </NavLink>
             </div>
         }
+        @if (_isParticipant)
+        {
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="informing">
+                    <span class="oi oi-info" aria-hidden="true"></span> Информирование
+                </NavLink>
+            </div>
+        }
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="org-plan">
                 <span class="oi oi-project" aria-hidden="true"></span> План
@@ -79,6 +87,7 @@
     private bool collapseNavMenu = true;
     private bool _isLlc;
     private bool _isSysAdmin;
+    private bool _isParticipant;
     private string _legalEntityName = "Fiducia";
 
     private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
@@ -90,6 +99,7 @@
             var authState = await AuthState.GetAuthenticationStateAsync();
             var user = authState.User;
             _isSysAdmin = user.IsInRole("SYS_ADMIN");
+            _isParticipant = user.IsInRole("PARTICIPANT");
 
             await using var ctx = await DbFactory.CreateDbContextAsync();
             var workplace = await ctx.CurrentWorkplaces.FirstOrDefaultAsync();

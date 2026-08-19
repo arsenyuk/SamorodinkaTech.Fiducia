@@ -640,6 +640,10 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.Property(x => x.ShareAmount).HasColumnName("share_amount").HasColumnType("numeric(18,2)");
             b.Property(x => x.DocumentFileId).HasColumnName("document_file_id");
             b.Property(x => x.DocumentOriginalName).HasColumnName("document_original_name").HasMaxLength(255);
+            b.Property(x => x.Source).HasColumnName("source").HasMaxLength(20);
+            b.Property(x => x.Date).HasColumnName("date").HasMaxLength(50);
+            b.Property(x => x.PaperDocNumber).HasColumnName("paper_doc_number").HasMaxLength(100);
+            b.Property(x => x.Comment).HasColumnName("comment");
             b.Property(x => x.SubmittedBy).HasColumnName("submitted_by");
             b.Property(x => x.SubmittedAt).HasColumnName("submitted_at").IsRequired();
             b.Property(x => x.Status).HasColumnName("status").HasMaxLength(20).IsRequired().HasDefaultValue("pending");

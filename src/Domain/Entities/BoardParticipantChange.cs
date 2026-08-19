@@ -85,6 +85,18 @@ public class BoardParticipantChange
     /// <summary>Исходное имя документа (document_original_name).</summary>
     public string? DocumentOriginalName { get; set; }
 
+    /// <summary>Источник: paper — бумажное, electronic — электронное (source).</summary>
+    public string? Source { get; set; }
+
+    /// <summary>Дата информирования (для бумажных) (date).</summary>
+    public string? Date { get; set; }
+
+    /// <summary>Номер бумажного документа (paper_doc_number).</summary>
+    public string? PaperDocNumber { get; set; }
+
+    /// <summary>Комментарий / примечание (comment).</summary>
+    public string? Comment { get; set; }
+
     /// <summary>Идентификатор пользователя, подавшего информацию (submitted_by).</summary>
     public Guid? SubmittedBy { get; set; }
 
