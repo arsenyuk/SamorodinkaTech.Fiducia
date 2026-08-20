@@ -23,17 +23,10 @@
 }
 else
 {
-    @* ── Кнопки создания ──────────────────────────────────────────── *@
-    <div class="row mb-4">
-        @foreach (var rt in _availableTypes)
-        {
-            <div class="col-md-6 mb-2">
-                <button class="btn btn-outline-primary w-100" @onclick="() => CreateRequest(rt.Id)">
-                    <span class="oi oi-action-undo"></span> @rt.Name
-                </button>
-            </div>
-        }
-    </div>
+    @* ── Кнопка создания ──────────────────────────────────────────── *@
+    <a href="/share-requests/create" class="btn btn-primary mb-3">
+        <span class="oi oi-plus"></span> Подать требование или запрос
+    </a>
 
     @* ── Фильтр ────────────────────────────────────────────────────── *@
     <div class="mb-3">

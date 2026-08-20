@@ -1,0 +1,351 @@
+@page "/share-requests/create"
+@using System.Net.Http.Json
+@inject HttpClient Http
+@inject NavigationManager Nav
+@inject ILogger<ShareRequestCreate> Logger
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "PARTICIPANT")]
+
+<PageTitle>Fiducia — Подать требование или запрос</PageTitle>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h3>Подать требование или запрос</h3>
+    <a href="/share-requests" class="btn btn-outline-secondary">← Назад к списку</a>
+</div>
+
+@if (_error is not null)
+{
+    <div class="alert alert-danger">@_error</div>
+}
+
+@if (_loading)
+{
+    <div class="text-center py-4">
+        <div class="spinner-border text-primary" role="status"></div>
+    </div>
+}
+else if (_selectedType is null)
+{
+    @* ── Выбор типа требования ─────────────────────────────────────── *@
+    <p class="text-muted mb-4">Выберите тип требования или запроса:</p>
+
+    <div class="row g-3">
+        @foreach (var rt in _availableTypes)
+        {
+            <div class="col-md-6">
+                <div class="card h-100" style="cursor:pointer" @onclick="() => SelectType(rt)">
+                    <div class="card-body">
+                        <h5 class="card-title">@rt.Name</h5>
+                        <p class="card-text text-muted small mb-0">
+                            @GetDescription(rt.Code)
+                        </p>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+else
+{
+    @* ── Форма создания требования ──────────────────────────────────── *@
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-start mb-3">
+                <div>
+                    <h5>@_selectedType.Name</h5>
+                    <p class="text-muted mb-0">@GetDescription(_selectedType.Code)</p>
+                </div>
+                <button class="btn btn-sm btn-outline-secondary" @onclick="() => _selectedType = null">
+                    ← Другой тип
+                </button>
+            </div>
+
+            @* ── Подсказка по правовой норме ────────────────────────── *@
+            @if (!string.IsNullOrEmpty(GetLegalBasis(_selectedType.Code)))
+            {
+                <div class="alert alert-info py-2 mb-3">
+                    <strong>Правовая норма:</strong> @GetLegalBasis(_selectedType.Code)
+                </div>
+            }
+
+            @* ── Условия и ограничения ──────────────────────────────── *@
+            @if (!string.IsNullOrEmpty(GetConditions(_selectedType.Code)))
+            {
+                <div class="alert alert-warning py-2 mb-3">
+                    <strong>Условия:</strong> @GetConditions(_selectedType.Code)
+                </div>
+            }
+
+            @* ── Поля формы ──────────────────────────────────────────── *@
+            <div class="row g-3">
+                @if (_selectedType.Code == "DEMAND_VOSU")
+                {
+                    <div class="col-12">
+                        <label class="form-label">Текст требования *</label>
+                        <textarea class="form-control" @bind="_demandText" rows="4"
+                                  placeholder="Опишите суть требования о созыве внеочередного собрания..."></textarea>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">Основание (необязательно)</label>
+                        <input class="form-control" @bind="_demandReason"
+                               placeholder="Например: необходимость рассмотрения вопроса о..." />
+                    </div>
+                    <div class="col-12">
+                        <div class="alert alert-secondary py-2 mb-0">
+                            <strong>Порог:</strong> Для созыва ВОСУ необходимо владеть не менее 10% голосов участников (ст. 35 14-ФЗ).
+                            @if (_participantSharePercent.HasValue)
+                            {
+                                <span class="ms-2">Ваша доля: <strong>@_participantSharePercent%</strong></span>
+                            }
+                        </div>
+                    </div>
+                }
+                else if (IsCollectiveType(_selectedType.Code))
+                {
+                    <div class="col-12">
+                        <label class="form-label">Текст требования *</label>
+                        <textarea class="form-control" @bind="_demandText" rows="4"
+                                  placeholder="Опишите суть требования..."></textarea>
+                    </div>
+                    <div class="col-12">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" @bind="_isCollective" id="collectiveCheck">
+                            <label class="form-check-label" for="collectiveCheck">
+                                Сделать коллективным (собрать поддержку других участников)
+                            </label>
+                        </div>
+                        @if (_isCollective)
+                        {
+                            <small class="text-muted">
+                                Требование будет доступно другим участникам для поддержки.
+                                Когда сумма долей поддержавших достигнет порога, требование будет направлено ГД.
+                            </small>
+                        }
+                    </div>
+                }
+                else if (_selectedType.Code == "CHANGE_STANDARD_CHARTER_NUMBER")
+                {
+                    <div class="col-12">
+                        <label class="form-label">Номер нового типового устава *</label>
+                        <select class="form-select" @bind="_newCharterNumber">
+                            <option value="">Выберите номер...</option>
+                            @for (int i = 1; i <= 36; i++)
+                            {
+                                var num = i.ToString("D2");
+                                <option value="@num">Типовой устав № @num</option>
+                            }
+                        </select>
+                    </div>
+                }
+                else
+                {
+                    <div class="col-12">
+                        <label class="form-label">Комментарий (необязательно)</label>
+                        <textarea class="form-control" @bind="_demandText" rows="3"
+                                  placeholder="Дополнительная информация..."></textarea>
+                    </div>
+                }
+            </div>
+
+            @* ── Кнопка отправки ─────────────────────────────────────── *@
+            <div class="mt-4">
+                <button class="btn btn-primary" @onclick="SubmitRequest" disabled="@_isSubmitting">
+                    @if (_isSubmitting)
+                    {
+                        <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                    }
+                    Подать требование
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<RequestTypeDto> _availableTypes = new();
+    private RequestTypeDto? _selectedType;
+    private bool _loading = true;
+    private bool _isSubmitting;
+    private string? _error;
+
+    // Поля формы
+    private string? _demandText;
+    private string? _demandReason;
+    private bool _isCollective;
+    private string? _newCharterNumber;
+    private decimal? _participantSharePercent;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _availableTypes = await Http.GetFromJsonAsync<List<RequestTypeDto>>("/api/share-requests/types") ?? new();
+
+            // Загружаем долю участника для подсказок
+            try
+            {
+                var participant = await Http.GetFromJsonAsync<ParticipantDto>("/api/participants/current");
+                _participantSharePercent = participant?.SharePercent;
+            }
+            catch { /* не критично */ }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Ошибка загрузки типов требований");
+            _error = "Ошибка загрузки данных";
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private void SelectType(RequestTypeDto type)
+    {
+        _selectedType = type;
+        _demandText = null;
+        _demandReason = null;
+        _isCollective = false;
+        _newCharterNumber = null;
+        _error = null;
+    }
+
+    private async Task SubmitRequest()
+    {
+        if (_selectedType is null) return;
+
+        // Валидация
+        if (_selectedType.Code == "DEMAND_VOSU" && string.IsNullOrWhiteSpace(_demandText))
+        {
+            _error = "Введите текст требования";
+            return;
+        }
+        if (_selectedType.Code == "CHANGE_STANDARD_CHARTER_NUMBER" && string.IsNullOrWhiteSpace(_newCharterNumber))
+        {
+            _error = "Выберите номер типового устава";
+            return;
+        }
+
+        _isSubmitting = true;
+        _error = null;
+
+        try
+        {
+            string? payload = null;
+
+            if (_selectedType.Code == "DEMAND_VOSU")
+            {
+                payload = System.Text.Json.JsonSerializer.Serialize(new
+                {
+                    text = _demandText,
+                    reason = _demandReason
+                });
+            }
+            else if (_selectedType.Code == "CHANGE_STANDARD_CHARTER_NUMBER")
+            {
+                payload = System.Text.Json.JsonSerializer.Serialize(new
+                {
+                    newCharterNumber = _newCharterNumber
+                });
+            }
+            else if (!string.IsNullOrWhiteSpace(_demandText))
+            {
+                payload = System.Text.Json.JsonSerializer.Serialize(new
+                {
+                    text = _demandText
+                });
+            }
+
+            var dto = new
+            {
+                RequestTypeId = _selectedType.Id,
+                Payload = payload
+            };
+
+            var response = await Http.PostAsJsonAsync("/api/share-requests", dto);
+            if (response.IsSuccessStatusCode)
+            {
+                Nav.NavigateTo("/share-requests", forceLoad: true);
+            }
+            else
+            {
+                var body = await response.Content.ReadAsStringAsync();
+                _error = $"Ошибка создания: {body}";
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Ошибка создания запроса");
+            _error = $"Ошибка создания запроса: {ex.Message}";
+        }
+        finally
+        {
+            _isSubmitting = false;
+        }
+    }
+
+    private static string GetDescription(string code) => code switch
+    {
+        "PREEMPTIVE_LIST" => "Вы имеете право запросить актуальный список участников для реализации преимущественного права покупки доли",
+        "NOTARIAL_OFFER" => "Направление нотариально удостоверенного предложения о покупке доли",
+        "EXIT_APPLICATION" => "Выход из общества путём подачи заявления. Доля переходит к обществу",
+        "MANDATORY_BUYBACK" => "Требование о выкупе доли обществом при определённых обстоятельствах",
+        "NOTARY_LIST_MAINTENANCE" => "Утверждение ведения реестра участников через нотариальную контору",
+        "CONVERT_TO_NJSC" => "Требование о реорганизации общества путём преобразования в непубличное акционерное общество",
+        "CHANGE_STANDARD_CHARTER_NUMBER" => "Переход на другой вариант типового устава",
+        "CONVERT_STANDARD_TO_CUSTOM_CHARTER" => "Принятие индивидуального устава вместо типового",
+        "CHANGE_CUSTOM_CHARTER_PROVISION" => "Внесение изменений в действующий нетиповой устав",
+        "CHANGE_CHARTER_PROVISION" => "Внесение изменений в положение устава (НАО/ПАО)",
+        "DEMAND_VOSU" => "Право участников с долей ≥10% потребовать внеочередного собрания (ст. 35 14-ФЗ)",
+        "ADD_AGENDA_OSU" => "Внесение дополнительного вопроса в повестку очередного собрания (п. 2 ст. 36 14-ФЗ)",
+        "REQUEST_INFORMATION" => "Право участника на доступ к документам общества (ст. 50 14-ФЗ)",
+        "EXCLUDE_PARTICIPANT" => "Требование об исключении участника, совершившего вред обществу (ст. 10 14-ФЗ)",
+        "DEMAND_VOSA" => "Право акционеров с долей ≥10% потребовать внеочередного собрания (ст. 55 208-ФЗ)",
+        "ADD_AGENDA_GOSA" => "Внесение вопроса в повестку годового собрания (ст. 53 208-ФЗ)",
+        "DEMAND_INFO_AO" => "Право акционеров на доступ к документам общества (ст. 89 208-ФЗ)",
+        _ => "Выберите для получения подробной информации"
+    };
+
+    private static string GetLegalBasis(string code) => code switch
+    {
+        "DEMAND_VOSU" => "ст. 35 14-ФЗ «Об ООО» — Право участников на созыв внеочередного собрания",
+        "ADD_AGENDA_OSU" => "п. 2 ст. 36 14-ФЗ — Право участников на включение вопросов в повестку",
+        "REQUEST_INFORMATION" => "ст. 50 14-ФЗ — Право участников на доступ к документам общества",
+        "EXCLUDE_PARTICIPANT" => "ст. 10 14-ФЗ — Исключение участника из общества",
+        "DEMAND_VOSA" => "ст. 55 208-ФЗ — Право акционеров на созыв внеочередного собрания",
+        "ADD_AGENDA_GOSA" => "ст. 53 208-ФЗ — Право акционеров на включение вопросов в повестку",
+        "DEMAND_INFO_AO" => "ст. 89 208-ФЗ — Право акционеров на доступ к документам",
+        "NOTARY_LIST_MAINTENANCE" => "ст. 32.1 14-ФЗ — Ведение списка участников",
+        "EXIT_APPLICATION" => "ст. 26 14-ФЗ — Выход участника из общества",
+        "CONVERT_TO_NJSC" => "ст. 57 14-ФЗ — Преобразование общества",
+        _ => ""
+    };
+
+    private static string GetConditions(string code) => code switch
+    {
+        "DEMAND_VOSU" => "Требуется владеть не менее 10% голосов (или иной порог, установленный уставом)",
+        "ADD_AGENDA_OSU" => "Требуется владеть не менее 2% голосов (п. 2 ст. 36 14-ФЗ)",
+        "EXIT_APPLICATION" => "Выход возможен только если он предусмотрен уставом",
+        "CHANGE_STANDARD_CHARTER_NUMBER" => "Текущий устав должен быть типовым",
+        "CONVERT_STANDARD_TO_CUSTOM_CHARTER" => "Текущий устав должен быть типовым",
+        "CHANGE_CUSTOM_CHARTER_PROVISION" => "Текущий устав должен быть нетиповым",
+        "CHANGE_CHARTER_PROVISION" => "Только для НАО/ПАО",
+        "CONVERT_TO_NJSC" => "Доступно только для ООО",
+        "CONVERT_TO_PJSC" => "Доступно только для НАО",
+        "NOTARY_LIST_MAINTENANCE" => "Ведение списка через нотариат ещё не утверждено",
+        _ => ""
+    };
+
+    private static bool IsCollectiveType(string code) => code switch
+    {
+        "DEMAND_VOSU" => true,       // 10% порог
+        "ADD_AGENDA_OSU" => true,    // 2% порог
+        "EXCLUDE_PARTICIPANT" => true, // 2/3 порог
+        "DEMAND_VOSA" => true,       // 10% порог
+        "ADD_AGENDA_GOSA" => true,   // 2% порог
+        "DEMAND_INFO_AO" => true,    // 25% порог
+        _ => false
+    };
+
+    private record RequestTypeDto(Guid Id, string Code, string Name, bool RequiresFile);
+    private record ParticipantDto(Guid Id, string? FullName, decimal? SharePercent);
+}
