@@ -82,5 +82,11 @@ public interface IApplicationDbContext
 
     DbSet<RefRequestType> RequestTypes { get; }
 
+    DbSet<RefDocumentType> DocumentTypes { get; }
+    DbSet<RefDocumentAccessMethod> DocumentAccessMethods { get; }
+    DbSet<RefDocumentRefusalReason> DocumentRefusalReasons { get; }
+
+    DbSet<ShareRequestSupport> ShareRequestSupports { get; }
+
     System.Threading.Tasks.Task<int> SaveChangesAsync(System.Threading.CancellationToken cancellationToken = default);
 }

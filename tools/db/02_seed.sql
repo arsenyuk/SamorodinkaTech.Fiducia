@@ -131,10 +131,45 @@ INSERT INTO ref_request_type(id, code, name, is_for_llc, is_for_njsc, is_for_pjs
     ('a1000000-0000-0000-0000-000000000009','CONVERT_STANDARD_TO_CUSTOM_CHARTER','Требование изменить типовой устав на нетиповой',TRUE,FALSE,FALSE,TRUE,CURRENT_TIMESTAMP),
     ('a1000000-0000-0000-0000-000000000010','CHANGE_CUSTOM_CHARTER_PROVISION','Требование изменить положение нетипового устава',TRUE,FALSE,FALSE,FALSE,CURRENT_TIMESTAMP),
     ('a1000000-0000-0000-0000-000000000011','CHANGE_CHARTER_PROVISION','Требование изменить положение устава',FALSE,TRUE,TRUE,FALSE,CURRENT_TIMESTAMP),
-    ('a1000000-0000-0000-0000-000000000012','DEMAND_VOSU','Требование о созыве ВОСУ',TRUE,FALSE,FALSE,FALSE,CURRENT_TIMESTAMP)
+    ('a1000000-0000-0000-0000-000000000012','DEMAND_VOSU','Требование о созыве ВОСУ',TRUE,FALSE,FALSE,FALSE,CURRENT_TIMESTAMP),
+    ('a1000000-0000-0000-0000-000000000013','ADD_AGENDA_OSU','Требование включить вопрос в повестку ОСУ',TRUE,FALSE,FALSE,FALSE,CURRENT_TIMESTAMP),
+    ('a1000000-0000-0000-0000-000000000014','REQUEST_INFORMATION','Требование о предоставлении информации',TRUE,FALSE,FALSE,FALSE,CURRENT_TIMESTAMP),
+    ('a1000000-0000-0000-0000-000000000015','EXCLUDE_PARTICIPANT','Требование об исключении участника',TRUE,FALSE,FALSE,FALSE,CURRENT_TIMESTAMP),
+    ('a1000000-0000-0000-0000-000000000016','DEMAND_VOSA','Требование о созыве ВОСА',FALSE,TRUE,TRUE,FALSE,CURRENT_TIMESTAMP),
+    ('a1000000-0000-0000-0000-000000000017','ADD_AGENDA_GOSA','Требование включить вопрос в повестку ГОСА',FALSE,TRUE,TRUE,FALSE,CURRENT_TIMESTAMP),
+    ('a1000000-0000-0000-0000-000000000018','DEMAND_INFO_AO','Требование о предоставлении информации (АО)',FALSE,TRUE,TRUE,FALSE,CURRENT_TIMESTAMP)
 ON CONFLICT (code) DO NOTHING;
 
--- Справочник: ref_board_member_appointment_statuses (статусы назначения членов СД)
+-- Справочник: ref_document_type (типы документов для требования)
+INSERT INTO ref_document_type(id, code, name, is_unitary, storage_years, is_for_llc, is_for_njsc, is_for_pjsc, sort_order, created_at) VALUES
+    ('b1000000-0000-0000-0000-000000000001','CHARTER','Устав',TRUE,3,TRUE,FALSE,FALSE,1,CURRENT_TIMESTAMP),
+    ('b1000000-0000-0000-0000-000000000002','FOUNDING_DOCUMENT','Учредительный документ (договор об учреждении)',TRUE,3,TRUE,FALSE,FALSE,2,CURRENT_TIMESTAMP),
+    ('b1000000-0000-0000-0000-000000000003','CREATION_DECISION','Решение о создании общества',TRUE,3,TRUE,FALSE,FALSE,3,CURRENT_TIMESTAMP),
+    ('b1000000-0000-0000-0000-000000000004','PARTICIPANT_REGISTER','Реестр участников',FALSE,3,TRUE,FALSE,FALSE,4,CURRENT_TIMESTAMP),
+    ('b1000000-0000-0000-0000-000000000005','PROTOCOL_OSU','Протоколы общих собраний участников',FALSE,3,TRUE,FALSE,FALSE,5,CURRENT_TIMESTAMP),
+    ('b1000000-0000-0000-0000-000000000006','PROTOCOL_BOD','Протоколы заседаний Совета директоров',FALSE,3,TRUE,FALSE,FALSE,6,CURRENT_TIMESTAMP),
+    ('b1000000-0000-0000-0000-000000000007','ACCOUNTING_DOCUMENTS','Документы бухгалтерского учёта',FALSE,3,TRUE,FALSE,FALSE,7,CURRENT_TIMESTAMP),
+    ('b1000000-0000-0000-0000-000000000008','AFFILIATED_PERSONS','Списки аффилированных лиц',FALSE,3,TRUE,FALSE,FALSE,8,CURRENT_TIMESTAMP),
+    ('b1000000-0000-0000-0000-000000000009','MAJOR_TRANSACTIONS','Документы крупных сделок',FALSE,5,TRUE,FALSE,FALSE,9,CURRENT_TIMESTAMP),
+    ('b1000000-0000-0000-0000-000000000010','RELATED_PARTY_TRANSACTIONS','Сделки с заинтересованностью',FALSE,5,TRUE,FALSE,FALSE,10,CURRENT_TIMESTAMP),
+    ('b1000000-0000-0000-0000-000000000011','INTERNAL_DOCUMENTS','Внутренние документы (положения, регламенты)',FALSE,3,TRUE,FALSE,FALSE,11,CURRENT_TIMESTAMP),
+    ('b1000000-0000-0000-0000-000000000012','ANNUAL_REPORT','Годовой отчёт',FALSE,3,TRUE,FALSE,FALSE,12,CURRENT_TIMESTAMP),
+    ('b1000000-0000-0000-0000-000000000013','FINANCIAL_STATEMENTS','Бухгалтерская (финансовая) отчётность',FALSE,5,TRUE,FALSE,FALSE,13,CURRENT_TIMESTAMP)
+ON CONFLICT (code) DO NOTHING;
+
+-- Справочник: ref_document_access_method (способы доступа к документам)
+INSERT INTO ref_document_access_method(id, code, name, description, deadline_days, sort_order, created_at) VALUES
+    ('c1000000-0000-0000-0000-000000000001','IN_PERSON','Ознакомление в помещении общества','Участник допускается к ознакомлению с документами в помещении исполнительного органа',5,1,CURRENT_TIMESTAMP),
+    ('c1000000-0000-0000-0000-000000000002','COPIES_ISSUE','Выдача копий документов','Общество выдаёт участнику заверенные копии документов. Плата не может превышать затраты на изготовление',NULL,2,CURRENT_TIMESTAMP),
+    ('c1000000-0000-0000-0000-000000000003','ELECTRONIC_COPY','Выдача электронных копий','Общество предоставляет электронные копии документов',NULL,3,CURRENT_TIMESTAMP)
+ON CONFLICT (code) DO NOTHING;
+
+-- Справочник: ref_document_refusal_reason (причины отказа в предоставлении документов)
+INSERT INTO ref_document_refusal_reason(id, code, name, description, legal_basis, sort_order, created_at) VALUES
+    ('d1000000-0000-0000-0000-000000000001','PUBLICLY_AVAILABLE','Документ опубликован на сайте общества','Запрашиваемый документ опубликован на официальном сайте общества в интернете','п. 1 ст. 50 14-ФЗ',1,CURRENT_TIMESTAMP),
+    ('d1000000-0000-0000-0000-000000000002','REPEATED_REQUEST','Повторный запрос в течение 3 лет','Тот же документ запрашивается повторно в течение трёх лет, и первое требование было исполнено','п. 1 ст. 50 14-ФЗ',2,CURRENT_TIMESTAMP),
+    ('d1000000-0000-0000-0000-000000000003','EXPIRED_STORAGE','Истёк срок хранения (> 3 лет)','Документ относится к периоду деятельности общества более трёх лет назад (кроме устава, протоколов собраний)','п. 1 ст. 50 14-ФЗ',3,CURRENT_TIMESTAMP)
+ON CONFLICT (code) DO NOTHING;
 INSERT INTO ref_board_member_appointment_statuses(id, code, name, created_at, created_by) VALUES
     ('6e6bcad9-c361-48a2-9f08-3f86dbab7dc0','ACTIVE','Действующий',CURRENT_TIMESTAMP,'00000000-0000-0000-0000-000000000000'),
     ('6e6bcad9-c361-48a2-9f08-3f86dbab7dc1','EXPIRED','Истёк срок',CURRENT_TIMESTAMP,'00000000-0000-0000-0000-000000000000'),

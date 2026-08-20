@@ -356,6 +356,487 @@ public static class ShareRequestEndpoints
                 return Results.BadRequest(new { error = ex.Message });
             }
         });
+
+        // ── Коллективные требования ───────────────────────────────────
+
+        // POST: создать коллективное требование
+        shareRequests.MapPost("/collective", async (
+            ShareRequestCollectiveCreateDto dto,
+            IDbContextFactory<FiduciaDbContext> dbFactory,
+            ISecurityAuditService audit,
+            ILoggerFactory loggerFactory,
+            HttpContext http) =>
+        {
+            var logger = loggerFactory.CreateLogger("ShareRequests.CreateCollective");
+            try
+            {
+                await using var ctx = await dbFactory.CreateDbContextAsync();
+                var (leId, error) = await ValidateAccessAsync(ctx, http, audit);
+                if (error is not null) return error;
+
+                // Находим текущего участника
+                var userIdStr = http.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                var createdBy = Guid.TryParse(userIdStr, out var uid) ? uid : Guid.Empty;
+
+                var user = await ctx.Users.FindAsync(createdBy);
+                if (user?.PersonId is null)
+                    return Results.BadRequest(new { error = "Пользователь не привязан к физическому лицу" });
+
+                var participant = await ctx.BoardParticipants
+                    .FirstOrDefaultAsync(p => p.LegalEntityId == leId && p.PersonId == user.PersonId && p.IsActive);
+                if (participant is null)
+                    return Results.BadRequest(new { error = "Не найден участник для текущего пользователя" });
+
+                // Проверяем тип требования
+                var requestType = await ctx.RequestTypes.FindAsync(dto.RequestTypeId);
+                if (requestType is null)
+                    return Results.BadRequest(new { error = $"Неизвестный тип требования: {dto.RequestTypeId}" });
+
+                var le = await ctx.LegalEntities
+                    .Include(x => x.RefOkopf)
+                    .FirstOrDefaultAsync(x => x.Id == leId);
+                var okopfCode = le?.RefOkopf?.Code;
+                var isLlc = OkopfTypeMapper.IsLlc(okopfCode);
+
+                if (isLlc && !requestType.IsForLlc)
+                    return Results.BadRequest(new { error = $"Тип требования «{requestType.Name}» не доступен для ООО" });
+
+                // Загружаем порог устава (если нужен)
+                var charter = await ctx.LegalEntityCharters.FindAsync(leId);
+                var threshold = dto.RequireThreshold ? charter?.VosuThresholdPercent : null;
+
+                // Создаём запрос
+                var entity = new ShareRequest
+                {
+                    Id = Guid.NewGuid(),
+                    LegalEntityId = leId!.Value,
+                    ParticipantId = participant.Id,
+                    RequestTypeId = dto.RequestTypeId,
+                    Status = "pending",
+                    Payload = dto.Payload,
+                    CreatedBy = createdBy,
+                    IsCollective = true,
+                    ThresholdPercent = threshold,
+                    TotalSupportPercent = participant.SharePercent ?? 0m,
+                    SupporterCount = 1,
+                    CollectiveStatus = threshold.HasValue ? "COLLECTING" : "SUBMITTED_TO_CEO"
+                };
+
+                // Автоматически добавляем поддержку инициатора
+                var initiatorSupport = new ShareRequestSupport
+                {
+                    Id = Guid.NewGuid(),
+                    ShareRequestId = entity.Id,
+                    ParticipantId = participant.Id,
+                    SharePercentAtSupport = participant.SharePercent ?? 0m,
+                    SupportedAt = DateTime.UtcNow
+                };
+
+                if (!threshold.HasValue)
+                    entity.SubmittedToCeoAt = DateTime.UtcNow;
+
+                ctx.ShareRequests.Add(entity);
+                ctx.ShareRequestSupports.Add(initiatorSupport);
+                await ctx.SaveChangesAsync();
+
+                return Results.Ok(MapToDto(entity));
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Ошибка создания коллективного требования");
+                return Results.BadRequest(new { error = ex.Message });
+            }
+        });
+
+        // POST: поддержать коллективное требование
+        shareRequests.MapPost("/{id}/support", async (
+            Guid id,
+            IDbContextFactory<FiduciaDbContext> dbFactory,
+            ISecurityAuditService audit,
+            ILoggerFactory loggerFactory,
+            HttpContext http) =>
+        {
+            var logger = loggerFactory.CreateLogger("ShareRequests.Support");
+            try
+            {
+                await using var ctx = await dbFactory.CreateDbContextAsync();
+                var (leId, error) = await ValidateAccessAsync(ctx, http, audit);
+                if (error is not null) return error;
+
+                var request = await ctx.ShareRequests.FindAsync(id);
+                if (request is null || request.LegalEntityId != leId || !request.IsCollective)
+                    return Results.NotFound();
+
+                if (request.CollectiveStatus != "COLLECTING")
+                    return Results.BadRequest(new { error = "Поддержка доступна только для требований в статусе «Сбор поддержек»" });
+
+                // Находим текущего участника
+                var userIdStr = http.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                var userId = Guid.TryParse(userIdStr, out var uid) ? uid : Guid.Empty;
+
+                var user = await ctx.Users.FindAsync(userId);
+                if (user?.PersonId is null)
+                    return Results.BadRequest(new { error = "Пользователь не привязан к физическому лицу" });
+
+                var participant = await ctx.BoardParticipants
+                    .FirstOrDefaultAsync(p => p.LegalEntityId == leId && p.PersonId == user.PersonId && p.IsActive);
+                if (participant is null)
+                    return Results.BadRequest(new { error = "Не найден участник для текущего пользователя" });
+
+                // Проверяем: не поддерживал ли уже
+                var existingSupport = await ctx.ShareRequestSupports
+                    .FirstOrDefaultAsync(s => s.ShareRequestId == id && s.ParticipantId == participant.Id && s.WithdrawnAt == null);
+                if (existingSupport is not null)
+                    return Results.BadRequest(new { error = "Вы уже поддержали это требование" });
+
+                // Добавляем поддержку
+                var support = new ShareRequestSupport
+                {
+                    Id = Guid.NewGuid(),
+                    ShareRequestId = id,
+                    ParticipantId = participant.Id,
+                    SharePercentAtSupport = participant.SharePercent ?? 0m,
+                    SupportedAt = DateTime.UtcNow
+                };
+
+                ctx.ShareRequestSupports.Add(support);
+
+                // Пересчитываем суммарную долю
+                request.TotalSupportPercent += support.SharePercentAtSupport;
+                request.SupporterCount += 1;
+
+                // Проверяем порог
+                if (request.ThresholdPercent.HasValue
+                    && request.TotalSupportPercent >= request.ThresholdPercent.Value
+                    && request.CollectiveStatus == "COLLECTING")
+                {
+                    request.CollectiveStatus = "THRESHOLD_REACHED";
+                    await NotifyCeoAsync(ctx, request, logger);
+                }
+
+                await ctx.SaveChangesAsync();
+
+                return Results.Ok(new { request.TotalSupportPercent, request.SupporterCount, request.CollectiveStatus });
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Ошибка поддержки требования {Id}", id);
+                return Results.BadRequest(new { error = ex.Message });
+            }
+        });
+
+        // POST: отозвать поддержку
+        shareRequests.MapPost("/{id}/withdraw", async (
+            Guid id,
+            IDbContextFactory<FiduciaDbContext> dbFactory,
+            ISecurityAuditService audit,
+            ILoggerFactory loggerFactory,
+            HttpContext http) =>
+        {
+            var logger = loggerFactory.CreateLogger("ShareRequests.Withdraw");
+            try
+            {
+                await using var ctx = await dbFactory.CreateDbContextAsync();
+                var (leId, error) = await ValidateAccessAsync(ctx, http, audit);
+                if (error is not null) return error;
+
+                var request = await ctx.ShareRequests.FindAsync(id);
+                if (request is null || request.LegalEntityId != leId || !request.IsCollective)
+                    return Results.NotFound();
+
+                if (request.CollectiveStatus != "COLLECTING")
+                    return Results.BadRequest(new { error = "Отзыв доступен только для требований в статусе «Сбор поддержек»" });
+
+                // Находим текущего участника
+                var userIdStr = http.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                var userId = Guid.TryParse(userIdStr, out var uid) ? uid : Guid.Empty;
+
+                var user = await ctx.Users.FindAsync(userId);
+                if (user?.PersonId is null)
+                    return Results.BadRequest(new { error = "Пользователь не привязан к физическому лицу" });
+
+                var participant = await ctx.BoardParticipants
+                    .FirstOrDefaultAsync(p => p.LegalEntityId == leId && p.PersonId == user.PersonId && p.IsActive);
+                if (participant is null)
+                    return Results.BadRequest(new { error = "Не найден участник для текущего пользователя" });
+
+                var support = await ctx.ShareRequestSupports
+                    .FirstOrDefaultAsync(s => s.ShareRequestId == id && s.ParticipantId == participant.Id && s.WithdrawnAt == null);
+                if (support is null)
+                    return Results.BadRequest(new { error = "Вы не поддерживали это требование" });
+
+                // Отзываем поддержку
+                support.WithdrawnAt = DateTime.UtcNow;
+
+                // Пересчитываем суммарную долю
+                request.TotalSupportPercent -= support.SharePercentAtSupport;
+                request.SupporterCount -= 1;
+
+                await ctx.SaveChangesAsync();
+
+                return Results.Ok(new { request.TotalSupportPercent, request.SupporterCount, request.CollectiveStatus });
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Ошибка отзыва поддержки {Id}", id);
+                return Results.BadRequest(new { error = ex.Message });
+            }
+        });
+
+        // POST: решение ГД
+        shareRequests.MapPost("/{id}/decide", async (
+            Guid id,
+            ShareRequestDecideDto dto,
+            IDbContextFactory<FiduciaDbContext> dbFactory,
+            ISecurityAuditService audit,
+            ILoggerFactory loggerFactory,
+            HttpContext http) =>
+        {
+            var logger = loggerFactory.CreateLogger("ShareRequests.Decide");
+            try
+            {
+                await using var ctx = await dbFactory.CreateDbContextAsync();
+                var (leId, error) = await ValidateAccessAsync(ctx, http, audit);
+                if (error is not null) return error;
+
+                // Проверяем роль CEO
+                var userIdStr = http.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                var userId = Guid.TryParse(userIdStr, out var uid) ? uid : Guid.Empty;
+
+                var user = await ctx.Users
+                    .Include(u => u.UserRoles).ThenInclude(ur => ur.Role)
+                    .FirstOrDefaultAsync(u => u.Id == userId);
+                var isCeo = user?.UserRoles?.Any(ur => ur.Role?.Code == "CEO") ?? false;
+                if (!isCeo)
+                    return Results.Forbid();
+
+                var request = await ctx.ShareRequests.FindAsync(id);
+                if (request is null || request.LegalEntityId != leId || !request.IsCollective)
+                    return Results.NotFound();
+
+                if (request.CollectiveStatus != "THRESHOLD_REACHED" && request.CollectiveStatus != "SUBMITTED_TO_CEO")
+                    return Results.BadRequest(new { error = $"Невозможно принять решение для требования в статусе «{request.CollectiveStatus}»" });
+
+                if (dto.Decision != "ACCEPTED" && dto.Decision != "REJECTED")
+                    return Results.BadRequest(new { error = "Решение должно быть ACCEPTED или REJECTED" });
+
+                request.CollectiveStatus = dto.Decision;
+                request.CeoComment = dto.Comment;
+                request.CeoDecisionAt = DateTime.UtcNow;
+                request.DecidedByUserId = userId;
+                request.SubmittedToCeoAt ??= DateTime.UtcNow;
+
+                await ctx.SaveChangesAsync();
+
+                // Уведомляем всех поддержавших
+                await NotifySupportersAsync(ctx, request, logger);
+
+                return Results.Ok(MapToDto(request));
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Ошибка решения по требованию {Id}", id);
+                return Results.BadRequest(new { error = ex.Message });
+            }
+        });
+
+        // GET: список коллективных требований
+        shareRequests.MapGet("/collective", async (
+            string? status,
+            IDbContextFactory<FiduciaDbContext> dbFactory,
+            ISecurityAuditService audit,
+            ILoggerFactory loggerFactory,
+            HttpContext http) =>
+        {
+            var logger = loggerFactory.CreateLogger("ShareRequests.ListCollective");
+            try
+            {
+                await using var ctx = await dbFactory.CreateDbContextAsync();
+                var (leId, error) = await ValidateAccessAsync(ctx, http, audit);
+                if (error is not null) return error;
+
+                var query = ctx.ShareRequests
+                    .Include(r => r.RequestType)
+                    .Include(r => r.Participant)
+                    .Where(r => r.LegalEntityId == leId && r.IsCollective);
+
+                if (!string.IsNullOrEmpty(status))
+                    query = query.Where(r => r.CollectiveStatus == status);
+
+                var items = await query
+                    .OrderByDescending(r => r.CreatedAt)
+                    .ToListAsync();
+
+                return Results.Ok(items.Select(MapToCollectiveDto));
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Ошибка получения списка коллективных требований");
+                return Results.BadRequest(new { error = ex.Message });
+            }
+        });
+
+        // GET: требования на рассмотрении ГД
+        shareRequests.MapGet("/ceo-review", async (
+            IDbContextFactory<FiduciaDbContext> dbFactory,
+            ISecurityAuditService audit,
+            ILoggerFactory loggerFactory,
+            HttpContext http) =>
+        {
+            var logger = loggerFactory.CreateLogger("ShareRequests.CeoReview");
+            try
+            {
+                await using var ctx = await dbFactory.CreateDbContextAsync();
+                var (leId, error) = await ValidateAccessAsync(ctx, http, audit);
+                if (error is not null) return error;
+
+                // Проверяем роль CEO
+                var userIdStr = http.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                var userId = Guid.TryParse(userIdStr, out var uid) ? uid : Guid.Empty;
+                var user = await ctx.Users
+                    .Include(u => u.UserRoles).ThenInclude(ur => ur.Role)
+                    .FirstOrDefaultAsync(u => u.Id == userId);
+                var isCeo = user?.UserRoles?.Any(ur => ur.Role?.Code == "CEO") ?? false;
+                if (!isCeo)
+                    return Results.Forbid();
+
+                // ГД видит требования, которые:
+                // 1. Достигли порога (collective_status = "THRESHOLD_REACHED")
+                // 2. ИЛИ когда есть активная ОСУ (any OsaMeeting with Status = "DRAFT")
+                var hasActiveOsa = await ctx.OsaMeetings.AnyAsync(m => m.LegalEntityId == leId && m.Status == "DRAFT");
+
+                var query = ctx.ShareRequests
+                    .Include(r => r.RequestType)
+                    .Include(r => r.Participant)
+                    .Where(r => r.LegalEntityId == leId && r.IsCollective);
+
+                if (hasActiveOsa)
+                {
+                    // В окно ОСУ — все не завершённые требования
+                    query = query.Where(r => r.CollectiveStatus != "ACCEPTED" && r.CollectiveStatus != "REJECTED");
+                }
+                else
+                {
+                    // Только достигшие порога
+                    query = query.Where(r => r.CollectiveStatus == "THRESHOLD_REACHED");
+                }
+
+                var items = await query
+                    .OrderByDescending(r => r.CreatedAt)
+                    .ToListAsync();
+
+                return Results.Ok(items.Select(MapToCollectiveDto));
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Ошибка получения требований для ГД");
+                return Results.BadRequest(new { error = ex.Message });
+            }
+        });
+
+        // GET: список поддержавших
+        shareRequests.MapGet("/{id}/supports", async (
+            Guid id,
+            IDbContextFactory<FiduciaDbContext> dbFactory,
+            ISecurityAuditService audit,
+            ILoggerFactory loggerFactory,
+            HttpContext http) =>
+        {
+            var logger = loggerFactory.CreateLogger("ShareRequests.Supports");
+            try
+            {
+                await using var ctx = await dbFactory.CreateDbContextAsync();
+                var (leId, error) = await ValidateAccessAsync(ctx, http, audit);
+                if (error is not null) return error;
+
+                var request = await ctx.ShareRequests.FirstOrDefaultAsync(r => r.Id == id && r.LegalEntityId == leId);
+                if (request is null)
+                    return Results.NotFound();
+
+                var userIdStr = http.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                var userId = Guid.TryParse(userIdStr, out var uid) ? uid : Guid.Empty;
+                var currentUser = await ctx.Users.FindAsync(userId);
+                var currentParticipant = currentUser?.PersonId is not null
+                    ? await ctx.BoardParticipants.FirstOrDefaultAsync(p => p.LegalEntityId == leId && p.PersonId == currentUser.PersonId && p.IsActive)
+                    : null;
+
+                var supports = await ctx.ShareRequestSupports
+                    .Include(s => s.Participant)
+                    .Where(s => s.ShareRequestId == id)
+                    .OrderByDescending(s => s.SupportedAt)
+                    .ToListAsync();
+
+                return Results.Ok(supports.Select(s => new
+                {
+                    s.Id,
+                    ParticipantName = s.Participant?.FullName ?? s.Participant?.CompanyName,
+                    s.SharePercentAtSupport,
+                    s.SupportedAt,
+                    s.WithdrawnAt,
+                    IsCurrentUser = s.ParticipantId == currentParticipant?.Id,
+                    IsActive = s.WithdrawnAt == null
+                }));
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Ошибка получения поддержек {Id}", id);
+                return Results.BadRequest(new { error = ex.Message });
+            }
+        });
+    }
+
+    private static async Task NotifyCeoAsync(FiduciaDbContext ctx, ShareRequest request, ILogger logger)
+    {
+        var ceoUsers = await ctx.UserRoles
+            .Include(ur => ur.User)
+            .Where(ur => ur.Role.Code == "CEO")
+            .Select(ur => ur.User!)
+            .ToListAsync();
+
+        foreach (var ceo in ceoUsers)
+        {
+            ctx.Notifications.Add(new Notification
+            {
+                Id = Guid.NewGuid(),
+                UserId = ceo.Id,
+                NotificationType = "COLLECTIVE_DEMAND_THRESHOLD",
+                Title = "Коллективное требование набрало порог",
+                Body = $"Коллективное требование набрало {request.TotalSupportPercent}% (порог: {request.ThresholdPercent}%). Требуется рассмотрение.",
+                CreatedAt = DateTime.UtcNow
+            });
+        }
+    }
+
+    private static async Task NotifySupportersAsync(FiduciaDbContext ctx, ShareRequest request, ILogger logger)
+    {
+        var supporterIds = await ctx.ShareRequestSupports
+            .Where(s => s.ShareRequestId == request.Id && s.WithdrawnAt == null)
+            .Select(s => s.ParticipantId)
+            .ToListAsync();
+
+        var personIds = await ctx.BoardParticipants
+            .Where(p => supporterIds.Contains(p.Id) && p.PersonId != null)
+            .Select(p => p.PersonId!.Value)
+            .ToListAsync();
+
+        var userIds = await ctx.Users
+            .Where(u => personIds.Contains(u.PersonId!.Value))
+            .Select(u => u.Id)
+            .ToListAsync();
+
+        var decisionText = request.CollectiveStatus == "ACCEPTED" ? "принято" : "отклонено";
+        foreach (var userId in userIds)
+        {
+            ctx.Notifications.Add(new Notification
+            {
+                Id = Guid.NewGuid(),
+                UserId = userId,
+                NotificationType = "COLLECTIVE_DEMAND_DECISION",
+                Title = $"Решение ГД: {decisionText}",
+                Body = $"Генеральный директор {decisionText} коллективное требование.",
+                CreatedAt = DateTime.UtcNow
+            });
+        }
     }
 
     /// <summary>Специфичная валидация по типу запроса.</summary>
@@ -557,8 +1038,30 @@ public static class ShareRequestEndpoints
         r.RevokedByNotarized,
         r.VisibleToAll
     };
+
+    private static object MapToCollectiveDto(ShareRequest r) => new
+    {
+        r.Id,
+        r.LegalEntityId,
+        RequestTypeId = r.RequestTypeId,
+        RequestTypeCode = r.RequestType?.Code,
+        RequestTypeName = r.RequestType?.Name,
+        InitiatorName = r.Participant?.FullName ?? r.Participant?.CompanyName,
+        r.Payload,
+        r.Status,
+        r.CollectiveStatus,
+        r.ThresholdPercent,
+        r.TotalSupportPercent,
+        r.SupporterCount,
+        r.CreatedAt,
+        r.SubmittedToCeoAt,
+        r.CeoDecisionAt,
+        r.CeoComment
+    };
 }
 
 public record ShareRequestCreateDto(Guid RequestTypeId, string? Payload);
 public record ShareRequestCompleteDto(string? Status, string? Payload);
 public record ShareRequestRevokeDto(bool Notarized);
+public record ShareRequestCollectiveCreateDto(Guid RequestTypeId, string? Payload, string? DemandText, bool RequireThreshold);
+public record ShareRequestDecideDto(string Decision, string? Comment);

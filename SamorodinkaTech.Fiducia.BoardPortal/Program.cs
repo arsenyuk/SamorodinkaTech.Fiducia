@@ -443,7 +443,7 @@ app.MapAoContractorEndpoints();
 // ── Participants API (Реестр участников общества) ──────────────────────
 app.MapParticipantEndpoints();
 
-// ── Share Requests API (Запросы участника в общество) ──────────────────
+// ── Share Requests API (Запросы участника в общество + коллективные) ───
 app.MapShareRequestEndpoints();
 
 // ── Agenda Items API (Повестка ОСУ) ────────────────────────────────────

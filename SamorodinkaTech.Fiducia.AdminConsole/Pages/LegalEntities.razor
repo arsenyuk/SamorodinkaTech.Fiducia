@@ -110,6 +110,12 @@
                         <button class="nav-link @(_activeTab == 6 ? "active" : "")" @onclick="() => _activeTab = 6">Комитеты</button>
                     </li>
                 }
+                @if (_orgType == OrgType.LLC)
+                {
+                    <li class="nav-item">
+                        <button class="nav-link @(_activeTab == 7 ? "active" : "")" @onclick="() => _activeTab = 7">Нотариальное ведение</button>
+                    </li>
+                }
             </ul>
 
             @if (_activeTab == 0)
@@ -553,6 +559,37 @@
                 </div>
                 }
             }  @* end of _activeTab == 6 *@
+
+            @if (_activeTab == 7)
+            {
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-body">
+                                <h5 class="card-title">Ведение списка участников через нотариат</h5>
+                                @if (_extraSettings?.NotaryListApproved == true)
+                                {
+                                    <div class="alert alert-success py-2 mb-3">
+                                        <strong>Статус:</strong> утверждено
+                                        <br />
+                                        <strong>Дата решения:</strong> @_extraSettings.NotaryListDecisionDate
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="alert alert-secondary py-2 mb-3">
+                                        <strong>Статус:</strong> не утверждено
+                                    </div>
+                                    <p class="text-muted small">
+                                        Утверждение ведения списка через нотариат осуществляется решением ОСУ
+                                        через повестку ОСУ в Board Portal.
+                                    </p>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
 
             @if (_activeTab == 4)
             {
@@ -1169,6 +1206,9 @@
         // Загружаем настройки устава
         await LoadCharterSettings(le.Id);
 
+        // Загружаем доп. настройки (нотариальное ведение реестра)
+        await LoadExtraSettingsAsync(le.Id);
+
         // Для ООО — наличие СД определяется уставом
         if (_orgType == OrgType.LLC)
             editHasBoardOfDirectors = string.IsNullOrEmpty(_editCharterNumber) && _customHasBoardOfDirectors;
@@ -1779,6 +1819,28 @@
             _isLoadingCharter = false;
         }
     }
+
+    private ExtraSettingsDto? _extraSettings;
+
+    private async Task LoadExtraSettingsAsync(Guid legalEntityId)
+    {
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+            var extra = await ctx.LegalEntityExtraSettings
+                .FirstOrDefaultAsync(x => x.LegalEntityId == legalEntityId);
+            _extraSettings = extra is not null
+                ? new ExtraSettingsDto(extra.NotaryListApproved, extra.NotaryListDecisionDate?.ToString("dd.MM.yyyy"))
+                : new ExtraSettingsDto(false, null);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Ошибка загрузки доп. настроек для ЮЛ {LegalEntityId}", legalEntityId);
+            _extraSettings = new ExtraSettingsDto(false, null);
+        }
+    }
+
+    private record ExtraSettingsDto(bool NotaryListApproved, string? NotaryListDecisionDate);
 
     private async Task LoadCharterAsync(SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext? ctx, Guid legalEntityId)
     {

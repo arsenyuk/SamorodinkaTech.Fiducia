@@ -59,4 +59,39 @@ public class ShareRequest
 
     /// <summary>Нотариальное заверение.</summary>
     public Notarization? Notarization { get; set; }
+
+    // ── Коллективное требование ──────────────────────────────────
+
+    /// <summary>Признак коллективного требования (is_collective).</summary>
+    public bool IsCollective { get; set; }
+
+    /// <summary>Порог доли для коллективного требования (threshold_percent). NULL = без порога.</summary>
+    public decimal? ThresholdPercent { get; set; }
+
+    /// <summary>Суммарная доля поддержавших (total_support_percent).</summary>
+    public decimal TotalSupportPercent { get; set; }
+
+    /// <summary>Количество поддержавших (supporter_count).</summary>
+    public int SupporterCount { get; set; }
+
+    /// <summary>Статус коллективного требования: COLLECTING / THRESHOLD_REACHED / SUBMITTED_TO_CEO / ACCEPTED / REJECTED (collective_status).</summary>
+    public string? CollectiveStatus { get; set; }
+
+    /// <summary>Дата направления ГД (submitted_to_ceo_at).</summary>
+    public DateTime? SubmittedToCeoAt { get; set; }
+
+    /// <summary>Дата решения ГД (ceo_decision_at).</summary>
+    public DateTime? CeoDecisionAt { get; set; }
+
+    /// <summary>Комментарий ГД (ceo_comment).</summary>
+    public string? CeoComment { get; set; }
+
+    /// <summary>Идентификатор ГД, принявшего решение (decided_by_user_id).</summary>
+    public Guid? DecidedByUserId { get; set; }
+
+    /// <summary>Пользователь, принявший решение.</summary>
+    public User? DecidedByUser { get; set; }
+
+    /// <summary>Поддержки участников.</summary>
+    public ICollection<ShareRequestSupport> Supports { get; set; } = new List<ShareRequestSupport>();
 }

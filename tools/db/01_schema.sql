@@ -1381,7 +1381,17 @@ CREATE TABLE IF NOT EXISTS share_request (
     visible_to_all boolean NOT NULL DEFAULT FALSE,
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     completed_at timestamp with time zone,
-    created_by uuid REFERENCES users(id) ON DELETE SET NULL
+    created_by uuid REFERENCES users(id) ON DELETE SET NULL,
+    -- Коллективные требования
+    is_collective boolean NOT NULL DEFAULT FALSE,
+    threshold_percent numeric(4,2),
+    total_support_percent numeric(6,2) NOT NULL DEFAULT 0,
+    supporter_count integer NOT NULL DEFAULT 0,
+    collective_status varchar(20),
+    submitted_to_ceo_at timestamp with time zone,
+    ceo_decision_at timestamp with time zone,
+    ceo_comment text,
+    decided_by_user_id uuid REFERENCES users(id) ON DELETE SET NULL
 );
 
 CREATE INDEX IF NOT EXISTS ix_share_request_le ON share_request(legal_entity_id);
@@ -1389,3 +1399,72 @@ CREATE INDEX IF NOT EXISTS ix_share_request_participant ON share_request(partici
 CREATE INDEX IF NOT EXISTS ix_share_request_type_id ON share_request(request_type_id);
 CREATE INDEX IF NOT EXISTS ix_share_request_status ON share_request(status);
 CREATE INDEX IF NOT EXISTS ix_share_request_visible ON share_request(visible_to_all) WHERE visible_to_all = TRUE;
+
+-- ============================================================
+-- SHARE REQUEST SUPPORT — поддержки коллективных требований
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS share_request_support (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    share_request_id uuid NOT NULL REFERENCES share_request(id) ON DELETE RESTRICT,
+    participant_id uuid NOT NULL REFERENCES board_participant(id) ON DELETE RESTRICT,
+    share_percent_at_support numeric(6,2) NOT NULL,
+    supported_at timestamp with time zone NOT NULL DEFAULT NOW(),
+    withdrawn_at timestamp with time zone,
+    created_at timestamp with time zone NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS ix_srs_request ON share_request_support(share_request_id);
+CREATE INDEX IF NOT EXISTS ix_srs_participant ON share_request_support(participant_id);
+CREATE UNIQUE INDEX IF NOT EXISTS ux_srs_request_participant ON share_request_support(share_request_id, participant_id) WHERE withdrawn_at IS NULL;
+
+-- ============================================================
+-- REF_DOCUMENT_TYPE — справочник типов документов для требования
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS ref_document_type (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    code varchar(50) NOT NULL,
+    name varchar(300) NOT NULL,
+    is_unitary boolean NOT NULL DEFAULT FALSE,
+    storage_years integer NOT NULL DEFAULT 3,
+    is_for_llc boolean NOT NULL DEFAULT FALSE,
+    is_for_njsc boolean NOT NULL DEFAULT FALSE,
+    is_for_pjsc boolean NOT NULL DEFAULT FALSE,
+    sort_order integer DEFAULT 0,
+    created_at timestamp with time zone NOT NULL DEFAULT NOW()
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS ux_ref_document_type_code ON ref_document_type(code);
+
+-- ============================================================
+-- REF_DOCUMENT_ACCESS_METHOD — справочник способов доступа к документам
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS ref_document_access_method (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    code varchar(50) NOT NULL,
+    name varchar(300) NOT NULL,
+    description text,
+    deadline_days integer,
+    sort_order integer DEFAULT 0,
+    created_at timestamp with time zone NOT NULL DEFAULT NOW()
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS ux_ref_access_method_code ON ref_document_access_method(code);
+
+-- ============================================================
+-- REF_DOCUMENT_REFUSAL_REASON — справочник причин отказа
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS ref_document_refusal_reason (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    code varchar(50) NOT NULL,
+    name varchar(300) NOT NULL,
+    description text,
+    legal_basis varchar(300),
+    sort_order integer DEFAULT 0,
+    created_at timestamp with time zone NOT NULL DEFAULT NOW()
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS ux_ref_refusal_reason_code ON ref_document_refusal_reason(code);

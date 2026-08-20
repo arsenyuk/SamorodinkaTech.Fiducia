@@ -86,7 +86,11 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
     public DbSet<BoardParticipantChange> BoardParticipantChanges => Set<BoardParticipantChange>();
     public DbSet<ShareRequest> ShareRequests => Set<ShareRequest>();
     public DbSet<RefRequestType> RequestTypes => Set<RefRequestType>();
+    public DbSet<RefDocumentType> DocumentTypes => Set<RefDocumentType>();
+    public DbSet<RefDocumentAccessMethod> DocumentAccessMethods => Set<RefDocumentAccessMethod>();
+    public DbSet<RefDocumentRefusalReason> DocumentRefusalReasons => Set<RefDocumentRefusalReason>();
     public DbSet<Notarization> Notarizations => Set<Notarization>();
+    public DbSet<ShareRequestSupport> ShareRequestSupports => Set<ShareRequestSupport>();
 
     // Junction-таблицы файлов (BDR-011)
     public DbSet<MeetingFile> MeetingFiles => Set<MeetingFile>();
@@ -568,6 +572,7 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.HasKey(x => x.Id);
             b.Property(x => x.Id).HasColumnName("id");
             b.Property(x => x.LegalEntityId).HasColumnName("legal_entity_id").IsRequired();
+            b.Property(x => x.PersonId).HasColumnName("person_id");
             b.Property(x => x.ParticipantType).HasColumnName("participant_type").HasMaxLength(20).IsRequired().HasDefaultValue("FL");
             b.Property(x => x.FullName).HasColumnName("full_name").HasMaxLength(300);
             b.Property(x => x.PassportSeries).HasColumnName("passport_series").HasMaxLength(10);
@@ -1043,6 +1048,67 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.HasIndex(x => x.Key).IsUnique();
         });
 
+        modelBuilder.Entity<ShareRequestSupport>(b =>
+        {
+            b.ToTable("share_request_support");
+            b.HasKey(x => x.Id);
+            b.Property(x => x.Id).HasColumnName("id");
+            b.Property(x => x.ShareRequestId).HasColumnName("share_request_id").IsRequired();
+            b.Property(x => x.ParticipantId).HasColumnName("participant_id").IsRequired();
+            b.Property(x => x.SharePercentAtSupport).HasColumnName("share_percent_at_support").HasColumnType("numeric(6,2)").IsRequired();
+            b.Property(x => x.SupportedAt).HasColumnName("supported_at").IsRequired().HasDefaultValueSql("NOW()");
+            b.Property(x => x.WithdrawnAt).HasColumnName("withdrawn_at");
+            b.Property(x => x.CreatedAt).HasColumnName("created_at").IsRequired().HasDefaultValueSql("NOW()");
+            b.HasOne(x => x.ShareRequest).WithMany(r => r.Supports).HasForeignKey(x => x.ShareRequestId).OnDelete(DeleteBehavior.Restrict);
+            b.HasOne(x => x.Participant).WithMany().HasForeignKey(x => x.ParticipantId).OnDelete(DeleteBehavior.Restrict);
+            b.HasIndex(x => x.ShareRequestId).HasDatabaseName("ix_srs_request");
+            b.HasIndex(x => x.ParticipantId).HasDatabaseName("ix_srs_participant");
+        });
+
+        modelBuilder.Entity<RefDocumentType>(b =>
+        {
+            b.ToTable("ref_document_type");
+            b.HasKey(x => x.Id);
+            b.Property(x => x.Id).HasColumnName("id");
+            b.Property(x => x.Code).HasColumnName("code").HasMaxLength(50).IsRequired();
+            b.Property(x => x.Name).HasColumnName("name").HasMaxLength(300).IsRequired();
+            b.Property(x => x.IsUnitary).HasColumnName("is_unitary").HasDefaultValue(false);
+            b.Property(x => x.StorageYears).HasColumnName("storage_years").HasDefaultValue(3);
+            b.Property(x => x.IsForLlc).HasColumnName("is_for_llc").HasDefaultValue(false);
+            b.Property(x => x.IsForNjsc).HasColumnName("is_for_njsc").HasDefaultValue(false);
+            b.Property(x => x.IsForPjsc).HasColumnName("is_for_pjsc").HasDefaultValue(false);
+            b.Property(x => x.SortOrder).HasColumnName("sort_order").HasDefaultValue(0);
+            b.Property(x => x.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("NOW()");
+            b.HasIndex(x => x.Code).IsUnique().HasDatabaseName("ux_ref_document_type_code");
+        });
+
+        modelBuilder.Entity<RefDocumentAccessMethod>(b =>
+        {
+            b.ToTable("ref_document_access_method");
+            b.HasKey(x => x.Id);
+            b.Property(x => x.Id).HasColumnName("id");
+            b.Property(x => x.Code).HasColumnName("code").HasMaxLength(50).IsRequired();
+            b.Property(x => x.Name).HasColumnName("name").HasMaxLength(300).IsRequired();
+            b.Property(x => x.Description).HasColumnName("description");
+            b.Property(x => x.DeadlineDays).HasColumnName("deadline_days");
+            b.Property(x => x.SortOrder).HasColumnName("sort_order").HasDefaultValue(0);
+            b.Property(x => x.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("NOW()");
+            b.HasIndex(x => x.Code).IsUnique().HasDatabaseName("ux_ref_access_method_code");
+        });
+
+        modelBuilder.Entity<RefDocumentRefusalReason>(b =>
+        {
+            b.ToTable("ref_document_refusal_reason");
+            b.HasKey(x => x.Id);
+            b.Property(x => x.Id).HasColumnName("id");
+            b.Property(x => x.Code).HasColumnName("code").HasMaxLength(50).IsRequired();
+            b.Property(x => x.Name).HasColumnName("name").HasMaxLength(300).IsRequired();
+            b.Property(x => x.Description).HasColumnName("description");
+            b.Property(x => x.LegalBasis).HasColumnName("legal_basis").HasMaxLength(300);
+            b.Property(x => x.SortOrder).HasColumnName("sort_order").HasDefaultValue(0);
+            b.Property(x => x.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("NOW()");
+            b.HasIndex(x => x.Code).IsUnique().HasDatabaseName("ux_ref_refusal_reason_code");
+        });
 
     }
 }

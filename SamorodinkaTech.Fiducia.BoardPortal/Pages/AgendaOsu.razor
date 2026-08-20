@@ -22,20 +22,6 @@
 }
 else
 {
-    @* ── Информация ──────────────────────────────────────────────── *@
-    @if (_notaryListApproved)
-    {
-        <div class="alert alert-success py-2 mb-3 small">
-            <strong>Ведение списка участников через нотариат:</strong> утверждено (@_notaryListDecisionDate)
-        </div>
-    }
-    else
-    {
-        <div class="alert alert-secondary py-2 mb-3 small">
-            <strong>Ведение списка участников через нотариат:</strong> не утверждено
-        </div>
-    }
-
     @* ── Фильтр ────────────────────────────────────────────────────── *@
     <div class="mb-3">
         <select class="form-select form-select-sm" @bind="_filterStatus" style="width: auto;">
@@ -73,23 +59,7 @@ else
                         <td class="d-flex gap-1">
                             @if (item.Status == "PENDING")
                             {
-                                @if (item.IsNotaryList)
-                                {
-                                    @if (!_notaryListApproved)
-                                    {
-                                        <button class="btn btn-sm btn-success" @onclick="() => ApproveNotaryList(item.Id)">
-                                            Утвердить ведение списка через нотариат
-                                        </button>
-                                    }
-                                    else
-                                    {
-                                        <span class="text-muted small me-2">Решение уже принято</span>
-                                    }
-                                }
-                                else
-                                {
-                                    <button class="btn btn-sm btn-success" @onclick="() => AcceptItem(item.Id)">Принять</button>
-                                }
+                                <button class="btn btn-sm btn-success" @onclick="() => AcceptItem(item.Id)">Принять</button>
                                 <button class="btn btn-sm btn-outline-danger" @onclick="() => RejectItem(item.Id)">Отказ</button>
                             }
                         </td>
@@ -105,8 +75,6 @@ else
     private List<AgendaItemDto> _filteredItems => string.IsNullOrEmpty(_filterStatus)
         ? _items
         : _items.Where(x => x.Status == _filterStatus).ToList();
-    private bool _notaryListApproved;
-    private string? _notaryListDecisionDate;
     private string? _filterStatus;
     private bool _loading = true;
     private string? _error;
@@ -116,18 +84,6 @@ else
         try
         {
             _items = await Http.GetFromJsonAsync<List<AgendaItemDto>>("/api/agenda-items?targetType=OSA") ?? new();
-
-            // Загружаем статус ведения списка через нотариат
-            try
-            {
-                var extraSettings = await Http.GetFromJsonAsync<ExtraSettingsDto>("/api/legal-entity/extra-settings");
-                _notaryListApproved = extraSettings?.NotaryListApproved ?? false;
-                _notaryListDecisionDate = extraSettings?.NotaryListDecisionDate;
-            }
-            catch
-            {
-                _notaryListApproved = false;
-            }
         }
         catch (Exception ex)
         {
@@ -188,32 +144,6 @@ else
         }
     }
 
-    private async Task ApproveNotaryList(Guid id)
-    {
-        var confirmed = await JS.InvokeAsync<bool>("confirm",
-            "Утвердить ведение списка участников через нотариат? Это решение не может быть отменено.");
-        if (!confirmed) return;
-
-        try
-        {
-            var response = await Http.PostAsJsonAsync($"/api/agenda-items/{id}/approve-notary-list", new { });
-            if (response.IsSuccessStatusCode)
-            {
-                Nav.NavigateTo("/agenda-osu", forceLoad: true);
-            }
-            else
-            {
-                var body = await response.Content.ReadAsStringAsync();
-                _error = $"Ошибка утверждения: {body}";
-            }
-        }
-        catch (Exception ex)
-        {
-            Logger.LogWarning(ex, "Ошибка утверждения ведения списка через нотариат {Id}", id);
-            _error = "Ошибка утверждения";
-        }
-    }
-
     [Inject] private IJSRuntime JS { get; set; } = default!;
 
     private static MarkupString GetStatusBadge(string status) => status switch
@@ -224,9 +154,5 @@ else
         _ => new($"<span class='badge bg-secondary'>{status}</span>")
     };
 
-    private record AgendaItemDto(Guid Id, string Title, string TargetType, string Reason, string Status, Guid? ShareRequestId, DateTime CreatedAt)
-    {
-        public bool IsNotaryList => Title.Contains("нотариат", StringComparison.OrdinalIgnoreCase);
-    }
-    private record ExtraSettingsDto(bool NotaryListApproved, string? NotaryListDecisionDate);
+    private record AgendaItemDto(Guid Id, string Title, string TargetType, string Reason, string Status, Guid? ShareRequestId, DateTime CreatedAt);
 }

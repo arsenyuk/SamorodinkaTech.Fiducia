@@ -55,5 +55,21 @@ public class ShareRequestConfiguration : IEntityTypeConfiguration<ShareRequest>
             .WithMany()
             .HasForeignKey(r => r.NotarizationId)
             .OnDelete(DeleteBehavior.SetNull);
+
+        // Коллективные требования
+        builder.Property(r => r.IsCollective).HasColumnName("is_collective").HasDefaultValue(false);
+        builder.Property(r => r.ThresholdPercent).HasColumnName("threshold_percent");
+        builder.Property(r => r.TotalSupportPercent).HasColumnName("total_support_percent").HasDefaultValue(0m);
+        builder.Property(r => r.SupporterCount).HasColumnName("supporter_count").HasDefaultValue(0);
+        builder.Property(r => r.CollectiveStatus).HasColumnName("collective_status").HasMaxLength(20);
+        builder.Property(r => r.SubmittedToCeoAt).HasColumnName("submitted_to_ceo_at");
+        builder.Property(r => r.CeoDecisionAt).HasColumnName("ceo_decision_at");
+        builder.Property(r => r.CeoComment).HasColumnName("ceo_comment");
+        builder.Property(r => r.DecidedByUserId).HasColumnName("decided_by_user_id");
+
+        builder.HasOne(r => r.DecidedByUser)
+            .WithMany()
+            .HasForeignKey(r => r.DecidedByUserId)
+            .OnDelete(DeleteBehavior.SetNull);
     }
 }

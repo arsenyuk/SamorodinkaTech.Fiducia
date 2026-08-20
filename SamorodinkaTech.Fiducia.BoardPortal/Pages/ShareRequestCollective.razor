@@ -1,0 +1,354 @@
+@page "/share-requests/{Id:guid}/collective"
+@using System.Net.Http.Json
+@inject HttpClient Http
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+@inject ILogger<ShareRequestCollective> Logger
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+
+<PageTitle>Fiducia — Коллективное требование</PageTitle>
+
+@if (_loading)
+{
+    <div class="text-center py-4">
+        <div class="spinner-border text-primary" role="status"></div>
+    </div>
+}
+else if (_request is null)
+{
+    <div class="alert alert-warning">Требование не найдено</div>
+}
+else
+{
+    <div class="d-flex justify-content-between align-items-start mb-4">
+        <div>
+            <h3>Коллективное требование</h3>
+            <small class="text-muted">от @_request.CreatedAt.ToString("dd.MM.yyyy HH:mm")</small>
+        </div>
+        <a href="/share-requests" class="btn btn-outline-secondary">Назад к списку</a>
+    </div>
+
+    @if (_error is not null)
+    {
+        <div class="alert alert-danger">@_error</div>
+    }
+
+    @* ── Основная информация ──────────────────────────────────────── *@
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <h5>@_request.RequestTypeName</h5>
+                    <p><strong>Инициатор:</strong> @_request.InitiatorName</p>
+                </div>
+                <div class="col-md-6 text-end">
+                    @GetStatusBadge(_request.CollectiveStatus)
+                </div>
+            </div>
+            <hr />
+            @if (!string.IsNullOrEmpty(_request.Payload))
+            {
+                <div class="mb-3">
+                    <strong>Текст требования:</strong>
+                    <p class="mt-1">@_request.Payload</p>
+                </div>
+            }
+        </div>
+    </div>
+
+    @* ── Прогресс сбора поддержек ────────────────────────────────── *@
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5>Прогресс сбора поддержек</h5>
+            <div class="row mt-3">
+                <div class="col-md-4">
+                    <div class="text-center">
+                        <div class="fs-1 fw-bold @(_request.TotalSupportPercent >= (_request.ThresholdPercent ?? 100) ? "text-success" : "text-primary")">
+                            @_request.TotalSupportPercent%
+                        </div>
+                        <div class="text-muted">Набрано</div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="text-center">
+                        <div class="fs-1 fw-bold text-muted">@(_request.ThresholdPercent?.ToString() ?? "—")%</div>
+                        <div class="text-muted">Порог</div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="text-center">
+                        <div class="fs-1 fw-bold text-primary">@_request.SupporterCount</div>
+                        <div class="text-muted">Поддержали</div>
+                    </div>
+                </div>
+            </div>
+            @if (_request.ThresholdPercent.HasValue)
+            {
+                <div class="progress mt-3" style="height: 20px;">
+                    <div class="progress-bar @(_request.TotalSupportPercent >= _request.ThresholdPercent ? "bg-success" : "bg-primary")"
+                         role="progressbar"
+                         style="width: @Math.Min((double)(_request.TotalSupportPercent / _request.ThresholdPercent.Value * 100), 100)%"
+                         aria-valuenow="@_request.TotalSupportPercent"
+                         aria-valuemin="0"
+                         aria-valuemax="@_request.ThresholdPercent">
+                        @_request.TotalSupportPercent% / @_request.ThresholdPercent%
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+
+    @* ── Действия ────────────────────────────────────────────────── *@
+    @if (_request.CollectiveStatus == "COLLECTING")
+    {
+        <div class="card mb-4">
+            <div class="card-body">
+                @if (_currentUserHasSupported)
+                {
+                    <button class="btn btn-outline-warning" @onclick="WithdrawSupportAsync">
+                        Отозвать поддержку
+                    </button>
+                }
+                else
+                {
+                    <button class="btn btn-success" @onclick="SupportRequestAsync">
+                        Поддержать требование
+                    </button>
+                }
+            </div>
+        </div>
+    }
+
+    @* ── Решение ГД ──────────────────────────────────────────────── *@
+    @if ((_request.CollectiveStatus == "THRESHOLD_REACHED" || _request.CollectiveStatus == "SUBMITTED_TO_CEO") && _isCeo)
+    {
+        <div class="card mb-4 border-primary">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">Рассмотрение Генеральным директором</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label">Комментарий</label>
+                    <textarea class="form-control" @bind="_ceoComment" rows="3" placeholder="Комментарий к решению..."></textarea>
+                </div>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-success" @onclick='() => DecideAsync("ACCEPTED")'>
+                        Принять
+                    </button>
+                    <button class="btn btn-danger" @onclick='() => DecideAsync("REJECTED")'>
+                        Отклонить
+                    </button>
+                </div>
+            </div>
+        </div>
+    }
+
+    @* ── Комментарий ГД ──────────────────────────────────────────── *@
+    @if (!string.IsNullOrEmpty(_request.CeoComment))
+    {
+        <div class="card mb-4">
+            <div class="card-body">
+                <h5>Решение ГД</h5>
+                <p><strong>Статус:</strong> @(_request.CollectiveStatus == "ACCEPTED" ? "Принято" : "Отклонено")</p>
+                <p><strong>Дата:</strong> @_request.CeoDecisionAt?.ToString("dd.MM.yyyy HH:mm")</p>
+                <p><strong>Комментарий:</strong></p>
+                <blockquote class="blockquote">
+                    <p class="mb-0">@_request.CeoComment</p>
+                </blockquote>
+            </div>
+        </div>
+    }
+
+    @* ── Список поддержавших ────────────────────────────────────── *@
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Поддержавшие (@_supports.Count)</h5>
+        </div>
+        <div class="card-body p-0">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Участник</th>
+                        <th>Доля</th>
+                        <th>Дата поддержки</th>
+                        <th>Статус</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var s in _supports.OrderByDescending(s => s.IsCurrentUser).ThenByDescending(s => s.IsActive).ThenByDescending(s => s.SupportedAt))
+                    {
+                        <tr class="@(s.IsCurrentUser ? "table-active" : "")">
+                            <td>
+                                @s.ParticipantName
+                                @if (s.IsCurrentUser)
+                                {
+                                    <span class="badge bg-secondary ms-1">Вы</span>
+                                }
+                            </td>
+                            <td>@s.SharePercentAtSupport%</td>
+                            <td>@s.SupportedAt.ToString("dd.MM.yyyy HH:mm")</td>
+                            <td>
+                                @if (s.IsActive)
+                                {
+                                    <span class="badge bg-success">Активна</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary">Отозвана</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+
+    private CollectiveRequestDto? _request;
+    private List<SupportDto> _supports = new();
+    private bool _loading = true;
+    private string? _error;
+    private bool _currentUserHasSupported;
+    private bool _isCeo;
+    private string? _ceoComment;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _request = await Http.GetFromJsonAsync<CollectiveRequestDto>($"/api/share-requests/{Id}");
+            if (_request is not null)
+            {
+                var supportsResponse = await Http.GetFromJsonAsync<List<SupportDto>>($"/api/share-requests/{Id}/supports");
+                _supports = supportsResponse ?? new();
+                _currentUserHasSupported = _supports.Any(s => s.IsCurrentUser && s.IsActive);
+                _isCeo = await CheckIsCeoAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Ошибка загрузки требования {Id}", Id);
+            _error = $"Ошибка загрузки данных: {ex.Message}";
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task<bool> CheckIsCeoAsync()
+    {
+        try
+        {
+            var response = await Http.GetAsync("/api/session/me");
+            if (response.IsSuccessStatusCode)
+            {
+                var me = await response.Content.ReadFromJsonAsync<SessionMe>();
+                return me?.Roles?.Contains("CEO") ?? false;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Ошибка проверки роли CEO");
+        }
+        return false;
+    }
+
+    private async Task SupportRequestAsync()
+    {
+        try
+        {
+            var response = await Http.PostAsJsonAsync($"/api/share-requests/{Id}/support", new { });
+            if (response.IsSuccessStatusCode)
+            {
+                Nav.NavigateTo($"/share-requests/{Id}/collective", forceLoad: true);
+            }
+            else
+            {
+                var body = await response.Content.ReadAsStringAsync();
+                _error = $"Ошибка поддержки: {body}";
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Ошибка поддержки требования {Id}", Id);
+            _error = $"Ошибка поддержки требования: {ex.Message}";
+        }
+    }
+
+    private async Task WithdrawSupportAsync()
+    {
+        var confirmed = await JS.InvokeAsync<bool>("confirm", "Вы уверены, что хотите отозвать поддержку?");
+        if (!confirmed) return;
+
+        try
+        {
+            var response = await Http.PostAsJsonAsync($"/api/share-requests/{Id}/withdraw", new { });
+            if (response.IsSuccessStatusCode)
+            {
+                Nav.NavigateTo($"/share-requests/{Id}/collective", forceLoad: true);
+            }
+            else
+            {
+                var body = await response.Content.ReadAsStringAsync();
+                _error = $"Ошибка отзыва: {body}";
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Ошибка отзыва поддержки {Id}", Id);
+            _error = $"Ошибка отзыва поддержки: {ex.Message}";
+        }
+    }
+
+    private async Task DecideAsync(string decision)
+    {
+        var actionText = decision == "ACCEPTED" ? "принять" : "отклонить";
+        var confirmed = await JS.InvokeAsync<bool>("confirm", $"Вы уверены, что хотите {actionText} требование?");
+        if (!confirmed) return;
+
+        try
+        {
+            var dto = new { Decision = decision, Comment = _ceoComment };
+            var response = await Http.PostAsJsonAsync($"/api/share-requests/{Id}/decide", dto);
+            if (response.IsSuccessStatusCode)
+            {
+                Nav.NavigateTo($"/share-requests/{Id}/collective", forceLoad: true);
+            }
+            else
+            {
+                var body = await response.Content.ReadAsStringAsync();
+                _error = $"Ошибка решения: {body}";
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Ошибка принятия решения {Id}", Id);
+            _error = $"Ошибка принятия решения: {ex.Message}";
+        }
+    }
+
+    private static MarkupString GetStatusBadge(string? status) => status switch
+    {
+        "COLLECTING" => new("<span class='badge bg-info fs-6'>Сбор поддержек</span>"),
+        "THRESHOLD_REACHED" => new("<span class='badge bg-warning fs-6'>Порог достигнут</span>"),
+        "SUBMITTED_TO_CEO" => new("<span class='badge bg-primary fs-6'>На рассмотрении ГД</span>"),
+        "ACCEPTED" => new("<span class='badge bg-success fs-6'>Принято</span>"),
+        "REJECTED" => new("<span class='badge bg-danger fs-6'>Отклонено</span>"),
+        _ => new($"<span class='badge bg-secondary fs-6'>{status}</span>")
+    };
+
+    private record CollectiveRequestDto(Guid Id, Guid RequestTypeId, string? RequestTypeCode, string? RequestTypeName,
+        string? InitiatorName, string? Payload, string Status, string? CollectiveStatus,
+        decimal? ThresholdPercent, decimal TotalSupportPercent, int SupporterCount,
+        DateTime CreatedAt, DateTime? SubmittedToCeoAt, DateTime? CeoDecisionAt, string? CeoComment);
+
+    private record SupportDto(Guid Id, string? ParticipantName, decimal SharePercentAtSupport,
+        DateTime SupportedAt, DateTime? WithdrawnAt, bool IsCurrentUser, bool IsActive);
+
+    private record SessionMe(Guid Id, string? FullName, string[]? Roles);
+}
