@@ -9,7 +9,7 @@
         <div class="modal-dialog modal-lg modal-dialog-scrollable" @onclick:stopPropagation>
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">Статья закона</h5>
+                    <h5 class="modal-title">@_title</h5>
                     <button type="button" class="btn-close" @onclick="CloseModal"></button>
                 </div>
                 <div class="modal-body">
@@ -48,6 +48,7 @@
 
     private bool _showModal;
     private bool _loading;
+    private string _title = "Статья закона";
     private string? _html;
     private string? _error;
 
@@ -55,6 +56,7 @@
     {
         _showModal = true;
         _loading = true;
+        _title = "Статья закона";
         _html = null;
         _error = null;
         StateHasChanged();
@@ -63,6 +65,8 @@
         {
             var url = $"laws/{Article}.txt";
             var md = await Http.GetStringAsync(url);
+            var firstLine = md.Split('\n', 2)[0].TrimStart('#').Trim();
+            _title = string.IsNullOrEmpty(firstLine) ? "Статья закона" : firstLine;
             _html = Markdig.Markdown.ToHtml(md);
         }
         catch (HttpRequestException)
