@@ -86,11 +86,11 @@ erDiagram
     legal_entities {
         uuid id PK
         varchar name
-        varchar okopf_code FK
+        varchar short_name
+        varchar inn
+        varchar ogrn
+        uuid okopf_id FK
         uuid standard_charter_id FK
-        date gosa_start
-        date gosa_end
-        timestamp created_at
     }
 
     legal_entity_charter {
@@ -104,6 +104,18 @@ erDiagram
         boolean decision_confirmation_by_all_sign
         uuid charter_document_id FK
         uuid board_regulation_document_id FK
+        uuid committee_regulation_document_id FK
+        boolean mandatory_audit
+        boolean has_revision_commission
+        boolean has_board_of_directors
+        uuid gd_term_id FK
+    }
+
+    current_workplace {
+        uuid id PK
+        varchar full_name
+        varchar position
+        uuid last_selected_legal_entity_id FK
     }
 
     ref_okopf {
@@ -205,6 +217,7 @@ erDiagram
     legal_entities ||--o{ osa_meetings : "organises"
     legal_entities ||--|| legal_entity_charter : "has charter"
     legal_entities ||--o{ ref_standard_charter : "references"
+    current_workplace }o--|| legal_entities : "selected"
     ref_osa_form ||--o{ osa_meetings : "categorises"
 
     ext_spark_company {
@@ -569,6 +582,53 @@ CREATE TABLE committee_members (
     PRIMARY KEY (committee_id, user_id)
 );
 ```
+
+### legal_entities
+
+Юридические лица. Справочник организаций (ПАО, НАО, ООО).
+
+| Поле | Тип | Описание |
+|------|-----|----------|
+| `id` | UUID | Первичный ключ |
+| `name` | VARCHAR(500) | Полное наименование |
+| `short_name` | VARCHAR(255) | Краткое наименование (nullable) |
+| `inn` | VARCHAR(12) | ИНН (nullable) |
+| `ogrn` | VARCHAR(15) | ОГРН (nullable) |
+| `okopf_id` | UUID | Внешний ключ на ref_okopf |
+| `standard_charter_id` | UUID | Внешний ключ на ref_standard_charter (nullable) |
+
+### legal_entity_charter
+
+Параметры устава (1:1 с legal_entities). Обслуживает и типовой, и нетиповой устав.
+
+| Поле | Тип | Описание |
+|------|-----|----------|
+| `legal_entity_id` | UUID | PK, FK → legal_entities |
+| `exit_allowed` | BOOLEAN | Выход участника из общества разрешён |
+| `transfer_to_participants_without_consent` | BOOLEAN | Переход доли к участникам без согласия остальных |
+| `transfer_to_third_parties_without_consent` | BOOLEAN | Переход доли к третьим лицам без согласия остальных |
+| `preemptive_right` | BOOLEAN | Преимущественное право покупки доли участниками |
+| `inheritance_without_consent` | BOOLEAN | Переход доли к наследникам без согласия остальных |
+| `executive_body` | CHAR(1) | Тип единоличного исп. органа: A — гендиректор, B — каждый участник, C — все совместно |
+| `decision_confirmation_by_all_sign` | BOOLEAN | Подтверждение решений подписанием протокола всеми участниками |
+| `charter_document_id` | UUID | FK → files (текст устава, nullable) |
+| `board_regulation_document_id` | UUID | FK → files (Положение о СД, nullable) |
+| `committee_regulation_document_id` | UUID | FK → files (Положение о комитетах, nullable) |
+| `mandatory_audit` | BOOLEAN | Обязательный аудит (nullable) |
+| `has_revision_commission` | BOOLEAN | Наличие ревизионной комиссии (nullable) |
+| `has_board_of_directors` | BOOLEAN | Наличие Совета директоров по уставу |
+| `gd_term_id` | UUID | FK → ref_gd_term (срок полномочий ГД, nullable) |
+
+### current_workplace
+
+Текущий руководитель и выбранное ЮЛ (singleton, BDR-007). Не более одной записи.
+
+| Поле | Тип | Описание |
+|------|-----|----------|
+| `id` | UUID | Первичный ключ |
+| `full_name` | VARCHAR(300) | ФИО руководителя |
+| `position` | VARCHAR(200) | Должность (nullable) |
+| `last_selected_legal_entity_id` | UUID | FK → legal_entities (выбранное ЮЛ, nullable) |
 
 ### meetings
 

@@ -1,5 +1,8 @@
 @page "/"
 @inject NavigationManager Nav
+@inject IDbContextFactory<SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext> DbFactory
+@using SamorodinkaTech.Fiducia.Domain.Entities
+@using SamorodinkaTech.Fiducia.Domain.Validation
 
 <div class="d-flex align-items-center justify-content-center" style="min-height: 100vh;">
     <div class="text-center">
@@ -7,7 +10,55 @@
         <p class="text-muted mb-4">Цифровой Совет Директоров</p>
         <div class="d-flex gap-3 justify-content-center">
             <a href="/login" class="btn btn-primary btn-lg px-4">Войти в кабинет</a>
-            <a href="/proposal" class="btn btn-outline-primary btn-lg px-4">Подать вопрос в СД</a>
+            @if (_showProposalButton)
+            {
+                <a href="/proposal" class="btn btn-outline-primary btn-lg px-4">Подать вопрос в СД</a>
+            }
         </div>
     </div>
 </div>
+
+@code {
+    private bool _showProposalButton = true;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+            var workplace = await ctx.CurrentWorkplaces.FirstOrDefaultAsync();
+            if (workplace?.LastSelectedLegalEntityId is null)
+            {
+                _showProposalButton = false;
+                StateHasChanged();
+                return;
+            }
+            var le = await ctx.LegalEntities
+                .Where(x => x.Id == workplace.LastSelectedLegalEntityId.Value)
+                .Select(x => new { x.RefOkopf!.Code })
+                .FirstOrDefaultAsync();
+            if (le is null)
+            {
+                _showProposalButton = false;
+                StateHasChanged();
+                return;
+            }
+            if (OkopfTypeMapper.IsPjsc(le.Code) || le.Code == OkopfTypeMapper.NjscCode)
+            {
+                _showProposalButton = true;
+            }
+            else
+            {
+                var charter = await ctx.LegalEntityCharters
+                    .FindAsync(workplace.LastSelectedLegalEntityId.Value);
+                _showProposalButton = charter?.HasBoardOfDirectors ?? false;
+            }
+        }
+        catch
+        {
+            _showProposalButton = false;
+        }
+        StateHasChanged();
+    }
+}
