@@ -37,12 +37,15 @@ else
                 Доли, принадлежащие Обществу
             </button>
         </li>
-        <li class="nav-item">
-            <button type="button" class="nav-link @(_activeTab == 2 ? "active fw-bold" : "")"
-                    @onclick="() => _activeTab = 2">
-                Загрузка реестра
-            </button>
-        </li>
+        @if (_notaryListApproved)
+        {
+            <li class="nav-item">
+                <button type="button" class="nav-link @(_activeTab == 2 ? "active fw-bold" : "")"
+                        @onclick="() => _activeTab = 2">
+                    Нотариальное ведение реестра
+                </button>
+            </li>
+        }
         <li class="nav-item">
             <button type="button" class="nav-link @(_activeTab == 3 ? "active fw-bold" : "")"
                     @onclick="() => _activeTab = 3">
@@ -278,8 +281,8 @@ else
         }
     }
 
-    @* ── Вкладка 3: Загрузка реестра ──────────────────────────── *@
-    @if (_activeTab == 2)
+    @* ── Вкладка 3: Нотариальное ведение реестра ──────────────────── *@
+    @if (_notaryListApproved && _activeTab == 2)
     {
         <div class="card mb-3">
             <div class="card-body">
@@ -819,6 +822,7 @@ else
 
 @code {
     private bool _isLLC;
+    private bool _notaryListApproved;
     private string? _error;
     private int _activeTab;
     private bool _loading = true;
@@ -932,6 +936,11 @@ else
                 Nav.NavigateTo("/main");
                 return;
             }
+
+            // Проверяем статус ведения реестра через нотариат
+            var extraSettings = await ctx.LegalEntityExtraSettings
+                .FirstOrDefaultAsync(x => x.LegalEntityId == le.Id);
+            _notaryListApproved = extraSettings?.NotaryListApproved ?? false;
 
             await LoadData();
             await LoadRegistryUploads();

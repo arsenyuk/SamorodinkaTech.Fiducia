@@ -6,7 +6,8 @@ INSERT INTO persons (id, last_name, first_name, middle_name, email, phone, inn, 
     ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa02', 'Петрова', 'Мария', 'Сергеевна', 'petrova@fiducia.local', '+79002223344', '770234567890', CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000'),
     ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa03', 'Сидоров', 'Алексей', 'Петрович', 'sidorov@fiducia.local', '+79003334455', '770345678901', CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000'),
     ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa04', 'Козлова', 'Елена', 'Дмитриевна', 'kozlova@fiducia.local', '+79004445566', '770456789012', CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000'),
-    ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa05', 'Новиков', 'Дмитрий', 'Александрович', 'novikov@fiducia.local', '+79005556677', '770567890123', CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000')
+    ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa05', 'Новиков', 'Дмитрий', 'Александрович', 'novikov@fiducia.local', '+79005556677', '770567890123', CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000'),
+    ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa06', 'Волков', 'Сергей', 'Андреевич', 'ceo@fiducia.local', '+79006667788', '770678901234', CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000')
 ON CONFLICT (id) DO NOTHING;
 
 -- ============================================================================
@@ -17,7 +18,8 @@ INSERT INTO users (id, person_id, last_name, first_name, email, phone, is_extern
     ('11111111-1111-1111-1111-111111111113', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa02', 'Петрова', 'Мария', 'petrova@fiducia.local', '+79002223344', FALSE, CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000', FALSE),
     ('11111111-1111-1111-1111-111111111114', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa03', 'Сидоров', 'Алексей', 'sidorov@fiducia.local', '+79003334455', TRUE, CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000', FALSE),
     ('11111111-1111-1111-1111-111111111115', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa04', 'Козлова', 'Елена', 'kozlova@fiducia.local', '+79004445566', TRUE, CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000', FALSE),
-    ('11111111-1111-1111-1111-111111111116', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa05', 'Новиков', 'Дмитрий', 'novikov@fiducia.local', '+79005556677', FALSE, CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000', FALSE)
+    ('11111111-1111-1111-1111-111111111116', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa05', 'Новиков', 'Дмитрий', 'novikov@fiducia.local', '+79005556677', FALSE, CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000', FALSE),
+    ('11111111-1111-1111-1111-111111111117', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa06', 'Волков', 'Сергей', 'ceo@fiducia.local', '+79006667788', FALSE, CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000', FALSE)
 ON CONFLICT (id) DO NOTHING;
 
 -- Роли тестовых пользователей
@@ -26,7 +28,8 @@ INSERT INTO user_roles (id, user_id, role_id) VALUES
     ('aaaa0000-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111113', '22222222-2222-2222-2222-222222222222'), -- Петрова = SECRETARY
     ('aaaa0000-0000-0000-0000-000000000003', '11111111-1111-1111-1111-111111111114', '55555555-5555-5555-5555-555555555555'), -- Сидоров = EXTERNAL_DIRECTOR
     ('aaaa0000-0000-0000-0000-000000000004', '11111111-1111-1111-1111-111111111115', '55555555-5555-5555-5555-555555555555'), -- Козлова = EXTERNAL_DIRECTOR
-    ('aaaa0000-0000-0000-0000-000000000005', '11111111-1111-1111-1111-111111111116', '33333333-3333-3333-3333-333333333333')  -- Новиков = CHAIR_BOARD
+    ('aaaa0000-0000-0000-0000-000000000005', '11111111-1111-1111-1111-111111111116', '33333333-3333-3333-3333-333333333333'), -- Новиков = CHAIR_BOARD
+    ('aaaa0000-0000-0000-0000-000000000006', '11111111-1111-1111-1111-111111111117', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaad4')  -- Волков = CEO (Генеральный директор)
 ON CONFLICT (user_id, role_id) DO NOTHING;
 
 -- ============================================================================
