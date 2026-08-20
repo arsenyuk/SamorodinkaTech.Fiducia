@@ -1244,7 +1244,8 @@ CREATE TABLE IF NOT EXISTS board_participant (
     sort_order int NOT NULL DEFAULT 0,
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by uuid
+    created_by uuid,
+    person_id uuid REFERENCES persons(id) ON DELETE SET NULL
 );
 
 CREATE INDEX IF NOT EXISTS ix_board_participant_legal_entity ON board_participant(legal_entity_id);

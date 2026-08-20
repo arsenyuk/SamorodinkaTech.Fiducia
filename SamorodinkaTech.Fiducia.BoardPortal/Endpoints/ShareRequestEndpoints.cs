@@ -165,17 +165,13 @@ public static class ShareRequestEndpoints
                 var userIdStr = http.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
                 var createdBy = Guid.TryParse(userIdStr, out var uid) ? uid : Guid.Empty;
 
-                // Находим участника: user → person → person.inn → participant.person_inn
+                // Находим участника: user → person → person.id = participant.person_id
                 var user = await ctx.Users.FindAsync(createdBy);
                 if (user?.PersonId is null)
                     return Results.BadRequest(new { error = "Пользователь не привязан к физическому лицу" });
 
-                var person = await ctx.Persons.FindAsync(user.PersonId);
-                if (person?.Inn is null)
-                    return Results.BadRequest(new { error = "Не найдено физическое лицо или ИНН" });
-
                 var participant = await ctx.BoardParticipants
-                    .FirstOrDefaultAsync(p => p.LegalEntityId == leId.Value && p.PersonInn == person.Inn && p.IsActive);
+                    .FirstOrDefaultAsync(p => p.LegalEntityId == leId.Value && p.PersonId == user.PersonId && p.IsActive);
                 if (participant is null)
                     return Results.BadRequest(new { error = "Не найден участник для текущего пользователя" });
 
