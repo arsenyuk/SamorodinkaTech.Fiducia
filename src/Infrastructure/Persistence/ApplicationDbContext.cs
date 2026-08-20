@@ -42,6 +42,7 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
     public DbSet<LegalEntityBoardSettings> LegalEntityBoardSettings => Set<LegalEntityBoardSettings>();
     public DbSet<LegalEntityVotingRules> LegalEntityVotingRules => Set<LegalEntityVotingRules>();
     public DbSet<LegalEntityEmailSettings> LegalEntityEmailSettings => Set<LegalEntityEmailSettings>();
+    public DbSet<LegalEntityExtraSettings> LegalEntityExtraSettings => Set<LegalEntityExtraSettings>();
     public DbSet<RefStandardCharter> RefStandardCharters => Set<RefStandardCharter>();
     public DbSet<LegalEntityCharter> LegalEntityCharters => Set<LegalEntityCharter>();
     public DbSet<AgendaItem> AgendaItems => Set<AgendaItem>();
@@ -84,6 +85,7 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
     public DbSet<BoardRegistryUpload> BoardRegistryUploads => Set<BoardRegistryUpload>();
     public DbSet<BoardParticipantChange> BoardParticipantChanges => Set<BoardParticipantChange>();
     public DbSet<ShareRequest> ShareRequests => Set<ShareRequest>();
+    public DbSet<RefRequestType> RequestTypes => Set<RefRequestType>();
     public DbSet<Notarization> Notarizations => Set<Notarization>();
 
     // Junction-таблицы файлов (BDR-011)
@@ -159,6 +161,7 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.Property(x => x.HasRevisionCommission).HasColumnName("has_revision_commission");
             b.Property(x => x.HasBoardOfDirectors).HasColumnName("has_board_of_directors");
             b.Property(x => x.GdTermId).HasColumnName("gd_term_id");
+            b.Property(x => x.VosuThresholdPercent).HasColumnName("vosu_threshold_percent");
             b.HasOne(x => x.GdTerm).WithMany().HasForeignKey(x => x.GdTermId);
             b.HasOne(x => x.CharterDocument).WithMany().HasForeignKey(x => x.CharterDocumentId);
             b.HasOne(x => x.BoardRegulationDocument).WithMany().HasForeignKey(x => x.BoardRegulationDocumentId);
@@ -281,6 +284,22 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.HasOne(x => x.LegalEntity)
              .WithMany()
              .HasForeignKey(x => x.LegalEntityId);
+        });
+
+        modelBuilder.Entity<LegalEntityExtraSettings>(b =>
+        {
+            b.ToTable("legal_entity_extra_settings");
+            b.HasKey(x => x.LegalEntityId);
+            b.Property(x => x.LegalEntityId).HasColumnName("legal_entity_id");
+            b.Property(x => x.NotaryListApproved).HasColumnName("notary_list_approved").HasDefaultValue(false);
+            b.Property(x => x.NotaryListOsaMeetingId).HasColumnName("notary_list_osa_meeting_id");
+            b.Property(x => x.NotaryListDecisionDate).HasColumnName("notary_list_decision_date");
+            b.HasOne(x => x.LegalEntity)
+             .WithOne()
+             .HasForeignKey<LegalEntityExtraSettings>(x => x.LegalEntityId);
+            b.HasOne(x => x.NotaryListOsaMeeting)
+             .WithMany()
+             .HasForeignKey(x => x.NotaryListOsaMeetingId);
         });
 
         modelBuilder.Entity<RefMeetingForm>(b =>
@@ -962,11 +981,15 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.Property(x => x.Id).HasColumnName("id");
             b.Property(x => x.BoardOfDirectorsId).HasColumnName("board_of_directors_id").IsRequired();
             b.Property(x => x.LegalEntityId).HasColumnName("legal_entity_id");
+            b.Property(x => x.ShareRequestId).HasColumnName("share_request_id");
             b.Property(x => x.Title).HasColumnName("title").IsRequired();
             b.Property(x => x.TargetType).HasColumnName("target_type").HasMaxLength(20).IsRequired();
             b.Property(x => x.Reason).HasColumnName("reason").IsRequired();
             b.Property(x => x.Status).HasColumnName("status").HasMaxLength(20).HasDefaultValue("PENDING");
             b.Property(x => x.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("CURRENT_TIMESTAMP");
+            b.HasOne(x => x.ShareRequest)
+             .WithMany()
+             .HasForeignKey(x => x.ShareRequestId);
         });
 
         modelBuilder.Entity<AgendaProposal>(b =>

@@ -25,49 +25,30 @@ else
 {
     @* ── Кнопки создания ──────────────────────────────────────────── *@
     <div class="row mb-4">
-        @if (_charter?.PreemptiveRight == true)
+        @foreach (var rt in _availableTypes)
         {
             <div class="col-md-6 mb-2">
-                <button class="btn btn-outline-primary w-100" @onclick="CreatePreemptiveList">
-                    <span class="oi oi-list"></span> Запросить список участников с правом выкупа
-                </button>
-            </div>
-            <div class="col-md-6 mb-2">
-                <button class="btn btn-outline-primary w-100" @onclick="CreateNotarialOffer">
-                    <span class="oi oi-envelope"></span> Направить нотариальную оферту
+                <button class="btn btn-outline-primary w-100" @onclick="() => CreateRequest(rt.Id)">
+                    <span class="oi oi-action-undo"></span> @rt.Name
                 </button>
             </div>
         }
-        @if (_charter?.ExitAllowed == true)
-        {
-            <div class="col-md-6 mb-2">
-                <button class="btn btn-outline-warning w-100" @onclick="CreateExitApplication">
-                    <span class="oi oi-account-logout"></span> Подать заявление о выходе из ООО
-                </button>
-            </div>
-        }
-        <div class="col-md-6 mb-2">
-            <button class="btn btn-outline-danger w-100" @onclick="CreateMandatoryBuyback">
-                <span class="oi oi-briefcase"></span> Требование обязательного выкупа доли
-            </button>
-        </div>
     </div>
 
     @* ── Фильтр ────────────────────────────────────────────────────── *@
     <div class="mb-3">
-        <select class="form-select form-select-sm" @bind="_filterType" style="width: auto;">
+        <select class="form-select form-select-sm" @bind="_filterTypeId" style="width: auto;">
             <option value="">Все типы</option>
-            <option value="PREEMPTIVE_LIST">Список участников с правом выкупа</option>
-            <option value="NOTARIAL_OFFER">Нотариальная оферта</option>
-            <option value="EXIT_APPLICATION">Заявление о выходе</option>
-            <option value="MANDATORY_BUYBACK">Обязательный выкуп</option>
+            @foreach (var rt in _allTypes)
+            {
+                <option value="@rt.Id">@rt.Name</option>
+            }
         </select>
     </div>
 
-    @* ── Таблица ────────────────────────────────────────────────────── *@
-    @if (_requests.Count == 0)
+    @if (_filteredRequests.Count == 0)
     {
-        <div class="text-muted py-3">Запросов пока нет.</div>
+        <div class="alert alert-info">Нет запросов</div>
     }
     else
     {
@@ -84,12 +65,12 @@ else
                 @foreach (var r in _filteredRequests)
                 {
                     <tr>
-                        <td>@GetTypeLabel(r.RequestType)</td>
+                        <td>@r.RequestTypeName</td>
                         <td>@GetStatusBadge(r.Status)</td>
                         <td>@r.CreatedAt.ToString("dd.MM.yyyy HH:mm")</td>
                         <td class="d-flex gap-1">
                             <a href="/share-requests/@r.Id" class="btn btn-sm btn-outline-secondary">Подробнее</a>
-                            @if (r.RequestType == "NOTARIAL_OFFER" && r.Status == "pending" && !r.RevokedAt.HasValue && (DateTime.UtcNow - r.CreatedAt).TotalHours < 24)
+                            @if (r.RequestTypeCode == "NOTARIAL_OFFER" && r.Status == "pending" && !r.RevokedAt.HasValue && (DateTime.UtcNow - r.CreatedAt).TotalHours < 24)
                             {
                                 <button class="btn btn-sm btn-outline-danger" @onclick="() => RequestRevoke(r.Id)">Отозвать</button>
                             }
@@ -103,11 +84,12 @@ else
 
 @code {
     private List<ShareRequestDto> _requests = new();
-    private List<ShareRequestDto> _filteredRequests => string.IsNullOrEmpty(_filterType)
+    private List<ShareRequestDto> _filteredRequests => string.IsNullOrEmpty(_filterTypeId)
         ? _requests
-        : _requests.Where(r => r.RequestType == _filterType).ToList();
-    private CharterDto? _charter;
-    private string? _filterType;
+        : _requests.Where(r => r.RequestTypeId.ToString() == _filterTypeId).ToList();
+    private List<RequestTypeDto> _availableTypes = new();
+    private List<RequestTypeDto> _allTypes = new();
+    private string? _filterTypeId;
     private bool _loading = true;
     private string? _error;
 
@@ -115,7 +97,8 @@ else
     {
         try
         {
-            _charter = await Http.GetFromJsonAsync<CharterDto>("/api/charter/current");
+            _availableTypes = await Http.GetFromJsonAsync<List<RequestTypeDto>>("/api/share-requests/types") ?? new();
+            _allTypes = _availableTypes.ToList();
             _requests = await Http.GetFromJsonAsync<List<ShareRequestDto>>("/api/share-requests") ?? new();
         }
         catch (Exception ex)
@@ -129,16 +112,11 @@ else
         }
     }
 
-    private async Task CreatePreemptiveList() => await CreateRequest("PREEMPTIVE_LIST", null);
-    private async Task CreateNotarialOffer() => await CreateRequest("NOTARIAL_OFFER", null);
-    private async Task CreateExitApplication() => await CreateRequest("EXIT_APPLICATION", null);
-    private async Task CreateMandatoryBuyback() => await CreateRequest("MANDATORY_BUYBACK", null);
-
-    private async Task CreateRequest(string type, string? payload)
+    private async Task CreateRequest(Guid requestTypeId)
     {
         try
         {
-            var response = await Http.PostAsJsonAsync("/api/share-requests", new { RequestType = type, Payload = payload });
+            var response = await Http.PostAsJsonAsync("/api/share-requests", new { RequestTypeId = requestTypeId, Payload = (string?)null });
             if (response.IsSuccessStatusCode)
             {
                 Nav.NavigateTo("/share-requests", forceLoad: true);
@@ -162,14 +140,9 @@ else
             "Оферта была заверена нотариусом. Для отзыва также необходимо нотариальное заверение. Отзыв будет проведён с нотариальным заверением. Продолжить?");
         if (!confirmed) return;
 
-        await RevokeRequest(id);
-    }
-
-    private async Task RevokeRequest(Guid id)
-    {
         try
         {
-            var response = await Http.PostAsJsonAsync($"/api/share-requests/{id}/revoke", new { });
+            var response = await Http.PostAsJsonAsync($"/api/share-requests/{id}/revoke", new { Notarized = true });
             if (response.IsSuccessStatusCode)
             {
                 Nav.NavigateTo("/share-requests", forceLoad: true);
@@ -187,15 +160,6 @@ else
         }
     }
 
-    private static string GetTypeLabel(string type) => type switch
-    {
-        "PREEMPTIVE_LIST" => "Список участников с правом выкупа",
-        "NOTARIAL_OFFER" => "Нотариальная оферта",
-        "EXIT_APPLICATION" => "Заявление о выходе",
-        "MANDATORY_BUYBACK" => "Обязательный выкуп",
-        _ => type
-    };
-
     private static MarkupString GetStatusBadge(string status) => status switch
     {
         "pending" => new("<span class='badge bg-warning'>В обработке</span>"),
@@ -205,6 +169,6 @@ else
         _ => new($"<span class='badge bg-secondary'>{status}</span>")
     };
 
-    private record ShareRequestDto(Guid Id, string RequestType, string Status, string? Payload, DateTime CreatedAt, DateTime? CompletedAt, DateTime? RevokedAt, bool RevokedByNotarized, bool VisibleToAll);
-    private record CharterDto(bool PreemptiveRight, bool ExitAllowed, bool TransferToThirdPartiesWithoutConsent);
+    private record ShareRequestDto(Guid Id, Guid RequestTypeId, string? RequestTypeCode, string? RequestTypeName, string Status, string? Payload, DateTime CreatedAt, DateTime? CompletedAt, DateTime? RevokedAt, bool RevokedByNotarized, bool VisibleToAll);
+    private record RequestTypeDto(Guid Id, string Code, string Name, bool RequiresFile);
 }

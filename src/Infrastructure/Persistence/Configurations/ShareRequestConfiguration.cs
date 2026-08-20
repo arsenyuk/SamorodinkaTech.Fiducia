@@ -15,7 +15,7 @@ public class ShareRequestConfiguration : IEntityTypeConfiguration<ShareRequest>
 
         builder.Property(r => r.LegalEntityId).HasColumnName("legal_entity_id").IsRequired();
         builder.Property(r => r.ParticipantId).HasColumnName("participant_id").IsRequired();
-        builder.Property(r => r.RequestType).HasColumnName("request_type").IsRequired().HasMaxLength(50);
+        builder.Property(r => r.RequestTypeId).HasColumnName("request_type_id").IsRequired();
         builder.Property(r => r.Status).HasColumnName("status").IsRequired().HasMaxLength(20).HasDefaultValue("pending");
         builder.Property(r => r.Payload).HasColumnName("payload");
         builder.Property(r => r.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("CURRENT_TIMESTAMP");
@@ -28,7 +28,7 @@ public class ShareRequestConfiguration : IEntityTypeConfiguration<ShareRequest>
 
         builder.HasIndex(r => r.LegalEntityId);
         builder.HasIndex(r => r.ParticipantId);
-        builder.HasIndex(r => r.RequestType);
+        builder.HasIndex(r => r.RequestTypeId);
         builder.HasIndex(r => r.Status);
 
         builder.HasOne(r => r.LegalEntity)
@@ -39,6 +39,11 @@ public class ShareRequestConfiguration : IEntityTypeConfiguration<ShareRequest>
         builder.HasOne(r => r.Participant)
             .WithMany()
             .HasForeignKey(r => r.ParticipantId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(r => r.RequestType)
+            .WithMany()
+            .HasForeignKey(r => r.RequestTypeId)
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasOne(r => r.Creator)

@@ -446,6 +446,9 @@ app.MapParticipantEndpoints();
 // ── Share Requests API (Запросы участника в общество) ──────────────────
 app.MapShareRequestEndpoints();
 
+// ── Agenda Items API (Повестка ОСУ) ────────────────────────────────────
+app.MapAgendaItemEndpoints();
+
 app.MapBlazorHub();
 app.MapFallbackToPage("/_Host");
 

@@ -65,4 +65,7 @@ public class LegalEntityCharter
 
     /// <summary>Срок полномочий ГД.</summary>
     public RefGdTerm? GdTerm { get; set; }
+
+    /// <summary>Порог доли участника для требования о созыве ВОСУ (vosu_threshold_percent). null = 10% по закону.</summary>
+    public decimal? VosuThresholdPercent { get; set; }
 }

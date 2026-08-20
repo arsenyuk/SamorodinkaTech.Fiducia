@@ -250,6 +250,18 @@ CREATE TABLE IF NOT EXISTS ref_measurement_unit (
     created_by uuid NOT NULL REFERENCES users(id)
 );
 
+-- Справочник: ref_request_type (типы требований участников)
+CREATE TABLE IF NOT EXISTS ref_request_type (
+    id uuid PRIMARY KEY,
+    code varchar(50) UNIQUE NOT NULL,
+    name varchar(300) NOT NULL,
+    is_for_llc boolean NOT NULL DEFAULT false,
+    is_for_njsc boolean NOT NULL DEFAULT false,
+    is_for_pjsc boolean NOT NULL DEFAULT false,
+    requires_file boolean NOT NULL DEFAULT false,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS user_roles (
     id uuid PRIMARY KEY,
     user_id uuid NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
@@ -425,7 +437,8 @@ CREATE TABLE IF NOT EXISTS legal_entity_charter (
     mandatory_audit boolean,
     has_revision_commission boolean,
     has_board_of_directors boolean NOT NULL DEFAULT false,
-    gd_term_id uuid REFERENCES ref_gd_term(id) ON DELETE SET NULL
+    gd_term_id uuid REFERENCES ref_gd_term(id) ON DELETE SET NULL,
+    vosu_threshold_percent numeric(4,2) CHECK (vosu_threshold_percent > 0 AND vosu_threshold_percent <= 10)
 );
 
 -- Таблица: legal_entity_email_settings (настройки email-писем для ЮЛ)
@@ -555,6 +568,15 @@ CREATE TABLE IF NOT EXISTS osa_meeting_files (
 CREATE INDEX IF NOT EXISTS ix_omf_osa_meeting_id ON osa_meeting_files(osa_meeting_id);
 CREATE INDEX IF NOT EXISTS ix_omf_file_id ON osa_meeting_files(file_id);
 
+-- Дополнительные настройки ЮЛ (1:1 с legal_entities)
+CREATE TABLE IF NOT EXISTS legal_entity_extra_settings (
+    legal_entity_id uuid PRIMARY KEY REFERENCES legal_entities(id) ON DELETE RESTRICT,
+    -- Ведение списка участников через нотариат (ст. 31.1 14-ФЗ)
+    notary_list_approved boolean NOT NULL DEFAULT false,
+    notary_list_osa_meeting_id uuid REFERENCES osa_meetings(id) ON DELETE SET NULL,
+    notary_list_decision_date date
+);
+
 -- ============================================================================
 -- Совет директоров
 -- ============================================================================
@@ -645,6 +667,7 @@ CREATE TABLE IF NOT EXISTS agenda_items (
     id uuid PRIMARY KEY,
     board_of_directors_id uuid NOT NULL REFERENCES board_of_directors(id),
     legal_entity_id uuid REFERENCES legal_entities(id),
+    share_request_id uuid REFERENCES share_request(id) ON DELETE SET NULL,
     title text NOT NULL,
     target_type varchar(20) NOT NULL,
     reason text NOT NULL,
@@ -1348,7 +1371,7 @@ CREATE TABLE IF NOT EXISTS share_request (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     legal_entity_id uuid NOT NULL REFERENCES legal_entities(id) ON DELETE RESTRICT,
     participant_id uuid NOT NULL REFERENCES board_participant(id) ON DELETE RESTRICT,
-    request_type varchar(50) NOT NULL,
+    request_type_id uuid NOT NULL REFERENCES ref_request_type(id) ON DELETE RESTRICT,
     status varchar(20) NOT NULL DEFAULT 'pending',
     payload jsonb,
     notarization_id uuid REFERENCES notarization(id) ON DELETE SET NULL,
@@ -1362,6 +1385,6 @@ CREATE TABLE IF NOT EXISTS share_request (
 
 CREATE INDEX IF NOT EXISTS ix_share_request_le ON share_request(legal_entity_id);
 CREATE INDEX IF NOT EXISTS ix_share_request_participant ON share_request(participant_id);
-CREATE INDEX IF NOT EXISTS ix_share_request_type ON share_request(request_type);
+CREATE INDEX IF NOT EXISTS ix_share_request_type_id ON share_request(request_type_id);
 CREATE INDEX IF NOT EXISTS ix_share_request_status ON share_request(status);
 CREATE INDEX IF NOT EXISTS ix_share_request_visible ON share_request(visible_to_all) WHERE visible_to_all = TRUE;

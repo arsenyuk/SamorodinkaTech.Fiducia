@@ -1,19 +1,19 @@
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using SamorodinkaTech.Fiducia.Domain.Entities;
 using SamorodinkaTech.Fiducia.Domain.Interfaces;
+using SamorodinkaTech.Fiducia.Domain.Validation;
 using SamorodinkaTech.Fiducia.Infrastructure;
 using SamorodinkaTech.Fiducia.Infrastructure.Persistence;
 
 namespace SamorodinkaTech.Fiducia.BoardPortal;
 
 /// <summary>
-/// Minimal API endpoints для запросов участника ООО в общество (Board Portal).
-/// Типы: PREEMPTIVE_LIST, NOTARIAL_OFFER, EXIT_APPLICATION, MANDATORY_BUYBACK.
-/// Доступно только для ООО (ОКОПФ 12300). Попытки доступа логируются в аудит.
+/// Minimal API endpoints для запросов участника в общество (Board Portal).
+/// Типы берутся из справочника ref_request_type.
 /// </summary>
 public static class ShareRequestEndpoints
 {
-    private const string LlcOkopfCode = "12300";
     private const string AuditActionAccess = "SHARE_REQUEST_ACCESS";
 
     public static void MapShareRequestEndpoints(this WebApplication app)
@@ -22,9 +22,47 @@ public static class ShareRequestEndpoints
             .RequireAuthorization()
             .WithTags("Share Requests");
 
+        // GET: справочник типов требований (доступных текущему ЮЛ)
+        shareRequests.MapGet("/types", async (
+            IDbContextFactory<FiduciaDbContext> dbFactory,
+            ILoggerFactory loggerFactory,
+            HttpContext http) =>
+        {
+            var logger = loggerFactory.CreateLogger("ShareRequests.Types");
+            try
+            {
+                await using var ctx = await dbFactory.CreateDbContextAsync();
+                var leId = await GetLegalEntityIdAsync(ctx);
+                if (leId is null)
+                    return Results.Ok(Array.Empty<object>());
+
+                var le = await ctx.LegalEntities
+                    .Include(x => x.RefOkopf)
+                    .FirstOrDefaultAsync(x => x.Id == leId.Value);
+
+                var okopfCode = le?.RefOkopf?.Code;
+                var isLlc = OkopfTypeMapper.IsLlc(okopfCode);
+                var isNjsc = okopfCode == OkopfTypeMapper.NjscCode;
+                var isPjsc = OkopfTypeMapper.IsPjsc(okopfCode);
+
+                var types = await ctx.RequestTypes
+                    .Where(t => (isLlc && t.IsForLlc) || (isNjsc && t.IsForNjsc) || (isPjsc && t.IsForPjsc))
+                    .OrderBy(t => t.Name)
+                    .Select(t => new { t.Id, t.Code, t.Name, t.RequiresFile })
+                    .ToListAsync();
+
+                return Results.Ok(types);
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Ошибка получения типов требований");
+                return Results.BadRequest(new { error = ex.Message });
+            }
+        });
+
         // GET: список запросов текущего участника
         shareRequests.MapGet("/", async (
-            string? type,
+            Guid? typeId,
             IDbContextFactory<FiduciaDbContext> dbFactory,
             ISecurityAuditService audit,
             ILoggerFactory loggerFactory,
@@ -34,14 +72,15 @@ public static class ShareRequestEndpoints
             try
             {
                 await using var ctx = await dbFactory.CreateDbContextAsync();
-                var (leId, participantId, error) = await ValidateAccessAsync(ctx, http, audit);
+                var (leId, error) = await ValidateAccessAsync(ctx, http, audit);
                 if (error is not null) return error;
 
                 var query = ctx.ShareRequests
-                    .Where(r => r.LegalEntityId == leId && r.ParticipantId == participantId);
+                    .Include(r => r.RequestType)
+                    .Where(r => r.LegalEntityId == leId);
 
-                if (!string.IsNullOrEmpty(type))
-                    query = query.Where(r => r.RequestType == type);
+                if (typeId.HasValue)
+                    query = query.Where(r => r.RequestTypeId == typeId.Value);
 
                 var items = await query
                     .OrderByDescending(r => r.CreatedAt)
@@ -68,11 +107,12 @@ public static class ShareRequestEndpoints
             try
             {
                 await using var ctx = await dbFactory.CreateDbContextAsync();
-                var (leId, participantId, error) = await ValidateAccessAsync(ctx, http, audit);
+                var (leId, error) = await ValidateAccessAsync(ctx, http, audit);
                 if (error is not null) return error;
 
                 var item = await ctx.ShareRequests
-                    .FirstOrDefaultAsync(r => r.Id == id && r.LegalEntityId == leId && r.ParticipantId == participantId);
+                    .Include(r => r.RequestType)
+                    .FirstOrDefaultAsync(r => r.Id == id && r.LegalEntityId == leId);
 
                 return item is null
                     ? Results.NotFound()
@@ -97,22 +137,30 @@ public static class ShareRequestEndpoints
             try
             {
                 await using var ctx = await dbFactory.CreateDbContextAsync();
-                var (leId, participantId, error) = await ValidateAccessAsync(ctx, http, audit);
+                var (leId, error) = await ValidateAccessAsync(ctx, http, audit);
                 if (error is not null) return error;
 
-                var allowedTypes = new[] { "PREEMPTIVE_LIST", "NOTARIAL_OFFER", "EXIT_APPLICATION", "MANDATORY_BUYBACK" };
-                if (!allowedTypes.Contains(dto.RequestType))
-                    return Results.BadRequest(new { error = $"Недопустимый тип запроса: {dto.RequestType}" });
+                // Загружаем тип запроса из справочника
+                var requestType = await ctx.RequestTypes.FindAsync(dto.RequestTypeId);
+                if (requestType is null)
+                    return Results.BadRequest(new { error = $"Неизвестный тип запроса: {dto.RequestTypeId}" });
 
-                var charter = await ctx.LegalEntityCharters.FindAsync(leId);
-                if (charter is not null)
-                {
-                    if (dto.RequestType == "PREEMPTIVE_LIST" && !charter.PreemptiveRight)
-                        return Results.BadRequest(new { error = "Преимущественное право не действует" });
+                // Проверяем доступность типа для текущего ЮЛ
+                var le = await ctx.LegalEntities
+                    .Include(x => x.RefOkopf)
+                    .FirstOrDefaultAsync(x => x.Id == leId);
+                var okopfCode = le?.RefOkopf?.Code;
+                var isLlc = OkopfTypeMapper.IsLlc(okopfCode);
+                var isNjsc = okopfCode == OkopfTypeMapper.NjscCode;
+                var isPjsc = OkopfTypeMapper.IsPjsc(okopfCode);
 
-                    if (dto.RequestType == "EXIT_APPLICATION" && !charter.ExitAllowed)
-                        return Results.BadRequest(new { error = "Выход из ООО не предусмотрен уставом" });
-                }
+                if ((isLlc && !requestType.IsForLlc) || (isNjsc && !requestType.IsForNjsc) || (isPjsc && !requestType.IsForPjsc))
+                    return Results.BadRequest(new { error = $"Тип запроса «{requestType.Name}» не доступен для данного типа организации" });
+
+                // Специфичная валидация по типам
+                var validationError = await ValidateRequestTypeAsync(ctx, requestType, leId.Value, dto);
+                if (validationError is not null)
+                    return Results.BadRequest(new { error = validationError });
 
                 var userIdStr = http.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
                 var createdBy = Guid.TryParse(userIdStr, out var uid) ? uid : Guid.Empty;
@@ -120,9 +168,8 @@ public static class ShareRequestEndpoints
                 var entity = new ShareRequest
                 {
                     Id = Guid.NewGuid(),
-                    LegalEntityId = leId,
-                    ParticipantId = participantId,
-                    RequestType = dto.RequestType,
+                    LegalEntityId = leId.Value,
+                    RequestTypeId = dto.RequestTypeId,
                     Status = "pending",
                     Payload = dto.Payload,
                     CreatedBy = createdBy
@@ -135,7 +182,7 @@ public static class ShareRequestEndpoints
             }
             catch (Exception ex)
             {
-                logger.LogWarning(ex, "Ошибка создания запроса типа {Type}", dto.RequestType);
+                logger.LogWarning(ex, "Ошибка создания запроса");
                 return Results.BadRequest(new { error = ex.Message });
             }
         });
@@ -153,25 +200,74 @@ public static class ShareRequestEndpoints
             try
             {
                 await using var ctx = await dbFactory.CreateDbContextAsync();
-                var (leId, _, error) = await ValidateAccessAsync(ctx, http, audit);
+                var (leId, error) = await ValidateAccessAsync(ctx, http, audit);
                 if (error is not null) return error;
 
                 var item = await ctx.ShareRequests
                     .FirstOrDefaultAsync(r => r.Id == id && r.LegalEntityId == leId);
 
-                if (item is null) return Results.NotFound();
+                if (item is null)
+                    return Results.NotFound();
 
                 item.Status = dto.Status ?? "completed";
                 item.CompletedAt = DateTime.UtcNow;
-                if (!string.IsNullOrEmpty(dto.Payload))
+                if (dto.Payload is not null)
                     item.Payload = dto.Payload;
 
                 await ctx.SaveChangesAsync();
+
                 return Results.Ok(MapToDto(item));
             }
             catch (Exception ex)
             {
                 logger.LogWarning(ex, "Ошибка завершения запроса {Id}", id);
+                return Results.BadRequest(new { error = ex.Message });
+            }
+        });
+
+        // POST: отозвать запрос (только NOTARIAL_OFFER, в течение 24ч)
+        shareRequests.MapPost("/{id}/revoke", async (
+            Guid id,
+            ShareRequestRevokeDto dto,
+            IDbContextFactory<FiduciaDbContext> dbFactory,
+            ISecurityAuditService audit,
+            ILoggerFactory loggerFactory,
+            HttpContext http) =>
+        {
+            var logger = loggerFactory.CreateLogger("ShareRequests.Revoke");
+            try
+            {
+                await using var ctx = await dbFactory.CreateDbContextAsync();
+                var (leId, error) = await ValidateAccessAsync(ctx, http, audit);
+                if (error is not null) return error;
+
+                var item = await ctx.ShareRequests
+                    .Include(r => r.RequestType)
+                    .FirstOrDefaultAsync(r => r.Id == id && r.LegalEntityId == leId);
+
+                if (item is null)
+                    return Results.NotFound();
+
+                if (item.RequestType?.Code != "NOTARIAL_OFFER")
+                    return Results.BadRequest(new { error = "Отзыв доступен только для нотариальных оферт" });
+
+                if (item.Status != "pending" || item.RevokedAt.HasValue)
+                    return Results.BadRequest(new { error = "Запрос уже отозван или завершён" });
+
+                if ((DateTime.UtcNow - item.CreatedAt).TotalHours > 24)
+                    return Results.BadRequest(new { error = "Прошло более 24 часов с момента создания" });
+
+                item.Status = "revoked";
+                item.RevokedAt = DateTime.UtcNow;
+                item.RevokedByNotarized = dto.Notarized;
+
+                await ctx.SaveChangesAsync();
+
+                return Results.Ok(MapToDto(item));
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Ошибка отзыва запроса {Id}", id);
                 return Results.BadRequest(new { error = ex.Message });
             }
         });
@@ -188,29 +284,25 @@ public static class ShareRequestEndpoints
             try
             {
                 await using var ctx = await dbFactory.CreateDbContextAsync();
-                var (leId, participantId, error) = await ValidateAccessAsync(ctx, http, audit);
+                var (leId, error) = await ValidateAccessAsync(ctx, http, audit);
                 if (error is not null) return error;
 
                 var item = await ctx.ShareRequests
-                    .FirstOrDefaultAsync(r => r.Id == id && r.LegalEntityId == leId && r.ParticipantId == participantId);
+                    .Include(r => r.RequestType)
+                    .FirstOrDefaultAsync(r => r.Id == id && r.LegalEntityId == leId);
 
-                if (item is null) return Results.NotFound();
-                if (item.RequestType != "PREEMPTIVE_LIST")
+                if (item is null)
+                    return Results.NotFound();
+
+                if (item.RequestType?.Code != "PREEMPTIVE_LIST")
                     return Results.BadRequest(new { error = "Результат доступен только для запроса списка участников" });
+
                 if (item.Status != "completed")
                     return Results.BadRequest(new { error = "Запрос ещё не завершён" });
 
                 var participants = await ctx.BoardParticipants
-                    .Where(p => p.LegalEntityId == leId && p.IsActive && p.Id != participantId)
-                    .Select(p => new
-                    {
-                        ParticipantId = p.Id,
-                        p.FullName,
-                        p.CompanyName,
-                        p.ParticipantType,
-                        p.SharePercent,
-                        p.ShareAmount
-                    })
+                    .Where(p => p.LegalEntityId == leId && p.IsActive)
+                    .Select(p => new { p.FullName, p.CompanyName, p.CompanyInn, p.ParticipantType, p.SharePercent, p.ShareAmount })
                     .ToListAsync();
 
                 return Results.Ok(participants);
@@ -222,52 +314,7 @@ public static class ShareRequestEndpoints
             }
         });
 
-        // POST: отзыв оферты в пределах 24 часов
-        shareRequests.MapPost("/{id}/revoke", async (
-            Guid id,
-            ShareRequestRevokeDto dto,
-            IDbContextFactory<FiduciaDbContext> dbFactory,
-            ISecurityAuditService audit,
-            ILoggerFactory loggerFactory,
-            HttpContext http) =>
-        {
-            var logger = loggerFactory.CreateLogger("ShareRequests.Revoke");
-            try
-            {
-                await using var ctx = await dbFactory.CreateDbContextAsync();
-                var (leId, participantId, error) = await ValidateAccessAsync(ctx, http, audit);
-                if (error is not null) return error;
-
-                var item = await ctx.ShareRequests
-                    .FirstOrDefaultAsync(r => r.Id == id && r.LegalEntityId == leId && r.ParticipantId == participantId);
-
-                if (item is null) return Results.NotFound(new { error = "Запрос не найден" });
-                if (item.RequestType != "NOTARIAL_OFFER")
-                    return Results.BadRequest(new { error = "Отзыв доступен только для нотариальных офертов" });
-                if (item.Status != "pending")
-                    return Results.BadRequest(new { error = $"Нельзя отозвать запрос со статусом {item.Status}" });
-                if (item.RevokedAt.HasValue)
-                    return Results.BadRequest(new { error = "Запрос уже отозван" });
-
-                var hoursSinceCreated = (DateTime.UtcNow - item.CreatedAt).TotalHours;
-                if (hoursSinceCreated >= 24)
-                    return Results.BadRequest(new { error = "Срок отзыва истёк (более 24 часов)" });
-
-                item.Status = "revoked";
-                item.RevokedAt = DateTime.UtcNow;
-                item.RevokedByNotarized = true;
-
-                await ctx.SaveChangesAsync();
-                return Results.Ok(MapToDto(item));
-            }
-            catch (Exception ex)
-            {
-                logger.LogWarning(ex, "Ошибка отзыва запроса {Id}", id);
-                return Results.BadRequest(new { error = ex.Message });
-            }
-        });
-
-        // GET: входящий список требований (оферты, видимые всем)
+        // GET: входящие оферты (видимые всем)
         shareRequests.MapGet("/incoming", async (
             IDbContextFactory<FiduciaDbContext> dbFactory,
             ISecurityAuditService audit,
@@ -278,30 +325,14 @@ public static class ShareRequestEndpoints
             try
             {
                 await using var ctx = await dbFactory.CreateDbContextAsync();
-                var clientIp = ClientIpHelper.GetClientIp(http);
-
-                var workplace = await ctx.CurrentWorkplaces.FirstOrDefaultAsync();
-                var leId = workplace?.LastSelectedLegalEntityId;
-                if (leId is null || leId == Guid.Empty)
-                    return Results.Ok(Array.Empty<object>());
-
-                // Проверка ООО
-                var le = await ctx.LegalEntities
-                    .Include(x => x.RefOkopf)
-                    .FirstOrDefaultAsync(x => x.Id == leId.Value);
-
-                if (le?.RefOkopf?.Code != LlcOkopfCode)
-                {
-                    await audit.LogEventAsync(AuditActionAccess, clientIp,
-                        $"Доступ запрещён: ЮЛ «{le?.Name}» (ОКОПФ {le?.RefOkopf?.Code}) не является ООО",
-                        entityName: "LegalEntity", entityId: leId);
-                    return Results.Forbid();
-                }
+                var (leId, error) = await ValidateAccessAsync(ctx, http, audit);
+                if (error is not null) return error;
 
                 var items = await ctx.ShareRequests
-                    .Where(r => r.LegalEntityId == leId.Value
-                        && r.RequestType == "NOTARIAL_OFFER"
+                    .Include(r => r.RequestType)
+                    .Where(r => r.LegalEntityId == leId
                         && r.VisibleToAll
+                        && r.RequestType!.Code == "NOTARIAL_OFFER"
                         && r.Status != "revoked")
                     .OrderByDescending(r => r.CreatedAt)
                     .ToListAsync();
@@ -310,150 +341,160 @@ public static class ShareRequestEndpoints
             }
             catch (Exception ex)
             {
-                logger.LogWarning(ex, "Ошибка получения входящего списка");
+                logger.LogWarning(ex, "Ошибка получения входящих оферт");
                 return Results.BadRequest(new { error = ex.Message });
             }
         });
-
-        // GET: текущий устав ООО (для UI)
-        app.MapGet("/api/charter/current", async (
-            IDbContextFactory<FiduciaDbContext> dbFactory,
-            ISecurityAuditService audit,
-            ILoggerFactory loggerFactory,
-            HttpContext http) =>
-        {
-            var logger = loggerFactory.CreateLogger("Charter.Current");
-            try
-            {
-                await using var ctx = await dbFactory.CreateDbContextAsync();
-                var workplace = await ctx.CurrentWorkplaces.FirstOrDefaultAsync();
-                var leId = workplace?.LastSelectedLegalEntityId;
-                if (leId is null || leId == Guid.Empty)
-                    return Results.Ok(new { preemptiveRight = true, exitAllowed = false, transferToThirdPartiesWithoutConsent = false });
-
-                var charter = await ctx.LegalEntityCharters.FindAsync(leId.Value);
-                if (charter is null)
-                    return Results.Ok(new { preemptiveRight = true, exitAllowed = false, transferToThirdPartiesWithoutConsent = false });
-
-                return Results.Ok(new
-                {
-                    preemptiveRight = charter.PreemptiveRight,
-                    exitAllowed = charter.ExitAllowed,
-                    transferToThirdPartiesWithoutConsent = charter.TransferToThirdPartiesWithoutConsent
-                });
-            }
-            catch (Exception ex)
-            {
-                logger.LogWarning(ex, "Ошибка получения данных устава");
-                return Results.BadRequest(new { error = ex.Message });
-            }
-        }).RequireAuthorization();
     }
 
-    /// <summary>
-    /// Проверка доступа: ЮЛ — ООО, пользователь — PARTICIPANT, участник в реестре.
-    /// </summary>
-    private static async Task<(Guid leId, Guid participantId, IResult? error)> ValidateAccessAsync(
-        FiduciaDbContext ctx,
-        HttpContext http,
-        ISecurityAuditService audit)
+    /// <summary>Специфичная валидация по типу запроса.</summary>
+    private static async Task<string?> ValidateRequestTypeAsync(
+        FiduciaDbContext ctx, RefRequestType requestType, Guid leId, ShareRequestCreateDto dto)
     {
-        var clientIp = ClientIpHelper.GetClientIp(http);
+        return requestType.Code switch
+        {
+            "NOTARY_LIST_MAINTENANCE" => await ValidateNotaryListMaintenanceAsync(ctx, leId),
+            "PREEMPTIVE_LIST" => await ValidatePreemptiveListAsync(ctx, leId),
+            "EXIT_APPLICATION" => await ValidateExitApplicationAsync(ctx, leId),
+            "CHANGE_STANDARD_CHARTER_NUMBER" => await ValidateChangeStandardCharterNumberAsync(ctx, leId, dto),
+            "CONVERT_STANDARD_TO_CUSTOM_CHARTER" => await ValidateConvertToCustomCharterAsync(ctx, leId, dto),
+            "CHANGE_CUSTOM_CHARTER_PROVISION" => await ValidateChangeCustomCharterProvisionAsync(ctx, leId),
+            "DEMAND_VOSU" => await ValidateDemandVosuAsync(ctx, leId, dto),
+            _ => null
+        };
+    }
 
+    private static async Task<string?> ValidateNotaryListMaintenanceAsync(FiduciaDbContext ctx, Guid leId)
+    {
+        var extraSettings = await ctx.LegalEntityExtraSettings
+            .FirstOrDefaultAsync(x => x.LegalEntityId == leId);
+        if (extraSettings?.NotaryListApproved == true)
+            return "Ведение списка участников через нотариат уже утверждено";
+        return null;
+    }
+
+    private static async Task<string?> ValidatePreemptiveListAsync(FiduciaDbContext ctx, Guid leId)
+    {
+        var charter = await ctx.LegalEntityCharters.FindAsync(leId);
+        if (charter is not null && !charter.PreemptiveRight)
+            return "Преимущественное право не действует";
+        return null;
+    }
+
+    private static async Task<string?> ValidateExitApplicationAsync(FiduciaDbContext ctx, Guid leId)
+    {
+        var charter = await ctx.LegalEntityCharters.FindAsync(leId);
+        if (charter is not null && !charter.ExitAllowed)
+            return "Выход из ООО не предусмотрен уставом";
+        return null;
+    }
+
+    private static async Task<string?> ValidateChangeStandardCharterNumberAsync(FiduciaDbContext ctx, Guid leId, ShareRequestCreateDto dto)
+    {
+        var le = await ctx.LegalEntities.FirstOrDefaultAsync(x => x.Id == leId);
+        if (le?.StandardCharterId is null)
+            return "Текущий устав не является типовым";
+
+        if (!string.IsNullOrEmpty(dto.Payload))
+        {
+            var payload = System.Text.Json.JsonSerializer.Deserialize<JsonElement>(dto.Payload);
+            if (payload.TryGetProperty("newCharterNumber", out var newNum))
+            {
+                var currentCharter = await ctx.RefStandardCharters.FindAsync(le.StandardCharterId);
+                if (currentCharter?.Number == newNum.GetString())
+                    return "Новый номер типового устава должен отличаться от текущего";
+            }
+        }
+
+        return null;
+    }
+
+    private static async Task<string?> ValidateConvertToCustomCharterAsync(FiduciaDbContext ctx, Guid leId, ShareRequestCreateDto dto)
+    {
+        var le = await ctx.LegalEntities.FirstOrDefaultAsync(x => x.Id == leId);
+        if (le?.StandardCharterId is null)
+            return "Текущий устав уже является нетиповым";
+
+        if (string.IsNullOrEmpty(dto.Payload))
+            return "Необходимо приложить файл проекта устава";
+
+        return null;
+    }
+
+    private static async Task<string?> ValidateChangeCustomCharterProvisionAsync(FiduciaDbContext ctx, Guid leId)
+    {
+        var le = await ctx.LegalEntities.FirstOrDefaultAsync(x => x.Id == leId);
+        if (le?.StandardCharterId is not null)
+            return "Устав является типовым; используйте требование «Изменить номер типового устава»";
+
+        return null;
+    }
+
+    private static async Task<string?> ValidateDemandVosuAsync(FiduciaDbContext ctx, Guid leId, ShareRequestCreateDto dto)
+    {
+        // Загружаем порог устава
+        var charter = await ctx.LegalEntityCharters.FindAsync(leId);
+        var threshold = charter?.VosuThresholdPercent ?? 10m; // по умолчанию 10%
+
+        // Загружаем участника
+        var workplace = await ctx.CurrentWorkplaces.FirstOrDefaultAsync();
+        if (workplace?.LastSelectedLegalEntityId is null)
+            return "Юридическое лицо не выбрано";
+
+        // Находим участника по userId из контекста (передаём через payload)
+        decimal? sharePercent = null;
+        if (!string.IsNullOrEmpty(dto.Payload))
+        {
+            var payload = System.Text.Json.JsonSerializer.Deserialize<JsonElement>(dto.Payload);
+            if (payload.TryGetProperty("sharePercent", out var sp))
+                sharePercent = sp.GetDecimal();
+        }
+
+        if (sharePercent is null)
+            return "Не указана доля участника";
+
+        if (sharePercent < threshold)
+            return $"Доля участника ({sharePercent}%) ниже порога устава ({threshold}%)";
+
+        return null;
+    }
+
+    private static async Task<(Guid? leId, IResult? error)> ValidateAccessAsync(
+        FiduciaDbContext ctx, HttpContext http, ISecurityAuditService audit)
+    {
         var workplace = await ctx.CurrentWorkplaces.FirstOrDefaultAsync();
         var leId = workplace?.LastSelectedLegalEntityId;
         if (leId is null || leId == Guid.Empty)
-            return (Guid.Empty, Guid.Empty, Results.BadRequest(new { error = "Юридическое лицо не выбрано" }));
+        {
+            await audit.LogEventAsync(AuditActionAccess, "unknown", "Юридическое лицо не выбрано");
+            return (null, Results.BadRequest(new { error = "Юридическое лицо не выбрано" }));
+        }
 
         var le = await ctx.LegalEntities
             .Include(x => x.RefOkopf)
             .FirstOrDefaultAsync(x => x.Id == leId.Value);
-
-        if (le is null)
-            return (Guid.Empty, Guid.Empty, Results.BadRequest(new { error = "Юридическое лицо не найдено" }));
-
-        var (login, fullName) = await GetUserInfoAsync(ctx, http);
-
-        if (le.RefOkopf?.Code != LlcOkopfCode)
+        if (le?.RefOkopf?.Code is not null && !OkopfTypeMapper.IsLlc(le.RefOkopf.Code))
         {
-            await audit.LogEventAsync(AuditActionAccess, clientIp,
-                $"Доступ запрещён: пользователь {login} ({fullName}), ЮЛ «{le.Name}» (ОКОПФ {le.RefOkopf?.Code}) не является ООО",
-                entityName: "LegalEntity", entityId: le.Id);
-            return (Guid.Empty, Guid.Empty, Results.Forbid());
+            await audit.LogEventAsync(AuditActionAccess, "unknown", $"Доступ запрещён: ЮЛ «{le.Name}» не является ООО");
+            return (null, Results.Forbid());
         }
 
-        var userIdStr = http.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-        if (string.IsNullOrEmpty(userIdStr) || !Guid.TryParse(userIdStr, out var userId))
-        {
-            await audit.LogEventAsync(AuditActionAccess, clientIp,
-                $"Доступ запрещён: пользователь не аутентифицирован",
-                entityName: "LegalEntity", entityId: le.Id);
-            return (Guid.Empty, Guid.Empty, Results.Forbid());
-        }
-
-        var hasParticipantRole = await ctx.UserRoles
-            .AnyAsync(ur => ur.UserId == userId && ur.Role != null && ur.Role.Code == "PARTICIPANT");
-
-        if (!hasParticipantRole)
-        {
-            await audit.LogEventAsync(AuditActionAccess, clientIp,
-                $"Доступ запрещён: пользователь {login} ({fullName}) не имеет роль PARTICIPANT",
-                entityName: "LegalEntity", entityId: le.Id);
-            return (Guid.Empty, Guid.Empty, Results.Forbid());
-        }
-
-        var user = await ctx.Users.FindAsync(userId);
-        if (user?.PersonId is null)
-        {
-            await audit.LogEventAsync(AuditActionAccess, clientIp,
-                $"Доступ запрещён: пользователь {login} ({fullName}) не привязан к участнику",
-                entityName: "LegalEntity", entityId: le.Id);
-            return (Guid.Empty, Guid.Empty, Results.BadRequest(new { error = "Пользователь не привязан к участнику" }));
-        }
-
-        var participant = await ctx.BoardParticipants
-            .FirstOrDefaultAsync(p => p.LegalEntityId == leId.Value && p.Id == user.PersonId);
-
-        if (participant is null)
-        {
-            await audit.LogEventAsync(AuditActionAccess, clientIp,
-                $"Доступ запрещён: участник не найден в реестре ЮЛ «{le.Name}»",
-                entityName: "LegalEntity", entityId: le.Id);
-            return (Guid.Empty, Guid.Empty, Results.BadRequest(new { error = "Участник не найден в реестре" }));
-        }
-
-        await audit.LogEventAsync(AuditActionAccess, clientIp,
-            $"Доступ разрешён: пользователь {login} ({fullName}), роль PARTICIPANT, ЮЛ «{le.Name}» (ООО)",
-            entityName: "LegalEntity", entityId: le.Id);
-
-        return (leId.Value, participant.Id, null);
+        return (leId, null);
     }
 
-    private static async Task<(string login, string fullName)> GetUserInfoAsync(
-        FiduciaDbContext ctx, HttpContext http)
+    private static async Task<Guid?> GetLegalEntityIdAsync(FiduciaDbContext ctx)
     {
-        var userIdStr = http.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-        if (string.IsNullOrEmpty(userIdStr) || !Guid.TryParse(userIdStr, out var userId))
-            return ("anonymous", "Неизвестный пользователь");
-
-        var user = await ctx.Users.FindAsync(userId);
-        if (user is null)
-            return ("unknown", "Пользователь не найден");
-
-        var login = user.Email;
-        var fullName = string.IsNullOrWhiteSpace(user.MiddleName)
-            ? $"{user.LastName} {user.FirstName}"
-            : $"{user.LastName} {user.FirstName} {user.MiddleName}";
-
-        return (login, fullName);
+        var workplace = await ctx.CurrentWorkplaces.FirstOrDefaultAsync();
+        return workplace?.LastSelectedLegalEntityId;
     }
 
     private static object MapToDto(ShareRequest r) => new
     {
         r.Id,
         r.LegalEntityId,
-        r.ParticipantId,
-        r.RequestType,
+        RequestTypeId = r.RequestTypeId,
+        RequestTypeCode = r.RequestType?.Code,
+        RequestTypeName = r.RequestType?.Name,
         r.Status,
         r.Payload,
         r.CreatedAt,
@@ -464,6 +505,6 @@ public static class ShareRequestEndpoints
     };
 }
 
-public record ShareRequestCreateDto(string RequestType, string? Payload);
+public record ShareRequestCreateDto(Guid RequestTypeId, string? Payload);
 public record ShareRequestCompleteDto(string? Status, string? Payload);
 public record ShareRequestRevokeDto(bool Notarized);

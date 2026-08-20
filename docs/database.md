@@ -109,6 +109,7 @@ erDiagram
         boolean has_revision_commission
         boolean has_board_of_directors
         uuid gd_term_id FK
+        numeric vosu_threshold_percent
     }
 
     current_workplace {
@@ -116,6 +117,13 @@ erDiagram
         varchar full_name
         varchar position
         uuid last_selected_legal_entity_id FK
+    }
+
+    legal_entity_extra_settings {
+        uuid legal_entity_id PK,FK
+        boolean notary_list_approved
+        uuid notary_list_osa_meeting_id FK
+        date notary_list_decision_date
     }
 
     ref_okopf {
@@ -158,6 +166,18 @@ erDiagram
         text question_text
         text proposed_resolution
         varchar status
+    }
+
+    agenda_items {
+        uuid id PK
+        uuid board_of_directors_id FK
+        uuid legal_entity_id FK
+        uuid share_request_id FK
+        text title
+        varchar target_type
+        text reason
+        varchar status
+        timestamp created_at
     }
 
     committee_tasks {
@@ -218,6 +238,11 @@ erDiagram
     legal_entities ||--|| legal_entity_charter : "has charter"
     legal_entities ||--o{ ref_standard_charter : "references"
     current_workplace }o--|| legal_entities : "selected"
+    legal_entity_extra_settings ||--|| legal_entities : "has settings"
+    legal_entity_extra_settings }o--o| osa_meetings : "decided by"
+    agenda_items }o--|| legal_entities : "belongs to"
+    agenda_items }o--o| share_request : "linked to"
+    share_request }o--|| ref_request_type : "typed by"
     ref_osa_form ||--o{ osa_meetings : "categorises"
 
     ext_spark_company {
@@ -273,6 +298,16 @@ erDiagram
         varchar code UK
         varchar name
         varchar short_name
+    }
+
+    ref_request_type {
+        uuid id PK
+        varchar code UK
+        varchar name
+        boolean is_for_llc
+        boolean is_for_njsc
+        boolean is_for_pjsc
+        boolean requires_file
     }
 
     osa_meetings {
@@ -517,6 +552,21 @@ CREATE TABLE ref_roles (
 -- Наполнение см. tools/db/02_seed.sql (идентификаторы заданы явно UUID)
 ```
 
+### ref_request_type
+
+Справочник типов требований участников.
+
+| Поле | Тип | Описание |
+|------|-----|----------|
+| `id` | UUID | Первичный ключ |
+| `code` | VARCHAR(50) | Код типа (уникальный) |
+| `name` | VARCHAR(300) | Наименование типа |
+| `is_for_llc` | BOOLEAN | Доступно для ООО |
+| `is_for_njsc` | BOOLEAN | Доступно для НАО |
+| `is_for_pjsc` | BOOLEAN | Доступно для ПАО |
+| `requires_file` | BOOLEAN | Требуется приложить файл |
+| `created_at` | TIMESTAMP WITH TIME ZONE | Дата создания |
+
 ### user_roles
 
 Связь пользователей и ролей.
@@ -618,6 +668,7 @@ CREATE TABLE committee_members (
 | `has_revision_commission` | BOOLEAN | Наличие ревизионной комиссии (nullable) |
 | `has_board_of_directors` | BOOLEAN | Наличие Совета директоров по уставу |
 | `gd_term_id` | UUID | FK → ref_gd_term (срок полномочий ГД, nullable) |
+| `vosu_threshold_percent` | NUMERIC(4,2) | Порог доли участника для требования о созыве ВОСУ (nullable, по умолчанию 10%). Только для ООО с нетиповым уставом |
 
 ### current_workplace
 
@@ -629,6 +680,33 @@ CREATE TABLE committee_members (
 | `full_name` | VARCHAR(300) | ФИО руководителя |
 | `position` | VARCHAR(200) | Должность (nullable) |
 | `last_selected_legal_entity_id` | UUID | FK → legal_entities (выбранное ЮЛ, nullable) |
+
+### legal_entity_extra_settings
+
+Дополнительные настройки юридического лица (1:1 с legal_entities).
+
+| Поле | Тип | Описание |
+|------|-----|----------|
+| `legal_entity_id` | UUID | PK, FK → legal_entities |
+| `notary_list_approved` | BOOLEAN | Ведение списка участников через нотариат утверждено (ст. 31.1 14-ФЗ) |
+| `notary_list_osa_meeting_id` | UUID | FK → osa_meetings (протокол решения, nullable) |
+| `notary_list_decision_date` | DATE | Дата решения (nullable) |
+
+### agenda_items
+
+Повестка заседаний СД или ОСУ/ОСА.
+
+| Поле | Тип | Описание |
+|------|-----|----------|
+| `id` | UUID | Первичный ключ |
+| `board_of_directors_id` | UUID | FK → board_of_directors |
+| `legal_entity_id` | UUID | FK → legal_entities (nullable) |
+| `share_request_id` | UUID | FK → share_request (nullable, связь с запросом участника) |
+| `title` | TEXT | Наименование пункта повестки |
+| `target_type` | VARCHAR(20) | Тип: BOARD_MEETING или OSA |
+| `reason` | TEXT | Причина создания |
+| `status` | VARCHAR(20) | Статус: PENDING, ACCEPTED, REJECTED |
+| `created_at` | TIMESTAMP WITH TIME ZONE | Дата создания |
 
 ### meetings
 

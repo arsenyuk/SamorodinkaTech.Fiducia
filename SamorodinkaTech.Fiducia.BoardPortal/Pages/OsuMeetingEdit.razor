@@ -140,6 +140,18 @@
                 <div class="alert alert-info py-2 mb-2 small">
                     С 01.09.2025 список участников ведётся нотариусом в ЕИС (<a href="/board-law/article-14fz-31-1" target="_blank">ст. 31.1 14-ФЗ</a>). Запросите выписку у любого нотариуса — бумажную или электронную (XML с УКЭП / PDF/A).
                 </div>
+                @if (_notaryListApproved)
+                {
+                    <div class="alert alert-success py-2 mb-2 small">
+                        <strong>Ведение списка участников через нотариат:</strong> @_notaryListDecisionInfo
+                    </div>
+                }
+                else
+                {
+                    <div class="alert alert-secondary py-2 mb-2 small">
+                        <strong>Ведение списка участников через нотариат:</strong> не утверждено
+                    </div>
+                }
                 <div class="alert alert-secondary py-2 mb-2 small">
                     Проверить состав участников можно через <strong>СПАРК</strong> на странице <a href="/participants" target="_blank">Участники</a> — сервис показывает актуальных и выбывших участников, а также казначейскую долю.
                 </div>
@@ -744,6 +756,8 @@
     private string? editOkopfCode;
     private bool editIsPjsc;
     private bool editHasBoard;
+    private bool _notaryListApproved;
+    private string? _notaryListDecisionInfo;
     private bool editShareholdersListReceived;
     private bool editAbsenteeVoting;
     private bool editBoardMandatory;
@@ -1602,6 +1616,22 @@
             editIsPjsc = OkopfTypeMapper.IsPjsc(le?.RefOkopf?.Code);
         }
         editHasBoard = await ctx.LegalEntityBoardSettings.AnyAsync();
+
+        // Загружаем доп. настройки ЮЛ (в том числе статус ведения списка через нотариат)
+        _notaryListApproved = false;
+        _notaryListDecisionInfo = null;
+        if (editLegalEntityId.HasValue)
+        {
+            var extraSettings = await ctx.LegalEntityExtraSettings
+                .FirstOrDefaultAsync(x => x.LegalEntityId == editLegalEntityId.Value);
+            if (extraSettings?.NotaryListApproved == true)
+            {
+                _notaryListApproved = true;
+                var meetingDate = extraSettings.NotaryListDecisionDate?.ToString("dd.MM.yyyy") ?? "—";
+                _notaryListDecisionInfo = $"Утверждено (решение от {meetingDate})";
+            }
+        }
+
         editBoardMandatory = editIsPjsc
             || (editOkopfCode == OkopfTypeMapper.NjscCode && (editShareholdersCount ?? 1) >= 50);
         if (editBoardMandatory)

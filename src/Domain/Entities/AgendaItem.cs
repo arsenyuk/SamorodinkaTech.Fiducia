@@ -16,6 +16,12 @@ public class AgendaItem
     /// <summary>Ссылка на юридическое лицо (legal_entity_id).</summary>
     public Guid? LegalEntityId { get; set; }
 
+    /// <summary>Ссылка на запрос участника (share_request_id).</summary>
+    public Guid? ShareRequestId { get; set; }
+
+    /// <summary>Запрос участника.</summary>
+    public ShareRequest? ShareRequest { get; set; }
+
     /// <summary>Наименование пункта повестки (title).</summary>
     public string Title { get; set; } = default!;
 

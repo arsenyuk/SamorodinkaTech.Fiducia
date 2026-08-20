@@ -44,6 +44,7 @@ public interface IApplicationDbContext
     DbSet<LegalEntityCharter> LegalEntityCharters { get; }
     DbSet<LegalEntityVotingRules> LegalEntityVotingRules { get; }
     DbSet<LegalEntityEmailSettings> LegalEntityEmailSettings { get; }
+    DbSet<LegalEntityExtraSettings> LegalEntityExtraSettings { get; }
     DbSet<FileEntry> Files { get; }
     DbSet<ExtSparkCompany> ExtSparkCompanies { get; }
     DbSet<RefMeetingForm> MeetingForms { get; }
@@ -78,6 +79,8 @@ public interface IApplicationDbContext
     DbSet<BoardTreasuryShare> BoardTreasuryShares { get; }
     DbSet<BoardRegistryUpload> BoardRegistryUploads { get; }
     DbSet<BoardParticipantChange> BoardParticipantChanges { get; }
+
+    DbSet<RefRequestType> RequestTypes { get; }
 
     System.Threading.Tasks.Task<int> SaveChangesAsync(System.Threading.CancellationToken cancellationToken = default);
 }

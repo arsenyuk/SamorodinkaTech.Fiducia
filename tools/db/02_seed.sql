@@ -117,6 +117,22 @@ INSERT INTO ref_measurement_unit(id, code, name, short_name, sort_order, created
     ('bbbb0000-0000-0000-0000-000000000005','YEAR','Год','год',5,CURRENT_TIMESTAMP,'00000000-0000-0000-0000-000000000000')
 ON CONFLICT (code) DO NOTHING;
 
+-- Справочник: ref_request_type (типы требований участников)
+INSERT INTO ref_request_type(id, code, name, is_for_llc, is_for_njsc, is_for_pjsc, requires_file, created_at) VALUES
+    ('a1000000-0000-0000-0000-000000000001','PREEMPTIVE_LIST','Запрос списка участников с правом выкупа',TRUE,FALSE,FALSE,FALSE,CURRENT_TIMESTAMP),
+    ('a1000000-0000-0000-0000-000000000002','NOTARIAL_OFFER','Нотариальная оферта',TRUE,FALSE,FALSE,FALSE,CURRENT_TIMESTAMP),
+    ('a1000000-0000-0000-0000-000000000003','EXIT_APPLICATION','Заявление о выходе из ООО',TRUE,FALSE,FALSE,FALSE,CURRENT_TIMESTAMP),
+    ('a1000000-0000-0000-0000-000000000004','MANDATORY_BUYBACK','Обязательный выкуп доли',TRUE,FALSE,FALSE,FALSE,CURRENT_TIMESTAMP),
+    ('a1000000-0000-0000-0000-000000000005','NOTARY_LIST_MAINTENANCE','Ведение списка участников через нотариат',TRUE,FALSE,FALSE,FALSE,CURRENT_TIMESTAMP),
+    ('a1000000-0000-0000-0000-000000000006','CONVERT_TO_NJSC','Требование преобразовать ООО в НАО',TRUE,FALSE,FALSE,FALSE,CURRENT_TIMESTAMP),
+    ('a1000000-0000-0000-0000-000000000007','CONVERT_TO_PJSC','Требование преобразовать НАО в ПАО',FALSE,TRUE,FALSE,FALSE,CURRENT_TIMESTAMP),
+    ('a1000000-0000-0000-0000-000000000008','CHANGE_STANDARD_CHARTER_NUMBER','Требование изменить номер типового устава',TRUE,FALSE,FALSE,FALSE,CURRENT_TIMESTAMP),
+    ('a1000000-0000-0000-0000-000000000009','CONVERT_STANDARD_TO_CUSTOM_CHARTER','Требование изменить типовой устав на нетиповой',TRUE,FALSE,FALSE,TRUE,CURRENT_TIMESTAMP),
+    ('a1000000-0000-0000-0000-000000000010','CHANGE_CUSTOM_CHARTER_PROVISION','Требование изменить положение нетипового устава',TRUE,FALSE,FALSE,FALSE,CURRENT_TIMESTAMP),
+    ('a1000000-0000-0000-0000-000000000011','CHANGE_CHARTER_PROVISION','Требование изменить положение устава',FALSE,TRUE,TRUE,FALSE,CURRENT_TIMESTAMP),
+    ('a1000000-0000-0000-0000-000000000012','DEMAND_VOSU','Требование о созыве ВОСУ',TRUE,FALSE,FALSE,FALSE,CURRENT_TIMESTAMP)
+ON CONFLICT (code) DO NOTHING;
+
 -- Справочник: ref_board_member_appointment_statuses (статусы назначения членов СД)
 INSERT INTO ref_board_member_appointment_statuses(id, code, name, created_at, created_by) VALUES
     ('6e6bcad9-c361-48a2-9f08-3f86dbab7dc0','ACTIVE','Действующий',CURRENT_TIMESTAMP,'00000000-0000-0000-0000-000000000000'),

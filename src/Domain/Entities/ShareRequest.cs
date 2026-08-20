@@ -15,8 +15,11 @@ public class ShareRequest
     /// <summary>Идентификатор участника, подавшего запрос (participant_id).</summary>
     public Guid ParticipantId { get; set; }
 
-    /// <summary>Тип запроса: PREEMPTIVE_LIST / NOTARIAL_OFFER / EXIT_APPLICATION / MANDATORY_BUYBACK (request_type).</summary>
-    public string RequestType { get; set; } = default!;
+    /// <summary>Идентификатор типа запроса (request_type_id).</summary>
+    public Guid RequestTypeId { get; set; }
+
+    /// <summary>Тип запроса.</summary>
+    public RefRequestType? RequestType { get; set; }
 
     /// <summary>Статус: pending / completed / rejected (status).</summary>
     public string Status { get; set; } = "pending";
