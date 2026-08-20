@@ -1,0 +1,88 @@
+@inject HttpClient Http
+@inject ILogger<LawReferenceLink> Logger
+
+<a href="javascript:void(0)" @onclick="OpenModal" @onclick:preventDefault class="@CssClass">@Text</a>
+
+@if (_showModal)
+{
+    <div class="modal d-block" tabindex="-1" style="background-color:rgba(0,0,0,0.5)" @onclick="CloseModal">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable" @onclick:stopPropagation>
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Статья закона</h5>
+                    <button type="button" class="btn-close" @onclick="CloseModal"></button>
+                </div>
+                <div class="modal-body">
+                    @if (_loading)
+                    {
+                        <div class="text-center py-3">
+                            <div class="spinner-border text-primary" role="status"></div>
+                        </div>
+                    }
+                    else if (_error is not null)
+                    {
+                        <div class="alert alert-danger">@_error</div>
+                    }
+                    else if (_html is not null)
+                    {
+                        <div class="law-content">@((MarkupString)_html)</div>
+                    }
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseModal">Закрыть</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    /// <summary>Путь к статье закона (без расширения). Например: "article-14fz-31-1" или "64".</summary>
+    [Parameter] public string Article { get; set; } = default!;
+
+    /// <summary>Отображаемый текст ссылки.</summary>
+    [Parameter] public string Text { get; set; } = default!;
+
+    /// <summary>CSS-класс ссылки.</summary>
+    [Parameter] public string CssClass { get; set; } = "";
+
+    private bool _showModal;
+    private bool _loading;
+    private string? _html;
+    private string? _error;
+
+    private async Task OpenModal()
+    {
+        _showModal = true;
+        _loading = true;
+        _html = null;
+        _error = null;
+        StateHasChanged();
+
+        try
+        {
+            var url = $"laws/{Article}.txt";
+            var md = await Http.GetStringAsync(url);
+            _html = Markdig.Markdown.ToHtml(md);
+        }
+        catch (HttpRequestException)
+        {
+            _error = $"Статья закона не найдена: {Article}";
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Ошибка загрузки статьи закона: {Article}", Article);
+            _error = "Ошибка загрузки статьи закона";
+        }
+        finally
+        {
+            _loading = false;
+            StateHasChanged();
+        }
+    }
+
+    private void CloseModal()
+    {
+        _showModal = false;
+    }
+}

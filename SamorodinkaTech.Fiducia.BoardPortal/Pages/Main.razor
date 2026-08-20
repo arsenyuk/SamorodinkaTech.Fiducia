@@ -1,5 +1,8 @@
 @page "/main"
 @inject IJSRuntime JS
+@inject IDbContextFactory<SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext> DbFactory
+@using Microsoft.EntityFrameworkCore
+@using SamorodinkaTech.Fiducia.Domain.Entities
 
 <PageTitle>Fiducia — Главная</PageTitle>
 
@@ -36,10 +39,66 @@
     </div>
 }
 
+@if (_plannedMeetings.Count > 0)
+{
+    <div class="row mb-4">
+        <div class="col-12">
+            <h4 class="mb-3">Запланированные собрания участников</h4>
+            @foreach (var m in _plannedMeetings)
+            {
+                <a href="/osu-meetings/@m.Id" class="card text-decoration-none mb-2">
+                    <div class="card-body d-flex align-items-center justify-content-between">
+                        <div>
+                            <h5 class="mb-1">@m.FormName</h5>
+                            @if (m.WindowStart.HasValue && m.WindowEnd.HasValue)
+                            {
+                                <p class="text-muted mb-0">Окно проведения: @m.WindowStart.Value.ToString("dd.MM.yyyy") — @m.WindowEnd.Value.ToString("dd.MM.yyyy")</p>
+                            }
+                            else
+                            {
+                                <p class="text-muted mb-0">Дата не определена</p>
+                            }
+                        </div>
+                        <span class="oi oi-chevron-right"></span>
+                    </div>
+                </a>
+            }
+        </div>
+    </div>
+}
+
+@if (_isLlc)
+{
+    @if (_plannedMeetings.Count > 0)
+    {
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="alert alert-info small mb-0">
+                    Повестка ОСУ может быть изменена не позднее 10 календарных дней до даты собрания
+                    (<LawReferenceLink Article="article-14fz-36" Text="п. 2 ст. 36 14-ФЗ" />).
+                </div>
+            </div>
+        </div>
+    }
+
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="alert alert-secondary small mb-0">
+                Для созыва ВОСУ участники должны владеть совокупно не менее
+                <strong>@_vosuThreshold%</strong> голосов
+                (<LawReferenceLink Article="article-14fz-35" Text="ст. 35 14-ФЗ" />).
+            </div>
+        </div>
+    </div>
+}
+
 @code {
     private bool _showGreeting;
     private bool _isParticipant;
+    private bool _isLlc;
     private string _greetingText = "Добро пожаловать!";
+    private List<PlannedMeetingDto> _plannedMeetings = new();
+    private decimal _vosuThreshold = 10m;
 
     /// <summary>Время суток для приветствия (UTC-часы).</summary>
     private static string GetGreetingPrefix(int utcHour) => utcHour switch
@@ -65,5 +124,60 @@
             _showGreeting = true;
             await JS.InvokeVoidAsync("localStorage.setItem", "greetingShownAt", DateTime.UtcNow.ToString("o"));
         }
+
+        await LoadPlannedMeetingsAsync();
+    }
+
+    private async Task LoadPlannedMeetingsAsync()
+    {
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+            var workplace = await ctx.CurrentWorkplaces.FirstOrDefaultAsync();
+            var leId = workplace?.LastSelectedLegalEntityId;
+            if (leId is null) return;
+
+            // Определяем тип организации
+            var le = await ctx.LegalEntities
+                .Include(x => x.RefOkopf)
+                .FirstOrDefaultAsync(x => x.Id == leId.Value);
+            _isLlc = OkopfTypeMapper.IsLlc(le?.RefOkopf?.Code);
+
+            // Загружаем порог ВОСУ из устава
+            var charter = await ctx.LegalEntityCharters.FindAsync(leId.Value);
+            _vosuThreshold = charter?.VosuThresholdPercent ?? 10m;
+
+            var osuFormIds = await ctx.OsaForms
+                .Where(f => f.Code == "OOSU" || f.Code == "VOSU")
+                .Select(f => f.Id)
+                .ToListAsync();
+
+            _plannedMeetings = await ctx.OsaMeetings
+                .Where(m => m.LegalEntityId == leId.Value
+                    && osuFormIds.Contains(m.OsaFormId)
+                    && !m.OsaHeld
+                    && m.Status == "DRAFT")
+                .OrderBy(m => m.GosaWindowStart)
+                .Select(m => new PlannedMeetingDto
+                {
+                    Id = m.Id,
+                    FormName = m.RefOsaForm!.ShortName ?? m.RefOsaForm.Name,
+                    WindowStart = m.GosaWindowStart,
+                    WindowEnd = m.GosaWindowEnd
+                })
+                .ToListAsync();
+        }
+        catch
+        {
+            // Тихий fallback — собрания не показываются
+        }
+    }
+
+    private record PlannedMeetingDto
+    {
+        public Guid Id { get; init; }
+        public string FormName { get; init; } = "";
+        public DateOnly? WindowStart { get; init; }
+        public DateOnly? WindowEnd { get; init; }
     }
 }

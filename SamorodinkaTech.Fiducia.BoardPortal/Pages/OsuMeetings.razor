@@ -75,7 +75,7 @@
                 <div class="mb-3">
                     <label class="form-label">Дата собрания</label>
                     <InputDate @bind-Value="gosaStart" class="form-control" style="width:200px" />
-                    <div class="text-muted small mt-1">Законодательный срок созыва — не позднее 45 дней с даты получения требования (<a href="/board-law/article-14fz-35">ст. 35 14-ФЗ</a>). Уведомление участников — не менее чем за 30 дней.</div>
+                    <div class="text-muted small mt-1">Законодательный срок созыва — не позднее 45 дней с даты получения требования (<LawReferenceLink Article="article-14fz-35" Text="ст. 35 14-ФЗ" />). Уведомление участников — не менее чем за 30 дней.</div>
                 </div>
                 <div class="form-check mb-2">
                     <input class="form-check-input" type="checkbox" id="createAbsentee" @bind="createAbsenteeVoting" />

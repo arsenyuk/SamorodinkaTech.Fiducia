@@ -326,7 +326,7 @@
                 @if (editIsPjsc && (!editIndepDirectors || (editIndepDirectorsCount ?? 0) == 0))
                 {
                     <div class="alert alert-warning py-2 mb-2 small">
-                        ⚠️ Для ПАО обязателен комитет по аудиту (<a href="/board-law/64">п. 3 ст. 64 208-ФЗ</a>). В составе СД отсутствуют независимые директора.
+                        ⚠️ Для ПАО обязателен комитет по аудиту (<LawReferenceLink Article="64" Text="п. 3 ст. 64 208-ФЗ" />). В составе СД отсутствуют независимые директора.
                     </div>
                 }
 
@@ -470,7 +470,7 @@
                 @if (editIsGosa && !editHasBoard)
                 {
                     <div class="alert alert-info py-2 mb-2 small">
-                        ℹ️ СД отсутствует (функции СД выполняет ОСА по уставу, <a href="/board-law/64">п. 1 ст. 64 Закона об АО</a>) —
+                        ℹ️ СД отсутствует (функции СД выполняет ОСА по уставу, <LawReferenceLink Article="64" Text="п. 1 ст. 64 Закона об АО" />) —
                         прикладывание файлов необязательно.
                     </div>
                 }

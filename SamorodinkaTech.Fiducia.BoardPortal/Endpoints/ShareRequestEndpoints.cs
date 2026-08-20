@@ -351,6 +351,14 @@ public static class ShareRequestEndpoints
     private static async Task<string?> ValidateRequestTypeAsync(
         FiduciaDbContext ctx, RefRequestType requestType, Guid leId, ShareRequestCreateDto dto)
     {
+        // Общая проверка: нет ли уже активного запроса того же типа
+        var existingPending = await ctx.ShareRequests
+            .AnyAsync(r => r.LegalEntityId == leId
+                && r.RequestTypeId == requestType.Id
+                && r.Status == "pending");
+        if (existingPending)
+            return $"Уже есть активное требование типа «{requestType.Name}»";
+
         return requestType.Code switch
         {
             "NOTARY_LIST_MAINTENANCE" => await ValidateNotaryListMaintenanceAsync(ctx, leId),
@@ -360,6 +368,9 @@ public static class ShareRequestEndpoints
             "CONVERT_STANDARD_TO_CUSTOM_CHARTER" => await ValidateConvertToCustomCharterAsync(ctx, leId, dto),
             "CHANGE_CUSTOM_CHARTER_PROVISION" => await ValidateChangeCustomCharterProvisionAsync(ctx, leId),
             "DEMAND_VOSU" => await ValidateDemandVosuAsync(ctx, leId, dto),
+            "CONVERT_TO_NJSC" => await ValidateConvertToNjscAsync(ctx, leId),
+            "CONVERT_TO_PJSC" => await ValidateConvertToPjscAsync(ctx, leId),
+            "CHANGE_CHARTER_PROVISION" => await ValidateChangeCharterProvisionAsync(ctx, leId),
             _ => null
         };
     }
@@ -418,6 +429,38 @@ public static class ShareRequestEndpoints
         if (string.IsNullOrEmpty(dto.Payload))
             return "Необходимо приложить файл проекта устава";
 
+        return null;
+    }
+
+    private static async Task<string?> ValidateConvertToNjscAsync(FiduciaDbContext ctx, Guid leId)
+    {
+        var le = await ctx.LegalEntities
+            .Include(x => x.RefOkopf)
+            .FirstOrDefaultAsync(x => x.Id == leId);
+        if (le?.RefOkopf?.Code is null)
+            return "Не определён тип организации";
+        if (!OkopfTypeMapper.IsLlc(le.RefOkopf.Code))
+            return "Преобразование в НАО доступно только для ООО";
+        return null;
+    }
+
+    private static async Task<string?> ValidateConvertToPjscAsync(FiduciaDbContext ctx, Guid leId)
+    {
+        var le = await ctx.LegalEntities
+            .Include(x => x.RefOkopf)
+            .FirstOrDefaultAsync(x => x.Id == leId);
+        if (le?.RefOkopf?.Code is null)
+            return "Не определён тип организации";
+        if (le.RefOkopf.Code != OkopfTypeMapper.NjscCode)
+            return "Преобразование в ПАО доступно только для НАО";
+        return null;
+    }
+
+    private static async Task<string?> ValidateChangeCharterProvisionAsync(FiduciaDbContext ctx, Guid leId)
+    {
+        var le = await ctx.LegalEntities.FirstOrDefaultAsync(x => x.Id == leId);
+        if (le?.StandardCharterId is not null)
+            return "Устав является типовым; используйте требование «Изменить номер типового устава» или «Изменить типовой устав на нетиповой»";
         return null;
     }
 
