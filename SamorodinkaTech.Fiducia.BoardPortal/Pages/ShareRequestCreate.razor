@@ -71,7 +71,13 @@ else
             }
 
             @* ── Условия и ограничения ──────────────────────────────── *@
-            @if (!string.IsNullOrEmpty(GetConditions(_selectedType.Code)))
+            @if (!_selectedType.IsAvailable && !string.IsNullOrEmpty(_selectedType.UnavailabilityReason))
+            {
+                <div class="alert alert-danger py-2 mb-3">
+                    <strong>Недоступно:</strong> @_selectedType.UnavailabilityReason
+                </div>
+            }
+            else if (!string.IsNullOrEmpty(GetConditions(_selectedType.Code)))
             {
                 <div class="alert alert-warning py-2 mb-3">
                     <strong>Условия:</strong> @GetConditions(_selectedType.Code)
@@ -169,14 +175,14 @@ else
 
             @* ── Кнопка отправки ─────────────────────────────────────── *@
             <div class="mt-4">
-                <button class="btn btn-primary" @onclick="SubmitRequest" disabled="@_isSubmitting">
+                <button class="btn btn-primary" @onclick="SubmitRequest" disabled="@(!_selectedType.IsAvailable || _isSubmitting)">
                     @if (_isSubmitting)
                     {
                         <span class="spinner-border spinner-border-sm me-1" role="status"></span>
                     }
                     @(IsEditMode ? "Сохранить и отправить" : "Подать требование")
                 </button>
-                <button class="btn btn-outline-secondary ms-2" @onclick="SaveAsDraft" disabled="@_isSubmitting">
+                <button class="btn btn-outline-secondary ms-2" @onclick="SaveAsDraft" disabled="@(!_selectedType.IsAvailable || _isSubmitting)">
                     @(IsEditMode ? "Сохранить черновик" : "Создать черновик")
                 </button>
             </div>
@@ -523,7 +529,7 @@ else
         _ => false
     };
 
-    private record RequestTypeDto(Guid Id, string Code, string Name, bool RequiresFile, bool RequiresThreshold, decimal? ThresholdPercent, string? LegalBasis, bool IsCollective);
+    private record RequestTypeDto(Guid Id, string Code, string Name, bool RequiresFile, bool RequiresThreshold, decimal? ThresholdPercent, string? LegalBasis, bool IsCollective, bool IsAvailable, string? UnavailabilityReason);
     private record ParticipantDto(Guid Id, string? FullName, decimal? SharePercent);
     private record CreatedRequestDto(Guid? Id);
     private record ExistingRequestDto(Guid Id, Guid RequestTypeId, string? Payload, string Status);

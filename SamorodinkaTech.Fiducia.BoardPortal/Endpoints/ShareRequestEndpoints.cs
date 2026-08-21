@@ -48,13 +48,16 @@ public static class ShareRequestEndpoints
                 var charter = await ctx.LegalEntityCharters.FindAsync(leId);
                 var vosuThreshold = charter?.VosuThresholdPercent;
 
+                var extraSettings = await ctx.LegalEntityExtraSettings
+                    .FirstOrDefaultAsync(x => x.LegalEntityId == leId);
+
                 var types = await ctx.RequestTypes
                     .Where(t => (isLlc && t.IsForLlc) || (isNjsc && t.IsForNjsc) || (isPjsc && t.IsForPjsc))
                     .OrderBy(t => t.Name)
                     .Select(t => new { t.Id, t.Code, t.Name, t.RequiresFile })
                     .ToListAsync();
 
-                // Обогащаем информацией о пороге и правовой норме
+                // Обогащаем информацией о пороге, правовой норме и доступности
                 var enrichedTypes = types.Select(t => new
                 {
                     t.Id,
@@ -64,7 +67,21 @@ public static class ShareRequestEndpoints
                     RequiresThreshold = t.Code is "DEMAND_VOSU" or "DEMAND_VOSA",
                     ThresholdPercent = t.Code is "DEMAND_VOSU" or "DEMAND_VOSA" ? vosuThreshold : null,
                     LegalBasis = GetLegalBasisCode(t.Code),
-                    IsCollective = IsCollectiveTypeCode(t.Code)
+                    IsCollective = IsCollectiveTypeCode(t.Code),
+                    IsAvailable = t.Code switch
+                    {
+                        "EXIT_APPLICATION" => charter?.ExitAllowed ?? false,
+                        "PREEMPTIVE_LIST" => charter?.PreemptiveRight ?? true,
+                        "NOTARY_LIST_MAINTENANCE" => !(extraSettings?.NotaryListApproved ?? false),
+                        _ => true
+                    },
+                    UnavailabilityReason = t.Code switch
+                    {
+                        "EXIT_APPLICATION" when !(charter?.ExitAllowed ?? false) => "Выход из общества не предусмотрен уставом",
+                        "PREEMPTIVE_LIST" when !(charter?.PreemptiveRight ?? true) => "Преимущественное право не действует",
+                        "NOTARY_LIST_MAINTENANCE" when extraSettings?.NotaryListApproved == true => "Ведение списка через нотариат уже утверждено",
+                        _ => null
+                    }
                 });
 
                 return Results.Ok(enrichedTypes);
