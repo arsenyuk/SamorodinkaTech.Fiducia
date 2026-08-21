@@ -6,21 +6,23 @@ namespace SamorodinkaTech.Fiducia.Infrastructure.Auditing;
 
 /// <summary>
 /// Декоратор для IMtsLinkApiClient — логирует обращение к MTS Link API.
-/// Авторизация происходит через заголовок x-auth-token, поэтому логируется первый запрос.
 /// </summary>
 public class AuditMtsLinkDecorator : IMtsLinkApiClient
 {
     private readonly IMtsLinkApiClient _inner;
     private readonly ISecurityAuditService _auditService;
+    private readonly IClientIpProvider _ipProvider;
     private readonly ILogger<AuditMtsLinkDecorator> _logger;
 
     public AuditMtsLinkDecorator(
         IMtsLinkApiClient inner,
         ISecurityAuditService auditService,
+        IClientIpProvider ipProvider,
         ILogger<AuditMtsLinkDecorator> logger)
     {
         _inner = inner;
         _auditService = auditService;
+        _ipProvider = ipProvider;
         _logger = logger;
     }
 
@@ -28,17 +30,18 @@ public class AuditMtsLinkDecorator : IMtsLinkApiClient
         CreateMtsLinkMeetingRequest request,
         CancellationToken cancellationToken = default)
     {
+        var clientIp = _ipProvider.GetClientIp();
         try
         {
             var result = await _inner.CreateMeetingAsync(request, cancellationToken);
-            await _auditService.LogEventAsync("EXTERNAL_AUTH:MtsLink", "internal",
-                $"Обращение к MTS Link API: CreateMeeting, результат=успех, sessionId={result.Id}",
+            await _auditService.LogEventAsync("EXTERNAL:MtsLink:CreateMeeting", clientIp,
+                $"Обращение к MTS Link API: CreateMeeting, sessionId={result.Id}, успех",
                 entityName: "MtsLink");
             return result;
         }
         catch (Exception ex)
         {
-            await _auditService.LogEventAsync("EXTERNAL_AUTH:MtsLink", "internal",
+            await _auditService.LogEventAsync("EXTERNAL:MtsLink:CreateMeeting", clientIp,
                 $"Обращение к MTS Link API: CreateMeeting, ошибка={ex.Message}",
                 entityName: "MtsLink");
             throw;

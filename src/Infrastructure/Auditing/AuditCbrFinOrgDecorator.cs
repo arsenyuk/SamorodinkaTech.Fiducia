@@ -11,15 +11,18 @@ public class AuditCbrFinOrgDecorator : ICbrFinOrgClient
 {
     private readonly ICbrFinOrgClient _inner;
     private readonly ISecurityAuditService _auditService;
+    private readonly IClientIpProvider _ipProvider;
     private readonly ILogger<AuditCbrFinOrgDecorator> _logger;
 
     public AuditCbrFinOrgDecorator(
         ICbrFinOrgClient inner,
         ISecurityAuditService auditService,
+        IClientIpProvider ipProvider,
         ILogger<AuditCbrFinOrgDecorator> logger)
     {
         _inner = inner;
         _auditService = auditService;
+        _ipProvider = ipProvider;
         _logger = logger;
     }
 
@@ -28,18 +31,18 @@ public class AuditCbrFinOrgDecorator : ICbrFinOrgClient
         long inn,
         CancellationToken cancellationToken = default)
     {
+        var clientIp = _ipProvider.GetClientIp();
         try
         {
             var result = await _inner.GetOrganizationByInnAsync(inn, cancellationToken);
-            await _auditService.LogEventAsync("EXTERNAL_AUTH:CbrFinOrg", "internal",
-                $"Обращение к FinOrg API: GetFullInfoByINN inn={inn}, результат={(
-                    result != null ? "найдено" : "не найдено")}",
+            await _auditService.LogEventAsync("EXTERNAL:CbrFinOrg:Query", clientIp,
+                $"Обращение к FinOrg API: GetFullInfoByINN inn={inn}, результат={(result != null ? "найдено" : "не найдено")}",
                 entityName: "CbrFinOrg");
             return result;
         }
         catch (Exception ex)
         {
-            await _auditService.LogEventAsync("EXTERNAL_AUTH:CbrFinOrg", "internal",
+            await _auditService.LogEventAsync("EXTERNAL:CbrFinOrg:Query", clientIp,
                 $"Обращение к FinOrg API: GetFullInfoByINN inn={inn}, ошибка={ex.Message}",
                 entityName: "CbrFinOrg");
             throw;
@@ -51,18 +54,18 @@ public class AuditCbrFinOrgDecorator : ICbrFinOrgClient
         long ogrn,
         CancellationToken cancellationToken = default)
     {
+        var clientIp = _ipProvider.GetClientIp();
         try
         {
             var result = await _inner.GetOrganizationByOgrnAsync(ogrn, cancellationToken);
-            await _auditService.LogEventAsync("EXTERNAL_AUTH:CbrFinOrg", "internal",
-                $"Обращение к FinOrg API: GetFullInfoByOGRN ogrn={ogrn}, результат={(
-                    result != null ? "найдено" : "не найдено")}",
+            await _auditService.LogEventAsync("EXTERNAL:CbrFinOrg:Query", clientIp,
+                $"Обращение к FinOrg API: GetFullInfoByOGRN ogrn={ogrn}, результат={(result != null ? "найдено" : "не найдено")}",
                 entityName: "CbrFinOrg");
             return result;
         }
         catch (Exception ex)
         {
-            await _auditService.LogEventAsync("EXTERNAL_AUTH:CbrFinOrg", "internal",
+            await _auditService.LogEventAsync("EXTERNAL:CbrFinOrg:Query", clientIp,
                 $"Обращение к FinOrg API: GetFullInfoByOGRN ogrn={ogrn}, ошибка={ex.Message}",
                 entityName: "CbrFinOrg");
             throw;
@@ -76,18 +79,18 @@ public class AuditCbrFinOrgDecorator : ICbrFinOrgClient
         int page = 0,
         CancellationToken cancellationToken = default)
     {
+        var clientIp = _ipProvider.GetClientIp();
         try
         {
             var result = await _inner.SearchAsync(name, address, page, cancellationToken);
-            await _auditService.LogEventAsync("EXTERNAL_AUTH:CbrFinOrg", "internal",
-                $"Обращение к FinOrg API: Search name={name ?? "*"}, addr={address ?? "*"}, " +
-                $"страница={page}, результат={result.TotalRows} записей, успех={result.IsSuccess}",
+            await _auditService.LogEventAsync("EXTERNAL:CbrFinOrg:Search", clientIp,
+                $"Обращение к FinOrg API: Search name={name ?? "*"}, addr={address ?? "*"}, страница={page}, результат={result.TotalRows} записей",
                 entityName: "CbrFinOrg");
             return result;
         }
         catch (Exception ex)
         {
-            await _auditService.LogEventAsync("EXTERNAL_AUTH:CbrFinOrg", "internal",
+            await _auditService.LogEventAsync("EXTERNAL:CbrFinOrg:Search", clientIp,
                 $"Обращение к FinOrg API: Search name={name ?? "*"}, ошибка={ex.Message}",
                 entityName: "CbrFinOrg");
             throw;
@@ -99,18 +102,18 @@ public class AuditCbrFinOrgDecorator : ICbrFinOrgClient
         long[] inns,
         CancellationToken cancellationToken = default)
     {
+        var clientIp = _ipProvider.GetClientIp();
         try
         {
             var result = await _inner.SearchByInnsAsync(inns, cancellationToken);
-            await _auditService.LogEventAsync("EXTERNAL_AUTH:CbrFinOrg", "internal",
-                $"Обращение к FinOrg API: SearchByINNs count={inns.Length}, " +
-                $"результат={result.Count} записей",
+            await _auditService.LogEventAsync("EXTERNAL:CbrFinOrg:SearchByINNs", clientIp,
+                $"Обращение к FinOrg API: SearchByINNs count={inns.Length}, результат={result.Count} записей",
                 entityName: "CbrFinOrg");
             return result;
         }
         catch (Exception ex)
         {
-            await _auditService.LogEventAsync("EXTERNAL_AUTH:CbrFinOrg", "internal",
+            await _auditService.LogEventAsync("EXTERNAL:CbrFinOrg:SearchByINNs", clientIp,
                 $"Обращение к FinOrg API: SearchByINNs count={inns.Length}, ошибка={ex.Message}",
                 entityName: "CbrFinOrg");
             throw;
@@ -120,17 +123,18 @@ public class AuditCbrFinOrgDecorator : ICbrFinOrgClient
     /// <inheritdoc />
     public async Task<DateTime> GetLastUpdateAsync(CancellationToken cancellationToken = default)
     {
+        var clientIp = _ipProvider.GetClientIp();
         try
         {
             var result = await _inner.GetLastUpdateAsync(cancellationToken);
-            await _auditService.LogEventAsync("EXTERNAL_AUTH:CbrFinOrg", "internal",
-                $"Обращение к FinOrg API: GetLastUpdate, результат={result:O}",
+            await _auditService.LogEventAsync("EXTERNAL:CbrFinOrg:GetLastUpdate", clientIp,
+                $"Обращение к FinOrg API: GetLastUpdate, результат={result:dd.MM.yyyy HH:mm}",
                 entityName: "CbrFinOrg");
             return result;
         }
         catch (Exception ex)
         {
-            await _auditService.LogEventAsync("EXTERNAL_AUTH:CbrFinOrg", "internal",
+            await _auditService.LogEventAsync("EXTERNAL:CbrFinOrg:GetLastUpdate", clientIp,
                 $"Обращение к FinOrg API: GetLastUpdate, ошибка={ex.Message}",
                 entityName: "CbrFinOrg");
             throw;

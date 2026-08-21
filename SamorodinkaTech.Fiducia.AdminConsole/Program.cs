@@ -17,6 +17,7 @@ using SamorodinkaTech.Fiducia.Infrastructure.Common.Exceptions;
 using SamorodinkaTech.Fiducia.Infrastructure.Middleware;
 using SamorodinkaTech.Fiducia.Infrastructure.Services;
 using SamorodinkaTech.Fiducia.Infrastructure.FileStorage;
+using SamorodinkaTech.Fiducia.Infrastructure;
 using SamorodinkaTech.Fiducia.AdminConsole.Contracts;
 using Serilog;
 
@@ -92,6 +93,10 @@ builder.Services.AddSingleton<ISessionService, SessionService>();
 // Файловая запись аудита — через Serilog sub-logger (фильтр по SourceContext)
 builder.Services.AddSingleton<ISecurityAuditService, SecurityAuditService>();
 
+// Client IP Provider — для передачи IP клиента в декораторы аудита внешних интеграций
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<IClientIpProvider, HttpContextIpProvider>();
+
 // Notification Service (US-009)
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IElectionNominationService, ElectionNominationService>();
@@ -123,8 +128,9 @@ builder.Services.AddScoped<ISparkApiClient>(sp =>
 
     var inner = new SparkApiClient(httpClient, logger, options.BaseUrl, options.Login, options.Password);
     var auditService = sp.GetRequiredService<ISecurityAuditService>();
+    var ipProvider = sp.GetRequiredService<IClientIpProvider>();
     var auditLogger = sp.GetRequiredService<ILogger<AuditSparkDecorator>>();
-    return new AuditSparkDecorator(inner, auditService, auditLogger);
+    return new AuditSparkDecorator(inner, auditService, ipProvider, auditLogger);
 });
 
 // Сервис кэширования данных СПАРК — загрузка из API, сохранение в ext_spark_*, чтение кэша
@@ -141,8 +147,9 @@ if (builder.Configuration.GetValue<bool>("CbrFinOrg:Enabled"))
         var logger = sp.GetRequiredService<ILogger<CbrFinOrgApiClient>>();
         var inner = new CbrFinOrgApiClient(new HttpClient(), logger, options.BaseUrl);
         var auditService = sp.GetRequiredService<ISecurityAuditService>();
+        var ipProvider = sp.GetRequiredService<IClientIpProvider>();
         var auditLogger = sp.GetRequiredService<ILogger<AuditCbrFinOrgDecorator>>();
-        return new AuditCbrFinOrgDecorator(inner, auditService, auditLogger);
+        return new AuditCbrFinOrgDecorator(inner, auditService, ipProvider, auditLogger);
     });
 
     // Сервис кэширования данных ЦБ РФ — загрузка из API, сохранение в ext_cbr_finorg_*, TTL 24ч
@@ -160,8 +167,9 @@ if (builder.Configuration.GetValue<bool>("TrueConf:Enabled"))
         var logger = sp.GetRequiredService<ILogger<TrueConfApiClient>>();
         var inner = new TrueConfApiClient(new HttpClient(), logger, options.BaseUrl);
         var auditService = sp.GetRequiredService<ISecurityAuditService>();
+        var ipProvider = sp.GetRequiredService<IClientIpProvider>();
         var auditLogger = sp.GetRequiredService<ILogger<AuditTrueConfDecorator>>();
-        return new AuditTrueConfDecorator(inner, auditService, auditLogger);
+        return new AuditTrueConfDecorator(inner, auditService, ipProvider, auditLogger);
     });
 }
 
@@ -176,8 +184,9 @@ if (builder.Configuration.GetValue<bool>("MtsLink:Enabled"))
         var logger = sp.GetRequiredService<ILogger<MtsLinkApiClient>>();
         var inner = new MtsLinkApiClient(new HttpClient(), logger, options.BaseUrl, options.ApiToken);
         var auditService = sp.GetRequiredService<ISecurityAuditService>();
+        var ipProvider = sp.GetRequiredService<IClientIpProvider>();
         var auditLogger = sp.GetRequiredService<ILogger<AuditMtsLinkDecorator>>();
-        return new AuditMtsLinkDecorator(inner, auditService, auditLogger);
+        return new AuditMtsLinkDecorator(inner, auditService, ipProvider, auditLogger);
     });
 }
 
@@ -196,8 +205,9 @@ if (builder.Configuration.GetValue<bool>("Ldap:Enabled"))
             cfg["BindPassword"],
             logger);
         var auditService = sp.GetRequiredService<ISecurityAuditService>();
+        var ipProvider = sp.GetRequiredService<IClientIpProvider>();
         var auditLogger = sp.GetRequiredService<ILogger<AuditLdapDecorator>>();
-        return new AuditLdapDecorator(inner, auditService, auditLogger);
+        return new AuditLdapDecorator(inner, auditService, ipProvider, auditLogger);
     });
 
     builder.Services.AddSingleton<IBoardMemberLdapService>(sp =>

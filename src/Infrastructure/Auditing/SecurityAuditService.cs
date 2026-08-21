@@ -1,4 +1,3 @@
-using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using SamorodinkaTech.Fiducia.Domain.Interfaces;
 
@@ -7,6 +6,7 @@ namespace SamorodinkaTech.Fiducia.Infrastructure.Auditing;
 /// <summary>
 /// Реализация сервиса регистрации событий безопасности.
 /// Записывает события в файловый лог (через Serilog sub-logger).
+/// Формат записи: [AUDIT] {ActionCode} | User={UserId} IP={UserIp} | {Description} | {EntityName} {EntityId}
 /// </summary>
 public class SecurityAuditService : ISecurityAuditService
 {
@@ -27,23 +27,17 @@ public class SecurityAuditService : ISecurityAuditService
         Guid? entityId = null,
         CancellationToken cancellationToken = default)
     {
-        var timestamp = DateTime.UtcNow;
-
         try
         {
-            var entry = JsonSerializer.Serialize(new
-            {
-                timestamp,
-                actionCode,
-                userIp,
-                userId,
-                entityName,
-                entityId,
-                description
-            });
+            var userPart = userId.HasValue ? userId.Value.ToString("N")[..8] : "anonymous";
+            var entityShort = entityId.HasValue ? entityId.Value.ToString("N")[..8] : "";
+            var entityPart = entityId.HasValue ? $"{entityName} {entityShort}" : entityName ?? "";
+
             using (_logger.BeginScope(new Dictionary<string, object> { ["AuditLog"] = true }))
             {
-                _logger.LogInformation("{AuditEntry}", entry);
+                _logger.LogInformation(
+                    "[AUDIT] {ActionCode} | User={UserPart} IP={UserIp} | {Description} | {EntityPart}",
+                    actionCode, userPart, userIp, description, entityPart);
             }
         }
         catch (Exception ex)

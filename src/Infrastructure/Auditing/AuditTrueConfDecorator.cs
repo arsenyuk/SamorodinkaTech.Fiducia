@@ -11,15 +11,18 @@ public class AuditTrueConfDecorator : ITrueConfApiClient
 {
     private readonly ITrueConfApiClient _inner;
     private readonly ISecurityAuditService _auditService;
+    private readonly IClientIpProvider _ipProvider;
     private readonly ILogger<AuditTrueConfDecorator> _logger;
 
     public AuditTrueConfDecorator(
         ITrueConfApiClient inner,
         ISecurityAuditService auditService,
+        IClientIpProvider ipProvider,
         ILogger<AuditTrueConfDecorator> logger)
     {
         _inner = inner;
         _auditService = auditService;
+        _ipProvider = ipProvider;
         _logger = logger;
     }
 
@@ -28,17 +31,18 @@ public class AuditTrueConfDecorator : ITrueConfApiClient
         string clientSecret,
         CancellationToken cancellationToken = default)
     {
+        var clientIp = _ipProvider.GetClientIp();
         try
         {
             var result = await _inner.GetTokenAsync(clientId, clientSecret, cancellationToken);
-            await _auditService.LogEventAsync("EXTERNAL_AUTH:TrueConf", "internal",
+            await _auditService.LogEventAsync("EXTERNAL:TrueConf:Auth", clientIp,
                 $"Авторизация TrueConf: clientId={clientId}, результат=успех",
                 entityName: "TrueConf");
             return result;
         }
         catch (Exception ex)
         {
-            await _auditService.LogEventAsync("EXTERNAL_AUTH:TrueConf", "internal",
+            await _auditService.LogEventAsync("EXTERNAL:TrueConf:Auth", clientIp,
                 $"Авторизация TrueConf: clientId={clientId}, ошибка={ex.Message}",
                 entityName: "TrueConf");
             throw;

@@ -5,7 +5,8 @@ namespace SamorodinkaTech.Fiducia.Infrastructure.Middleware;
 
 /// <summary>
 /// Middleware для аудита доступа к страницам сайтов.
-/// Фиксирует успешный доступ (PAGE_ACCESS), отказы (PAGE_ACCESS_DENIED) и 404 (PAGE_NOT_FOUND).
+/// Фиксирует только бизнес-события: переходы между страницами, ошибки доступа, 404.
+/// Служебные API-вызовы (Blazor-роутинг, справочники) исключены из аудита.
 /// </summary>
 public class PageAccessAuditMiddleware
 {
@@ -18,9 +19,20 @@ public class PageAccessAuditMiddleware
         ".png", ".jpg", ".jpeg", ".gif", ".webp", ".map"
     };
 
+    /// <summary>
+    /// Пути, не попадающие в лог аудита (служебные, технические).
+    /// </summary>
     private static readonly HashSet<string> ExcludedPaths = new(StringComparer.OrdinalIgnoreCase)
     {
         "/_blazor", "/_framework", "/_content", "/css", "/js", "/lib"
+    };
+
+    /// <summary>
+    /// API-пути, не попадающие в лог аудита (служебные Blazor-вызовы).
+    /// </summary>
+    private static readonly HashSet<string> ExcludedApiPaths = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "/api/session/config", "/api/session/login", "/api/session/logout"
     };
 
     public PageAccessAuditMiddleware(RequestDelegate next, ISecurityAuditService auditService)
@@ -42,13 +54,17 @@ public class PageAccessAuditMiddleware
         var userId = GetUserId(context);
         var userIp = ClientIpHelper.GetClientIp(context);
         var method = context.Request.Method;
-        var userAgent = context.Request.Headers["User-Agent"].ToString().Replace("\r", " ").Replace("\n", " ");
 
         await _next(context);
 
         var statusCode = context.Response.StatusCode;
-        var actionCode = GetActionCode(statusCode);
-        var description = $"{method} {path} → {statusCode} | UA: {userAgent}";
+
+        // Пропускаем успешные API-вызовы (стандартные Blazor/SPA паттерны)
+        if (IsExcludedApiPath(path) && statusCode == 200)
+            return;
+
+        var actionCode = GetActionCode(method, statusCode, path);
+        var description = GetDescription(method, path, statusCode);
 
         await _auditService.LogEventAsync(
             actionCode,
@@ -68,13 +84,38 @@ public class PageAccessAuditMiddleware
         return !string.IsNullOrEmpty(extension) && ExcludedExtensions.Contains(extension);
     }
 
-    private static string GetActionCode(int statusCode) => statusCode switch
+    private static bool IsExcludedApiPath(string path)
     {
-        401 => "PAGE_ACCESS_DENIED",
-        403 => "PAGE_ACCESS_DENIED",
-        404 => "PAGE_NOT_FOUND",
-        _ => "PAGE_ACCESS"
+        return ExcludedApiPaths.Any(p => path.StartsWith(p, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static string GetActionCode(string method, int statusCode, string path) => statusCode switch
+    {
+        401 => "ACCESS:PAGE_DENIED",
+        403 => "ACCESS:PAGE_DENIED",
+        404 => "ACCESS:PAGE_NOT_FOUND",
+        _ when method == "GET" => "DATA:READ",
+        _ when method == "POST" => "DATA:CREATE",
+        _ when method == "PUT" || method == "PATCH" => "DATA:UPDATE",
+        _ when method == "DELETE" => "DATA:DELETE",
+        _ => "DATA:READ"
     };
+
+    private static string GetDescription(string method, string path, int statusCode)
+    {
+        var statusText = statusCode switch
+        {
+            200 => "успешно",
+            401 => "отказ (не аутентифицирован)",
+            403 => "отказ (нет доступа)",
+            404 => "не найдено",
+            400 => "ошибка запроса",
+            500 => "ошибка сервера",
+            _ => $"код {statusCode}"
+        };
+
+        return $"{method} {path} — {statusText}";
+    }
 
     private static Guid? GetUserId(HttpContext context)
     {

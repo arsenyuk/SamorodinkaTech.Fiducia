@@ -11,15 +11,18 @@ public class AuditLdapDecorator : ILdapService
 {
     private readonly ILdapService _inner;
     private readonly ISecurityAuditService _auditService;
+    private readonly IClientIpProvider _ipProvider;
     private readonly ILogger<AuditLdapDecorator> _logger;
 
     public AuditLdapDecorator(
         ILdapService inner,
         ISecurityAuditService auditService,
+        IClientIpProvider ipProvider,
         ILogger<AuditLdapDecorator> logger)
     {
         _inner = inner;
         _auditService = auditService;
+        _ipProvider = ipProvider;
         _logger = logger;
     }
 
@@ -28,17 +31,18 @@ public class AuditLdapDecorator : ILdapService
         string password,
         CancellationToken cancellationToken = default)
     {
+        var clientIp = _ipProvider.GetClientIp();
         try
         {
             var result = await _inner.AuthenticateAsync(login, password, cancellationToken);
-            await _auditService.LogEventAsync("EXTERNAL_AUTH:LDAP", "internal",
+            await _auditService.LogEventAsync("AUTH:LDAP", clientIp,
                 $"LDAP-аутентификация: login={login}, результат={(result ? "успех" : "отказ")}",
                 entityName: "LDAP");
             return result;
         }
         catch (Exception ex)
         {
-            await _auditService.LogEventAsync("EXTERNAL_AUTH:LDAP", "internal",
+            await _auditService.LogEventAsync("AUTH:LDAP", clientIp,
                 $"LDAP-аутентификация: login={login}, ошибка={ex.Message}",
                 entityName: "LDAP");
             throw;
