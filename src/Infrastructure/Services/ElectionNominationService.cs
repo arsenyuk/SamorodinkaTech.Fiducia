@@ -27,7 +27,7 @@ public class ElectionNominationService : IElectionNominationService
         _context = context ?? throw new ArgumentNullException(nameof(context));
         _notificationService = notificationService ?? throw new ArgumentNullException(nameof(notificationService));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        _textBuilder = new NotificationTextBuilder();
+        _textBuilder = new NotificationTextBuilder(context);
     }
 
     /// <inheritdoc />
@@ -119,8 +119,8 @@ public class ElectionNominationService : IElectionNominationService
 
             var (title, body) = notificationType switch
             {
-                "CHAIRMAN_CONSENT" => _textBuilder.BuildChairmanConsent(legalEntityName, boardMember.FullName),
-                "DEPUTY_CHAIRMAN_CONSENT" => _textBuilder.BuildDeputyChairmanConsent(legalEntityName, boardMember.FullName),
+                "CHAIRMAN_CONSENT" => await _textBuilder.BuildChairmanConsentAsync(legalEntityName, boardMember.FullName, cancellationToken),
+                "DEPUTY_CHAIRMAN_CONSENT" => await _textBuilder.BuildDeputyChairmanConsentAsync(legalEntityName, boardMember.FullName, cancellationToken),
                 _ => _textBuilder.BuildGeneral("Согласие на должность", $"Уважаемый {boardMember.FullName}! Подтвердите согласие на должность {proposal.Position}.")
             };
 
@@ -176,8 +176,8 @@ public class ElectionNominationService : IElectionNominationService
 
         var (title, body) = notificationType switch
         {
-            "CHAIRMAN_NOMINATION" => _textBuilder.BuildChairmanNomination(legalEntityName),
-            "DEPUTY_CHAIRMAN_NOMINATION" => _textBuilder.BuildDeputyChairmanNomination(legalEntityName),
+            "CHAIRMAN_NOMINATION" => await _textBuilder.BuildChairmanNominationAsync(legalEntityName, cancellationToken),
+            "DEPUTY_CHAIRMAN_NOMINATION" => await _textBuilder.BuildDeputyChairmanNominationAsync(legalEntityName, cancellationToken),
             _ => _textBuilder.BuildGeneral("Сбор предложений", $"Сбор предложений на должность {position}.")
         };
 

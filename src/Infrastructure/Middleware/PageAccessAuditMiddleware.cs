@@ -28,11 +28,12 @@ public class PageAccessAuditMiddleware
     };
 
     /// <summary>
-    /// API-пути, не попадающие в лог аудита (служебные Blazor-вызовы).
+    /// API-пути, не попадающие в лог аудита (служебные Blazor-вызовы, справочники).
     /// </summary>
     private static readonly HashSet<string> ExcludedApiPaths = new(StringComparer.OrdinalIgnoreCase)
     {
-        "/api/session/config", "/api/session/login", "/api/session/logout"
+        "/api/session/config", "/api/session/login", "/api/session/logout",
+        "/api/share-requests/types"
     };
 
     public PageAccessAuditMiddleware(RequestDelegate next, ISecurityAuditService auditService)
@@ -54,6 +55,13 @@ public class PageAccessAuditMiddleware
         var userId = GetUserId(context);
         var userIp = ClientIpHelper.GetClientIp(context);
         var method = context.Request.Method;
+
+        // HEAD-запросы — health-check, не логируем
+        if (string.Equals(method, "HEAD", StringComparison.OrdinalIgnoreCase))
+        {
+            await _next(context);
+            return;
+        }
 
         await _next(context);
 

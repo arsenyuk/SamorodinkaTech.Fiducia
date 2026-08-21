@@ -139,6 +139,19 @@ CREATE TABLE IF NOT EXISTS ref_notification_type (
 
 CREATE INDEX IF NOT EXISTS ix_ref_notification_type_code ON ref_notification_type(code);
 
+-- Шаблоны уведомлений (notification_template)
+CREATE TABLE IF NOT EXISTS notification_template (
+    id uuid PRIMARY KEY,
+    notification_type_code varchar(50) UNIQUE NOT NULL REFERENCES ref_notification_type(code),
+    title_template varchar(500) NOT NULL,
+    body_template text NOT NULL,
+    description varchar(500),
+    is_enabled boolean DEFAULT TRUE NOT NULL,
+    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS ix_notification_template_type_code ON notification_template(notification_type_code);
+
 -- Справочник: ref_meeting_form (формы проведения заседания СД)
 CREATE TABLE IF NOT EXISTS ref_meeting_form (
     id uuid PRIMARY KEY,

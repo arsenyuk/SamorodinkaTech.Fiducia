@@ -94,5 +94,7 @@ public interface IApplicationDbContext
 
     DbSet<RefNotificationType> RefNotificationTypes { get; }
 
+    DbSet<NotificationTemplate> NotificationTemplates { get; }
+
     System.Threading.Tasks.Task<int> SaveChangesAsync(System.Threading.CancellationToken cancellationToken = default);
 }

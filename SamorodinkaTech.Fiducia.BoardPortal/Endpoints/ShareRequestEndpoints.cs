@@ -73,6 +73,9 @@ public static class ShareRequestEndpoints
                         "EXIT_APPLICATION" => charter?.ExitAllowed ?? false,
                         "PREEMPTIVE_LIST" => charter?.PreemptiveRight ?? true,
                         "NOTARY_LIST_MAINTENANCE" => !(extraSettings?.NotaryListApproved ?? false),
+                        "CONVERT_STANDARD_TO_CUSTOM_CHARTER" => le?.StandardCharterId.HasValue ?? false,
+                        "CHANGE_STANDARD_CHARTER_NUMBER" => le?.StandardCharterId.HasValue ?? false,
+                        "CHANGE_CUSTOM_CHARTER_PROVISION" => !(le?.StandardCharterId.HasValue ?? true),
                         _ => true
                     },
                     UnavailabilityReason = t.Code switch
@@ -80,6 +83,9 @@ public static class ShareRequestEndpoints
                         "EXIT_APPLICATION" when !(charter?.ExitAllowed ?? false) => "Выход из общества не предусмотрен уставом",
                         "PREEMPTIVE_LIST" when !(charter?.PreemptiveRight ?? true) => "Преимущественное право не действует",
                         "NOTARY_LIST_MAINTENANCE" when extraSettings?.NotaryListApproved == true => "Ведение списка через нотариат уже утверждено",
+                        "CONVERT_STANDARD_TO_CUSTOM_CHARTER" when !(le?.StandardCharterId.HasValue ?? false) => "Текущий устав уже является нетиповым",
+                        "CHANGE_STANDARD_CHARTER_NUMBER" when !(le?.StandardCharterId.HasValue ?? false) => "Текущий устав уже является нетиповым",
+                        "CHANGE_CUSTOM_CHARTER_PROVISION" when le?.StandardCharterId.HasValue ?? true => "Текущий устав является типовым — используйте «Изменить номер типового устава»",
                         _ => null
                     }
                 });
