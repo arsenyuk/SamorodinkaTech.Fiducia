@@ -44,6 +44,25 @@ else
         </div>
     </div>
 
+    @* ── Действия для черновика ────────────────────────────────────── *@
+    @if (_request.Status == "draft")
+    {
+        <div class="card mb-4 border-primary">
+            <div class="card-body">
+                <h5>Действия</h5>
+                <p class="text-muted">Требование в статусе черновика. Вы можете редактировать и отправить его.</p>
+                <div class="d-flex gap-2">
+                    <a href="/share-requests/@_request.Id/edit" class="btn btn-primary">
+                        <span class="oi oi-pencil"></span> Редактировать
+                    </a>
+                    <button class="btn btn-success" @onclick="SubmitRequestAsync">
+                        <span class="oi oi-check"></span> Отправить требование
+                    </button>
+                </div>
+            </div>
+        </div>
+    }
+
     @* ── Результат для PREEMPTIVE_LIST ────────────────────────────── *@
     @if (_request.RequestTypeCode == "PREEMPTIVE_LIST" && _request.Status == "completed")
     {
@@ -136,12 +155,24 @@ else
         }
     }
 
+    private async Task SubmitRequestAsync()
+    {
+        var confirmed = await Http.PostAsJsonAsync($"/api/share-requests/{Id}/submit", new { });
+        if (confirmed.IsSuccessStatusCode)
+        {
+            Nav.NavigateTo($"/share-requests/{Id}", forceLoad: true);
+        }
+    }
+
     private static MarkupString GetStatusBadge(string status) => status switch
     {
-        "pending" => new("<span class='badge bg-warning'>В обработке</span>"),
+        "draft" => new("<span class='badge bg-secondary'>Черновик</span>"),
+        "submitted" => new("<span class='badge bg-info'>Подано</span>"),
+        "accepted" => new("<span class='badge bg-success'>Принято</span>"),
+        "rejected" => new("<span class='badge bg-danger'>Отклонено</span>"),
+        "revoked" => new("<span class='badge bg-warning'>Отозвано</span>"),
         "completed" => new("<span class='badge bg-success'>Завершён</span>"),
-        "rejected" => new("<span class='badge bg-danger'>Отклонён</span>"),
-        "revoked" => new("<span class='badge bg-secondary'>Отозван</span>"),
+        "pending" => new("<span class='badge bg-warning'>В обработке</span>"),
         _ => new($"<span class='badge bg-secondary'>{status}</span>")
     };
 

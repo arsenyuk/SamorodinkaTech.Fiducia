@@ -21,8 +21,8 @@ public class ShareRequest
     /// <summary>Тип запроса.</summary>
     public RefRequestType? RequestType { get; set; }
 
-    /// <summary>Статус: pending / completed / rejected (status).</summary>
-    public string Status { get; set; } = "pending";
+    /// <summary>Статус: draft (черновик) / submitted (подано) / accepted (принято) / rejected (отклонено) / revoked (отозвано) / completed (завершено).</summary>
+    public string Status { get; set; } = "draft";
 
     /// <summary>Специфичные данные по типу запроса в формате JSON (payload).</summary>
     public string? Payload { get; set; }

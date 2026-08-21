@@ -1,4 +1,5 @@
 @page "/share-requests/create"
+@page "/share-requests/{Id:guid}/edit"
 @using System.Net.Http.Json
 @using SamorodinkaTech.Fiducia.SharedComponents.Components
 @inject HttpClient Http
@@ -6,10 +7,10 @@
 @inject ILogger<ShareRequestCreate> Logger
 @attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "PARTICIPANT")]
 
-<PageTitle>Fiducia — Подать требование или запрос</PageTitle>
+<PageTitle>Fiducia — @(IsEditMode ? "Редактирование требования" : "Подать требование или запрос")</PageTitle>
 
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h3>Подать требование или запрос</h3>
+    <h3>@(IsEditMode ? "Редактирование требования" : "Подать требование или запрос")</h3>
     <a href="/share-requests" class="btn btn-outline-secondary">← Назад к списку</a>
 </div>
 
@@ -172,7 +173,10 @@ else
                     {
                         <span class="spinner-border spinner-border-sm me-1" role="status"></span>
                     }
-                    Подать требование
+                    @(IsEditMode ? "Сохранить и отправить" : "Подать требование")
+                </button>
+                <button class="btn btn-outline-secondary ms-2" @onclick="SaveAsDraft" disabled="@_isSubmitting">
+                    @(IsEditMode ? "Сохранить черновик" : "Создать черновик")
                 </button>
             </div>
         </div>
@@ -180,6 +184,9 @@ else
 }
 
 @code {
+    [Parameter] public Guid? Id { get; set; }
+
+    private bool IsEditMode => Id.HasValue;
     private List<RequestTypeDto> _availableTypes = new();
     private RequestTypeDto? _selectedType;
     private bool _loading = true;
@@ -208,6 +215,34 @@ else
                 _participantSharePercent = participant?.SharePercent;
             }
             catch { /* не критично */ }
+
+            // Если режим редактирования — загружаем существующее требование
+            if (IsEditMode)
+            {
+                var request = await Http.GetFromJsonAsync<ExistingRequestDto>($"/api/share-requests/{Id}");
+                if (request is not null)
+                {
+                    _selectedType = _availableTypes.FirstOrDefault(t => t.Id == request.RequestTypeId);
+                    if (_selectedType is not null)
+                    {
+                        // Восстанавливаем данные из payload
+                        if (!string.IsNullOrEmpty(request.Payload))
+                        {
+                            try
+                            {
+                                var payload = System.Text.Json.JsonSerializer.Deserialize<JsonElement>(request.Payload);
+                                if (payload.TryGetProperty("text", out var textProp))
+                                    _demandText = textProp.GetString();
+                                if (payload.TryGetProperty("reason", out var reasonProp))
+                                    _demandReason = reasonProp.GetString();
+                                if (payload.TryGetProperty("newCharterNumber", out var charterProp))
+                                    _newCharterNumber = charterProp.GetString();
+                            }
+                            catch { /* payload не JSON — игнорируем */ }
+                        }
+                    }
+                }
+            }
         }
         catch (Exception ex)
         {
@@ -262,85 +297,166 @@ else
 
         try
         {
-            string? payload = null;
-
-            if (_selectedType.Code == "DEMAND_VOSU")
-            {
-                payload = System.Text.Json.JsonSerializer.Serialize(new
-                {
-                    text = _demandText,
-                    reason = _demandReason
-                });
-            }
-            else if (_selectedType.Code == "CHANGE_STANDARD_CHARTER_NUMBER")
-            {
-                payload = System.Text.Json.JsonSerializer.Serialize(new
-                {
-                    newCharterNumber = _newCharterNumber
-                });
-            }
-            else if (!string.IsNullOrWhiteSpace(_demandText))
-            {
-                payload = System.Text.Json.JsonSerializer.Serialize(new
-                {
-                    text = _demandText
-                });
-            }
+            string? payload = BuildPayload();
 
             HttpResponseMessage response;
-            if (_selectedType.IsCollective)
+            if (IsEditMode)
             {
-                // Коллективное требование — через отдельный endpoint
-                var collectiveDto = new
-                {
-                    RequestTypeId = _selectedType.Id,
-                    Payload = payload,
-                    DemandText = _demandText
-                };
-                response = await Http.PostAsJsonAsync("/api/share-requests/collective", collectiveDto);
+                // Обновляем существующее требование
+                response = await Http.PutAsJsonAsync($"/api/share-requests/{Id}", new { Payload = payload });
             }
             else
             {
-                // Одиночный запрос
-                var dto = new
+                // Создаём новое
+                if (_selectedType.IsCollective)
                 {
-                    RequestTypeId = _selectedType.Id,
-                    Payload = payload
-                };
-                response = await Http.PostAsJsonAsync("/api/share-requests", dto);
+                    var collectiveDto = new
+                    {
+                        RequestTypeId = _selectedType.Id,
+                        Payload = payload,
+                        DemandText = _demandText
+                    };
+                    response = await Http.PostAsJsonAsync("/api/share-requests/collective", collectiveDto);
+                }
+                else
+                {
+                    var dto = new
+                    {
+                        RequestTypeId = _selectedType.Id,
+                        Payload = payload
+                    };
+                    response = await Http.PostAsJsonAsync("/api/share-requests", dto);
+                }
             }
 
             if (response.IsSuccessStatusCode)
             {
-                // Прикрепляем файлы к созданному требованию
-                if (_uploadedFiles.Count > 0)
+                // Получаем ID созданного/обновлённого требования
+                var result = await response.Content.ReadFromJsonAsync<CreatedRequestDto>();
+                var requestId = result?.Id ?? Id;
+
+                // Прикрепляем файлы
+                if (_uploadedFiles.Count > 0 && requestId.HasValue)
                 {
-                    var createdRequest = await response.Content.ReadFromJsonAsync<CreatedRequestDto>();
-                    if (createdRequest?.Id is Guid requestId)
+                    foreach (var file in _uploadedFiles)
                     {
-                        foreach (var file in _uploadedFiles)
-                        {
-                            await Http.PostAsJsonAsync($"/api/share-requests/{requestId}/files", new { FileId = file.FileId });
-                        }
+                        await Http.PostAsJsonAsync($"/api/share-requests/{requestId}/files", new { FileId = file.FileId });
                     }
                 }
+
+                // Отправляем требование (если не было редактирования draft)
+                if (!IsEditMode && requestId.HasValue)
+                {
+                    await Http.PostAsJsonAsync($"/api/share-requests/{requestId}/submit", new { });
+                }
+
                 Nav.NavigateTo("/share-requests", forceLoad: true);
             }
             else
             {
                 var body = await response.Content.ReadAsStringAsync();
-                _error = $"Ошибка создания: {body}";
+                _error = $"Ошибка: {body}";
             }
         }
         catch (Exception ex)
         {
-            Logger.LogWarning(ex, "Ошибка создания запроса");
-            _error = $"Ошибка создания запроса: {ex.Message}";
+            Logger.LogWarning(ex, "Ошибка сохранения запроса");
+            _error = $"Ошибка сохранения запроса: {ex.Message}";
         }
         finally
         {
             _isSubmitting = false;
         }
+    }
+
+    private async Task SaveAsDraft()
+    {
+        if (_selectedType is null) return;
+
+        _isSubmitting = true;
+        _error = null;
+
+        try
+        {
+            string? payload = BuildPayload();
+
+            HttpResponseMessage response;
+            if (IsEditMode)
+            {
+                response = await Http.PutAsJsonAsync($"/api/share-requests/{Id}", new { Payload = payload });
+            }
+            else
+            {
+                if (_selectedType.IsCollective)
+                {
+                    var collectiveDto = new
+                    {
+                        RequestTypeId = _selectedType.Id,
+                        Payload = payload,
+                        DemandText = _demandText
+                    };
+                    response = await Http.PostAsJsonAsync("/api/share-requests/collective", collectiveDto);
+                }
+                else
+                {
+                    var dto = new
+                    {
+                        RequestTypeId = _selectedType.Id,
+                        Payload = payload
+                    };
+                    response = await Http.PostAsJsonAsync("/api/share-requests", dto);
+                }
+            }
+
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<CreatedRequestDto>();
+                var requestId = result?.Id ?? Id;
+
+                if (_uploadedFiles.Count > 0 && requestId.HasValue)
+                {
+                    foreach (var file in _uploadedFiles)
+                    {
+                        await Http.PostAsJsonAsync($"/api/share-requests/{requestId}/files", new { FileId = file.FileId });
+                    }
+                }
+
+                Nav.NavigateTo("/share-requests", forceLoad: true);
+            }
+            else
+            {
+                var body = await response.Content.ReadAsStringAsync();
+                _error = $"Ошибка: {body}";
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Ошибка сохранения черновика");
+            _error = $"Ошибка сохранения черновика: {ex.Message}";
+        }
+        finally
+        {
+            _isSubmitting = false;
+        }
+    }
+
+    private string? BuildPayload()
+    {
+        if (_selectedType is null) return null;
+
+        if (_selectedType.Code == "DEMAND_VOSU")
+        {
+            return System.Text.Json.JsonSerializer.Serialize(new { text = _demandText, reason = _demandReason });
+        }
+        if (_selectedType.Code == "CHANGE_STANDARD_CHARTER_NUMBER")
+        {
+            return System.Text.Json.JsonSerializer.Serialize(new { newCharterNumber = _newCharterNumber });
+        }
+        if (!string.IsNullOrWhiteSpace(_demandText))
+        {
+            return System.Text.Json.JsonSerializer.Serialize(new { text = _demandText });
+        }
+        return null;
     }
 
     private static string GetDescription(string code) => code switch
@@ -409,4 +525,5 @@ else
     private record RequestTypeDto(Guid Id, string Code, string Name, bool RequiresFile, bool RequiresThreshold, decimal? ThresholdPercent, string? LegalBasis, bool IsCollective);
     private record ParticipantDto(Guid Id, string? FullName, decimal? SharePercent);
     private record CreatedRequestDto(Guid? Id);
+    private record ExistingRequestDto(Guid Id, Guid RequestTypeId, string? Payload, string Status);
 }

@@ -226,7 +226,7 @@ public static class ShareRequestEndpoints
                     LegalEntityId = leId.Value,
                     ParticipantId = participant.Id,
                     RequestTypeId = dto.RequestTypeId,
-                    Status = "pending",
+                    Status = "draft",
                     Payload = dto.Payload,
                     CreatedBy = createdBy
                 };
@@ -265,6 +265,10 @@ public static class ShareRequestEndpoints
                 if (item is null)
                     return Results.NotFound();
 
+                var (allowed, statusError) = ValidateStatusForOperation(item, "submit_decision");
+                if (!allowed)
+                    return Results.BadRequest(new { error = statusError });
+
                 item.Status = dto.Status ?? "completed";
                 item.CompletedAt = DateTime.UtcNow;
                 if (dto.Payload is not null)
@@ -277,6 +281,84 @@ public static class ShareRequestEndpoints
             catch (Exception ex)
             {
                 logger.LogWarning(ex, "Ошибка завершения запроса {Id}", id);
+                return Results.BadRequest(new { error = ex.Message });
+            }
+        });
+
+        // PUT: обновить черновик требования
+        shareRequests.MapPut("/{id}", async (
+            Guid id,
+            ShareRequestUpdateDto dto,
+            IDbContextFactory<FiduciaDbContext> dbFactory,
+            ISecurityAuditService audit,
+            ILoggerFactory loggerFactory,
+            HttpContext http) =>
+        {
+            var logger = loggerFactory.CreateLogger("ShareRequests.Update");
+            try
+            {
+                await using var ctx = await dbFactory.CreateDbContextAsync();
+                var (leId, error) = await ValidateAccessAsync(ctx, http, audit);
+                if (error is not null) return error;
+
+                var item = await ctx.ShareRequests
+                    .FirstOrDefaultAsync(r => r.Id == id && r.LegalEntityId == leId);
+
+                if (item is null)
+                    return Results.NotFound();
+
+                var (allowed, statusError) = ValidateStatusForOperation(item, "update");
+                if (!allowed)
+                    return Results.BadRequest(new { error = statusError });
+
+                if (dto.Payload is not null)
+                    item.Payload = dto.Payload;
+
+                await ctx.SaveChangesAsync();
+
+                return Results.Ok(MapToDto(item));
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Ошибка обновления запроса {Id}", id);
+                return Results.BadRequest(new { error = ex.Message });
+            }
+        });
+
+        // POST: отправить требование (перевод из draft в submitted)
+        shareRequests.MapPost("/{id}/submit", async (
+            Guid id,
+            IDbContextFactory<FiduciaDbContext> dbFactory,
+            ISecurityAuditService audit,
+            ILoggerFactory loggerFactory,
+            HttpContext http) =>
+        {
+            var logger = loggerFactory.CreateLogger("ShareRequests.Submit");
+            try
+            {
+                await using var ctx = await dbFactory.CreateDbContextAsync();
+                var (leId, error) = await ValidateAccessAsync(ctx, http, audit);
+                if (error is not null) return error;
+
+                var item = await ctx.ShareRequests
+                    .FirstOrDefaultAsync(r => r.Id == id && r.LegalEntityId == leId);
+
+                if (item is null)
+                    return Results.NotFound();
+
+                var (allowed, statusError) = ValidateStatusForOperation(item, "submit");
+                if (!allowed)
+                    return Results.BadRequest(new { error = statusError });
+
+                item.Status = "submitted";
+
+                await ctx.SaveChangesAsync();
+
+                return Results.Ok(MapToDto(item));
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Ошибка отправки запроса {Id}", id);
                 return Results.BadRequest(new { error = ex.Message });
             }
         });
@@ -307,8 +389,12 @@ public static class ShareRequestEndpoints
                 if (item.RequestType?.Code != "NOTARIAL_OFFER")
                     return Results.BadRequest(new { error = "Отзыв доступен только для нотариальных оферт" });
 
-                if (item.Status != "pending" || item.RevokedAt.HasValue)
-                    return Results.BadRequest(new { error = "Запрос уже отозван или завершён" });
+                var (allowed, statusError) = ValidateStatusForOperation(item, "revoke");
+                if (!allowed)
+                    return Results.BadRequest(new { error = statusError });
+
+                if (item.RevokedAt.HasValue)
+                    return Results.BadRequest(new { error = "Запрос уже отозван" });
 
                 if ((DateTime.UtcNow - item.CreatedAt).TotalHours > 24)
                     return Results.BadRequest(new { error = "Прошло более 24 часов с момента создания" });
@@ -464,7 +550,7 @@ public static class ShareRequestEndpoints
                     LegalEntityId = leId!.Value,
                     ParticipantId = participant.Id,
                     RequestTypeId = dto.RequestTypeId,
-                    Status = "pending",
+                    Status = "draft",
                     Payload = dto.Payload,
                     CreatedBy = createdBy,
                     IsCollective = true,
@@ -663,19 +749,28 @@ public static class ShareRequestEndpoints
                     return Results.Forbid();
 
                 var request = await ctx.ShareRequests.FindAsync(id);
-                if (request is null || request.LegalEntityId != leId || !request.IsCollective)
+                if (request is null || request.LegalEntityId != leId)
                     return Results.NotFound();
 
-                if (request.CollectiveStatus != "THRESHOLD_REACHED" && request.CollectiveStatus != "SUBMITTED_TO_CEO")
-                    return Results.BadRequest(new { error = $"Невозможно принять решение для требования в статусе «{request.CollectiveStatus}»" });
+                var (allowed, statusError) = ValidateStatusForOperation(request, "submit_decision");
+                if (!allowed)
+                    return Results.BadRequest(new { error = statusError });
 
                 if (dto.Decision != "ACCEPTED" && dto.Decision != "REJECTED")
                     return Results.BadRequest(new { error = "Решение должно быть ACCEPTED или REJECTED" });
 
-                request.CollectiveStatus = dto.Decision;
+                if (request.IsCollective)
+                {
+                    request.CollectiveStatus = dto.Decision;
+                }
+                else
+                {
+                    request.Status = dto.Decision;
+                }
                 request.CeoComment = dto.Comment;
                 request.CeoDecisionAt = DateTime.UtcNow;
                 request.DecidedByUserId = userId;
+                request.CompletedAt = DateTime.UtcNow;
                 request.SubmittedToCeoAt ??= DateTime.UtcNow;
 
                 await ctx.SaveChangesAsync();
@@ -784,17 +879,19 @@ public static class ShareRequestEndpoints
                 var query = ctx.ShareRequests
                     .Include(r => r.RequestType)
                     .Include(r => r.Participant)
-                    .Where(r => r.LegalEntityId == leId && r.IsCollective);
+                    .Where(r => r.LegalEntityId == leId);
 
                 if (hasActiveOsa)
                 {
-                    // В окно ОСУ — все не завершённые требования
-                    query = query.Where(r => r.CollectiveStatus != "ACCEPTED" && r.CollectiveStatus != "REJECTED");
+                    // В окно ОСУ — все не завершённые коллективные требования + все submitted одиночные
+                    query = query.Where(r => (r.IsCollective && r.CollectiveStatus != "ACCEPTED" && r.CollectiveStatus != "REJECTED")
+                        || (!r.IsCollective && r.Status == "submitted"));
                 }
                 else
                 {
-                    // Только достигшие порога
-                    query = query.Where(r => r.CollectiveStatus == "THRESHOLD_REACHED");
+                    // Только достигшие порога коллективные + все submitted одиночные
+                    query = query.Where(r => (r.IsCollective && r.CollectiveStatus == "THRESHOLD_REACHED")
+                        || (!r.IsCollective && r.Status == "submitted"));
                 }
 
                 var items = await query
@@ -881,6 +978,10 @@ public static class ShareRequestEndpoints
                 var request = await ctx.ShareRequests.FindAsync(id);
                 if (request is null || request.LegalEntityId != leId)
                     return Results.NotFound();
+
+                var (allowed, statusError) = ValidateStatusForOperation(request, "attach_file");
+                if (!allowed)
+                    return Results.BadRequest(new { error = statusError });
 
                 var fileEntry = await ctx.Files.FindAsync(dto.FileId);
                 if (fileEntry is null)
@@ -975,6 +1076,10 @@ public static class ShareRequestEndpoints
                 var request = await ctx.ShareRequests.FindAsync(id);
                 if (request is null || request.LegalEntityId != leId)
                     return Results.NotFound();
+
+                var (allowed, statusError) = ValidateStatusForOperation(request, "attach_file");
+                if (!allowed)
+                    return Results.BadRequest(new { error = statusError });
 
                 var link = await ctx.ShareRequestFiles
                     .FirstOrDefaultAsync(f => f.ShareRequestId == id && f.FileId == fileId);
@@ -1142,7 +1247,7 @@ public static class ShareRequestEndpoints
         var existingPending = await ctx.ShareRequests
             .AnyAsync(r => r.LegalEntityId == leId
                 && r.RequestTypeId == requestType.Id
-                && r.Status == "pending");
+                && (r.Status == "draft" || r.Status == "submitted"));
         if (existingPending)
             return $"Уже есть активное требование типа «{requestType.Name}»";
 
@@ -1340,7 +1445,8 @@ public static class ShareRequestEndpoints
         r.CompletedAt,
         r.RevokedAt,
         r.RevokedByNotarized,
-        r.VisibleToAll
+        r.VisibleToAll,
+        IsEditable = r.Status == "draft"
     };
 
     private static object MapToCollectiveDto(ShareRequest r) => new
@@ -1361,7 +1467,8 @@ public static class ShareRequestEndpoints
         r.SubmittedToCeoAt,
         r.CeoDecisionAt,
         r.CeoComment,
-        r.OrgIntentId
+        r.OrgIntentId,
+        IsEditable = r.CollectiveStatus == "COLLECTING"
     };
 
     /// <summary>Код правовой нормы для типа требования.</summary>
@@ -1385,9 +1492,36 @@ public static class ShareRequestEndpoints
         "DEMAND_INFO_AO" => true,
         _ => false
     };
+
+    /// <summary>Валидация допустимости операции по статусу требования.</summary>
+    private static (bool Allowed, string? Error) ValidateStatusForOperation(
+        ShareRequest request, string operation, Guid? currentUserId = null)
+    {
+        return operation switch
+        {
+            "update" => request.Status == "draft" || (request.IsCollective && request.CollectiveStatus == "COLLECTING")
+                ? (true, null)
+                : (false, "Редактирование доступно только для черновиков"),
+            "submit" => request.Status == "draft"
+                ? (true, null)
+                : (false, "Требование уже отправлено"),
+            "attach_file" => request.Status == "draft" || (request.IsCollective && request.CollectiveStatus == "COLLECTING")
+                ? (true, null)
+                : (false, "Прикрепление файлов недоступно для этого статуса"),
+            "submit_decision" => (!request.IsCollective && request.Status == "submitted")
+                || (request.IsCollective && (request.CollectiveStatus == "THRESHOLD_REACHED" || request.CollectiveStatus == "SUBMITTED_TO_CEO"))
+                ? (true, null)
+                : (false, "Требование не может быть рассмотрено в текущем статусе"),
+            "revoke" => request.Status == "submitted"
+                ? (true, null)
+                : (false, "Отзыв доступен только для отправленных требований"),
+            _ => (true, null)
+        };
+    }
 }
 
 public record ShareRequestCreateDto(Guid RequestTypeId, string? Payload);
+public record ShareRequestUpdateDto(string? Payload);
 public record ShareRequestCompleteDto(string? Status, string? Payload);
 public record ShareRequestRevokeDto(bool Notarized);
 public record ShareRequestCollectiveCreateDto(Guid RequestTypeId, string? Payload, string? DemandText);

@@ -63,7 +63,12 @@ else
                         <td>@r.CreatedAt.ToString("dd.MM.yyyy HH:mm")</td>
                         <td class="d-flex gap-1">
                             <a href="/share-requests/@r.Id" class="btn btn-sm btn-outline-secondary">Подробнее</a>
-                            @if (r.RequestTypeCode == "NOTARIAL_OFFER" && r.Status == "pending" && !r.RevokedAt.HasValue && (DateTime.UtcNow - r.CreatedAt).TotalHours < 24)
+                            @if (r.Status == "draft")
+                            {
+                                <a href="/share-requests/@r.Id/edit" class="btn btn-sm btn-outline-primary">Редактировать</a>
+                                <button class="btn btn-sm btn-success" @onclick="() => SubmitRequest(r.Id)">Отправить</button>
+                            }
+                            @if (r.RequestTypeCode == "NOTARIAL_OFFER" && r.Status == "submitted" && !r.RevokedAt.HasValue && (DateTime.UtcNow - r.CreatedAt).TotalHours < 24)
                             {
                                 <button class="btn btn-sm btn-outline-danger" @onclick="() => RequestRevoke(r.Id)">Отозвать</button>
                             }
@@ -153,12 +158,41 @@ else
         }
     }
 
+    private async Task SubmitRequest(Guid id)
+    {
+        var confirmed = await JS.InvokeAsync<bool>("confirm",
+            "Вы уверены, что хотите отправить требование? После отправки редактирование будет недоступно.");
+        if (!confirmed) return;
+
+        try
+        {
+            var response = await Http.PostAsJsonAsync($"/api/share-requests/{id}/submit", new { });
+            if (response.IsSuccessStatusCode)
+            {
+                Nav.NavigateTo("/share-requests", forceLoad: true);
+            }
+            else
+            {
+                var body = await response.Content.ReadAsStringAsync();
+                _error = $"Ошибка отправки: {body}";
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Ошибка отправки запроса");
+            _error = "Ошибка отправки запроса";
+        }
+    }
+
     private static MarkupString GetStatusBadge(string status) => status switch
     {
-        "pending" => new("<span class='badge bg-warning'>В обработке</span>"),
+        "draft" => new("<span class='badge bg-secondary'>Черновик</span>"),
+        "submitted" => new("<span class='badge bg-info'>Подано</span>"),
+        "accepted" => new("<span class='badge bg-success'>Принято</span>"),
+        "rejected" => new("<span class='badge bg-danger'>Отклонено</span>"),
+        "revoked" => new("<span class='badge bg-warning'>Отозвано</span>"),
         "completed" => new("<span class='badge bg-success'>Завершён</span>"),
-        "rejected" => new("<span class='badge bg-danger'>Отклонён</span>"),
-        "revoked" => new("<span class='badge bg-secondary'>Отозван</span>"),
+        "pending" => new("<span class='badge bg-warning'>В обработке</span>"),
         _ => new($"<span class='badge bg-secondary'>{status}</span>")
     };
 

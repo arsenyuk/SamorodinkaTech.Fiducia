@@ -1373,7 +1373,7 @@ CREATE TABLE IF NOT EXISTS share_request (
     legal_entity_id uuid NOT NULL REFERENCES legal_entities(id) ON DELETE RESTRICT,
     participant_id uuid NOT NULL REFERENCES board_participant(id) ON DELETE RESTRICT,
     request_type_id uuid NOT NULL REFERENCES ref_request_type(id) ON DELETE RESTRICT,
-    status varchar(20) NOT NULL DEFAULT 'pending',
+    status varchar(20) NOT NULL DEFAULT 'draft',
     payload jsonb,
     notarization_id uuid REFERENCES notarization(id) ON DELETE SET NULL,
     revoked_at timestamp with time zone,
