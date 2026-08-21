@@ -45,17 +45,62 @@ public static class ShareRequestEndpoints
                 var isNjsc = okopfCode == OkopfTypeMapper.NjscCode;
                 var isPjsc = OkopfTypeMapper.IsPjsc(okopfCode);
 
+                var charter = await ctx.LegalEntityCharters.FindAsync(leId);
+                var vosuThreshold = charter?.VosuThresholdPercent;
+
                 var types = await ctx.RequestTypes
                     .Where(t => (isLlc && t.IsForLlc) || (isNjsc && t.IsForNjsc) || (isPjsc && t.IsForPjsc))
                     .OrderBy(t => t.Name)
                     .Select(t => new { t.Id, t.Code, t.Name, t.RequiresFile })
                     .ToListAsync();
 
-                return Results.Ok(types);
+                // Обогащаем информацией о пороге и правовой норме
+                var enrichedTypes = types.Select(t => new
+                {
+                    t.Id,
+                    t.Code,
+                    t.Name,
+                    t.RequiresFile,
+                    RequiresThreshold = t.Code is "DEMAND_VOSU" or "DEMAND_VOSA",
+                    ThresholdPercent = t.Code is "DEMAND_VOSU" or "DEMAND_VOSA" ? vosuThreshold : null,
+                    LegalBasis = GetLegalBasisCode(t.Code),
+                    IsCollective = IsCollectiveTypeCode(t.Code)
+                });
+
+                return Results.Ok(enrichedTypes);
             }
             catch (Exception ex)
             {
                 logger.LogWarning(ex, "Ошибка получения типов требований");
+                return Results.BadRequest(new { error = ex.Message });
+            }
+        });
+
+        // GET: порог для типа требования
+        shareRequests.MapGet("/threshold", async (
+            string typeCode,
+            IDbContextFactory<FiduciaDbContext> dbFactory,
+            ILoggerFactory loggerFactory) =>
+        {
+            var logger = loggerFactory.CreateLogger("ShareRequests.Threshold");
+            try
+            {
+                await using var ctx = await dbFactory.CreateDbContextAsync();
+                var leId = await GetLegalEntityIdAsync(ctx);
+                if (leId is null) return Results.Ok(new { threshold = (decimal?)null, defaultThreshold = 10m });
+
+                decimal? threshold = typeCode switch
+                {
+                    "DEMAND_VOSU" or "DEMAND_VOSA" =>
+                        (await ctx.LegalEntityCharters.FindAsync(leId))?.VosuThresholdPercent,
+                    _ => null
+                };
+
+                return Results.Ok(new { threshold, defaultThreshold = 10m });
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Ошибка получения порога для типа {TypeCode}", typeCode);
                 return Results.BadRequest(new { error = ex.Message });
             }
         });
@@ -397,13 +442,20 @@ public static class ShareRequestEndpoints
                     .FirstOrDefaultAsync(x => x.Id == leId);
                 var okopfCode = le?.RefOkopf?.Code;
                 var isLlc = OkopfTypeMapper.IsLlc(okopfCode);
+                var isNjsc = okopfCode == OkopfTypeMapper.NjscCode;
+                var isPjsc = OkopfTypeMapper.IsPjsc(okopfCode);
 
-                if (isLlc && !requestType.IsForLlc)
-                    return Results.BadRequest(new { error = $"Тип требования «{requestType.Name}» не доступен для ООО" });
+                if ((isLlc && !requestType.IsForLlc) || (isNjsc && !requestType.IsForNjsc) || (isPjsc && !requestType.IsForPjsc))
+                    return Results.BadRequest(new { error = $"Тип требования «{requestType.Name}» не доступен для данного типа организации" });
 
-                // Загружаем порог устава (если нужен)
+                // Определяем порог по типу запроса (ст. 35 14-ФЗ / ст. 55 208-ФЗ)
                 var charter = await ctx.LegalEntityCharters.FindAsync(leId);
-                var threshold = dto.RequireThreshold ? charter?.VosuThresholdPercent : null;
+                decimal? threshold = requestType.Code switch
+                {
+                    "DEMAND_VOSU" or "DEMAND_VOSA" => charter?.VosuThresholdPercent,
+                    // ADD_AGENDA_OSU, ADD_AGENDA_GOSA — без порога по закону
+                    _ => null
+                };
 
                 // Создаём запрос
                 var entity = new ShareRequest
@@ -633,6 +685,18 @@ public static class ShareRequestEndpoints
                 {
                     var templateService = http.RequestServices.GetRequiredService<ITemplateInstantiationService>();
                     var orgIntentId = await CreateVosuPlanAsync(ctx, templateService, request.LegalEntityId, logger);
+                    if (orgIntentId.HasValue)
+                    {
+                        request.OrgIntentId = orgIntentId.Value;
+                        await ctx.SaveChangesAsync();
+                    }
+                }
+
+                // Если требование принято и тип = DEMAND_VOSA — создаём план ВОСА
+                if (dto.Decision == "ACCEPTED" && request.RequestType?.Code == "DEMAND_VOSA")
+                {
+                    var templateService = http.RequestServices.GetRequiredService<ITemplateInstantiationService>();
+                    var orgIntentId = await CreateVosaPlanAsync(ctx, templateService, request.LegalEntityId, logger);
                     if (orgIntentId.HasValue)
                     {
                         request.OrgIntentId = orgIntentId.Value;
@@ -893,6 +957,48 @@ public static class ShareRequestEndpoints
         }
     }
 
+    /// <summary>Создание плана ВОСА из шаблона.</summary>
+    private static async Task<Guid?> CreateVosaPlanAsync(
+        FiduciaDbContext ctx,
+        ITemplateInstantiationService templateService,
+        Guid legalEntityId,
+        ILogger logger)
+    {
+        try
+        {
+            // Инстанцируем шаблон VOSA
+            var taskCount = await templateService.InstantiateAsync(
+                ctx, "VOSA", legalEntityId, null);
+
+            if (taskCount == 0)
+            {
+                logger.LogWarning("Шаблон VOSA не найден или нет задач для ЮЛ {LegalEntityId}", legalEntityId);
+                return null;
+            }
+
+            // Находим созданный OrgIntent (последний для данного ЮЛ с кодом VOSA)
+            var orgIntent = await ctx.OrgIntents
+                .Include(i => i.TemplateIntent)
+                .Where(i => i.LegalEntityId == legalEntityId
+                    && i.TemplateIntent!.Code == "VOSA")
+                .OrderByDescending(i => i.CreatedAt)
+                .FirstOrDefaultAsync();
+
+            if (orgIntent != null)
+            {
+                logger.LogInformation("Создан план ВОСА {OrgIntentId} для ЮЛ {LegalEntityId}, задач: {TaskCount}",
+                    orgIntent.Id, legalEntityId, taskCount);
+            }
+
+            return orgIntent?.Id;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Ошибка создания плана ВОСА для ЮЛ {LegalEntityId}", legalEntityId);
+            return null;
+        }
+    }
+
     /// <summary>Специфичная валидация по типу запроса.</summary>
     private static async Task<string?> ValidateRequestTypeAsync(
         FiduciaDbContext ctx, RefRequestType requestType, Guid leId, ShareRequestCreateDto dto)
@@ -1062,9 +1168,18 @@ public static class ShareRequestEndpoints
         var le = await ctx.LegalEntities
             .Include(x => x.RefOkopf)
             .FirstOrDefaultAsync(x => x.Id == leId.Value);
-        if (le?.RefOkopf?.Code is not null && !OkopfTypeMapper.IsLlc(le.RefOkopf.Code))
+        if (le?.RefOkopf?.Code is null)
         {
-            await audit.LogEventAsync(AuditActionAccess, "unknown", $"Доступ запрещён: ЮЛ «{le.Name}» не является ООО");
+            await audit.LogEventAsync(AuditActionAccess, "unknown", $"Доступ запрещён: не определён тип организации ЮЛ «{le?.Name}»");
+            return (null, Results.Forbid());
+        }
+
+        var okopfCode = le.RefOkopf.Code;
+        if (!OkopfTypeMapper.IsLlc(okopfCode)
+            && okopfCode != OkopfTypeMapper.NjscCode
+            && !OkopfTypeMapper.IsPjsc(okopfCode))
+        {
+            await audit.LogEventAsync(AuditActionAccess, "unknown", $"Доступ запрещён: ЮЛ «{le.Name}» имеет неподдерживаемый тип ОКОПФ ({okopfCode})");
             return (null, Results.Forbid());
         }
 
@@ -1113,10 +1228,32 @@ public static class ShareRequestEndpoints
         r.CeoComment,
         r.OrgIntentId
     };
+
+    /// <summary>Код правовой нормы для типа требования.</summary>
+    private static string GetLegalBasisCode(string code) => code switch
+    {
+        "DEMAND_VOSU" => "article-14fz-35",
+        "ADD_AGENDA_OSU" => "article-14fz-36",
+        "DEMAND_VOSA" => "article-55",
+        "ADD_AGENDA_GOSA" => "article-53",
+        _ => ""
+    };
+
+    /// <summary>Является ли тип коллективным (требует сбора поддержек).</summary>
+    private static bool IsCollectiveTypeCode(string code) => code switch
+    {
+        "DEMAND_VOSU" => true,
+        "ADD_AGENDA_OSU" => true,
+        "EXCLUDE_PARTICIPANT" => true,
+        "DEMAND_VOSA" => true,
+        "ADD_AGENDA_GOSA" => true,
+        "DEMAND_INFO_AO" => true,
+        _ => false
+    };
 }
 
 public record ShareRequestCreateDto(Guid RequestTypeId, string? Payload);
 public record ShareRequestCompleteDto(string? Status, string? Payload);
 public record ShareRequestRevokeDto(bool Notarized);
-public record ShareRequestCollectiveCreateDto(Guid RequestTypeId, string? Payload, string? DemandText, bool RequireThreshold);
+public record ShareRequestCollectiveCreateDto(Guid RequestTypeId, string? Payload, string? DemandText);
 public record ShareRequestDecideDto(string Decision, string? Comment);

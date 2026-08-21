@@ -91,10 +91,12 @@ else
                     </div>
                     <div class="col-12">
                         <div class="alert alert-secondary py-2 mb-0">
-                            <strong>Порог:</strong> Для созыва ВОСУ необходимо владеть не менее 10% голосов участников (ст. 35 14-ФЗ).
+                            <text><strong>Порог:</strong>
+                            Для созыва ВОСУ необходимо владеть не менее @_selectedType.ThresholdPercent% голосов участников (ст. 35 14-ФЗ).</text>
                             @if (_participantSharePercent.HasValue)
                             {
-                                <span class="ms-2">Ваша доля: <strong>@_participantSharePercent%</strong></span>
+                                <span class="ms-2"><text>Ваша доля: <strong>@_participantSharePercent%</strong>
+                                (@(_participantSharePercent >= _selectedType.ThresholdPercent ? "порог выполнен" : "ниже порога"))</text></span>
                             }
                         </div>
                     </div>
@@ -107,19 +109,17 @@ else
                                   placeholder="Опишите суть требования..."></textarea>
                     </div>
                     <div class="col-12">
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" @bind="_isCollective" id="collectiveCheck">
-                            <label class="form-check-label" for="collectiveCheck">
-                                Сделать коллективным (собрать поддержку других участников)
-                            </label>
+                        <div class="alert alert-secondary py-2 mb-0">
+                            @if (_selectedType.RequiresThreshold)
+                            {
+                                <text><strong>Порог:</strong> @_selectedType.ThresholdPercent% голосов (ст. 55 208-ФЗ).
+                                Требование будет направлено ГД только после набора порога.</text>
+                            }
+                            else
+                            {
+                                <text><strong>Без порога:</strong> Требование будет направлено ГД сразу после создания.</text>
+                            }
                         </div>
-                        @if (_isCollective)
-                        {
-                            <small class="text-muted">
-                                Требование будет доступно другим участникам для поддержки.
-                                Когда сумма долей поддержавших достигнет порога, требование будет направлено ГД.
-                            </small>
-                        }
                     </div>
                 }
                 else if (_selectedType.Code == "CHANGE_STANDARD_CHARTER_NUMBER")
@@ -170,7 +170,6 @@ else
     // Поля формы
     private string? _demandText;
     private string? _demandReason;
-    private bool _isCollective;
     private string? _newCharterNumber;
     private decimal? _participantSharePercent;
 
@@ -204,7 +203,6 @@ else
         _selectedType = type;
         _demandText = null;
         _demandReason = null;
-        _isCollective = false;
         _newCharterNumber = null;
         _error = null;
     }
@@ -214,7 +212,7 @@ else
         if (_selectedType is null) return;
 
         // Валидация
-        if (_selectedType.Code == "DEMAND_VOSU" && string.IsNullOrWhiteSpace(_demandText))
+        if (IsCollectiveType(_selectedType.Code) && string.IsNullOrWhiteSpace(_demandText))
         {
             _error = "Введите текст требования";
             return;
@@ -255,13 +253,29 @@ else
                 });
             }
 
-            var dto = new
+            HttpResponseMessage response;
+            if (_selectedType.IsCollective)
             {
-                RequestTypeId = _selectedType.Id,
-                Payload = payload
-            };
+                // Коллективное требование — через отдельный endpoint
+                var collectiveDto = new
+                {
+                    RequestTypeId = _selectedType.Id,
+                    Payload = payload,
+                    DemandText = _demandText
+                };
+                response = await Http.PostAsJsonAsync("/api/share-requests/collective", collectiveDto);
+            }
+            else
+            {
+                // Одиночный запрос
+                var dto = new
+                {
+                    RequestTypeId = _selectedType.Id,
+                    Payload = payload
+                };
+                response = await Http.PostAsJsonAsync("/api/share-requests", dto);
+            }
 
-            var response = await Http.PostAsJsonAsync("/api/share-requests", dto);
             if (response.IsSuccessStatusCode)
             {
                 Nav.NavigateTo("/share-requests", forceLoad: true);
@@ -296,7 +310,7 @@ else
         "CHANGE_CUSTOM_CHARTER_PROVISION" => "Внесение изменений в действующий нетиповой устав",
         "CHANGE_CHARTER_PROVISION" => "Внесение изменений в положение устава (НАО/ПАО)",
         "DEMAND_VOSU" => "Право участников с долей ≥10% потребовать внеочередного собрания (ст. 35 14-ФЗ)",
-        "ADD_AGENDA_OSU" => "Внесение дополнительного вопроса в повестку очередного собрания (п. 2 ст. 36 14-ФЗ)",
+        "ADD_AGENDA_OSU" => "Внесение дополнительного вопроса в повестку очередного собрания. Любой участник (п. 2.1 ст. 36 14-ФЗ)",
         "REQUEST_INFORMATION" => "Право участника на доступ к документам общества (ст. 50 14-ФЗ)",
         "EXCLUDE_PARTICIPANT" => "Требование об исключении участника, совершившего вред обществу (ст. 10 14-ФЗ)",
         "DEMAND_VOSA" => "Право акционеров с долей ≥10% потребовать внеочередного собрания (ст. 55 208-ФЗ)",
@@ -308,7 +322,7 @@ else
     private static string GetLegalBasis(string code) => code switch
     {
         "DEMAND_VOSU" => "ст. 35 14-ФЗ «Об ООО» — Право участников на созыв внеочередного собрания",
-        "ADD_AGENDA_OSU" => "п. 2 ст. 36 14-ФЗ — Право участников на включение вопросов в повестку",
+        "ADD_AGENDA_OSU" => "п. 2.1 ст. 36 14-ФЗ — Право участников на включение вопросов в повестку",
         "REQUEST_INFORMATION" => "ст. 50 14-ФЗ — Право участников на доступ к документам общества",
         "EXCLUDE_PARTICIPANT" => "ст. 10 14-ФЗ — Исключение участника из общества",
         "DEMAND_VOSA" => "ст. 55 208-ФЗ — Право акционеров на созыв внеочередного собрания",
@@ -323,7 +337,7 @@ else
     private static string GetConditions(string code) => code switch
     {
         "DEMAND_VOSU" => "Требуется владеть не менее 10% голосов (или иной порог, установленный уставом)",
-        "ADD_AGENDA_OSU" => "Требуется владеть не менее 2% голосов (п. 2 ст. 36 14-ФЗ)",
+        "ADD_AGENDA_OSU" => "Порог не требуется — право каждого участника (п. 2.1 ст. 36 14-ФЗ)",
         "EXIT_APPLICATION" => "Выход возможен только если он предусмотрен уставом",
         "CHANGE_STANDARD_CHARTER_NUMBER" => "Текущий устав должен быть типовым",
         "CONVERT_STANDARD_TO_CUSTOM_CHARTER" => "Текущий устав должен быть типовым",
@@ -346,6 +360,6 @@ else
         _ => false
     };
 
-    private record RequestTypeDto(Guid Id, string Code, string Name, bool RequiresFile);
+    private record RequestTypeDto(Guid Id, string Code, string Name, bool RequiresFile, bool RequiresThreshold, decimal? ThresholdPercent, string? LegalBasis, bool IsCollective);
     private record ParticipantDto(Guid Id, string? FullName, decimal? SharePercent);
 }

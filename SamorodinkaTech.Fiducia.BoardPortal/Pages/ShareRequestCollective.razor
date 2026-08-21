@@ -56,6 +56,22 @@ else
         </div>
     </div>
 
+    @* ── Информация о пороге ──────────────────────────────────────── *@
+    <div class="alert @(_request.ThresholdPercent.HasValue ? "alert-warning" : "alert-info") py-2 mb-4">
+        @if (_request.ThresholdPercent.HasValue)
+        {
+            <strong>Порог:</strong>
+            <span>Для направления требования ГД необходимо набрать <strong>@_request.ThresholdPercent%</strong> голосов.
+            (@GetLegalBasisText(_request.RequestTypeCode))</span>
+        }
+        else
+        {
+            <strong>Без порога:</strong>
+            <span>Требование не требует набора порога и направлено ГД сразу.
+            (@GetLegalBasisText(_request.RequestTypeCode))</span>
+        }
+    </div>
+
     @* ── Прогресс сбора поддержек ────────────────────────────────── *@
     <div class="card mb-4">
         <div class="card-body">
@@ -354,6 +370,15 @@ else
         "ACCEPTED" => new("<span class='badge bg-success fs-6'>Принято</span>"),
         "REJECTED" => new("<span class='badge bg-danger fs-6'>Отклонено</span>"),
         _ => new($"<span class='badge bg-secondary fs-6'>{status}</span>")
+    };
+
+    private static string GetLegalBasisText(string? code) => code switch
+    {
+        "DEMAND_VOSU" => "ст. 35 14-ФЗ",
+        "ADD_AGENDA_OSU" => "п. 2.1 ст. 36 14-ФЗ",
+        "DEMAND_VOSA" => "ст. 55 208-ФЗ",
+        "ADD_AGENDA_GOSA" => "ст. 53 208-ФЗ",
+        _ => ""
     };
 
     private record CollectiveRequestDto(Guid Id, Guid RequestTypeId, string? RequestTypeCode, string? RequestTypeName,
