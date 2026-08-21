@@ -13,6 +13,10 @@ public class Notification
     public string NotificationType { get; set; } = string.Empty;
     public string Title { get; set; } = string.Empty;
     public string Body { get; set; } = string.Empty;
+
+    /// <summary>Ссылка на страницу уведомления в Board Portal (url).</summary>
+    public string? Url { get; set; }
+
     public bool IsRead { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }

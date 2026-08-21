@@ -1,6 +1,5 @@
 using Microsoft.Extensions.Logging;
 using SamorodinkaTech.Fiducia.Domain.Entities;
-using SamorodinkaTech.Fiducia.Domain.Enums;
 using SamorodinkaTech.Fiducia.Domain.Interfaces;
 
 namespace SamorodinkaTech.Fiducia.Infrastructure.Notifications;
@@ -30,12 +29,13 @@ public class NotificationService : INotificationService
 
     /// <inheritdoc />
     public async Task<Guid> SendAsync(
-        NotificationType notificationType,
+        string notificationType,
         string title,
         string body,
         Guid? userId = null,
         Guid? committeeId = null,
         Guid? meetingId = null,
+        string? url = null,
         CancellationToken cancellationToken = default)
     {
         var notification = new Notification
@@ -43,9 +43,10 @@ public class NotificationService : INotificationService
             UserId = userId,
             CommitteeId = committeeId,
             MeetingId = meetingId,
-            NotificationType = notificationType.ToString(),
+            NotificationType = notificationType,
             Title = title,
             Body = body,
+            Url = url,
             IsRead = false,
             CreatedAt = DateTime.UtcNow
         };
@@ -62,12 +63,13 @@ public class NotificationService : INotificationService
 
     /// <inheritdoc />
     public async Task<IReadOnlyList<Guid>> SendToManyAsync(
-        NotificationType notificationType,
+        string notificationType,
         string title,
         string body,
         IEnumerable<Guid> userIds,
         Guid? committeeId = null,
         Guid? meetingId = null,
+        string? url = null,
         CancellationToken cancellationToken = default)
     {
         var distinctUserIds = userIds.Distinct().ToList();
@@ -76,9 +78,10 @@ public class NotificationService : INotificationService
             UserId = userId,
             CommitteeId = committeeId,
             MeetingId = meetingId,
-            NotificationType = notificationType.ToString(),
+            NotificationType = notificationType,
             Title = title,
             Body = body,
+            Url = url,
             IsRead = false,
             CreatedAt = DateTime.UtcNow
         }).ToList();

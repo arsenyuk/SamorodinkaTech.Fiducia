@@ -19,6 +19,7 @@ public class NotificationConfiguration : IEntityTypeConfiguration<Notification>
         builder.Property(n => n.NotificationType).HasColumnName("notification_type").HasMaxLength(50).IsRequired();
         builder.Property(n => n.Title).HasColumnName("title").HasMaxLength(500).IsRequired();
         builder.Property(n => n.Body).HasColumnName("body").IsRequired();
+        builder.Property(n => n.Url).HasColumnName("url").HasMaxLength(1000);
         builder.Property(n => n.IsRead).HasColumnName("is_read").HasDefaultValue(false);
         builder.Property(n => n.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("CURRENT_TIMESTAMP");
 

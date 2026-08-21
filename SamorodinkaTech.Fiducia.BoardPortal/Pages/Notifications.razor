@@ -35,6 +35,8 @@
                         "PROTOCOL_SIGNED" => "border-success",
                         "COMMITTEE_PROTOCOL_SIGNED" => "border-warning",
                         "VOTE_DEADLINE" => "border-secondary",
+                        "SHARE_REQUEST_ACCEPTED" => "border-success",
+                        "SHARE_REQUEST_VISIBLE_TO_ALL" => "border-info",
                         _ => "border-secondary"
                     };
 
@@ -49,13 +51,22 @@
                         "PROTOCOL_SIGNED" => "bg-success bg-opacity-10",
                         "COMMITTEE_PROTOCOL_SIGNED" => "bg-warning bg-opacity-10",
                         "VOTE_DEADLINE" => "bg-light",
+                        "SHARE_REQUEST_ACCEPTED" => "bg-success bg-opacity-10",
+                        "SHARE_REQUEST_VISIBLE_TO_ALL" => "bg-info bg-opacity-10",
                         _ => "bg-light"
                     };
 
                     <div class="border-start @borderColor border-3 @bgColor p-3 mb-3 rounded-end @(!notification.IsRead ? "fw-bold" : "")">
                         <div class="d-flex justify-content-between">
                             <div>
-                                <strong>@notification.Title</strong>
+                                @if (!string.IsNullOrEmpty(notification.Url))
+                                {
+                                    <a href="@notification.Url" class="text-decoration-none"><strong>@notification.Title</strong></a>
+                                }
+                                else
+                                {
+                                    <strong>@notification.Title</strong>
+                                }
                                 <p class="text-muted small mb-0 mt-1">@notification.Body</p>
                             </div>
                             <small class="text-muted">@GetRelativeTime(notification.CreatedAt)</small>

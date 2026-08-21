@@ -1,7 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using SamorodinkaTech.Fiducia.Domain.Entities;
-using SamorodinkaTech.Fiducia.Domain.Enums;
 using SamorodinkaTech.Fiducia.Domain.Interfaces;
 using SamorodinkaTech.Fiducia.Domain.Services;
 
@@ -71,9 +70,9 @@ public class ElectionNominationService : IElectionNominationService
         // Определяем тип уведомления по должности
         var notificationType = proposal.Position switch
         {
-            "CHAIR" => NotificationType.CHAIRMAN_CONSENT,
-            "DEPUTY_CHAIR" => NotificationType.DEPUTY_CHAIRMAN_CONSENT,
-            _ => NotificationType.GENERAL
+            "CHAIR" => "CHAIRMAN_CONSENT",
+            "DEPUTY_CHAIR" => "DEPUTY_CHAIRMAN_CONSENT",
+            _ => "GENERAL"
         };
 
         // Получаем уже существующие записи согласий, чтобы не создавать дубликаты
@@ -120,8 +119,8 @@ public class ElectionNominationService : IElectionNominationService
 
             var (title, body) = notificationType switch
             {
-                NotificationType.CHAIRMAN_CONSENT => _textBuilder.BuildChairmanConsent(legalEntityName, boardMember.FullName),
-                NotificationType.DEPUTY_CHAIRMAN_CONSENT => _textBuilder.BuildDeputyChairmanConsent(legalEntityName, boardMember.FullName),
+                "CHAIRMAN_CONSENT" => _textBuilder.BuildChairmanConsent(legalEntityName, boardMember.FullName),
+                "DEPUTY_CHAIRMAN_CONSENT" => _textBuilder.BuildDeputyChairmanConsent(legalEntityName, boardMember.FullName),
                 _ => _textBuilder.BuildGeneral("Согласие на должность", $"Уважаемый {boardMember.FullName}! Подтвердите согласие на должность {proposal.Position}.")
             };
 
@@ -170,15 +169,15 @@ public class ElectionNominationService : IElectionNominationService
 
         var notificationType = position switch
         {
-            "CHAIR" => NotificationType.CHAIRMAN_NOMINATION,
-            "DEPUTY_CHAIR" => NotificationType.DEPUTY_CHAIRMAN_NOMINATION,
-            _ => NotificationType.GENERAL
+            "CHAIR" => "CHAIRMAN_NOMINATION",
+            "DEPUTY_CHAIR" => "DEPUTY_CHAIRMAN_NOMINATION",
+            _ => "GENERAL"
         };
 
         var (title, body) = notificationType switch
         {
-            NotificationType.CHAIRMAN_NOMINATION => _textBuilder.BuildChairmanNomination(legalEntityName),
-            NotificationType.DEPUTY_CHAIRMAN_NOMINATION => _textBuilder.BuildDeputyChairmanNomination(legalEntityName),
+            "CHAIRMAN_NOMINATION" => _textBuilder.BuildChairmanNomination(legalEntityName),
+            "DEPUTY_CHAIRMAN_NOMINATION" => _textBuilder.BuildDeputyChairmanNomination(legalEntityName),
             _ => _textBuilder.BuildGeneral("Сбор предложений", $"Сбор предложений на должность {position}.")
         };
 

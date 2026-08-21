@@ -1,5 +1,4 @@
 using SamorodinkaTech.Fiducia.Domain.Entities;
-using SamorodinkaTech.Fiducia.Domain.Enums;
 
 namespace SamorodinkaTech.Fiducia.Domain.Services;
 
@@ -220,5 +219,73 @@ public class NotificationTextBuilder
     public (string Title, string Body) BuildGeneral(string title, string body)
     {
         return (title, body);
+    }
+
+    /// <summary>
+    /// ГД принял требование участника. Уведомление отправляется автору запроса
+    /// или участникам коллективного запроса.
+    /// </summary>
+    /// <param name="creatorName">ФИО автора запроса.</param>
+    /// <param name="requestType">Тип требования (наименование).</param>
+    /// <param name="legalEntityName">Полное наименование юридического лица.</param>
+    /// <param name="ceoComment">Комментарий ГД.</param>
+    /// <param name="url">Ссылка на страницу запроса в Board Portal.</param>
+    public (string Title, string Body) BuildShareRequestAccepted(
+        string creatorName,
+        string requestType,
+        string legalEntityName,
+        string? ceoComment,
+        string? url)
+    {
+        var commentLine = string.IsNullOrWhiteSpace(ceoComment)
+            ? ""
+            : $"\n\nКомментарий ГД: {ceoComment}";
+
+        var urlLine = string.IsNullOrWhiteSpace(url)
+            ? ""
+            : $"\n\nПодробности: {url}";
+
+        return (
+            $"ИМИТАЦИЯ ОТПРАВКА ПО email — Требование принято",
+            $"Уважаемый(-ая) {creatorName}!\n\n"
+            + $"Ваше требование (тип: {requestType}) по обществу «{legalEntityName}» "
+            + $"принято Генеральным директором."
+            + commentLine
+            + urlLine
+        );
+    }
+
+    /// <summary>
+    /// Появилось требование участника, видимое всем ГД.
+    /// Уведомление отправляется всем пользователям с ролью CEO.
+    /// </summary>
+    /// <param name="participantName">ФИО участника, подавшего требование.</param>
+    /// <param name="sharePercent">Доля участника в процентах.</param>
+    /// <param name="requestType">Тип требования (наименование).</param>
+    /// <param name="legalEntityName">Полное наименование юридического лица.</param>
+    /// <param name="url">Ссылка на страницу запроса в Board Portal.</param>
+    public (string Title, string Body) BuildShareRequestVisibleToAll(
+        string participantName,
+        decimal? sharePercent,
+        string requestType,
+        string legalEntityName,
+        string? url)
+    {
+        var shareText = sharePercent.HasValue
+            ? $" (доля {sharePercent.Value:F2}%)"
+            : "";
+
+        var urlLine = string.IsNullOrWhiteSpace(url)
+            ? ""
+            : $"\n\nОзнакомьтесь с требованием: {url}";
+
+        return (
+            $"ИМИТАЦИЯ ОТПРАВКА ПО email — Новое требование участника",
+            $"Уважаемый Генеральный директор!\n\n"
+            + $"Поступило требование участника {participantName}{shareText} "
+            + $"по обществу «{legalEntityName}».\n\n"
+            + $"Тип требования: {requestType}"
+            + urlLine
+        );
     }
 }

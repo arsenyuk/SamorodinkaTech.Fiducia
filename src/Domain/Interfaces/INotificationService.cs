@@ -1,5 +1,3 @@
-using SamorodinkaTech.Fiducia.Domain.Enums;
-
 namespace SamorodinkaTech.Fiducia.Domain.Interfaces;
 
 /// <summary>
@@ -12,40 +10,44 @@ public interface INotificationService
     /// <summary>
     /// Формирует и фиксирует отправку уведомления одному пользователю.
     /// </summary>
-    /// <param name="notificationType">Тип уведомления.</param>
+    /// <param name="notificationType">Код типа уведомления (из ref_notification_type).</param>
     /// <param name="title">Заголовок уведомления.</param>
     /// <param name="body">Текст уведомления.</param>
     /// <param name="userId">Идентификатор получателя (директор/член комитета).</param>
     /// <param name="committeeId">Идентификатор комитета (если уведомление связано с комитетом).</param>
     /// <param name="meetingId">Идентификатор заседания (если уведомление связано с заседанием).</param>
+    /// <param name="url">Ссылка на страницу уведомления в Board Portal.</param>
     /// <param name="cancellationToken">Токен отмены.</param>
     /// <returns>Идентификатор созданной записи уведомления.</returns>
     Task<Guid> SendAsync(
-        NotificationType notificationType,
+        string notificationType,
         string title,
         string body,
         Guid? userId = null,
         Guid? committeeId = null,
         Guid? meetingId = null,
+        string? url = null,
         CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Формирует и фиксирует отправку одинакового уведомления нескольким пользователям.
     /// </summary>
-    /// <param name="notificationType">Тип уведомления.</param>
+    /// <param name="notificationType">Код типа уведомления (из ref_notification_type).</param>
     /// <param name="title">Заголовок уведомления.</param>
     /// <param name="body">Текст уведомления.</param>
     /// <param name="userIds">Список идентификаторов получателей.</param>
     /// <param name="committeeId">Идентификатор комитета (если уведомление связано с комитетом).</param>
     /// <param name="meetingId">Идентификатор заседания (если уведомление связано с заседанием).</param>
+    /// <param name="url">Ссылка на страницу уведомления в Board Portal.</param>
     /// <param name="cancellationToken">Токен отмены.</param>
     /// <returns>Список идентификаторов созданных записей уведомлений.</returns>
     Task<IReadOnlyList<Guid>> SendToManyAsync(
-        NotificationType notificationType,
+        string notificationType,
         string title,
         string body,
         IEnumerable<Guid> userIds,
         Guid? committeeId = null,
         Guid? meetingId = null,
+        string? url = null,
         CancellationToken cancellationToken = default);
 }

@@ -10,6 +10,8 @@
 - [Комитеты](3%20commitee.md)
 - [Заседание СД](4%20BOD%20meeting.md)
 - [Уведомления о заседаниях СД](5%20BOD%20mittings%20notifications.md)
+- [Правила уведомлений](notifications-rules.md)
+- [Чеклист: новый тип уведомлений](notifications-new-type-checklist.md)
 - [Аудиторский комитет](audit-committee.md)
 - [Интервалы дат](date-intervals.md)
 - [Стандартный устав ООО](standard-charter-llc.md)

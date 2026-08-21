@@ -128,6 +128,17 @@ CREATE TABLE IF NOT EXISTS ref_roles (
     is_assignable boolean DEFAULT FALSE NOT NULL
 );
 
+-- Справочник: ref_notification_type (типы уведомлений)
+CREATE TABLE IF NOT EXISTS ref_notification_type (
+    id uuid PRIMARY KEY,
+    code varchar(50) UNIQUE NOT NULL,
+    name varchar(100) NOT NULL,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    created_by uuid NOT NULL REFERENCES users(id)
+);
+
+CREATE INDEX IF NOT EXISTS ix_ref_notification_type_code ON ref_notification_type(code);
+
 -- Справочник: ref_meeting_form (формы проведения заседания СД)
 CREATE TABLE IF NOT EXISTS ref_meeting_form (
     id uuid PRIMARY KEY,
@@ -639,6 +650,7 @@ CREATE TABLE IF NOT EXISTS notifications (
     notification_type varchar(50) NOT NULL,
     title varchar(500) NOT NULL,
     body text NOT NULL,
+    url varchar(1000),
     is_read boolean DEFAULT FALSE NOT NULL,
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
 );

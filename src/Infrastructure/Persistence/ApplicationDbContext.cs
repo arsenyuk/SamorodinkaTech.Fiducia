@@ -23,6 +23,7 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
     public DbSet<CommitteeTask> CommitteeTasks => Set<CommitteeTask>();
     public DbSet<Bulletin> Bulletins => Set<Bulletin>();
     public DbSet<Notification> Notifications => Set<Notification>();
+    public DbSet<RefNotificationType> RefNotificationTypes => Set<RefNotificationType>();
     public DbSet<RefOkopf> RefOkopf => Set<RefOkopf>();
     public DbSet<RefMonth> RefMonths => Set<RefMonth>();
     public DbSet<RefOsaForm> OsaForms => Set<RefOsaForm>();
