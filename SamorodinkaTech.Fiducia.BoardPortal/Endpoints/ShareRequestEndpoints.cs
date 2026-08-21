@@ -859,6 +859,141 @@ public static class ShareRequestEndpoints
                 return Results.BadRequest(new { error = ex.Message });
             }
         });
+
+        // ── Файлы требований ──────────────────────────────────────────
+
+        // POST: прикрепить файл к требованию
+        shareRequests.MapPost("/{id}/files", async (
+            Guid id,
+            ShareRequestAttachFileDto dto,
+            IDbContextFactory<FiduciaDbContext> dbFactory,
+            ISecurityAuditService audit,
+            ILoggerFactory loggerFactory,
+            HttpContext http) =>
+        {
+            var logger = loggerFactory.CreateLogger("ShareRequests.AttachFile");
+            try
+            {
+                await using var ctx = await dbFactory.CreateDbContextAsync();
+                var (leId, error) = await ValidateAccessAsync(ctx, http, audit);
+                if (error is not null) return error;
+
+                var request = await ctx.ShareRequests.FindAsync(id);
+                if (request is null || request.LegalEntityId != leId)
+                    return Results.NotFound();
+
+                var fileEntry = await ctx.Files.FindAsync(dto.FileId);
+                if (fileEntry is null)
+                    return Results.BadRequest(new { error = "Файл не найден" });
+
+                // Проверяем дубликат
+                var exists = await ctx.ShareRequestFiles
+                    .AnyAsync(f => f.ShareRequestId == id && f.FileId == dto.FileId);
+                if (exists)
+                    return Results.BadRequest(new { error = "Файл уже прикреплён" });
+
+                var entity = new ShareRequestFile
+                {
+                    Id = Guid.NewGuid(),
+                    ShareRequestId = id,
+                    FileId = dto.FileId
+                };
+
+                ctx.ShareRequestFiles.Add(entity);
+                await ctx.SaveChangesAsync();
+
+                logger.LogInformation("Файл {FileId} прикреплён к требованию {RequestId}", dto.FileId, id);
+
+                return Results.Ok(new { entity.Id, entity.FileId, fileEntry.OriginalName });
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Ошибка прикрепления файла к требованию {Id}", id);
+                return Results.BadRequest(new { error = ex.Message });
+            }
+        });
+
+        // GET: список файлов требования
+        shareRequests.MapGet("/{id}/files", async (
+            Guid id,
+            IDbContextFactory<FiduciaDbContext> dbFactory,
+            ISecurityAuditService audit,
+            ILoggerFactory loggerFactory,
+            HttpContext http) =>
+        {
+            var logger = loggerFactory.CreateLogger("ShareRequests.ListFiles");
+            try
+            {
+                await using var ctx = await dbFactory.CreateDbContextAsync();
+                var (leId, error) = await ValidateAccessAsync(ctx, http, audit);
+                if (error is not null) return error;
+
+                var request = await ctx.ShareRequests.FindAsync(id);
+                if (request is null || request.LegalEntityId != leId)
+                    return Results.NotFound();
+
+                var files = await ctx.ShareRequestFiles
+                    .Include(f => f.File)
+                    .Where(f => f.ShareRequestId == id)
+                    .OrderBy(f => f.File!.CreatedAt)
+                    .Select(f => new
+                    {
+                        f.Id,
+                        f.FileId,
+                        FileName = f.File!.OriginalName,
+                        f.File.SizeBytes,
+                        f.File.ContentType,
+                        f.File.CreatedAt
+                    })
+                    .ToListAsync();
+
+                return Results.Ok(files);
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Ошибка получения файлов требования {Id}", id);
+                return Results.BadRequest(new { error = ex.Message });
+            }
+        });
+
+        // DELETE: открепить файл от требования
+        shareRequests.MapDelete("/{id}/files/{fileId}", async (
+            Guid id,
+            Guid fileId,
+            IDbContextFactory<FiduciaDbContext> dbFactory,
+            ISecurityAuditService audit,
+            ILoggerFactory loggerFactory,
+            HttpContext http) =>
+        {
+            var logger = loggerFactory.CreateLogger("ShareRequests.DetachFile");
+            try
+            {
+                await using var ctx = await dbFactory.CreateDbContextAsync();
+                var (leId, error) = await ValidateAccessAsync(ctx, http, audit);
+                if (error is not null) return error;
+
+                var request = await ctx.ShareRequests.FindAsync(id);
+                if (request is null || request.LegalEntityId != leId)
+                    return Results.NotFound();
+
+                var link = await ctx.ShareRequestFiles
+                    .FirstOrDefaultAsync(f => f.ShareRequestId == id && f.FileId == fileId);
+                if (link is null)
+                    return Results.NotFound();
+
+                ctx.ShareRequestFiles.Remove(link);
+                await ctx.SaveChangesAsync();
+
+                logger.LogInformation("Файл {FileId} откреплён от требования {RequestId}", fileId, id);
+
+                return Results.Ok();
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Ошибка открепления файла от требования {Id}", id);
+                return Results.BadRequest(new { error = ex.Message });
+            }
+        });
     }
 
     private static async Task NotifyCeoAsync(FiduciaDbContext ctx, ShareRequest request, ILogger logger)
@@ -1257,3 +1392,4 @@ public record ShareRequestCompleteDto(string? Status, string? Payload);
 public record ShareRequestRevokeDto(bool Notarized);
 public record ShareRequestCollectiveCreateDto(Guid RequestTypeId, string? Payload, string? DemandText);
 public record ShareRequestDecideDto(string Decision, string? Comment);
+public record ShareRequestAttachFileDto(Guid FileId);

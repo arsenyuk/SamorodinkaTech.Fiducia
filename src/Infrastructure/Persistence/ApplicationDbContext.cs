@@ -91,6 +91,7 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
     public DbSet<RefDocumentRefusalReason> DocumentRefusalReasons => Set<RefDocumentRefusalReason>();
     public DbSet<Notarization> Notarizations => Set<Notarization>();
     public DbSet<ShareRequestSupport> ShareRequestSupports => Set<ShareRequestSupport>();
+    public DbSet<ShareRequestFile> ShareRequestFiles => Set<ShareRequestFile>();
 
     // Junction-таблицы файлов (BDR-011)
     public DbSet<MeetingFile> MeetingFiles => Set<MeetingFile>();
@@ -1063,6 +1064,19 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.HasOne(x => x.Participant).WithMany().HasForeignKey(x => x.ParticipantId).OnDelete(DeleteBehavior.Restrict);
             b.HasIndex(x => x.ShareRequestId).HasDatabaseName("ix_srs_request");
             b.HasIndex(x => x.ParticipantId).HasDatabaseName("ix_srs_participant");
+        });
+
+        modelBuilder.Entity<ShareRequestFile>(b =>
+        {
+            b.ToTable("share_request_files");
+            b.HasKey(x => x.Id);
+            b.Property(x => x.Id).HasColumnName("id");
+            b.Property(x => x.ShareRequestId).HasColumnName("share_request_id").IsRequired();
+            b.Property(x => x.FileId).HasColumnName("file_id").IsRequired();
+            b.HasOne(x => x.ShareRequest).WithMany().HasForeignKey(x => x.ShareRequestId).OnDelete(DeleteBehavior.Restrict);
+            b.HasOne(x => x.File).WithMany().HasForeignKey(x => x.FileId).OnDelete(DeleteBehavior.Restrict);
+            b.HasIndex(x => x.ShareRequestId).HasDatabaseName("ix_srf_request");
+            b.HasIndex(x => x.FileId).HasDatabaseName("ix_srf_file");
         });
 
         modelBuilder.Entity<RefDocumentType>(b =>

@@ -84,6 +84,23 @@ else
         <h4>Данные запроса</h4>
         <pre class="bg-light p-3 rounded"><code>@_request.Payload</code></pre>
     }
+
+    @* ── Прикреплённые файлы ──────────────────────────────────────── *@
+    @if (_files.Count > 0)
+    {
+        <h4>Прикреплённые файлы</h4>
+        <div class="mb-4">
+            @foreach (var f in _files)
+            {
+                <div class="d-flex align-items-center gap-2 mb-1">
+                    <a href="/api/files/@f.FileId/download" target="_blank" class="text-decoration-none">
+                        📄 @f.FileName
+                    </a>
+                    <span class="text-muted small">(@FormatSize(f.SizeBytes))</span>
+                </div>
+            }
+        </div>
+    }
 }
 
 @code {
@@ -91,6 +108,7 @@ else
 
     private ShareRequestDto? _request;
     private List<ParticipantResultDto> _resultParticipants = new();
+    private List<FileDto> _files = new();
     private bool _loading = true;
 
     protected override async Task OnInitializedAsync()
@@ -104,6 +122,9 @@ else
                 _resultParticipants = await Http.GetFromJsonAsync<List<ParticipantResultDto>>(
                     $"/api/share-requests/{Id}/result") ?? new();
             }
+
+            var filesResponse = await Http.GetFromJsonAsync<List<FileDto>>($"/api/share-requests/{Id}/files");
+            _files = filesResponse ?? new();
         }
         catch (Exception ex)
         {
@@ -126,4 +147,13 @@ else
 
     private record ShareRequestDto(Guid Id, Guid RequestTypeId, string? RequestTypeCode, string? RequestTypeName, string Status, string? Payload, DateTime CreatedAt, DateTime? CompletedAt, DateTime? RevokedAt, bool RevokedByNotarized, bool VisibleToAll);
     private record ParticipantResultDto(Guid ParticipantId, string? FullName, string? CompanyName, string ParticipantType, decimal? SharePercent, decimal? ShareAmount);
+    private record FileDto(Guid Id, Guid FileId, string FileName, long SizeBytes, string? ContentType, DateTime CreatedAt);
+
+    private static string FormatSize(long bytes)
+    {
+        if (bytes < 1024) return $"{bytes} Б";
+        if (bytes < 1024 * 1024) return $"{bytes / 1024.0:F1} КБ";
+        if (bytes < 1024 * 1024 * 1024) return $"{bytes / (1024.0 * 1024.0):F1} МБ";
+        return $"{bytes / (1024.0 * 1024.0 * 1024.0):F1} ГБ";
+    }
 }

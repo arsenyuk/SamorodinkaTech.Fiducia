@@ -88,5 +88,7 @@ public interface IApplicationDbContext
 
     DbSet<ShareRequestSupport> ShareRequestSupports { get; }
 
+    DbSet<ShareRequestFile> ShareRequestFiles { get; }
+
     System.Threading.Tasks.Task<int> SaveChangesAsync(System.Threading.CancellationToken cancellationToken = default);
 }

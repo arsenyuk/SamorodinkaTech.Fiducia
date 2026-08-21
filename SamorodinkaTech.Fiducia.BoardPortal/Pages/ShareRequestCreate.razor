@@ -1,5 +1,6 @@
 @page "/share-requests/create"
 @using System.Net.Http.Json
+@using SamorodinkaTech.Fiducia.SharedComponents.Components
 @inject HttpClient Http
 @inject NavigationManager Nav
 @inject ILogger<ShareRequestCreate> Logger
@@ -146,6 +147,24 @@ else
                 }
             </div>
 
+            @* ── Файлы (общий блок для всех типов) ────────────────────── *@
+            <div class="col-12 mt-3">
+                <label class="form-label">Прикрепить файлы (необязательно)</label>
+                <FileUpload FileType="SHARE_REQUEST" OnFileUploadedInfo="OnFileUploaded" />
+                @if (_uploadedFiles.Count > 0)
+                {
+                    <div class="mt-2">
+                        @foreach (var f in _uploadedFiles)
+                        {
+                            <div class="d-flex align-items-center gap-2 mb-1">
+                                <span class="badge bg-light text-dark">📄 @f.Name</span>
+                                <button class="btn btn-sm btn-outline-danger" @onclick="() => RemoveUploadedFile(f)">×</button>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+
             @* ── Кнопка отправки ─────────────────────────────────────── *@
             <div class="mt-4">
                 <button class="btn btn-primary" @onclick="SubmitRequest" disabled="@_isSubmitting">
@@ -172,6 +191,9 @@ else
     private string? _demandReason;
     private string? _newCharterNumber;
     private decimal? _participantSharePercent;
+    private List<UploadedFileInfo> _uploadedFiles = new();
+
+    private record UploadedFileInfo(Guid FileId, string Name);
 
     protected override async Task OnInitializedAsync()
     {
@@ -204,7 +226,19 @@ else
         _demandText = null;
         _demandReason = null;
         _newCharterNumber = null;
+        _uploadedFiles.Clear();
         _error = null;
+    }
+
+    private void OnFileUploaded((Guid FileId, string OriginalName) info)
+    {
+        _uploadedFiles.Add(new UploadedFileInfo(info.FileId, info.OriginalName));
+        StateHasChanged();
+    }
+
+    private void RemoveUploadedFile(UploadedFileInfo file)
+    {
+        _uploadedFiles.Remove(file);
     }
 
     private async Task SubmitRequest()
@@ -278,6 +312,18 @@ else
 
             if (response.IsSuccessStatusCode)
             {
+                // Прикрепляем файлы к созданному требованию
+                if (_uploadedFiles.Count > 0)
+                {
+                    var createdRequest = await response.Content.ReadFromJsonAsync<CreatedRequestDto>();
+                    if (createdRequest?.Id is Guid requestId)
+                    {
+                        foreach (var file in _uploadedFiles)
+                        {
+                            await Http.PostAsJsonAsync($"/api/share-requests/{requestId}/files", new { FileId = file.FileId });
+                        }
+                    }
+                }
                 Nav.NavigateTo("/share-requests", forceLoad: true);
             }
             else
@@ -362,4 +408,5 @@ else
 
     private record RequestTypeDto(Guid Id, string Code, string Name, bool RequiresFile, bool RequiresThreshold, decimal? ThresholdPercent, string? LegalBasis, bool IsCollective);
     private record ParticipantDto(Guid Id, string? FullName, decimal? SharePercent);
+    private record CreatedRequestDto(Guid? Id);
 }

@@ -53,6 +53,23 @@ else
                     <p class="mt-1">@_request.Payload</p>
                 </div>
             }
+            @if (_files.Count > 0)
+            {
+                <div class="mb-0">
+                    <strong>Прикреплённые файлы:</strong>
+                    <div class="mt-1">
+                        @foreach (var f in _files)
+                        {
+                            <div class="d-flex align-items-center gap-2 mb-1">
+                                <a href="/api/files/@f.FileId/download" target="_blank" class="text-decoration-none">
+                                    📄 @f.FileName
+                                </a>
+                                <span class="text-muted small">(@FormatSize(f.SizeBytes))</span>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
         </div>
     </div>
 
@@ -240,6 +257,7 @@ else
 
     private CollectiveRequestDto? _request;
     private List<SupportDto> _supports = new();
+    private List<FileDto> _files = new();
     private bool _loading = true;
     private string? _error;
     private bool _currentUserHasSupported;
@@ -257,6 +275,9 @@ else
                 _supports = supportsResponse ?? new();
                 _currentUserHasSupported = _supports.Any(s => s.IsCurrentUser && s.IsActive);
                 _isCeo = await CheckIsCeoAsync();
+
+                var filesResponse = await Http.GetFromJsonAsync<List<FileDto>>($"/api/share-requests/{Id}/files");
+                _files = filesResponse ?? new();
             }
         }
         catch (Exception ex)
@@ -390,5 +411,15 @@ else
     private record SupportDto(Guid Id, string? ParticipantName, decimal SharePercentAtSupport,
         DateTime SupportedAt, DateTime? WithdrawnAt, bool IsCurrentUser, bool IsActive);
 
+    private record FileDto(Guid Id, Guid FileId, string FileName, long SizeBytes, string? ContentType, DateTime CreatedAt);
+
     private record SessionMe(Guid Id, string? FullName, string[]? Roles);
+
+    private static string FormatSize(long bytes)
+    {
+        if (bytes < 1024) return $"{bytes} Б";
+        if (bytes < 1024 * 1024) return $"{bytes / 1024.0:F1} КБ";
+        if (bytes < 1024 * 1024 * 1024) return $"{bytes / (1024.0 * 1024.0):F1} МБ";
+        return $"{bytes / (1024.0 * 1024.0 * 1024.0):F1} ГБ";
+    }
 }

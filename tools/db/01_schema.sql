@@ -1421,6 +1421,19 @@ CREATE INDEX IF NOT EXISTS ix_srs_participant ON share_request_support(participa
 CREATE UNIQUE INDEX IF NOT EXISTS ux_srs_request_participant ON share_request_support(share_request_id, participant_id) WHERE withdrawn_at IS NULL;
 
 -- ============================================================
+-- SHARE REQUEST FILES — файлы требований участников
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS share_request_files (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    share_request_id uuid NOT NULL REFERENCES share_request(id) ON DELETE RESTRICT,
+    file_id uuid NOT NULL REFERENCES files(id) ON DELETE RESTRICT,
+    CONSTRAINT ux_share_request_files UNIQUE (share_request_id, file_id)
+);
+CREATE INDEX IF NOT EXISTS ix_srf_request ON share_request_files(share_request_id);
+CREATE INDEX IF NOT EXISTS ix_srf_file ON share_request_files(file_id);
+
+-- ============================================================
 -- REF_DOCUMENT_TYPE — справочник типов документов для требования
 -- ============================================================
 
