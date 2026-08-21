@@ -71,5 +71,12 @@ public class ShareRequestConfiguration : IEntityTypeConfiguration<ShareRequest>
             .WithMany()
             .HasForeignKey(r => r.DecidedByUserId)
             .OnDelete(DeleteBehavior.SetNull);
+
+        // Орг-план ВОСУ
+        builder.Property(r => r.OrgIntentId).HasColumnName("org_intent_id");
+        builder.HasOne(r => r.OrgIntent)
+            .WithMany()
+            .HasForeignKey(r => r.OrgIntentId)
+            .OnDelete(DeleteBehavior.SetNull);
     }
 }

@@ -159,6 +159,20 @@ else
         </div>
     }
 
+    @* ── План ВОСУ (если создан) ──────────────────────────────────── *@
+    @if (_request.CollectiveStatus == "ACCEPTED" && _request.OrgIntentId.HasValue)
+    {
+        <div class="card mb-4 border-success">
+            <div class="card-body">
+                <h5>План подготовки к ВОСУ</h5>
+                <p>По результатам рассмотрения требования создан план подготовки к ВОСУ.</p>
+                <a href="/org-plan" class="btn btn-success">
+                    <span class="oi oi-project"></span> Перейти к плану
+                </a>
+            </div>
+        </div>
+    }
+
     @* ── Список поддержавших ────────────────────────────────────── *@
     <div class="card mb-4">
         <div class="card-header">
@@ -345,7 +359,8 @@ else
     private record CollectiveRequestDto(Guid Id, Guid RequestTypeId, string? RequestTypeCode, string? RequestTypeName,
         string? InitiatorName, string? Payload, string Status, string? CollectiveStatus,
         decimal? ThresholdPercent, decimal TotalSupportPercent, int SupporterCount,
-        DateTime CreatedAt, DateTime? SubmittedToCeoAt, DateTime? CeoDecisionAt, string? CeoComment);
+        DateTime CreatedAt, DateTime? SubmittedToCeoAt, DateTime? CeoDecisionAt, string? CeoComment,
+        Guid? OrgIntentId);
 
     private record SupportDto(Guid Id, string? ParticipantName, decimal SharePercentAtSupport,
         DateTime SupportedAt, DateTime? WithdrawnAt, bool IsCurrentUser, bool IsActive);

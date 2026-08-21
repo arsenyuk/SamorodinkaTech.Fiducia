@@ -1391,7 +1391,9 @@ CREATE TABLE IF NOT EXISTS share_request (
     submitted_to_ceo_at timestamp with time zone,
     ceo_decision_at timestamp with time zone,
     ceo_comment text,
-    decided_by_user_id uuid REFERENCES users(id) ON DELETE SET NULL
+    decided_by_user_id uuid REFERENCES users(id) ON DELETE SET NULL,
+    -- Орг-план ВОСУ
+    org_intent_id uuid REFERENCES org_intents(id) ON DELETE SET NULL
 );
 
 CREATE INDEX IF NOT EXISTS ix_share_request_le ON share_request(legal_entity_id);

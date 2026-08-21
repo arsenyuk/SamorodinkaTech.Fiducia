@@ -628,6 +628,18 @@ public static class ShareRequestEndpoints
 
                 await ctx.SaveChangesAsync();
 
+                // Если требование принято и тип = DEMAND_VOSU — создаём план ВОСУ
+                if (dto.Decision == "ACCEPTED" && request.RequestType?.Code == "DEMAND_VOSU")
+                {
+                    var templateService = http.RequestServices.GetRequiredService<ITemplateInstantiationService>();
+                    var orgIntentId = await CreateVosuPlanAsync(ctx, templateService, request.LegalEntityId, logger);
+                    if (orgIntentId.HasValue)
+                    {
+                        request.OrgIntentId = orgIntentId.Value;
+                        await ctx.SaveChangesAsync();
+                    }
+                }
+
                 // Уведомляем всех поддержавших
                 await NotifySupportersAsync(ctx, request, logger);
 
@@ -836,6 +848,48 @@ public static class ShareRequestEndpoints
                 Body = $"Генеральный директор {decisionText} коллективное требование.",
                 CreatedAt = DateTime.UtcNow
             });
+        }
+    }
+
+    /// <summary>Создание плана ВОСУ из шаблона.</summary>
+    private static async Task<Guid?> CreateVosuPlanAsync(
+        FiduciaDbContext ctx,
+        ITemplateInstantiationService templateService,
+        Guid legalEntityId,
+        ILogger logger)
+    {
+        try
+        {
+            // Инстанцируем шаблон VOSU
+            var taskCount = await templateService.InstantiateAsync(
+                ctx, "VOSU", legalEntityId, null);
+
+            if (taskCount == 0)
+            {
+                logger.LogWarning("Шаблон VOSU не найден или нет задач для ЮЛ {LegalEntityId}", legalEntityId);
+                return null;
+            }
+
+            // Находим созданный OrgIntent (последний для данного ЮЛ с кодом VOSU)
+            var orgIntent = await ctx.OrgIntents
+                .Include(i => i.TemplateIntent)
+                .Where(i => i.LegalEntityId == legalEntityId
+                    && i.TemplateIntent!.Code == "VOSU")
+                .OrderByDescending(i => i.CreatedAt)
+                .FirstOrDefaultAsync();
+
+            if (orgIntent != null)
+            {
+                logger.LogInformation("Создан план ВОСУ {OrgIntentId} для ЮЛ {LegalEntityId}, задач: {TaskCount}",
+                    orgIntent.Id, legalEntityId, taskCount);
+            }
+
+            return orgIntent?.Id;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Ошибка создания плана ВОСУ для ЮЛ {LegalEntityId}", legalEntityId);
+            return null;
         }
     }
 
@@ -1056,7 +1110,8 @@ public static class ShareRequestEndpoints
         r.CreatedAt,
         r.SubmittedToCeoAt,
         r.CeoDecisionAt,
-        r.CeoComment
+        r.CeoComment,
+        r.OrgIntentId
     };
 }
 

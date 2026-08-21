@@ -94,4 +94,10 @@ public class ShareRequest
 
     /// <summary>Поддержки участников.</summary>
     public ICollection<ShareRequestSupport> Supports { get; set; } = new List<ShareRequestSupport>();
+
+    /// <summary>Идентификатор созданного орг-плана (org_intent_id).</summary>
+    public Guid? OrgIntentId { get; set; }
+
+    /// <summary>Орг-план (org_intent).</summary>
+    public OrgIntent? OrgIntent { get; set; }
 }
