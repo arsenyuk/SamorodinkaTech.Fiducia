@@ -63,10 +63,11 @@ else
             </div>
 
             @* ── Подсказка по правовой норме ────────────────────────── *@
-            @if (!string.IsNullOrEmpty(GetLegalBasis(_selectedType.Code)))
+            @if (GetLegalBasisInfo(_selectedType.Code) is { } legalInfo)
             {
                 <div class="alert alert-info py-2 mb-3">
-                    <strong>Правовая норма:</strong> @GetLegalBasis(_selectedType.Code)
+                    <strong>Правовая норма:</strong>
+                    <LawReferenceLink Article="@legalInfo.Article" Text="@legalInfo.Text" />
                 </div>
             }
 
@@ -488,20 +489,22 @@ else
         _ => "Выберите для получения подробной информации"
     };
 
-    private static string GetLegalBasis(string code) => code switch
+    private static (string Article, string Text)? GetLegalBasisInfo(string code) => code switch
     {
-        "DEMAND_VOSU" => "ст. 35 14-ФЗ «Об ООО» — Право участников на созыв внеочередного собрания",
-        "ADD_AGENDA_OSU" => "п. 2.1 ст. 36 14-ФЗ — Право участников на включение вопросов в повестку",
-        "REQUEST_INFORMATION" => "ст. 50 14-ФЗ — Право участников на доступ к документам общества",
-        "EXCLUDE_PARTICIPANT" => "ст. 10 14-ФЗ — Исключение участника из общества",
-        "DEMAND_VOSA" => "ст. 55 208-ФЗ — Право акционеров на созыв внеочередного собрания",
-        "ADD_AGENDA_GOSA" => "ст. 53 208-ФЗ — Право акционеров на включение вопросов в повестку",
-        "DEMAND_INFO_AO" => "ст. 89 208-ФЗ — Право акционеров на доступ к документам",
-        "NOTARY_LIST_MAINTENANCE" => "ст. 32.1 14-ФЗ — Ведение списка участников",
-        "EXIT_APPLICATION" => "ст. 26 14-ФЗ — Выход участника из общества",
-        "CONVERT_TO_NJSC" => "ст. 57 14-ФЗ — Преобразование общества",
-        _ => ""
+        "DEMAND_VOSU" => ("article-14fz-35", "ст. 35 14-ФЗ «Об ООО»"),
+        "ADD_AGENDA_OSU" => ("article-14fz-36", "п. 2.1 ст. 36 14-ФЗ"),
+        "REQUEST_INFORMATION" => ("article-14fz-50", "ст. 50 14-ФЗ"),
+        "EXCLUDE_PARTICIPANT" => ("article-14fz-10", "ст. 10 14-ФЗ"),
+        "DEMAND_VOSA" => ("article-208fz-55", "ст. 55 208-ФЗ"),
+        "ADD_AGENDA_GOSA" => ("article-208fz-53", "ст. 53 208-ФЗ"),
+        "DEMAND_INFO_AO" => ("article-208fz-89", "ст. 89 208-ФЗ"),
+        "NOTARY_LIST_MAINTENANCE" => ("article-14fz-31-1", "ст. 32.1 14-ФЗ"),
+        "EXIT_APPLICATION" => ("article-14fz-26", "ст. 26 14-ФЗ"),
+        "CONVERT_TO_NJSC" => ("article-14fz-57", "ст. 57 14-ФЗ"),
+        _ => null
     };
+
+    private static string GetLegalBasis(string code) => GetLegalBasisInfo(code)?.Text ?? "";
 
     private static string GetConditions(string code) => code switch
     {

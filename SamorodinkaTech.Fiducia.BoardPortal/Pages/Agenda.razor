@@ -2,10 +2,12 @@
 @using Microsoft.EntityFrameworkCore
 @inject IDbContextFactory<SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext> DbFactory
 @inject ILogger<Agenda> Logger
-@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "SYS_ADMIN")]
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "PARTICIPANT,SECRETARY")]
 @using SamorodinkaTech.Fiducia.Domain.Entities
 
-<h3>Повестки будущих заседаний</h3>
+<PageTitle>Fiducia — Повестки</PageTitle>
+
+<h3>Повестки будущих заседаний СД</h3>
 
 @if (_items.Count == 0)
 {
@@ -37,9 +39,7 @@ else
                     <td>@item.Title</td>
                     <td>@item.Reason</td>
                     <td>
-                        <a href="/board-of-directors/@item.BoardOfDirectorsId" class="text-decoration-none">
-                            СД @(item.BoardElectionYear?.ToString() ?? "—")
-                        </a>
+                        <span class="text-muted">СД @(item.BoardElectionYear?.ToString() ?? "—")</span>
                     </td>
                     <td>
                         <span class="badge bg-secondary">@item.Status</span>

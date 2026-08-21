@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 using SamorodinkaTech.Fiducia.Domain.Entities;
 using SamorodinkaTech.Fiducia.Domain.Interfaces;
 using SamorodinkaTech.Fiducia.Infrastructure;
@@ -45,6 +46,34 @@ public static class ParticipantEndpoints
                 .ToListAsync();
 
             return Results.Ok(items.Select(MapParticipantToDto));
+        });
+
+        // GET: текущий участник (по пользователю)
+        participants.MapGet("/current", async (
+            IDbContextFactory<FiduciaDbContext> dbFactory,
+            HttpContext http) =>
+        {
+            await using var ctx = await dbFactory.CreateDbContextAsync();
+
+            var userIdStr = http.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (!Guid.TryParse(userIdStr, out var userId))
+                return Results.Ok(new { Id = (Guid?)null, FullName = (string?)null, SharePercent = (decimal?)null });
+
+            var user = await ctx.Users.FindAsync(userId);
+            if (user?.PersonId is null)
+                return Results.Ok(new { Id = (Guid?)null, FullName = (string?)null, SharePercent = (decimal?)null });
+
+            var leId = await GetLegalEntityIdAsync(ctx);
+            if (leId is null)
+                return Results.Ok(new { Id = (Guid?)null, FullName = (string?)null, SharePercent = (decimal?)null });
+
+            var participant = await ctx.BoardParticipants
+                .FirstOrDefaultAsync(p => p.LegalEntityId == leId.Value && p.PersonId == user.PersonId && p.IsActive);
+
+            if (participant is null)
+                return Results.Ok(new { Id = (Guid?)null, FullName = (string?)null, SharePercent = (decimal?)null });
+
+            return Results.Ok(new { participant.Id, participant.FullName, participant.SharePercent });
         });
 
         // GET: один участник по ID
@@ -1157,6 +1186,12 @@ public static class ParticipantEndpoints
         public string? Date { get; init; }
         public string? PaperDocNumber { get; init; }
         public string? Comment { get; init; }
+    }
+
+    private static async Task<Guid?> GetLegalEntityIdAsync(FiduciaDbContext ctx)
+    {
+        var workplace = await ctx.CurrentWorkplaces.FirstOrDefaultAsync();
+        return workplace?.LastSelectedLegalEntityId;
     }
 
     /// <summary>DTO для рассмотрения заявки.</summary>

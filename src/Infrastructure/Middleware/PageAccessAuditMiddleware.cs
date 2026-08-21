@@ -71,6 +71,16 @@ public class PageAccessAuditMiddleware
         if (IsExcludedApiPath(path) && statusCode == 200)
             return;
 
+        // Логируем ТОЛЬКО: модификации данных (POST/PUT/DELETE) и ошибки доступа (4xx/5xx)
+        var isModification = string.Equals(method, "POST", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(method, "PUT", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(method, "PATCH", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(method, "DELETE", StringComparison.OrdinalIgnoreCase);
+        var isError = statusCode >= 400;
+
+        if (!isModification && !isError)
+            return;
+
         var actionCode = GetActionCode(method, statusCode, path);
         var description = GetDescription(method, path, statusCode);
 
@@ -102,7 +112,6 @@ public class PageAccessAuditMiddleware
         401 => "ACCESS:PAGE_DENIED",
         403 => "ACCESS:PAGE_DENIED",
         404 => "ACCESS:PAGE_NOT_FOUND",
-        _ when method == "GET" => "DATA:READ",
         _ when method == "POST" => "DATA:CREATE",
         _ when method == "PUT" || method == "PATCH" => "DATA:UPDATE",
         _ when method == "DELETE" => "DATA:DELETE",
