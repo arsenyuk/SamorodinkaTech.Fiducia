@@ -33,10 +33,15 @@ public static class AoContractorEndpoints
         aoContractors.MapGet("/search-spark", async (
             string inn,
             [Microsoft.AspNetCore.Mvc.FromServices] ISparkApiClient? sparkApi,
-            [Microsoft.AspNetCore.Mvc.FromServices] IDbContextFactory<FiduciaDbContext> dbFactory) =>
+            [Microsoft.AspNetCore.Mvc.FromServices] IDbContextFactory<FiduciaDbContext> dbFactory,
+            [Microsoft.AspNetCore.Mvc.FromServices] ILoggerFactory loggerFactory) =>
         {
+            var logger = loggerFactory.CreateLogger("AoContractors.SearchSpark");
             if (string.IsNullOrWhiteSpace(inn) || inn.Length < MinInnLength)
+            {
+                logger.LogWarning("Поиск СПАРК: ИНН не содержит минимум 10 цифр: {Inn}", inn);
                 return Results.BadRequest(new { error = "ИНН должен содержать минимум 10 цифр" });
+            }
 
             await using var ctx = await dbFactory.CreateDbContextAsync();
 
@@ -119,10 +124,15 @@ public static class AoContractorEndpoints
         // GET: проверка статуса организации в ЦБ РФ
         aoContractors.MapGet("/check-cbr", async (
             string inn,
-            [Microsoft.AspNetCore.Mvc.FromServices] ICbrFinOrgDataService? cbrDataService) =>
+            [Microsoft.AspNetCore.Mvc.FromServices] ICbrFinOrgDataService? cbrDataService,
+            [Microsoft.AspNetCore.Mvc.FromServices] ILoggerFactory loggerFactory) =>
         {
+            var logger = loggerFactory.CreateLogger("AoContractors.CheckCbr");
             if (string.IsNullOrWhiteSpace(inn) || inn.Length < MinInnLength)
+            {
+                logger.LogWarning("Проверка ЦБ: ИНН не содержит минимум 10 цифр: {Inn}", inn);
                 return Results.BadRequest(new { error = "ИНН должен содержать минимум 10 цифр" });
+            }
 
             if (cbrDataService is null)
                 return Results.Ok(new { warning = "ЦБ РФ сервис не настроен" });
@@ -130,7 +140,10 @@ public static class AoContractorEndpoints
             try
             {
                 if (!long.TryParse(inn, out var innLong))
+                {
+                    logger.LogWarning("Проверка ЦБ: невалидный ИНН: {Inn}", inn);
                     return Results.BadRequest(new { error = "Невалидный ИНН" });
+                }
 
                 var org = await cbrDataService.GetOrganizationByInnAsync(innLong);
                 if (org is null)
@@ -169,10 +182,12 @@ public static class AoContractorEndpoints
             IDbContextFactory<FiduciaDbContext> dbFactory,
             [Microsoft.AspNetCore.Mvc.FromServices] ILoggerFactory loggerFactory) =>
         {
-            if (string.IsNullOrWhiteSpace(inn) || inn.Length < MinInnLength)
-                return Results.BadRequest(new { error = "ИНН должен содержать минимум 10 цифр" });
-
             var logger = loggerFactory.CreateLogger("AoContractors.Diagnose");
+            if (string.IsNullOrWhiteSpace(inn) || inn.Length < MinInnLength)
+            {
+                logger.LogWarning("Диагностика контрагента: ИНН не содержит минимум 10 цифр: {Inn}", inn);
+                return Results.BadRequest(new { error = "ИНН должен содержать минимум 10 цифр" });
+            }
 
             await using var ctx = await dbFactory.CreateDbContextAsync();
 
@@ -367,11 +382,13 @@ public static class AoContractorEndpoints
         });
 
         // POST: создание нового контрагента/договора
-        aoContractors.MapPost("/", async (HttpContext http, IApplicationDbContext db) =>
+        aoContractors.MapPost("/", async (HttpContext http, IApplicationDbContext db,
+            [Microsoft.AspNetCore.Mvc.FromServices] ILoggerFactory loggerFactory) =>
         {
             if (!HasRole(http.User, "LAWYER"))
                 return Results.Forbid();
 
+            var logger = loggerFactory.CreateLogger("AoContractors.Create");
             var form = await http.Request.ReadFormAsync();
             var contractorInn = form["contractorInn"].FirstOrDefault();
             var contractorName = form["contractorName"].FirstOrDefault();
@@ -389,17 +406,27 @@ public static class AoContractorEndpoints
 
             if (string.IsNullOrWhiteSpace(contractorInn) || string.IsNullOrWhiteSpace(contractorName) ||
                 string.IsNullOrWhiteSpace(contractorTypeStr))
+            {
+                logger.LogWarning("Создание контрагента: обязательные поля отсутствуют (contractorInn={ContractorInn}, contractorName={ContractorName}, contractorType={ContractorType})",
+                    contractorInn, contractorName, contractorTypeStr);
                 return Results.BadRequest(new { error = "contractorInn, contractorName, contractorType are required" });
+            }
 
             if (!Enum.TryParse<SamorodinkaTech.Fiducia.Domain.Enums.AoContractorType>(contractorTypeStr, true, out var contractorType))
+            {
+                logger.LogWarning("Создание контрагента: невалидный contractorType={ContractorType}", contractorTypeStr);
                 return Results.BadRequest(new { error = "Invalid contractorType" });
+            }
 
             // Получаем текущее ЮЛ
             await using var ctx = ((FiduciaDbContext)db);
             var workplace = await ctx.CurrentWorkplaces.FirstOrDefaultAsync();
             var leId = workplace?.LastSelectedLegalEntityId;
             if (leId is null || leId == Guid.Empty)
+            {
+                logger.LogWarning("Создание контрагента: юридическое лицо не выбрано");
                 return Results.BadRequest(new { error = "No legal entity selected" });
+            }
 
             // Обработка загруженных файлов
             var uploadService = http.RequestServices.GetRequiredService<IChunkedUploadService>();

@@ -134,7 +134,7 @@ public static class ShareRequestEndpoints
             try
             {
                 await using var ctx = await dbFactory.CreateDbContextAsync();
-                var (leId, error) = await ValidateAccessAsync(ctx, http, audit);
+                var (leId, error) = await ValidateAccessAsync(ctx, http, audit, logger);
                 if (error is not null) return error;
 
                 var query = ctx.ShareRequests
@@ -169,7 +169,7 @@ public static class ShareRequestEndpoints
             try
             {
                 await using var ctx = await dbFactory.CreateDbContextAsync();
-                var (leId, error) = await ValidateAccessAsync(ctx, http, audit);
+                var (leId, error) = await ValidateAccessAsync(ctx, http, audit, logger);
                 if (error is not null) return error;
 
                 var item = await ctx.ShareRequests
@@ -199,13 +199,16 @@ public static class ShareRequestEndpoints
             try
             {
                 await using var ctx = await dbFactory.CreateDbContextAsync();
-                var (leId, error) = await ValidateAccessAsync(ctx, http, audit);
+                var (leId, error) = await ValidateAccessAsync(ctx, http, audit, logger);
                 if (error is not null) return error;
 
                 // Загружаем тип запроса из справочника
                 var requestType = await ctx.RequestTypes.FindAsync(dto.RequestTypeId);
                 if (requestType is null)
+                {
+                    logger.LogWarning("Неизвестный тип запроса: {RequestTypeId}", dto.RequestTypeId);
                     return Results.BadRequest(new { error = $"Неизвестный тип запроса: {dto.RequestTypeId}" });
+                }
 
                 // Проверяем доступность типа для текущего ЮЛ
                 var le = await ctx.LegalEntities
@@ -217,12 +220,18 @@ public static class ShareRequestEndpoints
                 var isPjsc = OkopfTypeMapper.IsPjsc(okopfCode);
 
                 if ((isLlc && !requestType.IsForLlc) || (isNjsc && !requestType.IsForNjsc) || (isPjsc && !requestType.IsForPjsc))
+                {
+                    logger.LogWarning("Тип запроса «{RequestTypeName}» не доступен для типа организации ОКОПФ={OkopfCode}", requestType.Name, okopfCode);
                     return Results.BadRequest(new { error = $"Тип запроса «{requestType.Name}» не доступен для данного типа организации" });
+                }
 
                 // Специфичная валидация по типам
                 var validationError = await ValidateRequestTypeAsync(ctx, requestType, leId.Value, dto);
                 if (validationError is not null)
+                {
+                    logger.LogWarning("Ошибка валидации типа запроса: {ValidationError}", validationError);
                     return Results.BadRequest(new { error = validationError });
+                }
 
                 var userIdStr = http.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
                 var createdBy = Guid.TryParse(userIdStr, out var uid) ? uid : Guid.Empty;
@@ -230,12 +239,18 @@ public static class ShareRequestEndpoints
                 // Находим участника: user → person → person.id = participant.person_id
                 var user = await ctx.Users.FindAsync(createdBy);
                 if (user?.PersonId is null)
+                {
+                    logger.LogWarning("Пользователь {UserId} не привязан к физическому лицу", createdBy);
                     return Results.BadRequest(new { error = "Пользователь не привязан к физическому лицу" });
+                }
 
                 var participant = await ctx.BoardParticipants
                     .FirstOrDefaultAsync(p => p.LegalEntityId == leId.Value && p.PersonId == user.PersonId && p.IsActive);
                 if (participant is null)
+                {
+                    logger.LogWarning("Не найден участник для пользователя {UserId} (PersonId={PersonId}) в ЮЛ {LegalEntityId}", createdBy, user.PersonId, leId.Value);
                     return Results.BadRequest(new { error = "Не найден участник для текущего пользователя" });
+                }
 
                 var entity = new ShareRequest
                 {
@@ -273,7 +288,7 @@ public static class ShareRequestEndpoints
             try
             {
                 await using var ctx = await dbFactory.CreateDbContextAsync();
-                var (leId, error) = await ValidateAccessAsync(ctx, http, audit);
+                var (leId, error) = await ValidateAccessAsync(ctx, http, audit, logger);
                 if (error is not null) return error;
 
                 var item = await ctx.ShareRequests
@@ -284,7 +299,10 @@ public static class ShareRequestEndpoints
 
                 var (allowed, statusError) = ValidateStatusForOperation(item, "submit_decision");
                 if (!allowed)
+                {
+                    logger.LogWarning("Неверный статус для завершения запроса {Id}: {StatusError}", id, statusError);
                     return Results.BadRequest(new { error = statusError });
+                }
 
                 item.Status = dto.Status ?? "completed";
                 item.CompletedAt = DateTime.UtcNow;
@@ -315,7 +333,7 @@ public static class ShareRequestEndpoints
             try
             {
                 await using var ctx = await dbFactory.CreateDbContextAsync();
-                var (leId, error) = await ValidateAccessAsync(ctx, http, audit);
+                var (leId, error) = await ValidateAccessAsync(ctx, http, audit, logger);
                 if (error is not null) return error;
 
                 var item = await ctx.ShareRequests
@@ -326,7 +344,10 @@ public static class ShareRequestEndpoints
 
                 var (allowed, statusError) = ValidateStatusForOperation(item, "update");
                 if (!allowed)
+                {
+                    logger.LogWarning("Неверный статус для обновления запроса {Id}: {StatusError}", id, statusError);
                     return Results.BadRequest(new { error = statusError });
+                }
 
                 if (dto.Payload is not null)
                     item.Payload = dto.Payload;
@@ -354,7 +375,7 @@ public static class ShareRequestEndpoints
             try
             {
                 await using var ctx = await dbFactory.CreateDbContextAsync();
-                var (leId, error) = await ValidateAccessAsync(ctx, http, audit);
+                var (leId, error) = await ValidateAccessAsync(ctx, http, audit, logger);
                 if (error is not null) return error;
 
                 var item = await ctx.ShareRequests
@@ -365,7 +386,10 @@ public static class ShareRequestEndpoints
 
                 var (allowed, statusError) = ValidateStatusForOperation(item, "submit");
                 if (!allowed)
+                {
+                    logger.LogWarning("Неверный статус для отправки запроса {Id}: {StatusError}", id, statusError);
                     return Results.BadRequest(new { error = statusError });
+                }
 
                 item.Status = "submitted";
 
@@ -393,7 +417,7 @@ public static class ShareRequestEndpoints
             try
             {
                 await using var ctx = await dbFactory.CreateDbContextAsync();
-                var (leId, error) = await ValidateAccessAsync(ctx, http, audit);
+                var (leId, error) = await ValidateAccessAsync(ctx, http, audit, logger);
                 if (error is not null) return error;
 
                 var item = await ctx.ShareRequests
@@ -404,17 +428,29 @@ public static class ShareRequestEndpoints
                     return Results.NotFound();
 
                 if (item.RequestType?.Code != "NOTARIAL_OFFER")
+                {
+                    logger.LogWarning("Отзыв запроса {Id}: тип запроса не NOTARIAL_OFFER (actual={TypeCode})", id, item.RequestType?.Code);
                     return Results.BadRequest(new { error = "Отзыв доступен только для нотариальных оферт" });
+                }
 
                 var (allowed, statusError) = ValidateStatusForOperation(item, "revoke");
                 if (!allowed)
+                {
+                    logger.LogWarning("Отзыв запроса {Id}: неверный статус {StatusError}", id, statusError);
                     return Results.BadRequest(new { error = statusError });
+                }
 
                 if (item.RevokedAt.HasValue)
+                {
+                    logger.LogWarning("Отзыв запроса {Id}: запрос уже отозван", id);
                     return Results.BadRequest(new { error = "Запрос уже отозван" });
+                }
 
                 if ((DateTime.UtcNow - item.CreatedAt).TotalHours > 24)
+                {
+                    logger.LogWarning("Отзыв запроса {Id}: прошло более 24 часов с момента создания", id);
                     return Results.BadRequest(new { error = "Прошло более 24 часов с момента создания" });
+                }
 
                 item.Status = "revoked";
                 item.RevokedAt = DateTime.UtcNow;
@@ -443,7 +479,7 @@ public static class ShareRequestEndpoints
             try
             {
                 await using var ctx = await dbFactory.CreateDbContextAsync();
-                var (leId, error) = await ValidateAccessAsync(ctx, http, audit);
+                var (leId, error) = await ValidateAccessAsync(ctx, http, audit, logger);
                 if (error is not null) return error;
 
                 var item = await ctx.ShareRequests
@@ -454,10 +490,16 @@ public static class ShareRequestEndpoints
                     return Results.NotFound();
 
                 if (item.RequestType?.Code != "PREEMPTIVE_LIST")
+                {
+                    logger.LogWarning("Получение результата запроса {Id}: тип запроса не PREEMPTIVE_LIST (actual={TypeCode})", id, item.RequestType?.Code);
                     return Results.BadRequest(new { error = "Результат доступен только для запроса списка участников" });
+                }
 
                 if (item.Status != "completed")
+                {
+                    logger.LogWarning("Получение результата запроса {Id}: статус не completed (actual={Status})", id, item.Status);
                     return Results.BadRequest(new { error = "Запрос ещё не завершён" });
+                }
 
                 var participants = await ctx.BoardParticipants
                     .Where(p => p.LegalEntityId == leId && p.IsActive)
@@ -484,7 +526,7 @@ public static class ShareRequestEndpoints
             try
             {
                 await using var ctx = await dbFactory.CreateDbContextAsync();
-                var (leId, error) = await ValidateAccessAsync(ctx, http, audit);
+                var (leId, error) = await ValidateAccessAsync(ctx, http, audit, logger);
                 if (error is not null) return error;
 
                 var items = await ctx.ShareRequests
@@ -519,7 +561,7 @@ public static class ShareRequestEndpoints
             try
             {
                 await using var ctx = await dbFactory.CreateDbContextAsync();
-                var (leId, error) = await ValidateAccessAsync(ctx, http, audit);
+                var (leId, error) = await ValidateAccessAsync(ctx, http, audit, logger);
                 if (error is not null) return error;
 
                 // Находим текущего участника
@@ -528,17 +570,26 @@ public static class ShareRequestEndpoints
 
                 var user = await ctx.Users.FindAsync(createdBy);
                 if (user?.PersonId is null)
+                {
+                    logger.LogWarning("Пользователь {UserId} не привязан к физическому лицу", createdBy);
                     return Results.BadRequest(new { error = "Пользователь не привязан к физическому лицу" });
+                }
 
                 var participant = await ctx.BoardParticipants
                     .FirstOrDefaultAsync(p => p.LegalEntityId == leId && p.PersonId == user.PersonId && p.IsActive);
                 if (participant is null)
+                {
+                    logger.LogWarning("Не найден участник для пользователя {UserId} (PersonId={PersonId}) в ЮЛ {LegalEntityId}", createdBy, user.PersonId, leId);
                     return Results.BadRequest(new { error = "Не найден участник для текущего пользователя" });
+                }
 
                 // Проверяем тип требования
                 var requestType = await ctx.RequestTypes.FindAsync(dto.RequestTypeId);
                 if (requestType is null)
+                {
+                    logger.LogWarning("Неизвестный тип требования: {RequestTypeId}", dto.RequestTypeId);
                     return Results.BadRequest(new { error = $"Неизвестный тип требования: {dto.RequestTypeId}" });
+                }
 
                 var le = await ctx.LegalEntities
                     .Include(x => x.RefOkopf)
@@ -549,7 +600,10 @@ public static class ShareRequestEndpoints
                 var isPjsc = OkopfTypeMapper.IsPjsc(okopfCode);
 
                 if ((isLlc && !requestType.IsForLlc) || (isNjsc && !requestType.IsForNjsc) || (isPjsc && !requestType.IsForPjsc))
+                {
+                    logger.LogWarning("Тип требования «{RequestTypeName}» не доступен для типа организации ОКОПФ={OkopfCode}", requestType.Name, okopfCode);
                     return Results.BadRequest(new { error = $"Тип требования «{requestType.Name}» не доступен для данного типа организации" });
+                }
 
                 // Определяем порог по типу запроса (ст. 35 14-ФЗ / ст. 55 208-ФЗ)
                 var charter = await ctx.LegalEntityCharters.FindAsync(leId);
@@ -615,7 +669,7 @@ public static class ShareRequestEndpoints
             try
             {
                 await using var ctx = await dbFactory.CreateDbContextAsync();
-                var (leId, error) = await ValidateAccessAsync(ctx, http, audit);
+                var (leId, error) = await ValidateAccessAsync(ctx, http, audit, logger);
                 if (error is not null) return error;
 
                 var request = await ctx.ShareRequests.FindAsync(id);
@@ -623,7 +677,10 @@ public static class ShareRequestEndpoints
                     return Results.NotFound();
 
                 if (request.CollectiveStatus != "COLLECTING")
+                {
+                    logger.LogWarning("Поддержка требования {RequestId}: неверный статус {Status}", id, request.CollectiveStatus);
                     return Results.BadRequest(new { error = "Поддержка доступна только для требований в статусе «Сбор поддержек»" });
+                }
 
                 // Находим текущего участника
                 var userIdStr = http.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
@@ -631,18 +688,27 @@ public static class ShareRequestEndpoints
 
                 var user = await ctx.Users.FindAsync(userId);
                 if (user?.PersonId is null)
+                {
+                    logger.LogWarning("Поддержка требования {RequestId}: пользователь {UserId} не привязан к физическому лицу", id, userId);
                     return Results.BadRequest(new { error = "Пользователь не привязан к физическому лицу" });
+                }
 
                 var participant = await ctx.BoardParticipants
                     .FirstOrDefaultAsync(p => p.LegalEntityId == leId && p.PersonId == user.PersonId && p.IsActive);
                 if (participant is null)
+                {
+                    logger.LogWarning("Поддержка требования {RequestId}: не найден участник для пользователя {UserId} (PersonId={PersonId})", id, userId, user.PersonId);
                     return Results.BadRequest(new { error = "Не найден участник для текущего пользователя" });
+                }
 
                 // Проверяем: не поддерживал ли уже
                 var existingSupport = await ctx.ShareRequestSupports
                     .FirstOrDefaultAsync(s => s.ShareRequestId == id && s.ParticipantId == participant.Id && s.WithdrawnAt == null);
                 if (existingSupport is not null)
+                {
+                    logger.LogWarning("Поддержка требования {RequestId}: участник {ParticipantId} уже поддержал", id, participant.Id);
                     return Results.BadRequest(new { error = "Вы уже поддержали это требование" });
+                }
 
                 // Добавляем поддержку
                 var support = new ShareRequestSupport
@@ -692,7 +758,7 @@ public static class ShareRequestEndpoints
             try
             {
                 await using var ctx = await dbFactory.CreateDbContextAsync();
-                var (leId, error) = await ValidateAccessAsync(ctx, http, audit);
+                var (leId, error) = await ValidateAccessAsync(ctx, http, audit, logger);
                 if (error is not null) return error;
 
                 var request = await ctx.ShareRequests.FindAsync(id);
@@ -700,7 +766,10 @@ public static class ShareRequestEndpoints
                     return Results.NotFound();
 
                 if (request.CollectiveStatus != "COLLECTING")
+                {
+                    logger.LogWarning("Отзыв поддержки требования {RequestId}: неверный статус {Status}", id, request.CollectiveStatus);
                     return Results.BadRequest(new { error = "Отзыв доступен только для требований в статусе «Сбор поддержек»" });
+                }
 
                 // Находим текущего участника
                 var userIdStr = http.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
@@ -708,17 +777,26 @@ public static class ShareRequestEndpoints
 
                 var user = await ctx.Users.FindAsync(userId);
                 if (user?.PersonId is null)
+                {
+                    logger.LogWarning("Отзыв поддержки требования {RequestId}: пользователь {UserId} не привязан к физическому лицу", id, userId);
                     return Results.BadRequest(new { error = "Пользователь не привязан к физическому лицу" });
+                }
 
                 var participant = await ctx.BoardParticipants
                     .FirstOrDefaultAsync(p => p.LegalEntityId == leId && p.PersonId == user.PersonId && p.IsActive);
                 if (participant is null)
+                {
+                    logger.LogWarning("Отзыв поддержки требования {RequestId}: не найден участник для пользователя {UserId} (PersonId={PersonId})", id, userId, user.PersonId);
                     return Results.BadRequest(new { error = "Не найден участник для текущего пользователя" });
+                }
 
                 var support = await ctx.ShareRequestSupports
                     .FirstOrDefaultAsync(s => s.ShareRequestId == id && s.ParticipantId == participant.Id && s.WithdrawnAt == null);
                 if (support is null)
+                {
+                    logger.LogWarning("Отзыв поддержки требования {RequestId}: участник {ParticipantId} не поддерживал", id, participant.Id);
                     return Results.BadRequest(new { error = "Вы не поддерживали это требование" });
+                }
 
                 // Отзываем поддержку
                 support.WithdrawnAt = DateTime.UtcNow;
@@ -751,7 +829,7 @@ public static class ShareRequestEndpoints
             try
             {
                 await using var ctx = await dbFactory.CreateDbContextAsync();
-                var (leId, error) = await ValidateAccessAsync(ctx, http, audit);
+                var (leId, error) = await ValidateAccessAsync(ctx, http, audit, logger);
                 if (error is not null) return error;
 
                 // Проверяем роль CEO
@@ -771,10 +849,16 @@ public static class ShareRequestEndpoints
 
                 var (allowed, statusError) = ValidateStatusForOperation(request, "submit_decision");
                 if (!allowed)
+                {
+                    logger.LogWarning("Решение ГД по требованию {RequestId}: неверный статус {Status}", id, request.Status);
                     return Results.BadRequest(new { error = statusError });
+                }
 
                 if (dto.Decision != "ACCEPTED" && dto.Decision != "REJECTED")
+                {
+                    logger.LogWarning("Решение ГД по требованию {RequestId}: невалидное решение {Decision}", id, dto.Decision);
                     return Results.BadRequest(new { error = "Решение должно быть ACCEPTED или REJECTED" });
+                }
 
                 if (request.IsCollective)
                 {
@@ -840,7 +924,7 @@ public static class ShareRequestEndpoints
             try
             {
                 await using var ctx = await dbFactory.CreateDbContextAsync();
-                var (leId, error) = await ValidateAccessAsync(ctx, http, audit);
+                var (leId, error) = await ValidateAccessAsync(ctx, http, audit, logger);
                 if (error is not null) return error;
 
                 var query = ctx.ShareRequests
@@ -875,7 +959,7 @@ public static class ShareRequestEndpoints
             try
             {
                 await using var ctx = await dbFactory.CreateDbContextAsync();
-                var (leId, error) = await ValidateAccessAsync(ctx, http, audit);
+                var (leId, error) = await ValidateAccessAsync(ctx, http, audit, logger);
                 if (error is not null) return error;
 
                 // Проверяем роль CEO
@@ -936,7 +1020,7 @@ public static class ShareRequestEndpoints
             try
             {
                 await using var ctx = await dbFactory.CreateDbContextAsync();
-                var (leId, error) = await ValidateAccessAsync(ctx, http, audit);
+                var (leId, error) = await ValidateAccessAsync(ctx, http, audit, logger);
                 if (error is not null) return error;
 
                 var request = await ctx.ShareRequests.FirstOrDefaultAsync(r => r.Id == id && r.LegalEntityId == leId);
@@ -989,7 +1073,7 @@ public static class ShareRequestEndpoints
             try
             {
                 await using var ctx = await dbFactory.CreateDbContextAsync();
-                var (leId, error) = await ValidateAccessAsync(ctx, http, audit);
+                var (leId, error) = await ValidateAccessAsync(ctx, http, audit, logger);
                 if (error is not null) return error;
 
                 var request = await ctx.ShareRequests.FindAsync(id);
@@ -998,17 +1082,26 @@ public static class ShareRequestEndpoints
 
                 var (allowed, statusError) = ValidateStatusForOperation(request, "attach_file");
                 if (!allowed)
+                {
+                    logger.LogWarning("Прикрепление файла к запросу {Id}: неверный статус {StatusError}", id, statusError);
                     return Results.BadRequest(new { error = statusError });
+                }
 
                 var fileEntry = await ctx.Files.FindAsync(dto.FileId);
                 if (fileEntry is null)
+                {
+                    logger.LogWarning("Прикрепление файла к запросу {Id}: файл {FileId} не найден", id, dto.FileId);
                     return Results.BadRequest(new { error = "Файл не найден" });
+                }
 
                 // Проверяем дубликат
                 var exists = await ctx.ShareRequestFiles
                     .AnyAsync(f => f.ShareRequestId == id && f.FileId == dto.FileId);
                 if (exists)
+                {
+                    logger.LogWarning("Прикрепление файла к запросу {Id}: файл {FileId} уже прикреплён", id, dto.FileId);
                     return Results.BadRequest(new { error = "Файл уже прикреплён" });
+                }
 
                 var entity = new ShareRequestFile
                 {
@@ -1043,7 +1136,7 @@ public static class ShareRequestEndpoints
             try
             {
                 await using var ctx = await dbFactory.CreateDbContextAsync();
-                var (leId, error) = await ValidateAccessAsync(ctx, http, audit);
+                var (leId, error) = await ValidateAccessAsync(ctx, http, audit, logger);
                 if (error is not null) return error;
 
                 var request = await ctx.ShareRequests.FindAsync(id);
@@ -1087,7 +1180,7 @@ public static class ShareRequestEndpoints
             try
             {
                 await using var ctx = await dbFactory.CreateDbContextAsync();
-                var (leId, error) = await ValidateAccessAsync(ctx, http, audit);
+                var (leId, error) = await ValidateAccessAsync(ctx, http, audit, logger);
                 if (error is not null) return error;
 
                 var request = await ctx.ShareRequests.FindAsync(id);
@@ -1096,7 +1189,10 @@ public static class ShareRequestEndpoints
 
                 var (allowed, statusError) = ValidateStatusForOperation(request, "attach_file");
                 if (!allowed)
+                {
+                    logger.LogWarning("Открепление файла от запроса {Id}: неверный статус {StatusError}", id, statusError);
                     return Results.BadRequest(new { error = statusError });
+                }
 
                 var link = await ctx.ShareRequestFiles
                     .FirstOrDefaultAsync(f => f.ShareRequestId == id && f.FileId == fileId);
@@ -1412,12 +1508,13 @@ public static class ShareRequestEndpoints
     }
 
     private static async Task<(Guid? leId, IResult? error)> ValidateAccessAsync(
-        FiduciaDbContext ctx, HttpContext http, ISecurityAuditService audit)
+        FiduciaDbContext ctx, HttpContext http, ISecurityAuditService audit, ILogger logger)
     {
         var workplace = await ctx.CurrentWorkplaces.FirstOrDefaultAsync();
         var leId = workplace?.LastSelectedLegalEntityId;
         if (leId is null || leId == Guid.Empty)
         {
+            logger.LogWarning("Юридическое лицо не выбрано");
             await audit.LogEventAsync(AuditActionAccess, "unknown", "Юридическое лицо не выбрано");
             return (null, Results.BadRequest(new { error = "Юридическое лицо не выбрано" }));
         }

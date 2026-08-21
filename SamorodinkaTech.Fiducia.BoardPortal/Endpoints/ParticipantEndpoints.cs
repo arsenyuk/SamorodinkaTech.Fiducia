@@ -68,7 +68,7 @@ public static class ParticipantEndpoints
             try
             {
                 await using var ctx = await dbFactory.CreateDbContextAsync();
-                var llcCheck = await ValidateAccessAsync(ctx, http, audit);
+                var llcCheck = await ValidateAccessAsync(ctx, http, audit, logger);
                 if (llcCheck is not null) return llcCheck;
 
                 var workplace = await ctx.CurrentWorkplaces.FirstOrDefaultAsync();
@@ -112,7 +112,7 @@ public static class ParticipantEndpoints
             try
             {
                 await using var ctx = await dbFactory.CreateDbContextAsync();
-                var llcCheck = await ValidateAccessAsync(ctx, http, audit);
+                var llcCheck = await ValidateAccessAsync(ctx, http, audit, logger);
                 if (llcCheck is not null) return llcCheck;
 
                 var entity = await ctx.BoardParticipants.FindAsync(id);
@@ -169,7 +169,7 @@ public static class ParticipantEndpoints
             try
             {
                 await using var ctx = await dbFactory.CreateDbContextAsync();
-                var llcCheck = await ValidateAccessAsync(ctx, http, audit);
+                var llcCheck = await ValidateAccessAsync(ctx, http, audit, logger);
                 if (llcCheck is not null) return llcCheck;
 
                 var entity = await ctx.BoardParticipants.FindAsync(id);
@@ -201,7 +201,7 @@ public static class ParticipantEndpoints
             try
             {
                 await using var ctx = await dbFactory.CreateDbContextAsync();
-                var llcCheck = await ValidateAccessAsync(ctx, http, audit);
+                var llcCheck = await ValidateAccessAsync(ctx, http, audit, logger);
                 if (llcCheck is not null) return llcCheck;
 
                 var workplace = await ctx.CurrentWorkplaces.FirstOrDefaultAsync();
@@ -209,7 +209,10 @@ public static class ParticipantEndpoints
 
                 var le = await ctx.LegalEntities.FirstOrDefaultAsync(x => x.Id == leId);
                 if (le is null)
+                {
+                    logger.LogWarning("Импорт из СПАРК: юридическое лицо не найдено для Id={LeId}", leId);
                     return Results.BadRequest(new { error = "Юридическое лицо не найдено" });
+                }
 
                 var sparkFounders = await ctx.ExtSparkFounders
                     .Where(f => f.Inn == le.Inn)
@@ -310,7 +313,7 @@ public static class ParticipantEndpoints
             try
             {
                 await using var ctx = await dbFactory.CreateDbContextAsync();
-                var llcCheck = await ValidateAccessAsync(ctx, http, audit);
+                var llcCheck = await ValidateAccessAsync(ctx, http, audit, logger);
                 if (llcCheck is not null) return llcCheck;
 
                 var workplace = await ctx.CurrentWorkplaces.FirstOrDefaultAsync();
@@ -361,7 +364,7 @@ public static class ParticipantEndpoints
             try
             {
                 await using var ctx = await dbFactory.CreateDbContextAsync();
-                var llcCheck = await ValidateAccessAsync(ctx, http, audit);
+                var llcCheck = await ValidateAccessAsync(ctx, http, audit, logger);
                 if (llcCheck is not null) return llcCheck;
 
                 var entity = await ctx.BoardTreasuryShares.FindAsync(id);
@@ -399,7 +402,7 @@ public static class ParticipantEndpoints
             try
             {
                 await using var ctx = await dbFactory.CreateDbContextAsync();
-                var llcCheck = await ValidateAccessAsync(ctx, http, audit);
+                var llcCheck = await ValidateAccessAsync(ctx, http, audit, logger);
                 if (llcCheck is not null) return llcCheck;
 
                 var entity = await ctx.BoardTreasuryShares.FindAsync(id);
@@ -457,7 +460,7 @@ public static class ParticipantEndpoints
             try
             {
                 await using var ctx = await dbFactory.CreateDbContextAsync();
-                var llcCheck = await ValidateAccessAsync(ctx, http, audit);
+                var llcCheck = await ValidateAccessAsync(ctx, http, audit, logger);
                 if (llcCheck is not null) return llcCheck;
 
                 var workplace = await ctx.CurrentWorkplaces.FirstOrDefaultAsync();
@@ -526,7 +529,7 @@ public static class ParticipantEndpoints
             try
             {
                 await using var ctx = await dbFactory.CreateDbContextAsync();
-                var llcCheck = await ValidateAccessAsync(ctx, http, audit);
+                var llcCheck = await ValidateAccessAsync(ctx, http, audit, logger);
                 if (llcCheck is not null) return llcCheck;
 
                 var entity = await ctx.BoardRegistryUploads.FindAsync(id);
@@ -578,7 +581,7 @@ public static class ParticipantEndpoints
             try
             {
                 await using var ctx = await dbFactory.CreateDbContextAsync();
-                var llcCheck = await ValidateAccessAsync(ctx, http, audit);
+                var llcCheck = await ValidateAccessAsync(ctx, http, audit, logger);
                 if (llcCheck is not null) return llcCheck;
 
                 var entity = await ctx.BoardRegistryUploads.FindAsync(id);
@@ -641,7 +644,7 @@ public static class ParticipantEndpoints
             try
             {
                 await using var ctx = await dbFactory.CreateDbContextAsync();
-                var llcCheck = await ValidateParticipantAccessAsync(ctx, http, audit);
+                var llcCheck = await ValidateParticipantAccessAsync(ctx, http, audit, logger);
                 if (llcCheck is not null) return llcCheck;
 
                 var workplace = await ctx.CurrentWorkplaces.FirstOrDefaultAsync();
@@ -714,7 +717,7 @@ public static class ParticipantEndpoints
             try
             {
                 await using var ctx = await dbFactory.CreateDbContextAsync();
-                var llcCheck = await ValidateParticipantAccessAsync(ctx, http, audit);
+                var llcCheck = await ValidateParticipantAccessAsync(ctx, http, audit, logger);
                 if (llcCheck is not null) return llcCheck;
 
                 await using var stream = file.OpenReadStream();
@@ -759,7 +762,7 @@ public static class ParticipantEndpoints
             try
             {
                 await using var ctx = await dbFactory.CreateDbContextAsync();
-                var llcCheck = await ValidateAccessAsync(ctx, http, audit);
+                var llcCheck = await ValidateAccessAsync(ctx, http, audit, logger);
                 if (llcCheck is not null) return llcCheck;
 
                 var entity = await ctx.BoardParticipantChanges.FindAsync(id);
@@ -800,7 +803,7 @@ public static class ParticipantEndpoints
             try
             {
                 await using var ctx = await dbFactory.CreateDbContextAsync();
-                var llcCheck = await ValidateAccessAsync(ctx, http, audit);
+                var llcCheck = await ValidateAccessAsync(ctx, http, audit, logger);
                 if (llcCheck is not null) return llcCheck;
 
                 var entity = await ctx.BoardParticipantChanges.FindAsync(id);
@@ -829,19 +832,26 @@ public static class ParticipantEndpoints
     private static async Task<IResult?> ValidateAccessAsync(
         FiduciaDbContext ctx,
         HttpContext http,
-        ISecurityAuditService audit)
+        ISecurityAuditService audit,
+        ILogger logger)
     {
         var workplace = await ctx.CurrentWorkplaces.FirstOrDefaultAsync();
         var leId = workplace?.LastSelectedLegalEntityId;
         if (leId is null || leId == Guid.Empty)
+        {
+            logger.LogWarning("Юридическое лицо не выбрано");
             return Results.BadRequest(new { error = "Юридическое лицо не выбрано" });
+        }
 
         var le = await ctx.LegalEntities
             .Include(x => x.RefOkopf)
             .FirstOrDefaultAsync(x => x.Id == leId.Value);
 
         if (le is null)
+        {
+            logger.LogWarning("Юридическое лицо не найдено для Id={LeId}", leId);
             return Results.BadRequest(new { error = "Юридическое лицо не найдено" });
+        }
 
         var clientIp = ClientIpHelper.GetClientIp(http);
         var (login, fullName) = await GetUserInfoAsync(ctx, http);
@@ -867,19 +877,26 @@ public static class ParticipantEndpoints
     private static async Task<IResult?> ValidateParticipantAccessAsync(
         FiduciaDbContext ctx,
         HttpContext http,
-        ISecurityAuditService audit)
+        ISecurityAuditService audit,
+        ILogger logger)
     {
         var workplace = await ctx.CurrentWorkplaces.FirstOrDefaultAsync();
         var leId = workplace?.LastSelectedLegalEntityId;
         if (leId is null || leId == Guid.Empty)
+        {
+            logger.LogWarning("Юридическое лицо не выбрано (participant access)");
             return Results.BadRequest(new { error = "Юридическое лицо не выбрано" });
+        }
 
         var le = await ctx.LegalEntities
             .Include(x => x.RefOkopf)
             .FirstOrDefaultAsync(x => x.Id == leId.Value);
 
         if (le is null)
+        {
+            logger.LogWarning("Юридическое лицо не найдено для Id={LeId} (participant access)", leId);
             return Results.BadRequest(new { error = "Юридическое лицо не найдено" });
+        }
 
         var clientIp = ClientIpHelper.GetClientIp(http);
         var (login, fullName) = await GetUserInfoAsync(ctx, http);

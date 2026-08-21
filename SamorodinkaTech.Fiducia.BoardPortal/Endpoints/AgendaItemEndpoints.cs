@@ -61,7 +61,10 @@ public static class AgendaItemEndpoints
                 await using var ctx = await dbFactory.CreateDbContextAsync();
                 var leId = await GetLegalEntityIdAsync(ctx, http);
                 if (leId is null)
+                {
+                    logger.LogWarning("Получение повестки: юридическое лицо не выбрано");
                     return Results.BadRequest(new { error = "Юридическое лицо не выбрано" });
+                }
 
                 var query = ctx.AgendaItems
                     .Where(x => x.LegalEntityId == leId.Value);
@@ -98,7 +101,10 @@ public static class AgendaItemEndpoints
                 await using var ctx = await dbFactory.CreateDbContextAsync();
                 var leId = await GetLegalEntityIdAsync(ctx, http);
                 if (leId is null)
+                {
+                    logger.LogWarning("Создание пункта повестки: юридическое лицо не выбрано");
                     return Results.BadRequest(new { error = "Юридическое лицо не выбрано" });
+                }
 
                 // Если тип NOTARY_LIST_MAINTENANCE — проверить, не утверждено ли уже
                 if (dto.TargetType == "OSA" && dto.Title.Contains("нотариат", StringComparison.OrdinalIgnoreCase))
@@ -106,7 +112,10 @@ public static class AgendaItemEndpoints
                     var extraSettings = await ctx.LegalEntityExtraSettings
                         .FirstOrDefaultAsync(x => x.LegalEntityId == leId.Value);
                     if (extraSettings?.NotaryListApproved == true)
+                    {
+                        logger.LogWarning("Создание пункта повестки: ведение списка участников через нотариат уже утверждено для ЮЛ {LegalEntityId}", leId.Value);
                         return Results.BadRequest(new { error = "Ведение списка участников через нотариат уже утверждено" });
+                    }
                 }
 
                 // Найти активный board_of_directors для текущего ЮЛ
@@ -116,7 +125,10 @@ public static class AgendaItemEndpoints
                     .FirstOrDefaultAsync();
 
                 if (board is null)
+                {
+                    logger.LogWarning("Создание пункта повестки: не найден состав Совета директоров для ЮЛ {LegalEntityId}", leId.Value);
                     return Results.BadRequest(new { error = "Не найден состав Совета директоров" });
+                }
 
                 var item = new AgendaItem
                 {
@@ -157,7 +169,10 @@ public static class AgendaItemEndpoints
                 await using var ctx = await dbFactory.CreateDbContextAsync();
                 var leId = await GetLegalEntityIdAsync(ctx, http);
                 if (leId is null)
+                {
+                    logger.LogWarning("Принятие пункта повестки {Id}: юридическое лицо не выбрано", id);
                     return Results.BadRequest(new { error = "Юридическое лицо не выбрано" });
+                }
 
                 var item = await ctx.AgendaItems
                     .FirstOrDefaultAsync(x => x.Id == id && x.LegalEntityId == leId.Value);
@@ -166,7 +181,10 @@ public static class AgendaItemEndpoints
                     return Results.NotFound();
 
                 if (item.Status != "PENDING")
+                {
+                    logger.LogWarning("Принятие пункта повестки {Id}: невозможно принять, статус «{Status}»", id, item.Status);
                     return Results.BadRequest(new { error = $"Невозможно принять: статус «{item.Status}»" });
+                }
 
                 item.Status = "ACCEPTED";
                 await ctx.SaveChangesAsync();
@@ -193,7 +211,10 @@ public static class AgendaItemEndpoints
                 await using var ctx = await dbFactory.CreateDbContextAsync();
                 var leId = await GetLegalEntityIdAsync(ctx, http);
                 if (leId is null)
+                {
+                    logger.LogWarning("Отклонение пункта повестки {Id}: юридическое лицо не выбрано", id);
                     return Results.BadRequest(new { error = "Юридическое лицо не выбрано" });
+                }
 
                 var item = await ctx.AgendaItems
                     .FirstOrDefaultAsync(x => x.Id == id && x.LegalEntityId == leId.Value);
@@ -202,7 +223,10 @@ public static class AgendaItemEndpoints
                     return Results.NotFound();
 
                 if (item.Status != "PENDING")
+                {
+                    logger.LogWarning("Отклонение пункта повестки {Id}: невозможно отклонить, статус «{Status}»", id, item.Status);
                     return Results.BadRequest(new { error = $"Невозможно отклонить: статус «{item.Status}»" });
+                }
 
                 item.Status = "REJECTED";
 
