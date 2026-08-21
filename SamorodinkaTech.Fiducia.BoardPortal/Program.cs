@@ -117,6 +117,10 @@ builder.Services.AddScoped<ITemplateInstantiationService, TemplateInstantiationS
 builder.Services.AddScoped<IMeetingSaveService, MeetingSaveService>();
 builder.Services.AddScoped<IMeetingLoadService, MeetingLoadService>();
 
+// QR-кодирование нотариальных документов — чтение QR со сканов
+builder.Services.AddScoped<IQrCodeReaderService, QrCodeReaderService>();
+builder.Services.AddScoped<INotarizationQrParser, NotarizationQrParser>();
+
 // TrueConf Server API — видеоконференцсвязь для заседаний СД (опционально)
 // Все настройки — в appsettings.json, секция TrueConf (ADR-022)
 builder.Services.Configure<TrueConfOptions>(builder.Configuration.GetSection("TrueConf"));
@@ -448,6 +452,9 @@ app.MapShareRequestEndpoints();
 
 // ── Agenda Items API (Повестка ОСУ) ────────────────────────────────────
 app.MapAgendaItemEndpoints();
+
+// ── Notarization QR API (Чтение QR-кодов с нотариальных документов) ────
+app.MapNotarizationQrEndpoints();
 
 app.MapBlazorHub();
 app.MapFallbackToPage("/_Host");

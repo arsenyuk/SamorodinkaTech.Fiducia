@@ -1,5 +1,6 @@
 @page "/share-requests/{Id:guid}"
 @using System.Net.Http.Json
+@using SamorodinkaTech.Fiducia.SharedComponents.Components
 @inject HttpClient Http
 @inject NavigationManager Nav
 @inject ILogger<ShareRequestDetail> Logger
@@ -120,6 +121,52 @@ else
             }
         </div>
     }
+
+    @* ── Чтение QR-кода нотариального документа ────────────────────── *@
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5>QR-код нотариального документа</h5>
+            <p class="text-muted small mb-2">
+                Загрузите скан нотариального документа для автоматического заполнения данных заверения.
+            </p>
+            <QrScanButton OnQrScanned="OnQrScanned" OnQrError="OnQrError" />
+
+            @if (_qrResult is not null)
+            {
+                <div class="mt-3">
+                    <h6>Распознанные данные:</h6>
+                    <table class="table table-sm table-bordered mb-0">
+                        <tbody>
+                            <tr>
+                                <td class="text-muted" style="width:200px">Нотариус</td>
+                                <td>@(_qrResult.NotaryFullName ?? "—")</td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted">Реестровый номер</td>
+                                <td>@(_qrResult.RegistryNumber ?? "—")</td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted">Дата заверения</td>
+                                <td>@(_qrResult.NotarizationDate ?? "—")</td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted">Нотариальный округ</td>
+                                <td>@(_qrResult.NotaryDistrict ?? "—")</td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted">Вид документа</td>
+                                <td>@(_qrResult.DocumentType ?? "—")</td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted">Заявитель</td>
+                                <td>@(_qrResult.ApplicantName ?? "—")</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
 }
 
 @code {
@@ -128,6 +175,7 @@ else
     private ShareRequestDto? _request;
     private List<ParticipantResultDto> _resultParticipants = new();
     private List<FileDto> _files = new();
+    private QrScanButton.QrReadResult? _qrResult;
     private bool _loading = true;
 
     protected override async Task OnInitializedAsync()
@@ -186,5 +234,17 @@ else
         if (bytes < 1024 * 1024) return $"{bytes / 1024.0:F1} КБ";
         if (bytes < 1024 * 1024 * 1024) return $"{bytes / (1024.0 * 1024.0):F1} МБ";
         return $"{bytes / (1024.0 * 1024.0 * 1024.0):F1} ГБ";
+    }
+
+    private void OnQrScanned(QrScanButton.QrReadResult result)
+    {
+        _qrResult = result;
+        Logger.LogInformation("QR-код считан для запроса {Id}: нотариус={Notary}, рег.номер={RegNum}",
+            Id, result.NotaryFullName, result.RegistryNumber);
+    }
+
+    private void OnQrError(string error)
+    {
+        Logger.LogWarning("Ошибка чтения QR-кода для запроса {Id}: {Error}", Id, error);
     }
 }

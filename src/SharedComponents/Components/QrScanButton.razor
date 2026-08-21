@@ -1,0 +1,173 @@
+@using System.Net.Http.Json
+@using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.Extensions.Logging
+
+<div class="qr-scan-button">
+    @if (_isScanning)
+    {
+        <div class="d-flex align-items-center gap-2">
+            <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+            <span class="text-muted small">Считывание QR-кода...</span>
+        </div>
+    }
+    else if (!string.IsNullOrEmpty(_error))
+    {
+        <div class="d-flex align-items-center gap-2">
+            <div class="alert alert-warning py-1 px-2 mb-0 small flex-grow-1">@_error</div>
+            <button class="btn btn-sm btn-outline-secondary" @onclick="ClearError">OK</button>
+        </div>
+    }
+    else if (_result is not null)
+    {
+        <div class="card border-success mb-2">
+            <div class="card-body py-2 px-3">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div class="small">
+                        <strong class="text-success">QR-код считан</strong>
+                        @if (!string.IsNullOrEmpty(_result.NotaryFullName))
+                        {
+                            <div><span class="text-muted">Нотариус:</span> @_result.NotaryFullName</div>
+                        }
+                        @if (!string.IsNullOrEmpty(_result.RegistryNumber))
+                        {
+                            <div><span class="text-muted">Рег. номер:</span> @_result.RegistryNumber</div>
+                        }
+                        @if (!string.IsNullOrEmpty(_result.NotarizationDate))
+                        {
+                            <div><span class="text-muted">Дата:</span> @_result.NotarizationDate</div>
+                        }
+                    </div>
+                    <button class="btn btn-sm btn-outline-secondary" @onclick="ClearResult">&times;</button>
+                </div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <InputFile OnChange="OnFileSelected"
+                   accept=".png,.jpg,.jpeg,.bmp,.gif,.tiff,.pdf"
+                   class="form-control form-control-sm" />
+        <div class="form-text">Загрузите скан документа (PNG, JPEG или PDF) для чтения QR-кода</div>
+    }
+</div>
+
+@code {
+    /// <summary>Callback после успешного чтения QR-кода: передаёт распарсенные данные.</summary>
+    [Parameter] public EventCallback<QrReadResult> OnQrScanned { get; set; }
+
+    /// <summary>Callback при ошибке чтения QR-кода.</summary>
+    [Parameter] public EventCallback<string> OnQrError { get; set; }
+
+    /// <summary>Base URL API (по умолчанию пустой — тот же хост).</summary>
+    [Parameter] public string? ApiBaseUrl { get; set; }
+
+    /// <summary>JWT-токен для Authorization-заголовка.</summary>
+    [Parameter] public string? Token { get; set; }
+
+    [Inject] private HttpClient Http { get; set; } = default!;
+    [Inject] private ILogger<QrScanButton> Logger { get; set; } = default!;
+
+    private bool _isScanning;
+    private string? _error;
+    private QrReadResult? _result;
+
+    private const long MaxFileSize = 50 * 1024 * 1024; // 50 MB
+
+    private async Task OnFileSelected(InputFileChangeEventArgs e)
+    {
+        _error = null;
+        _result = null;
+        var file = e.File;
+
+        if (file.Size > MaxFileSize)
+        {
+            _error = $"Файл слишком большой. Максимум: 50 МБ.";
+            await OnQrError.InvokeAsync(_error);
+            return;
+        }
+
+        _isScanning = true;
+        StateHasChanged();
+
+        try
+        {
+            using var content = new MultipartFormDataContent();
+            using var fileStream = file.OpenReadStream(MaxFileSize);
+            using var streamContent = new StreamContent(fileStream);
+            streamContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(
+                file.ContentType ?? "application/octet-stream");
+            content.Add(streamContent, "file", file.Name);
+
+            var baseUrl = ApiBaseUrl ?? "";
+            var request = new HttpRequestMessage(HttpMethod.Post, $"{baseUrl}/api/notarization/read-qr")
+            {
+                Content = content
+            };
+            if (!string.IsNullOrEmpty(Token))
+                request.Headers.Authorization =
+                    new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", Token);
+
+            var response = await Http.SendAsync(request);
+
+            if (response.IsSuccessStatusCode)
+            {
+                _result = await response.Content.ReadFromJsonAsync<QrReadResult>();
+                if (_result is not null)
+                {
+                    await OnQrScanned.InvokeAsync(_result);
+                }
+            }
+            else
+            {
+                var errorBody = await response.Content.ReadAsStringAsync();
+                _error = TryExtractError(errorBody) ?? $"Ошибка считывания QR-кода ({(int)response.StatusCode}).";
+                await OnQrError.InvokeAsync(_error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Ошибка чтения QR-кода");
+            _error = $"Ошибка чтения QR-кода: {ex.Message}";
+            await OnQrError.InvokeAsync(_error);
+        }
+        finally
+        {
+            _isScanning = false;
+            StateHasChanged();
+        }
+    }
+
+    private void ClearError()
+    {
+        _error = null;
+        StateHasChanged();
+    }
+
+    private void ClearResult()
+    {
+        _result = null;
+        StateHasChanged();
+    }
+
+    private static string? TryExtractError(string json)
+    {
+        try
+        {
+            using var doc = System.Text.Json.JsonDocument.Parse(json);
+            if (doc.RootElement.TryGetProperty("error", out var errorProp))
+                return errorProp.GetString();
+        }
+        catch { }
+        return null;
+    }
+
+    /// <summary>DTO ответа API чтения QR-кода.</summary>
+    public record QrReadResult(
+        string? RegistryNumber,
+        string? NotarizationDate,
+        string? NotaryFullName,
+        string? NotaryDistrict,
+        string? DocumentType,
+        string? ApplicantName,
+        string RawUrl);
+}
