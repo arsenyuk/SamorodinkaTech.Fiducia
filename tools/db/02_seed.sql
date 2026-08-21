@@ -213,7 +213,8 @@ INSERT INTO ref_request_type(id, code, name, is_for_llc, is_for_njsc, is_for_pjs
     ('a1000000-0000-0000-0000-000000000015','EXCLUDE_PARTICIPANT','Требование об исключении участника',TRUE,FALSE,FALSE,FALSE,CURRENT_TIMESTAMP),
     ('a1000000-0000-0000-0000-000000000016','DEMAND_VOSA','Требование о созыве ВОСА',FALSE,TRUE,TRUE,FALSE,CURRENT_TIMESTAMP),
     ('a1000000-0000-0000-0000-000000000017','ADD_AGENDA_GOSA','Требование включить вопрос в повестку ГОСА',FALSE,TRUE,TRUE,FALSE,CURRENT_TIMESTAMP),
-    ('a1000000-0000-0000-0000-000000000018','DEMAND_INFO_AO','Требование о предоставлении информации (АО)',FALSE,TRUE,TRUE,FALSE,CURRENT_TIMESTAMP)
+    ('a1000000-0000-0000-0000-000000000018','DEMAND_INFO_AO','Требование о предоставлении информации (АО)',FALSE,TRUE,TRUE,FALSE,CURRENT_TIMESTAMP),
+    ('a1000000-0000-0000-0000-000000000019','OTHER','Другое',TRUE,TRUE,TRUE,FALSE,CURRENT_TIMESTAMP)
 ON CONFLICT (code) DO NOTHING;
 
 -- Справочник: ref_document_type (типы документов для требования)

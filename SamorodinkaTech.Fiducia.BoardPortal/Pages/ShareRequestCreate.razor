@@ -149,9 +149,9 @@ else
                 else
                 {
                     <div class="col-12">
-                        <label class="form-label">Комментарий (необязательно)</label>
-                        <textarea class="form-control" @bind="_demandText" rows="3"
-                                  placeholder="Дополнительная информация..."></textarea>
+                        <label class="form-label">@(_selectedType.Code == "OTHER" ? "Описание требования *" : "Комментарий (необязательно)")</label>
+                        <textarea class="form-control" @bind="_demandText" rows="4"
+                                  placeholder="@(_selectedType.Code == "OTHER" ? "Опишите ваше требование или запрос..." : "Дополнительная информация...")"></textarea>
                     </div>
                 }
             </div>
@@ -297,6 +297,11 @@ else
         if (_selectedType.Code == "CHANGE_STANDARD_CHARTER_NUMBER" && string.IsNullOrWhiteSpace(_newCharterNumber))
         {
             _error = "Выберите номер типового устава";
+            return;
+        }
+        if (_selectedType.Code == "OTHER" && string.IsNullOrWhiteSpace(_demandText))
+        {
+            _error = "Введите описание требования";
             return;
         }
 
@@ -486,6 +491,7 @@ else
         "DEMAND_VOSA" => "Право акционеров с долей ≥10% потребовать внеочередного собрания (ст. 55 208-ФЗ)",
         "ADD_AGENDA_GOSA" => "Внесение вопроса в повестку годового собрания (ст. 53 208-ФЗ)",
         "DEMAND_INFO_AO" => "Право акционеров на доступ к документам общества (ст. 89 208-ФЗ)",
+        "OTHER" => "Прочие требования и запросы, не входящие в стандартные категории",
         _ => "Выберите для получения подробной информации"
     };
 

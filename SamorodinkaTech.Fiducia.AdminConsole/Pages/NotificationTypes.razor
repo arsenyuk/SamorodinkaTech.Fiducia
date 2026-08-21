@@ -1,0 +1,62 @@
+@page "/notification-types"
+@using Microsoft.EntityFrameworkCore
+@inject IDbContextFactory<SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext> DbFactory
+@inject ILogger<NotificationTypes> Logger
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "SYS_ADMIN")]
+
+<h3>Справочник типов уведомлений</h3>
+
+@if (_types is null)
+{
+    <p><em>Загрузка...</em></p>
+}
+else if (_types.Count == 0)
+{
+    <p class="text-muted">Нет записей.</p>
+}
+else
+{
+    <table class="table table-sm">
+        <thead>
+            <tr>
+                <th>Код</th>
+                <th>Наименование</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var t in _types)
+            {
+                <tr>
+                    <td><code>@t.Code</code></td>
+                    <td>@t.Name</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<NotificationTypeVm>? _types;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+            _types = await ctx.RefNotificationTypes
+                .OrderBy(t => t.Code)
+                .Select(t => new NotificationTypeVm { Code = t.Code, Name = t.Name })
+                .ToListAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Ошибка загрузки справочника типов уведомлений");
+        }
+    }
+
+    private class NotificationTypeVm
+    {
+        public string Code { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+    }
+}
