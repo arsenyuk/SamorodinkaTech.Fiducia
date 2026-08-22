@@ -11,6 +11,7 @@
 CREATE TABLE IF NOT EXISTS users (
     id uuid PRIMARY KEY,
     person_id uuid,
+    login varchar(100) UNIQUE NOT NULL,
     last_name varchar(150) NOT NULL,
     first_name varchar(150) NOT NULL,
     middle_name varchar(150),

@@ -34,7 +34,7 @@
                         <!-- Basic: выбор из списка -->
                         <div class="mb-3">
                             <label class="form-label">Пользователь</label>
-                            <select class="form-select" @bind="_selectedUserId">
+                            <select class="form-select" value="@_selectedUserId" @onchange="OnUserSelected">
                                 <option value="">Выберите пользователя...</option>
                                 @foreach (var user in _users)
                                 {
@@ -46,18 +46,14 @@
                             </select>
                         </div>
                     }
-                    else
-                    {
-                        <!-- AD/LDAP: логин/пароль -->
-                        <div class="mb-3">
-                            <label class="form-label">Логин</label>
-                            <input type="text" class="form-control" @bind="_username" placeholder="admin@company.local">
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Пароль</label>
-                            <input type="password" class="form-control" @bind="_password">
-                        </div>
-                    }
+                    <div class="mb-3">
+                        <label class="form-label">Логин</label>
+                        <input type="text" class="form-control" @bind="_username" placeholder="admin@company.local">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Пароль</label>
+                        <PasswordInput @bind-Value="_password" DisplayLimit="5" />
+                    </div>
 
                     <button class="btn btn-primary w-100" @onclick="HandleLogin"
                             disabled="@(_isLoading || !CanLogin)">
@@ -82,7 +78,7 @@
     private bool _isLoading;
 
     private bool CanLogin => AuthProvider.ProviderName == "Basic"
-        ? !string.IsNullOrEmpty(_selectedUserId)
+        ? !string.IsNullOrEmpty(_selectedUserId) && !string.IsNullOrEmpty(_password)
         : !string.IsNullOrEmpty(_username) && !string.IsNullOrEmpty(_password);
 
     protected override async Task OnInitializedAsync()
@@ -102,6 +98,19 @@
     {
         var role = user.UserRoles.FirstOrDefault()?.Role;
         return role?.Name ?? "Без роли";
+    }
+
+    private void OnUserSelected(ChangeEventArgs e)
+    {
+        _selectedUserId = e.Value?.ToString() ?? "";
+        if (string.IsNullOrEmpty(_selectedUserId)) return;
+
+        var user = _users.FirstOrDefault(u => u.Id.ToString() == _selectedUserId);
+        if (user != null)
+        {
+            _username = user.Login;
+            _password = "1";
+        }
     }
 
     private async Task HandleLogin()
@@ -125,8 +134,8 @@
                     Logger.LogDebug("[LOGIN] Выход: пользователь не выбран");
                     return;
                 }
-                Logger.LogDebug("[LOGIN] Basic-аутентификация для UserId={UserId}", _selectedUserId);
-                result = await AuthProvider.AuthenticateAsync(_selectedUserId, string.Empty);
+                Logger.LogDebug("[LOGIN] Basic-аутентификация для Username={Username}", _username);
+                result = await AuthProvider.AuthenticateAsync(_username, _password);
             }
             else
             {

@@ -12,6 +12,9 @@ public class User
     /// <summary>Ссылка на физическое лицо (person_id).</summary>
     public Guid? PersonId { get; set; }
 
+    /// <summary>Логин (login).</summary>
+    public string Login { get; set; } = string.Empty;
+
     /// <summary>Фамилия (last_name).</summary>
     public string LastName { get; set; } = string.Empty;
 

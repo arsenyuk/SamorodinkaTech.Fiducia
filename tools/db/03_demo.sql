@@ -13,13 +13,13 @@ ON CONFLICT (id) DO NOTHING;
 -- ============================================================================
 -- Тестовые пользователи (привязаны к ФЛ)
 -- ============================================================================
-INSERT INTO users (id, person_id, last_name, first_name, email, phone, is_external, created_at, created_by, is_system) VALUES
-    ('11111111-1111-1111-1111-111111111112', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa01', 'Иванов', 'Иван', 'ivanov@fiducia.local', '+79001112233', FALSE, CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000', FALSE),
-    ('11111111-1111-1111-1111-111111111113', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa02', 'Петрова', 'Мария', 'petrova@fiducia.local', '+79002223344', FALSE, CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000', FALSE),
-    ('11111111-1111-1111-1111-111111111114', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa03', 'Сидоров', 'Алексей', 'sidorov@fiducia.local', '+79003334455', TRUE, CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000', FALSE),
-    ('11111111-1111-1111-1111-111111111115', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa04', 'Козлова', 'Елена', 'kozlova@fiducia.local', '+79004445566', TRUE, CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000', FALSE),
-    ('11111111-1111-1111-1111-111111111116', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa05', 'Новиков', 'Дмитрий', 'novikov@fiducia.local', '+79005556677', FALSE, CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000', FALSE),
-    ('11111111-1111-1111-1111-111111111117', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa06', 'Волков', 'Сергей', 'ceo@fiducia.local', '+79006667788', FALSE, CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000', FALSE)
+INSERT INTO users (id, person_id, login, last_name, first_name, email, phone, is_external, created_at, created_by, is_system) VALUES
+    ('11111111-1111-1111-1111-111111111112', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa01', 'ivanov', 'Иванов', 'Иван', 'ivanov@fiducia.local', '+79001112233', FALSE, CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000', FALSE),
+    ('11111111-1111-1111-1111-111111111113', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa02', 'petrova', 'Петрова', 'Мария', 'petrova@fiducia.local', '+79002223344', FALSE, CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000', FALSE),
+    ('11111111-1111-1111-1111-111111111114', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa03', 'sidorov', 'Сидоров', 'Алексей', 'sidorov@fiducia.local', '+79003334455', TRUE, CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000', FALSE),
+    ('11111111-1111-1111-1111-111111111115', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa04', 'kozlova', 'Козлова', 'Елена', 'kozlova@fiducia.local', '+79004445566', TRUE, CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000', FALSE),
+    ('11111111-1111-1111-1111-111111111116', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa05', 'novikov', 'Новиков', 'Дмитрий', 'novikov@fiducia.local', '+79005556677', FALSE, CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000', FALSE),
+    ('11111111-1111-1111-1111-111111111117', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa06', 'volkov', 'Волков', 'Сергей', 'ceo@fiducia.local', '+79006667788', FALSE, CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000', FALSE)
 ON CONFLICT (id) DO NOTHING;
 
 -- Роли тестовых пользователей
@@ -39,8 +39,8 @@ INSERT INTO persons (id, last_name, first_name, middle_name, email, phone, inn, 
     ('bbbb0000-0000-0000-0000-000000000001', 'Соколова', 'Анна', 'Викторовна', 'participant@test.ru', '+79009998877', '770999887766', CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000')
 ON CONFLICT (id) DO NOTHING;
 
-INSERT INTO users (id, person_id, last_name, first_name, email, phone, is_external, created_at, created_by, is_system) VALUES
-    ('bbbb0000-0000-0000-0000-000000000002', 'bbbb0000-0000-0000-0000-000000000001', 'Соколова', 'Анна', 'participant@test.ru', '+79009998877', FALSE, CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000', FALSE)
+INSERT INTO users (id, person_id, login, last_name, first_name, email, phone, is_external, created_at, created_by, is_system) VALUES
+    ('bbbb0000-0000-0000-0000-000000000002', 'bbbb0000-0000-0000-0000-000000000001', 'sokolova', 'Соколова', 'Анна', 'participant@test.ru', '+79009998877', FALSE, CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000', FALSE)
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO user_roles (id, user_id, role_id) VALUES

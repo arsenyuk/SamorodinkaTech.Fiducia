@@ -18,20 +18,11 @@ public class BasicProvider : IAuthProvider
 
     public async Task<AuthResult> AuthenticateAsync(string username, string password)
     {
-        // Basic SSO: username = user ID
-        if (!Guid.TryParse(username, out var userId))
-        {
-            return new AuthResult
-            {
-                Success = false,
-                ErrorMessage = "Некорректный идентификатор пользователя"
-            };
-        }
-
+        // Basic SSO: login = user login field
         var user = await _dbContext.Users
             .Include(u => u.UserRoles)
             .ThenInclude(ur => ur.Role)
-            .FirstOrDefaultAsync(u => u.Id == userId && !u.IsSystem);
+            .FirstOrDefaultAsync(u => u.Login == username && !u.IsSystem);
 
         if (user == null)
         {
@@ -82,7 +73,7 @@ public class BasicProvider : IAuthProvider
             {
                 Id = u.Id,
                 DisplayName = $"{u.LastName} {u.FirstName} {u.MiddleName}",
-                Username = u.Id.ToString(),
+                Username = u.Login,
                 Email = u.Email,
                 Role = u.UserRoles.Select(ur => ur.Role!.Code).FirstOrDefault() ?? "MEMBER_BOARD"
             })

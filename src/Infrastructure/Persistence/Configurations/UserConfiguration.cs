@@ -14,6 +14,7 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(u => u.Id).HasColumnName("id");
 
         builder.Property(u => u.PersonId).HasColumnName("person_id");
+        builder.Property(u => u.Login).HasColumnName("login").HasMaxLength(100).IsRequired();
         builder.Property(u => u.LastName).HasColumnName("last_name").HasMaxLength(150).IsRequired();
         builder.Property(u => u.FirstName).HasColumnName("first_name").HasMaxLength(150).IsRequired();
         builder.Property(u => u.MiddleName).HasColumnName("middle_name").HasMaxLength(150);
@@ -32,6 +33,7 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(u => u.InvitationExpiresAt).HasColumnName("invitation_expires_at");
 
         builder.HasIndex(u => u.Email).IsUnique();
+        builder.HasIndex(u => u.Login).IsUnique();
         builder.HasIndex(u => u.Phone).IsUnique();
         builder.HasIndex(u => u.PersonId);
 

@@ -4,9 +4,10 @@
 -- Системный пользователь (нулевой GUID) — создаётся первым,
 -- используется как created_by для всех справочников ниже
 -- ============================================================================
-INSERT INTO users (id, last_name, first_name, email, phone, is_external, created_at, created_by, is_system)
+INSERT INTO users (id, login, last_name, first_name, email, phone, is_external, created_at, created_by, is_system)
 VALUES (
     '00000000-0000-0000-0000-000000000000',
+    'system',
     'Системный',
     'Пользователь',
     'system@fiducia.local',
