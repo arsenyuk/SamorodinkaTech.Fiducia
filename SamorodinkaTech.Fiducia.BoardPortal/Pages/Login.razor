@@ -10,6 +10,7 @@
 @inject NavigationManager NavigationManager
 @inject IJSRuntime JS
 @inject ILogger<Login> Logger
+@inject IConfiguration Configuration
 
 <PageTitle>Fiducia — Вход</PageTitle>
 
@@ -57,7 +58,7 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Пароль</label>
-                        <PasswordInput @bind-Value="_password" DisplayLimit="5" />
+                        <PasswordInput @bind-Value="_password" DisplayLimit="@_passwordDisplayLimit" />
                     </div>
 
                     <button class="btn btn-primary w-100" @onclick="HandleLogin"
@@ -81,6 +82,7 @@
     private string _password = string.Empty;
     private string? _errorMessage;
     private bool _isLoading;
+    private int _passwordDisplayLimit = 5;
 
     private bool CanLogin => AuthProvider.ProviderName == "Basic"
         ? !string.IsNullOrEmpty(_selectedUserId) && !string.IsNullOrEmpty(_password)
@@ -88,6 +90,8 @@
 
     protected override async Task OnInitializedAsync()
     {
+        _passwordDisplayLimit = Configuration.GetValue<int>("Auth:PasswordDisplayLimit", 5);
+
         if (AuthProvider.ProviderName == "Basic")
         {
             _users = await DbContext.Users
@@ -122,6 +126,13 @@
     {
         _isLoading = true;
         _errorMessage = null;
+
+        if (string.IsNullOrEmpty(_password))
+        {
+            _errorMessage = "Введите пароль";
+            _isLoading = false;
+            return;
+        }
 
         try
         {
