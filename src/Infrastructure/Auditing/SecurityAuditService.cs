@@ -8,7 +8,7 @@ namespace SamorodinkaTech.Fiducia.Infrastructure.Auditing;
 /// <summary>
 /// Реализация сервиса регистрации событий безопасности.
 /// Записывает события напрямую в файл аудита.
-/// Формат записи: [AUDIT] {ActionCode} | User={UserId} IP={UserIp} | {Description} | {EntityName} {EntityId}
+/// Формат записи: [yyyy-MM-dd HH:mm:ss] [AUDIT] {ActionCode} | User={Login} IP={IP} | {Description} | {EntityName} {EntityId}
 /// </summary>
 public class SecurityAuditService : ISecurityAuditService
 {
@@ -49,7 +49,7 @@ public class SecurityAuditService : ISecurityAuditService
             var entityShort = entityId.HasValue ? entityId.Value.ToString("N")[..8] : "";
             var entityPart = entityId.HasValue ? $"{entityName} {entityShort}" : entityName ?? "";
 
-            var message = $"[AUDIT] {actionCode} | User={userPart} IP={userIp} | {description} | {entityPart}";
+            var message = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] [AUDIT] {actionCode} | User={userPart} IP={userIp} | {description} | {entityPart}";
 
             await _lock.WaitAsync(cancellationToken);
             try
