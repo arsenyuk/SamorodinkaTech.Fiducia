@@ -90,7 +90,7 @@ else
 builder.Services.AddSingleton<ISessionService, SessionService>();
 
 // Security Audit Service (РСБ.2 + РСБ.3)
-// Файловая запись аудита — через Serilog sub-logger (фильтр по SourceContext)
+builder.Services.Configure<SecurityAuditOptions>(builder.Configuration.GetSection("SecurityAudit"));
 builder.Services.AddSingleton<ISecurityAuditService, SecurityAuditService>();
 
 // Client IP Provider — для передачи IP клиента в декораторы аудита внешних интеграций

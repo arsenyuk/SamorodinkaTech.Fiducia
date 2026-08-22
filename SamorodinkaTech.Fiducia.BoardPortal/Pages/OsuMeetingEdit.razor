@@ -742,6 +742,7 @@
     private DateOnly _allowedStart;
     private DateOnly _allowedEnd;
     private string? _dateWarning;
+    private string _oosuTitleTemplate = "Очередное за {YYYY} год";
     private string editTitle = string.Empty;
     private int? editElectionYear;
     private int? editShareholdersCount;
@@ -1353,6 +1354,12 @@
         try
         {
             await using var ctx = await DbFactory.CreateDbContextAsync();
+
+            // Загружаем шаблон из system_settings
+            var settings = await ctx.SystemSettings.ToDictionaryAsync(x => x.Key, x => x.Value);
+            if (settings.TryGetValue("oosu_title_template", out var tpl) && !string.IsNullOrEmpty(tpl))
+                _oosuTitleTemplate = tpl;
+
             osaForms = await ctx.OsaForms.OrderBy(f => f.Code).ToListAsync();
             osaMeetings = await ctx.OsaMeetings
                 .Include(m => m.RefOsaForm)
@@ -1850,7 +1857,7 @@
         _ => editTemporaryChairSelection ?? "—"
     };
 
-    private string OosuTitleTemplate => Config["Osu:OosuTitleTemplate"] ?? "Очередное за {YYYY} год";
+    private string OosuTitleTemplate => _oosuTitleTemplate;
 
     private string BuildGosaTitle(DateOnly start) =>
         OosuTitleTemplate.Replace("{YYYY}", start.Year.ToString());

@@ -1,20 +1,33 @@
+using System.Text;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using SamorodinkaTech.Fiducia.Domain.Interfaces;
 
 namespace SamorodinkaTech.Fiducia.Infrastructure.Auditing;
 
 /// <summary>
 /// Реализация сервиса регистрации событий безопасности.
-/// Записывает события в файловый лог (через Serilog sub-logger).
+/// Записывает события напрямую в файл аудита.
 /// Формат записи: [AUDIT] {ActionCode} | User={UserId} IP={UserIp} | {Description} | {EntityName} {EntityId}
 /// </summary>
 public class SecurityAuditService : ISecurityAuditService
 {
     private readonly ILogger<SecurityAuditService> _logger;
+    private readonly string _auditFilePath;
+    private readonly SemaphoreSlim _lock = new(1, 1);
 
-    public SecurityAuditService(ILogger<SecurityAuditService> logger)
+    public SecurityAuditService(
+        ILogger<SecurityAuditService> logger,
+        IOptions<SecurityAuditOptions> options)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        var opts = options?.Value ?? throw new ArgumentNullException(nameof(options));
+
+        var storagePath = opts.StoragePath ?? Path.Combine(AppContext.BaseDirectory, "logs", "audit");
+        Directory.CreateDirectory(storagePath);
+
+        var fileName = $"audit-{DateTime.UtcNow:yyyyMMddHH}.log";
+        _auditFilePath = Path.Combine(storagePath, fileName);
     }
 
     /// <inheritdoc />
@@ -33,18 +46,30 @@ public class SecurityAuditService : ISecurityAuditService
             var entityShort = entityId.HasValue ? entityId.Value.ToString("N")[..8] : "";
             var entityPart = entityId.HasValue ? $"{entityName} {entityShort}" : entityName ?? "";
 
-            using (_logger.BeginScope(new Dictionary<string, object> { ["AuditLog"] = true }))
+            var message = $"[AUDIT] {actionCode} | User={userPart} IP={userIp} | {description} | {entityPart}";
+
+            await _lock.WaitAsync(cancellationToken);
+            try
             {
-                _logger.LogInformation(
-                    "[AUDIT] {ActionCode} | User={UserPart} IP={UserIp} | {Description} | {EntityPart}",
-                    actionCode, userPart, userIp, description, entityPart);
+                await File.AppendAllTextAsync(_auditFilePath, message + Environment.NewLine, Encoding.UTF8, cancellationToken);
+            }
+            finally
+            {
+                _lock.Release();
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Ошибка записи аудита в файл: {ActionCode}", actionCode);
+            _logger.LogWarning(ex, "Ошибка записи аудита в файл: {ActionCode}", actionCode);
         }
-
-        await Task.CompletedTask;
     }
+}
+
+/// <summary>
+/// Опции конфигурации аудита безопасности.
+/// </summary>
+public class SecurityAuditOptions
+{
+    /// <summary>Путь к директории для файлов аудита.</summary>
+    public string? StoragePath { get; set; }
 }

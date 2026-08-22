@@ -44,8 +44,12 @@ namespace SamorodinkaTech.Fiducia.Infrastructure.Services
 
             // Проверка запрещённых расширений
             var extension = Path.GetExtension(fileName)?.TrimStart('.').ToLowerInvariant();
-            if (!string.IsNullOrEmpty(extension) && _options.BlockedExtensions.Contains(extension))
-                throw new InvalidOperationException($"Загрузка файлов с расширением .{extension} запрещена.");
+            if (!string.IsNullOrEmpty(extension))
+            {
+                var blockedExtensions = await GetBlockedExtensionsAsync(cancellationToken);
+                if (blockedExtensions.Contains(extension))
+                    throw new InvalidOperationException($"Загрузка файлов с расширением .{extension} запрещена.");
+            }
 
             var uploadId = Guid.NewGuid().ToString("N");
             var tempDir = GetTempDir(uploadId);
@@ -211,6 +215,29 @@ namespace SamorodinkaTech.Fiducia.Infrastructure.Services
             {
                 // Игнорируем ошибки удаления временных файлов
             }
+        }
+
+        private async Task<HashSet<string>> GetBlockedExtensionsAsync(CancellationToken cancellationToken)
+        {
+            try
+            {
+                await using var ctx = await _dbFactory.CreateDbContextAsync(cancellationToken);
+                var setting = await ctx.SystemSettings
+                    .FirstOrDefaultAsync(x => x.Key == "blocked_extensions", cancellationToken);
+
+                if (setting != null && !string.IsNullOrEmpty(setting.Value))
+                {
+                    return new HashSet<string>(
+                        setting.Value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries),
+                        StringComparer.OrdinalIgnoreCase);
+                }
+            }
+            catch
+            {
+                // При ошибке — используем дефолт из опций
+            }
+
+            return _options.BlockedExtensions;
         }
     }
 }

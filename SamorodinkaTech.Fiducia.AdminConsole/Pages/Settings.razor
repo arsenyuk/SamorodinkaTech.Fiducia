@@ -61,6 +61,28 @@
                     <small class="text-muted">После окончания последней задачи на диаграмме оргплана</small>
                 </div>
             </div>
+            <hr />
+            <h6>Шаблоны наименований заседаний</h6>
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label class="form-label">Шаблон наименования ГОСА</label>
+                    <input type="text" class="form-control" @bind="_gosaTitleTemplate" placeholder="Годовое за {YYYY} год">
+                    <small class="text-muted">Используется плейсхолдер <code>{YYYY}</code> для года</small>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Шаблон наименования ООСУ</label>
+                    <input type="text" class="form-control" @bind="_oosuTitleTemplate" placeholder="Очередное за {YYYY} год">
+                    <small class="text-muted">Используется плейсхолдер <code>{YYYY}</code> для года</small>
+                </div>
+            </div>
+            <hr />
+            <h6>Загрузка файлов</h6>
+            <div class="mb-3">
+                <label class="form-label">Запрещённые расширения (через запятую)</label>
+                <textarea class="form-control" rows="3" @bind="_blockedExtensions"
+                          placeholder="exe, dll, bat, cmd, ..."></textarea>
+                <small class="text-muted">Файлы с этими расширениями будут отклоняться при загрузке</small>
+            </div>
             <button class="btn btn-primary" @onclick="SaveSystemSettings">Сохранить настройки</button>
         </div>
     </div>
@@ -309,6 +331,9 @@
     private int _inviteExpiry = 7;
     private string _tspServer = "http://timestamp.ru/timestamp";
     private int _ganttPaddingWeeks = 2;
+    private string _gosaTitleTemplate = "Годовое за {YYYY} год";
+    private string _oosuTitleTemplate = "Очередное за {YYYY} год";
+    private string _blockedExtensions = "exe,dll,com,msi,bat,cmd,scr,pif";
 
     // Авторизация
     private string _authMethod = "Basic";
@@ -367,6 +392,12 @@
             var settings = await ctx.SystemSettings.ToDictionaryAsync(x => x.Key, x => x.Value);
             if (settings.TryGetValue("gantt_end_padding_weeks", out var paddingWeeks) && int.TryParse(paddingWeeks, out var pw))
                 _ganttPaddingWeeks = pw;
+            if (settings.TryGetValue("gosa_title_template", out var gosaTemplate) && !string.IsNullOrEmpty(gosaTemplate))
+                _gosaTitleTemplate = gosaTemplate;
+            if (settings.TryGetValue("oosu_title_template", out var oosuTemplate) && !string.IsNullOrEmpty(oosuTemplate))
+                _oosuTitleTemplate = oosuTemplate;
+            if (settings.TryGetValue("blocked_extensions", out var blockedExt) && !string.IsNullOrEmpty(blockedExt))
+                _blockedExtensions = blockedExt;
         }
         catch { }
     }
@@ -413,9 +444,36 @@
                 });
             }
 
+            // Сохраняем шаблоны заседаний
+            await UpsertSetting(ctx, "gosa_title_template", _gosaTitleTemplate, "Шаблон названия ГОСА");
+            await UpsertSetting(ctx, "oosu_title_template", _oosuTitleTemplate, "Шаблон названия ООСУ");
+
+            // Сохраняем запрещённые расширения
+            await UpsertSetting(ctx, "blocked_extensions", _blockedExtensions, "Запрещённые расширения файлов (через запятую)");
+
             await ctx.SaveChangesAsync();
         }
         catch { }
+    }
+
+    private static async Task UpsertSetting(SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext ctx, string key, string value, string description)
+    {
+        var setting = await ctx.SystemSettings.FirstOrDefaultAsync(x => x.Key == key);
+        if (setting != null)
+        {
+            setting.Value = value;
+            setting.UpdatedAt = DateTime.UtcNow;
+        }
+        else
+        {
+            ctx.SystemSettings.Add(new SamorodinkaTech.Fiducia.Domain.Entities.SystemSetting
+            {
+                Id = Guid.NewGuid(),
+                Key = key,
+                Value = value,
+                Description = description
+            });
+        }
     }
 
     private void SetAuthMethod(ChangeEventArgs e)
