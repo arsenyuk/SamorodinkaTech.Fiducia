@@ -13,6 +13,7 @@ public interface ISecurityAuditService
         string userIp,
         string description,
         Guid? userId = null,
+        string? login = null,
         string? entityName = null,
         Guid? entityId = null,
         CancellationToken cancellationToken = default);

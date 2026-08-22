@@ -11,6 +11,7 @@
 @inject IJSRuntime JS
 @inject ILogger<Login> Logger
 @inject IConfiguration Configuration
+@inject IClientIpProvider ClientIpProvider
 
 <PageTitle>Fiducia — Вход (Admin)</PageTitle>
 
@@ -132,7 +133,7 @@
         try
         {
             AuthResult result;
-            var userIp = await GetUserIp();
+            var userIp = ClientIpProvider.GetClientIp();
 
             Logger.LogDebug("[LOGIN] Начало аутентификации, UserIp={UserIp}, Provider={Provider}",
                 userIp, AuthProvider.ProviderName);
@@ -164,7 +165,7 @@
                 Logger.LogDebug("[LOGIN] Аутентификация не пройдена: {Error}", result.ErrorMessage);
                 await SecurityAuditService.LogEventAsync("LOGIN_FAILED", userIp,
                     $"Неудачная попытка входа: {result.ErrorMessage}",
-                    userId: null, entityName: "User", cancellationToken: default);
+                    userId: null, login: _username, entityName: "User", cancellationToken: default);
                 return;
             }
 
@@ -176,7 +177,7 @@
                 Logger.LogDebug("[LOGIN] Доступ запрещён: роль {RefRole} != SYS_ADMIN", role);
                 await SecurityAuditService.LogEventAsync("ACCESS_DENIED", userIp,
                     $"Попытка входа с ролью {role} (требуется SYS_ADMIN)",
-                    userId: result.UserId, entityName: "User", cancellationToken: default);
+                    userId: result.UserId, login: result.Login, entityName: "User", cancellationToken: default);
                 return;
             }
 
@@ -210,8 +211,8 @@
 
             // Аудит успешного входа
             await SecurityAuditService.LogEventAsync("LOGIN_SUCCESS", userIp,
-                $"Успешный вход: {result.UserName}",
-                userId: result.UserId, entityName: "User", cancellationToken: default);
+                $"Успешный вход: {result.Login}",
+                userId: result.UserId, login: result.Login, entityName: "User", cancellationToken: default);
 
             Logger.LogDebug("[LOGIN] Выполняется NavigateTo /main с forceLoad: true");
             NavigationManager.NavigateTo("/main", forceLoad: true);
@@ -220,18 +221,6 @@
         finally
         {
             _isLoading = false;
-        }
-    }
-
-    private async Task<string> GetUserIp()
-    {
-        try
-        {
-            return await JS.InvokeAsync<string>("eval", "window.remoteAddress || ''");
-        }
-        catch
-        {
-            return "unknown";
         }
     }
 }

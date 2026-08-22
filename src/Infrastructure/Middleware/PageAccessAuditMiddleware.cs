@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
 using SamorodinkaTech.Fiducia.Domain.Interfaces;
 
@@ -136,7 +137,8 @@ public class PageAccessAuditMiddleware
 
     private static Guid? GetUserId(HttpContext context)
     {
-        var userIdClaim = context.User?.FindFirst("sub")?.Value
+        var userIdClaim = context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                       ?? context.User?.FindFirst("sub")?.Value
                        ?? context.User?.FindFirst("user_id")?.Value;
         return Guid.TryParse(userIdClaim, out var userId) ? userId : null;
     }

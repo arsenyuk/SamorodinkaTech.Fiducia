@@ -12,6 +12,7 @@ public class AuthResult
     public bool Success { get; set; }
     public Guid? UserId { get; set; }
     public string? UserName { get; set; }
+    public string? Login { get; set; }
     public string? ErrorMessage { get; set; }
     public Dictionary<string, string> Claims { get; set; } = new();
 }

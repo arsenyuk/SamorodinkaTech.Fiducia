@@ -4,6 +4,7 @@
 @inject IJSRuntime JS
 @inject NavigationManager NavigationManager
 @inject ISecurityAuditService SecurityAuditService
+@inject IClientIpProvider ClientIpProvider
 
 <PageTitle>Fiducia — Выход</PageTitle>
 
@@ -74,14 +75,14 @@
         // Получение данных пользователя для аудита
         var userId = await JS.InvokeAsync<string>("localStorage.getItem", "currentUserId");
         var userName = await JS.InvokeAsync<string>("localStorage.getItem", "currentUserName");
-        var userIp = await GetUserIp();
+        var userIp = ClientIpProvider.GetClientIp();
 
         // Аудит выхода
         if (!string.IsNullOrEmpty(userId) && Guid.TryParse(userId, out var parsedUserId))
         {
             await SecurityAuditService.LogEventAsync("LOGOUT", userIp,
                 $"Выход пользователя: {userName}",
-                userId: parsedUserId, entityName: "User", cancellationToken: default);
+                userId: parsedUserId, login: userName, entityName: "User", cancellationToken: default);
         }
 
         // УПД.15: вызов endpoint выхода (всегда возвращает 200 OK)
@@ -101,17 +102,5 @@
         await JS.InvokeVoidAsync("localStorage.removeItem", "greetingShownAt");
 
         NavigationManager.NavigateTo("/login");
-    }
-
-    private async Task<string> GetUserIp()
-    {
-        try
-        {
-            return await JS.InvokeAsync<string>("eval", "window.remoteAddress || ''");
-        }
-        catch
-        {
-            return "unknown";
-        }
     }
 }

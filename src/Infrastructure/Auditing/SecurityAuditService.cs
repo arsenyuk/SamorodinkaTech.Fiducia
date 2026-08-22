@@ -36,13 +36,16 @@ public class SecurityAuditService : ISecurityAuditService
         string userIp,
         string description,
         Guid? userId = null,
+        string? login = null,
         string? entityName = null,
         Guid? entityId = null,
         CancellationToken cancellationToken = default)
     {
         try
         {
-            var userPart = userId.HasValue ? userId.Value.ToString("N")[..8] : "anonymous";
+            var userPart = !string.IsNullOrEmpty(login) ? login
+                : userId.HasValue ? userId.Value.ToString("N")[..8]
+                : "anonymous";
             var entityShort = entityId.HasValue ? entityId.Value.ToString("N")[..8] : "";
             var entityPart = entityId.HasValue ? $"{entityName} {entityShort}" : entityName ?? "";
 

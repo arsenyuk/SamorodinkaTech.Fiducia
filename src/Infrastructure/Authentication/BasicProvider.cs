@@ -53,6 +53,7 @@ public class BasicProvider : IAuthProvider
             Success = true,
             UserId = user.Id,
             UserName = $"{user.LastName} {user.FirstName} {user.MiddleName}",
+            Login = user.Login,
             Claims = new Dictionary<string, string>
             {
                 ["role"] = roleName,
