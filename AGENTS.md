@@ -658,6 +658,23 @@ docker exec fiducia-postgres psql -U fiducia -d fiducia -t -c \
 - PK: `id uuid`. FK: `<ref>_id`.
 - Индексы: `ix_<table>_<col>`. Уникальные: `ux_<table>_<col>`.
 
+### Правило: обязательный маппинг EF-конфигурации (КРИТИЧНО)
+
+При добавлении **любой** новой колонки в `01_schema.sql` **обязательно** добавлять
+маппинг в EF-конфигурацию entity:
+1. Добавить свойство в entity class (`src/Domain/Entities/`)
+2. Добавить `.HasColumnName("column_name")` в конфигурацию
+   (`src/Infrastructure/Persistence/Configurations/` или `OnModelCreating`)
+3. Без маппинга EF Core не генерирует колонку в SQL → ошибка运行time
+
+**Чек-лист при добавлении колонки:**
+```
+[ ] Колонка в 01_schema.sql
+[ ] Свойство в entity class
+[ ] Маппинг в EF-конфигурации (.HasColumnName)
+[ ] DbSet в DbContext (если новая таблица)
+```
+
 ### ЮЛ vs Юридические лица (КРИТИЧНО)
 
 - **«ЮЛ»** (пункт меню, страница `/admin/legal-entities`) — режим

@@ -65,6 +65,7 @@ public class ShareRequestConfiguration : IEntityTypeConfiguration<ShareRequest>
         builder.Property(r => r.SubmittedToCeoAt).HasColumnName("submitted_to_ceo_at");
         builder.Property(r => r.CeoDecisionAt).HasColumnName("ceo_decision_at");
         builder.Property(r => r.CeoComment).HasColumnName("ceo_comment");
+        builder.Property(r => r.ReviewLocation).HasColumnName("review_location");
         builder.Property(r => r.DecidedByUserId).HasColumnName("decided_by_user_id");
 
         builder.HasOne(r => r.DecidedByUser)

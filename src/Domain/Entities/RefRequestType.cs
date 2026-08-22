@@ -26,6 +26,9 @@ public class RefRequestType
     /// <summary>Требуется приложить файл (requires_file).</summary>
     public bool RequiresFile { get; set; }
 
+    /// <summary>Рассматривается ОСУ (considered_by_osu). TRUE — требование рассматривается общим собранием.</summary>
+    public bool ConsideredByOsu { get; set; }
+
     /// <summary>Дата и время создания (created_at).</summary>
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }

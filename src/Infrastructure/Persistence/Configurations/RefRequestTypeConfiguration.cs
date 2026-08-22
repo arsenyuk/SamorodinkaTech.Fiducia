@@ -18,6 +18,7 @@ public class RefRequestTypeConfiguration : IEntityTypeConfiguration<RefRequestTy
         builder.Property(r => r.IsForNjsc).HasColumnName("is_for_njsc").IsRequired().HasDefaultValue(false);
         builder.Property(r => r.IsForPjsc).HasColumnName("is_for_pjsc").IsRequired().HasDefaultValue(false);
         builder.Property(r => r.RequiresFile).HasColumnName("requires_file").IsRequired().HasDefaultValue(false);
+        builder.Property(r => r.ConsideredByOsu).HasColumnName("considered_by_osu").IsRequired().HasDefaultValue(false);
         builder.Property(r => r.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("CURRENT_TIMESTAMP");
 
         builder.HasIndex(r => r.Code).IsUnique();

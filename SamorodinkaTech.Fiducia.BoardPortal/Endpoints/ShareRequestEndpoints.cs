@@ -54,7 +54,7 @@ public static class ShareRequestEndpoints
                 var types = await ctx.RequestTypes
                     .Where(t => (isLlc && t.IsForLlc) || (isNjsc && t.IsForNjsc) || (isPjsc && t.IsForPjsc))
                     .OrderBy(t => t.Name)
-                    .Select(t => new { t.Id, t.Code, t.Name, t.RequiresFile })
+                    .Select(t => new { t.Id, t.Code, t.Name, t.RequiresFile, t.ConsideredByOsu })
                     .ToListAsync();
 
                 // Обогащаем информацией о пороге, правовой норме и доступности
@@ -64,6 +64,7 @@ public static class ShareRequestEndpoints
                     t.Code,
                     t.Name,
                     t.RequiresFile,
+                    t.ConsideredByOsu,
                     RequiresThreshold = t.Code is "DEMAND_VOSU" or "DEMAND_VOSA",
                     ThresholdPercent = t.Code is "DEMAND_VOSU" or "DEMAND_VOSA" ? vosuThreshold : null,
                     LegalBasis = GetLegalBasisCode(t.Code),

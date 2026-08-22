@@ -31,21 +31,49 @@ else if (_selectedType is null)
     @* ── Выбор типа требования ─────────────────────────────────────── *@
     <p class="text-muted mb-4">Выберите тип требования или запроса:</p>
 
-    <div class="row g-3">
-        @foreach (var rt in _availableTypes)
-        {
-            <div class="col-md-6">
-                <div class="card h-100" style="cursor:pointer" @onclick="() => SelectType(rt)">
-                    <div class="card-body">
-                        <h5 class="card-title">@rt.Name</h5>
-                        <p class="card-text text-muted small mb-0">
-                            @GetDescription(rt.Code)
-                        </p>
+    @* ── Требования, рассматриваемые ОСУ ─────────────────────────── *@
+    var osuTypes = _availableTypes.Where(t => t.ConsideredByOsu).ToList();
+    if (osuTypes.Count > 0)
+    {
+        <h5 class="mb-3">Требования, рассматриваемые ОСУ</h5>
+        <div class="row g-3 mb-4">
+            @foreach (var rt in osuTypes)
+            {
+                <div class="col-md-6">
+                    <div class="card h-100" style="cursor:pointer" @onclick="() => SelectType(rt)">
+                        <div class="card-body">
+                            <h5 class="card-title">@rt.Name</h5>
+                            <p class="card-text text-muted small mb-0">
+                                @GetDescription(rt.Code)
+                            </p>
+                        </div>
                     </div>
                 </div>
-            </div>
-        }
-    </div>
+            }
+        </div>
+    }
+
+    @* ── Требования, удовлетворяемые ГД ──────────────────────────── *@
+    var gdTypes = _availableTypes.Where(t => !t.ConsideredByOsu).ToList();
+    if (gdTypes.Count > 0)
+    {
+        <h5 class="mb-3">Требования, удовлетворяемые ГД</h5>
+        <div class="row g-3">
+            @foreach (var rt in gdTypes)
+            {
+                <div class="col-md-6">
+                    <div class="card h-100" style="cursor:pointer" @onclick="() => SelectType(rt)">
+                        <div class="card-body">
+                            <h5 class="card-title">@rt.Name</h5>
+                            <p class="card-text text-muted small mb-0">
+                                @GetDescription(rt.Code)
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
 }
 else
 {
@@ -655,7 +683,7 @@ else
         _ => false
     };
 
-    private record RequestTypeDto(Guid Id, string Code, string Name, bool RequiresFile, bool RequiresThreshold, decimal? ThresholdPercent, string? LegalBasis, bool IsCollective, bool IsAvailable, string? UnavailabilityReason);
+    private record RequestTypeDto(Guid Id, string Code, string Name, bool RequiresFile, bool ConsideredByOsu, bool RequiresThreshold, decimal? ThresholdPercent, string? LegalBasis, bool IsCollective, bool IsAvailable, string? UnavailabilityReason);
     private record ParticipantDto(Guid Id, string? FullName, decimal? SharePercent);
     private record CreatedRequestDto(Guid? Id);
     private record ExistingRequestDto(Guid Id, Guid RequestTypeId, string? Payload, string Status);

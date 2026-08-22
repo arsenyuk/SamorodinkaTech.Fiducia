@@ -1,6 +1,8 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
 using SamorodinkaTech.Fiducia.Domain.Interfaces;
+using SamorodinkaTech.Fiducia.Infrastructure.Persistence;
 
 namespace SamorodinkaTech.Fiducia.Infrastructure.Middleware;
 
@@ -13,6 +15,7 @@ public class PageAccessAuditMiddleware
 {
     private readonly RequestDelegate _next;
     private readonly ISecurityAuditService _auditService;
+    private readonly IDbContextFactory<FiduciaDbContext> _dbFactory;
 
     private static readonly HashSet<string> ExcludedExtensions = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -37,10 +40,11 @@ public class PageAccessAuditMiddleware
         "/api/share-requests/types"
     };
 
-    public PageAccessAuditMiddleware(RequestDelegate next, ISecurityAuditService auditService)
+    public PageAccessAuditMiddleware(RequestDelegate next, ISecurityAuditService auditService, IDbContextFactory<FiduciaDbContext> dbFactory)
     {
         _next = next;
         _auditService = auditService;
+        _dbFactory = dbFactory;
     }
 
     public async Task Invoke(HttpContext context)
@@ -85,11 +89,28 @@ public class PageAccessAuditMiddleware
         var actionCode = GetActionCode(method, statusCode, path);
         var description = GetDescription(method, path, statusCode);
 
+        // Загружаем логин пользователя из БД
+        string? login = null;
+        if (userId.HasValue)
+        {
+            try
+            {
+                await using var ctx = await _dbFactory.CreateDbContextAsync();
+                var user = await ctx.Users
+                    .Where(u => u.Id == userId.Value)
+                    .Select(u => u.Login)
+                    .FirstOrDefaultAsync();
+                login = user;
+            }
+            catch { /* не критично */ }
+        }
+
         await _auditService.LogEventAsync(
             actionCode,
             userIp,
             description,
             userId: userId,
+            login: login,
             entityName: "Page",
             entityId: null);
     }

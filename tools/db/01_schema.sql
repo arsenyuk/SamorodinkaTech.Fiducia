@@ -284,6 +284,7 @@ CREATE TABLE IF NOT EXISTS ref_request_type (
     is_for_njsc boolean NOT NULL DEFAULT false,
     is_for_pjsc boolean NOT NULL DEFAULT false,
     requires_file boolean NOT NULL DEFAULT false,
+    considered_by_osu boolean NOT NULL DEFAULT false,
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 
