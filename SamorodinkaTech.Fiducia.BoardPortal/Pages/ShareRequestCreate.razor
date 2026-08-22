@@ -244,26 +244,123 @@ else
             </div>
 
             @* ── Файлы (общий блок для всех типов) ────────────────────── *@
-            <div class="col-12 mt-3">
-                <label class="form-label">Прикрепить файлы (необязательно)</label>
-                <FileUpload FileType="SHARE_REQUEST" OnFileUploadedInfo="OnFileUploaded" />
-                @if (_uploadedFiles.Count > 0)
-                {
-                    <div class="mt-2">
-                        @foreach (var f in _uploadedFiles)
-                        {
-                            <div class="d-flex align-items-center gap-2 mb-1">
-                                <span class="badge bg-light text-dark">📄 @f.Name</span>
-                                <button class="btn btn-sm btn-outline-danger" @onclick="() => RemoveUploadedFile(f)">×</button>
-                            </div>
-                        }
+            @if (!_useMultiItems)
+            {
+                <div class="col-12 mt-3">
+                    <label class="form-label">Прикрепить файлы (необязательно)</label>
+                    <FileUpload FileType="SHARE_REQUEST" OnFileUploadedInfo="OnFileUploaded" />
+                    @if (_uploadedFiles.Count > 0)
+                    {
+                        <div class="mt-2">
+                            @foreach (var f in _uploadedFiles)
+                            {
+                                <div class="d-flex align-items-center gap-2 mb-1">
+                                    <span class="badge bg-light text-dark">📄 @f.Name</span>
+                                    <button class="btn btn-sm btn-outline-danger" @onclick="() => RemoveUploadedFile(f)">×</button>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+            }
+
+            @* ── Мульти-пункты: кнопка переключения ──────────────────── *@
+            @if (!_useMultiItems && SupportsMultiItems())
+            {
+                <div class="col-12 mt-3">
+                    <button class="btn btn-outline-primary btn-sm" @onclick="SwitchToMultiItems">
+                        + Добавить пункт
+                    </button>
+                    <small class="text-muted ms-2">Разбить требование на отдельные пункты с файлами к каждому</small>
+                </div>
+            }
+
+            @* ── Мульти-пункты: редактор пунктов ──────────────────────── *@
+            @if (_useMultiItems)
+            {
+                <div class="col-12 mt-3">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <label class="form-label mb-0"><strong>Пункты требования</strong></label>
+                        <div>
+                            <button class="btn btn-outline-primary btn-sm" @onclick="AddItem">+ Добавить пункт</button>
+                            @if (_formItems.Count == 1)
+                            {
+                                <button class="btn btn-outline-secondary btn-sm ms-2" @onclick="SwitchToSingleItem">
+                                    Вернуть к одному пункту
+                                </button>
+                            }
+                        </div>
                     </div>
-                }
+
+                    @for (var i = 0; i < _formItems.Count; i++)
+                    {
+                        var idx = i;
+                        var item = _formItems[idx];
+                        <div class="card mb-3">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <span><strong>Пункт @(idx + 1)</strong></span>
+                                @if (_formItems.Count > 1)
+                                {
+                                    <button class="btn btn-sm btn-outline-danger" @onclick="() => RemoveItem(idx)">Удалить</button>
+                                }
+                            </div>
+                            <div class="card-body">
+                                <div class="mb-2">
+                                    <label class="form-label">Заголовок *</label>
+                                    <input class="form-control" value="@item.Title"
+                                           @onchange="e => UpdateItemTitle(idx, e)" />
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label">Описание *</label>
+                                    <textarea class="form-control" rows="3"
+                                              @onchange="e => UpdateItemDescription(idx, e)">@item.Description</textarea>
+                                </div>
+                                <div>
+                                    <label class="form-label">Файлы пункта</label>
+                                    <FileUpload FileType="SHARE_REQUEST"
+                                                OnFileUploadedInfo="info => OnItemFileUploaded(idx, info)" />
+                                    @if (item.Files.Count > 0)
+                                    {
+                                        <div class="mt-2">
+                                            @foreach (var f in item.Files)
+                                            {
+                                                <div class="d-flex align-items-center gap-2 mb-1">
+                                                    <span class="badge bg-light text-dark">📄 @f.Name</span>
+                                                    <button class="btn btn-sm btn-outline-danger"
+                                                            @onclick="() => RemoveItemFile(idx, f)">×</button>
+                                                </div>
+                                            }
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+
+            @* ── Предупреждение перед отправкой ──────────────────────── *@
+            <div class="col-12 mt-4">
+                <div class="alert alert-warning py-3">
+                    <strong>Важно:</strong> Убедитесь, что текст каждого пункта сформулирован ясно и однозначно.
+                    Если при рассмотрении пункта не будут обнаружены формальные основания для отказа, ОСУ может
+                    голосовать против такой формулировки требования, поскольку не сможет однозначно интерпретировать суть.
+                    Рекомендуется: конкретизировать действия, сроки и ожидаемый результат.
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="agreeWarning"
+                           checked="@_agreedToWarning"
+                           @onchange="e => _agreedToWarning = e.Value is true" />
+                    <label class="form-check-label" for="agreeWarning">
+                        Я ознакомлен с рекомендациями по формулировке требований
+                    </label>
+                </div>
             </div>
 
             @* ── Кнопка отправки ─────────────────────────────────────── *@
-            <div class="mt-4">
-                <button class="btn btn-primary" @onclick="SubmitRequest" disabled="@(!_selectedType.IsAvailable || _isSubmitting)">
+            <div class="mt-3">
+                <button class="btn btn-primary" @onclick="SubmitRequest"
+                        disabled="@(!_selectedType.IsAvailable || _isSubmitting || !_agreedToWarning)">
                     @if (_isSubmitting)
                     {
                         <span class="spinner-border spinner-border-sm me-1" role="status"></span>
@@ -295,6 +392,11 @@ else
     private decimal? _participantSharePercent;
     private List<UploadedFileInfo> _uploadedFiles = new();
 
+    // Мульти-пункты
+    private bool _useMultiItems;
+    private bool _agreedToWarning;
+    private List<FormItem> _formItems = new();
+
     // Справочники для REQUEST_INFORMATION
     private List<DocumentGroupDto> _documentGroups = new();
     private List<AccessMethodDto> _accessMethods = new();
@@ -302,6 +404,7 @@ else
     private string? _selectedAccessMethodCode;
 
     private record UploadedFileInfo(Guid FileId, string Name);
+    private record FormItem(string Title, string? Description, List<UploadedFileInfo> Files);
     private record DocumentGroupDto(string Code, string Name, List<DocumentTypeDto> Documents);
     private record DocumentTypeDto(Guid Id, string Code, string Name, string GroupCode, string GroupName, bool IsElectronicAvailable, int StorageYears);
     private record AccessMethodDto(Guid Id, string Code, string Name, string? Description, int? DeadlineDays);
@@ -385,7 +488,86 @@ else
         _demandReason = null;
         _newCharterNumber = null;
         _uploadedFiles.Clear();
+        _useMultiItems = false;
+        _formItems.Clear();
+        _agreedToWarning = false;
         _error = null;
+    }
+
+    private bool SupportsMultiItems() => _selectedType is not null
+        && (_selectedType.ConsideredByOsu || _selectedType.Code == "OTHER")
+        && _selectedType.Code != "CHANGE_STANDARD_CHARTER_NUMBER"
+        && _selectedType.Code != "REQUEST_INFORMATION";
+
+    private void SwitchToMultiItems()
+    {
+        if (_formItems.Count > 0) return;
+        var title = "Пункт 1";
+        var desc = _demandText;
+        _formItems.Add(new FormItem(title, desc, new()));
+        _demandText = null;
+        _useMultiItems = true;
+    }
+
+    private void AddItem()
+    {
+        _formItems.Add(new FormItem($"Пункт {_formItems.Count + 1}", null, new()));
+    }
+
+    private void RemoveItem(int index)
+    {
+        if (index >= 0 && index < _formItems.Count && _formItems.Count > 1)
+            _formItems.RemoveAt(index);
+    }
+
+    private void OnItemFileUploaded(int itemIndex, (Guid FileId, string OriginalName) info)
+    {
+        if (itemIndex >= 0 && itemIndex < _formItems.Count)
+        {
+            var item = _formItems[itemIndex];
+            var files = new List<UploadedFileInfo>(item.Files) { new(info.FileId, info.OriginalName) };
+            _formItems[itemIndex] = item with { Files = files };
+        }
+    }
+
+    private void RemoveItemFile(int itemIndex, UploadedFileInfo file)
+    {
+        if (itemIndex >= 0 && itemIndex < _formItems.Count)
+        {
+            var item = _formItems[itemIndex];
+            var files = new List<UploadedFileInfo>(item.Files);
+            files.Remove(file);
+            _formItems[itemIndex] = item with { Files = files };
+        }
+    }
+
+    private void SwitchToSingleItem()
+    {
+        if (_formItems.Count == 1)
+        {
+            _demandText = _formItems[0].Description;
+            _uploadedFiles = _formItems[0].Files.ToList();
+            _formItems.Clear();
+            _useMultiItems = false;
+        }
+    }
+
+    private void UpdateItemTitle(int index, ChangeEventArgs e)
+    {
+        if (index >= 0 && index < _formItems.Count)
+        {
+            var item = _formItems[index];
+            _formItems[index] = item with { Title = e.Value?.ToString() ?? "" };
+        }
+    }
+
+    private void UpdateItemDescription(int index, ChangeEventArgs e)
+    {
+        if (index >= 0 && index < _formItems.Count)
+        {
+            var item = _formItems[index];
+            _formItems[index] = item with { Description = e.Value?.ToString() };
+        }
     }
 
     private void OnFileUploaded((Guid FileId, string OriginalName) info)
@@ -404,17 +586,38 @@ else
         if (_selectedType is null) return;
 
         // Валидация
-        if (IsCollectiveType(_selectedType.Code) && string.IsNullOrWhiteSpace(_demandText))
+        if (_useMultiItems)
+        {
+            if (_formItems.Count == 0)
+            {
+                _error = "Добавьте хотя бы один пункт требования";
+                return;
+            }
+            foreach (var (item, idx) in _formItems.Select((item, idx) => (item, idx)))
+            {
+                if (string.IsNullOrWhiteSpace(item.Title))
+                {
+                    _error = $"Введите заголовок пункта {idx + 1}";
+                    return;
+                }
+                if (string.IsNullOrWhiteSpace(item.Description))
+                {
+                    _error = $"Введите описание пункта {idx + 1}";
+                    return;
+                }
+            }
+        }
+        else if (IsCollectiveType(_selectedType.Code) && string.IsNullOrWhiteSpace(_demandText))
         {
             _error = "Введите текст требования";
             return;
         }
-        if (_selectedType.Code == "CHANGE_STANDARD_CHARTER_NUMBER" && string.IsNullOrWhiteSpace(_newCharterNumber))
+        else if (_selectedType.Code == "CHANGE_STANDARD_CHARTER_NUMBER" && string.IsNullOrWhiteSpace(_newCharterNumber))
         {
             _error = "Выберите номер типового устава";
             return;
         }
-        if (_selectedType.Code == "OTHER" && string.IsNullOrWhiteSpace(_demandText))
+        else if (_selectedType.Code == "OTHER" && string.IsNullOrWhiteSpace(_demandText))
         {
             _error = "Введите описание требования";
             return;
@@ -463,12 +666,45 @@ else
                 var result = await response.Content.ReadFromJsonAsync<CreatedRequestDto>();
                 var requestId = result?.Id ?? Id;
 
-                // Прикрепляем файлы
-                if (_uploadedFiles.Count > 0 && requestId.HasValue)
+                if (requestId.HasValue)
                 {
-                    foreach (var file in _uploadedFiles)
+                    if (_useMultiItems)
                     {
-                        await Http.PostAsJsonAsync($"/api/share-requests/{requestId}/files", new { FileId = file.FileId });
+                        // Сохраняем пункты требования
+                        for (var i = 0; i < _formItems.Count; i++)
+                        {
+                            var itemDto = new
+                            {
+                                Title = _formItems[i].Title,
+                                Description = _formItems[i].Description,
+                                SequenceNumber = i + 1
+                            };
+                            var itemResponse = await Http.PostAsJsonAsync(
+                                $"/api/share-requests/{requestId}/items", itemDto);
+
+                            if (itemResponse.IsSuccessStatusCode)
+                            {
+                                var itemResult = await itemResponse.Content.ReadFromJsonAsync<CreatedItemDto>();
+                                if (itemResult?.Id.HasValue == true)
+                                {
+                                    // Прикрепляем файлы к пункту
+                                    foreach (var file in _formItems[i].Files)
+                                    {
+                                        await Http.PostAsJsonAsync(
+                                            $"/api/share-requests/{requestId}/items/{itemResult.Id}/files",
+                                            new { FileId = file.FileId });
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    else
+                    {
+                        // Прикрепляем файлы (общий блок)
+                        foreach (var file in _uploadedFiles)
+                        {
+                            await Http.PostAsJsonAsync($"/api/share-requests/{requestId}/files", new { FileId = file.FileId });
+                        }
                     }
                 }
 
@@ -686,6 +922,7 @@ else
     private record RequestTypeDto(Guid Id, string Code, string Name, bool RequiresFile, bool ConsideredByOsu, bool RequiresThreshold, decimal? ThresholdPercent, string? LegalBasis, bool IsCollective, bool IsAvailable, string? UnavailabilityReason);
     private record ParticipantDto(Guid Id, string? FullName, decimal? SharePercent);
     private record CreatedRequestDto(Guid? Id);
+    private record CreatedItemDto(Guid? Id);
     private record ExistingRequestDto(Guid Id, Guid RequestTypeId, string? Payload, string Status);
     private record RefDataDto(List<DocumentGroupDto>? DocumentGroups, List<AccessMethodDto>? AccessMethods);
 }

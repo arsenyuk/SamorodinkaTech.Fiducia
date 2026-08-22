@@ -1432,7 +1432,11 @@ CREATE TABLE IF NOT EXISTS share_request (
     -- Место ознакомления (для способа "Ознакомление в офисе")
     review_location text,
     -- Орг-план ВОСУ
-    org_intent_id uuid REFERENCES org_intents(id) ON DELETE SET NULL
+    org_intent_id uuid REFERENCES org_intents(id) ON DELETE SET NULL,
+    -- Решение по структурированному требованию
+    decision_status varchar(20),
+    decision_comment text,
+    decided_at timestamp with time zone
 );
 
 CREATE INDEX IF NOT EXISTS ix_share_request_le ON share_request(legal_entity_id);
@@ -1471,6 +1475,38 @@ CREATE TABLE IF NOT EXISTS share_request_files (
 );
 CREATE INDEX IF NOT EXISTS ix_srf_request ON share_request_files(share_request_id);
 CREATE INDEX IF NOT EXISTS ix_srf_file ON share_request_files(file_id);
+
+-- ============================================================
+-- SHARE REQUEST ITEMS — пункты структурированного требования
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS share_request_items (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    share_request_id uuid NOT NULL REFERENCES share_request(id) ON DELETE CASCADE,
+    sequence_number integer NOT NULL,
+    title varchar(500) NOT NULL,
+    description text,
+    status varchar(20) NOT NULL DEFAULT 'pending',
+    rejection_reason text,
+    created_at timestamp with time zone NOT NULL DEFAULT NOW(),
+    updated_at timestamp with time zone
+);
+CREATE INDEX IF NOT EXISTS ix_sri_request ON share_request_items(share_request_id);
+CREATE UNIQUE INDEX IF NOT EXISTS ix_sri_request_seq ON share_request_items(share_request_id, sequence_number);
+
+-- ============================================================
+-- SHARE REQUEST ITEM FILES — файлы пунктов требования
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS share_request_item_files (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    share_request_item_id uuid NOT NULL REFERENCES share_request_items(id) ON DELETE CASCADE,
+    file_id uuid NOT NULL REFERENCES files(id) ON DELETE RESTRICT,
+    created_at timestamp with time zone NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS ix_srif_item ON share_request_item_files(share_request_item_id);
+CREATE INDEX IF NOT EXISTS ix_srif_file ON share_request_item_files(file_id);
+CREATE UNIQUE INDEX IF NOT EXISTS ix_srif_item_file ON share_request_item_files(share_request_item_id, file_id);
 
 -- ============================================================
 -- REF_DOCUMENT_TYPE — справочник типов документов для требования

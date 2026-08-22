@@ -103,4 +103,20 @@ public class ShareRequest
 
     /// <summary>Орг-план (org_intent).</summary>
     public OrgIntent? OrgIntent { get; set; }
+
+    // ── Решение по требованию ──────────────────────────────────
+
+    /// <summary>Статус решения: null / APPROVED / REJECTED / PARTIALLY_APPROVED (decision_status).</summary>
+    public string? DecisionStatus { get; set; }
+
+    /// <summary>Общий комментарий к решению (decision_comment).</summary>
+    public string? DecisionComment { get; set; }
+
+    /// <summary>Дата и время решения (decided_at).</summary>
+    public DateTime? DecidedAt { get; set; }
+
+    // ── Пункты требования ───────────────────────────────────────
+
+    /// <summary>Пункты структурированного требования.</summary>
+    public ICollection<ShareRequestItem> Items { get; set; } = new List<ShareRequestItem>();
 }

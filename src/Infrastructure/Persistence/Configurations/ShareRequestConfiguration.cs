@@ -68,6 +68,11 @@ public class ShareRequestConfiguration : IEntityTypeConfiguration<ShareRequest>
         builder.Property(r => r.ReviewLocation).HasColumnName("review_location");
         builder.Property(r => r.DecidedByUserId).HasColumnName("decided_by_user_id");
 
+        // Решение по требованию
+        builder.Property(r => r.DecisionStatus).HasColumnName("decision_status").HasMaxLength(20);
+        builder.Property(r => r.DecisionComment).HasColumnName("decision_comment");
+        builder.Property(r => r.DecidedAt).HasColumnName("decided_at");
+
         builder.HasOne(r => r.DecidedByUser)
             .WithMany()
             .HasForeignKey(r => r.DecidedByUserId)

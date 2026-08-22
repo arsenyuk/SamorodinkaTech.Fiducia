@@ -157,8 +157,83 @@ else
         <pre class="bg-light p-3 rounded"><code>@_request.Payload</code></pre>
     }
 
-    @* ── Прикреплённые файлы ──────────────────────────────────────── *@
-    @if (_files.Count > 0)
+    @* ── Пункты структурированного требования ──────────────────────── *@
+    @if (_items.Count > 0)
+    {
+        @* ── Итоговое решение ────────────────────────────────────── *@
+        @if (!string.IsNullOrEmpty(_request.DecisionStatus))
+        {
+            <div class="card mb-4 @(_request.DecisionStatus == "APPROVED" ? "border-success" : _request.DecisionStatus == "REJECTED" ? "border-danger" : "border-warning")">
+                <div class="card-body">
+                    <h5 class="card-title mb-3">
+                        Итоговое решение: @GetDecisionBadge(_request.DecisionStatus)
+                    </h5>
+                    @if (!string.IsNullOrEmpty(_request.DecisionComment))
+                    {
+                        <p class="mb-0">@_request.DecisionComment</p>
+                    }
+                    @if (_request.DecidedAt.HasValue)
+                    {
+                        <small class="text-muted">Дата решения: @_request.DecidedAt.Value.ToString("dd.MM.yyyy HH:mm")</small>
+                    }
+                </div>
+            </div>
+        }
+
+        <h4>Пункты требования</h4>
+        @foreach (var item in _items)
+        {
+            <div class="card mb-3 @(item.Status == "approved" ? "border-success" : item.Status == "rejected" ? "border-danger" : "")">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <strong>@item.Title</strong>
+                    @if (item.Status == "approved")
+                    {
+                        <span class="badge bg-success">Утверждено</span>
+                    }
+                    else if (item.Status == "rejected")
+                    {
+                        <span class="badge bg-danger">Отклонено</span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-secondary">На рассмотрении</span>
+                    }
+                </div>
+                <div class="card-body">
+                    @if (!string.IsNullOrEmpty(item.Description))
+                    {
+                        <p>@item.Description</p>
+                    }
+                    @if (item.Status == "rejected" && !string.IsNullOrEmpty(item.RejectionReason))
+                    {
+                        <div class="alert alert-danger py-2 mb-3">
+                            <strong>Причина отклонения:</strong> @item.RejectionReason
+                        </div>
+                    }
+                    @if (item.Files.Count > 0)
+                    {
+                        <div class="mt-2">
+                            <strong>Прикреплённые файлы:</strong>
+                            <ul class="mb-0 mt-1">
+                                @foreach (var f in item.Files)
+                                {
+                                    <li>
+                                        <a href="/api/files/@f.FileId/download" target="_blank" class="text-decoration-none">
+                                            📄 @f.FileName
+                                        </a>
+                                        <span class="text-muted small">(@FormatSize(f.SizeBytes))</span>
+                                    </li>
+                                }
+                            </ul>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+    }
+
+    @* ── Прикреплённые файлы (общие) ────────────────────────────────── *@
+    @if (_files.Count > 0 && _items.Count == 0)
     {
         <h4>Прикреплённые файлы</h4>
         <div class="mb-4">
@@ -181,6 +256,7 @@ else
     private ShareRequestDto? _request;
     private List<ParticipantResultDto> _resultParticipants = new();
     private List<FileDto> _files = new();
+    private List<ItemDto> _items = new();
     private bool _loading = true;
 
     // Данные для REQUEST_INFORMATION
@@ -248,6 +324,14 @@ else
 
             var filesResponse = await Http.GetFromJsonAsync<List<FileDto>>($"/api/share-requests/{Id}/files");
             _files = filesResponse ?? new();
+
+            // Загружаем пункты требования
+            try
+            {
+                var itemsResponse = await Http.GetFromJsonAsync<List<ItemDto>>($"/api/share-requests/{Id}/items");
+                _items = itemsResponse ?? new();
+            }
+            catch { /* пункты могут отсутствовать для старых требований */ }
         }
         catch (Exception ex)
         {
@@ -280,9 +364,19 @@ else
         _ => new($"<span class='badge bg-secondary'>{status}</span>")
     };
 
-    private record ShareRequestDto(Guid Id, Guid RequestTypeId, string? RequestTypeCode, string? RequestTypeName, string Status, string? Payload, DateTime CreatedAt, DateTime? CompletedAt, DateTime? RevokedAt, bool RevokedByNotarized, bool VisibleToAll, string? CeoComment, string? ReviewLocation);
+    private static MarkupString GetDecisionBadge(string? decisionStatus) => decisionStatus switch
+    {
+        "APPROVED" => new("<span class='badge bg-success'>Утверждено</span>"),
+        "REJECTED" => new("<span class='badge bg-danger'>Отклонено</span>"),
+        "PARTIALLY_APPROVED" => new("<span class='badge bg-warning'>Частично утверждено</span>"),
+        _ => new("<span class='badge bg-secondary'>На рассмотрении</span>")
+    };
+
+    private record ShareRequestDto(Guid Id, Guid RequestTypeId, string? RequestTypeCode, string? RequestTypeName, string Status, string? Payload, DateTime CreatedAt, DateTime? CompletedAt, DateTime? RevokedAt, bool RevokedByNotarized, bool VisibleToAll, string? CeoComment, string? ReviewLocation, string? DecisionStatus, string? DecisionComment, DateTime? DecidedAt);
     private record ParticipantResultDto(Guid ParticipantId, string? FullName, string? CompanyName, string ParticipantType, decimal? SharePercent, decimal? ShareAmount);
     private record FileDto(Guid Id, Guid FileId, string FileName, long SizeBytes, string? ContentType, DateTime CreatedAt);
+    private record ItemDto(Guid Id, int SequenceNumber, string Title, string? Description, string Status, string? RejectionReason, List<ItemFileDto> Files);
+    private record ItemFileDto(Guid Id, Guid FileId, string FileName, long SizeBytes, string? ContentType);
     private record RefDataDto(List<DocumentGroupDto>? DocumentGroups, List<AccessMethodDto>? AccessMethods);
     private record DocumentGroupDto(string Code, string Name, List<DocumentTypeDto> Documents);
     private record DocumentTypeDto(Guid Id, string Code, string Name, string GroupCode, string GroupName, bool IsElectronicAvailable, int StorageYears);

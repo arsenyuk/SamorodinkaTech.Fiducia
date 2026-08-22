@@ -95,6 +95,8 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
     public DbSet<Notarization> Notarizations => Set<Notarization>();
     public DbSet<ShareRequestSupport> ShareRequestSupports => Set<ShareRequestSupport>();
     public DbSet<ShareRequestFile> ShareRequestFiles => Set<ShareRequestFile>();
+    public DbSet<ShareRequestItem> ShareRequestItems => Set<ShareRequestItem>();
+    public DbSet<ShareRequestItemFile> ShareRequestItemFiles => Set<ShareRequestItemFile>();
 
     // Junction-таблицы файлов (BDR-011)
     public DbSet<MeetingFile> MeetingFiles => Set<MeetingFile>();

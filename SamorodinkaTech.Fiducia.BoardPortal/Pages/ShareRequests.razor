@@ -58,8 +58,20 @@ else
                 @foreach (var r in _filteredRequests)
                 {
                     <tr>
-                        <td>@r.RequestTypeName</td>
-                        <td>@GetStatusBadge(r.Status)</td>
+                        <td>
+                            @r.RequestTypeName
+                            @if (r.ItemCount > 0)
+                            {
+                                <br /><small class="text-muted">@r.ItemCount @GetItemWord(r.ItemCount)</small>
+                            }
+                        </td>
+                        <td>
+                            @GetStatusBadge(r.Status)
+                            @if (!string.IsNullOrEmpty(r.DecisionStatus))
+                            {
+                                <br />@GetDecisionBadge(r.DecisionStatus)
+                            }
+                        </td>
                         <td>@r.CreatedAt.ToString("dd.MM.yyyy HH:mm")</td>
                         <td class="d-flex gap-1">
                             <a href="/share-requests/@r.Id" class="btn btn-sm btn-outline-secondary">Подробнее</a>
@@ -196,6 +208,21 @@ else
         _ => new($"<span class='badge bg-secondary'>{status}</span>")
     };
 
-    private record ShareRequestDto(Guid Id, Guid RequestTypeId, string? RequestTypeCode, string? RequestTypeName, string Status, string? Payload, DateTime CreatedAt, DateTime? CompletedAt, DateTime? RevokedAt, bool RevokedByNotarized, bool VisibleToAll);
+    private static MarkupString GetDecisionBadge(string? decisionStatus) => decisionStatus switch
+    {
+        "APPROVED" => new("<span class='badge bg-success'>Решение: Утверждено</span>"),
+        "REJECTED" => new("<span class='badge bg-danger'>Решение: Отклонено</span>"),
+        "PARTIALLY_APPROVED" => new("<span class='badge bg-warning'>Решение: Частично утверждено</span>"),
+        _ => new("")
+    };
+
+    private static string GetItemWord(int count) => count switch
+    {
+        1 => "пункт",
+        >= 2 and <= 4 => "пункта",
+        _ => "пунктов"
+    };
+
+    private record ShareRequestDto(Guid Id, Guid RequestTypeId, string? RequestTypeCode, string? RequestTypeName, string Status, string? Payload, DateTime CreatedAt, DateTime? CompletedAt, DateTime? RevokedAt, bool RevokedByNotarized, bool VisibleToAll, string? DecisionStatus, int ItemCount);
     private record RequestTypeDto(Guid Id, string Code, string Name, bool RequiresFile);
 }
