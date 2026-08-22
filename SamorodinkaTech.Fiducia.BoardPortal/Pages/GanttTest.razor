@@ -48,14 +48,18 @@ else
                 Id = "task-1-1", ParentId = "stage-1", Name = "Разработка ТЗ",
                 NodeType = GanttNodeType.Task,
                 StartDate = new DateOnly(2026, 1, 12), EndDate = new DateOnly(2026, 2, 6),
-                Progress = 1.0, SortOrder = 1
+                Progress = 1.0, SortOrder = 1,
+                Description = "Подготовка технического задания на разработку платформы. Включает анализ требований, описание функциональных и нефункциональных требований.",
+                Status = "COMPLETED"
             },
             new()
             {
                 Id = "task-1-2", ParentId = "stage-1", Name = "Архитектура системы",
                 NodeType = GanttNodeType.Task,
                 StartDate = new DateOnly(2026, 2, 9), EndDate = new DateOnly(2026, 3, 13),
-                Progress = 0.7, SortOrder = 2
+                Progress = 0.7, SortOrder = 2,
+                Description = "Проектирование архитектуры системы: выбор технологического стека, определение компонентов, схема взаимодействия.",
+                Status = "IN_PROGRESS"
             },
             new()
             {
@@ -97,14 +101,18 @@ else
                 Id = "task-2-1", ParentId = "stage-2", Name = "Бэкенд API",
                 NodeType = GanttNodeType.Task,
                 StartDate = new DateOnly(2026, 3, 16), EndDate = new DateOnly(2026, 5, 29),
-                Progress = 0.3, SortOrder = 1
+                Progress = 0.3, SortOrder = 1,
+                Description = "Разработка серверной части: REST API, база данных, авторизация, бизнес-логика.",
+                Status = "IN_PROGRESS"
             },
             new()
             {
                 Id = "task-2-2", ParentId = "stage-2", Name = "Фронтенд",
                 NodeType = GanttNodeType.Task,
                 StartDate = new DateOnly(2026, 4, 13), EndDate = new DateOnly(2026, 7, 17),
-                Progress = 0.1, SortOrder = 2
+                Progress = 0.1, SortOrder = 2,
+                Description = "Разработка пользовательского интерфейса: страницы, компоненты, интеграция с API.",
+                Status = "PLANNED"
             },
             new()
             {

@@ -41,4 +41,10 @@ public sealed record GanttNode
 
     /// <summary>Путь в иерархии: «Активность > Этап > ...» (для тултипа).</summary>
     public string? BreadcrumbPath { get; init; }
+
+    /// <summary>Описание задачи/этапа/вехи (для модального окна).</summary>
+    public string? Description { get; init; }
+
+    /// <summary>Статус узла (PLANNED, IN_PROGRESS, COMPLETED и т.д.).</summary>
+    public string? Status { get; init; }
 }

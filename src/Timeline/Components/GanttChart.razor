@@ -41,7 +41,7 @@
                     var isGroup = node.NodeType is GanttNodeType.Project or GanttNodeType.Stage;
                     <div class="gantt-row @(isGroup ? "gantt-row-group" : "") @(node.NodeType == GanttNodeType.Project ? "gantt-row-project" : "") @(!isGroup ? "gantt-row-clickable" : "")"
                          style="padding-left:@(indent)px; height:@(RowHeight)px"
-                         @onclick="() => { if (!isGroup) ScrollToRow(node); }">
+                         @onclick="() => { if (!isGroup) { ScrollToRow(node); OnTaskBarClick.InvokeAsync(node); } }">
                         @if (isGroup)
                         {
                             <span class="gantt-expand" @onclick="() => ToggleExpand(node)" @onclick:stopPropagation="true">

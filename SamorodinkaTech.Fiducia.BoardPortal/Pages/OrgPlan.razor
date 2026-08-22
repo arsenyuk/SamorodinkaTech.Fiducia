@@ -24,7 +24,8 @@ else
         <GanttChart Data="@_ganttInput" RowHeight="32" BottomPaddingPx="60"
                     TaskColor="#42a5f5" StageColor="#78909c"
                     MilestoneColor="#9c27b0" OverdueColor="#d32f2f"
-                    ProgressColor="rgba(0,0,0,0.15)">
+                    ProgressColor="rgba(0,0,0,0.15)"
+                    OnTaskBarClick="OnTaskClick">
             <TooltipTemplate>
                 <div class="gantt-tooltip-name">@context.Name</div>
                 <div class="gantt-tooltip-path">@context.BreadcrumbPath</div>
@@ -43,8 +44,50 @@ else
     </div>
 }</div>
 
+@if (_showTaskModal && _selectedTask is not null)
+{
+    <div class="modal show d-block" tabindex="-1" style="background-color:rgba(0,0,0,0.5)" @onclick="CloseTaskModal">
+        <div class="modal-dialog" @onclick:stopPropagation>
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">@_selectedTask.Name</h5>
+                    <button type="button" class="btn-close" @onclick="CloseTaskModal"></button>
+                </div>
+                <div class="modal-body">
+                    @if (!string.IsNullOrEmpty(_selectedTask.Description))
+                    {
+                        <div>@_selectedTask.Description</div>
+                    }
+                    <div class="mt-2">
+                        <strong>Тип:</strong> @_selectedTask.NodeType
+                    </div>
+                    @if (!string.IsNullOrEmpty(_selectedTask.Status))
+                    {
+                        <div><strong>Статус:</strong> @_selectedTask.Status</div>
+                    }
+                    @{
+                        var dates = _selectedTask.NodeType == GanttNodeType.Milestone
+                            ? FormatDate(_selectedTask.MilestoneDate)
+                            : $"{FormatDate(_selectedTask.StartDate)} – {FormatDate(_selectedTask.EndDate)}";
+                    }
+                    <div><strong>Даты:</strong> @dates</div>
+                    @if (_selectedTask.AssignedUserName is { Length: > 0 })
+                    {
+                        <div><strong>Исполнитель:</strong> @_selectedTask.AssignedUserName</div>
+                    }
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" @onclick="CloseTaskModal">Закрыть</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
 @code {
     private GanttChartInput? _ganttInput;
+    private bool _showTaskModal;
+    private GanttNode? _selectedTask;
 
     protected override async Task OnInitializedAsync()
     {
@@ -77,7 +120,8 @@ else
                 nodes.Add(new GanttNode
                 {
                     Id = intentId, Name = intent.Name, NodeType = GanttNodeType.Project,
-                    SortOrder = sort++, Expanded = true
+                    SortOrder = sort++, Expanded = true,
+                    Description = intent.Description, Status = intent.Status
                 });
 
                 var intentStages = stages.Where(s => s.IntentId == intent.Id).ToList();
@@ -93,7 +137,8 @@ else
                         StartDate = stage.PlannedStart ?? stage.ActualStart,
                         EndDate = stage.PlannedEnd ?? stage.ActualEnd,
                         Progress = stageProgress, SortOrder = sort++,
-                        BreadcrumbPath = $"Активность > {stage.Name}"
+                        BreadcrumbPath = $"Активность > {stage.Name}",
+                        Description = stage.Description, Status = stage.Status
                     });
 
                     var stageTasks = tasks.Where(t => t.StageId == stage.Id).ToList();
@@ -111,7 +156,8 @@ else
                             BreadcrumbPath = $"Активность > {stage.Name}",
                             AssignedUserName = task.AssignedUser != null
                                 ? $"{task.AssignedUser.LastName} {task.AssignedUser.FirstName}"
-                                : null
+                                : null,
+                            Description = task.Description, Status = task.Status
                         });
                     }
                 }
@@ -130,7 +176,8 @@ else
                         MilestoneDate = msDate,
                         MilestoneType = MapMilestoneType(ms.MilestoneType),
                         SortOrder = sort++,
-                        BreadcrumbPath = $"Активность > {ms.Name}"
+                        BreadcrumbPath = $"Активность > {ms.Name}",
+                        Description = ms.Description, Status = ms.Status
                     });
                 }
             }
@@ -239,4 +286,15 @@ else
         MilestoneType.INTEGRATION => GanttMilestoneType.Integration,
         _ => GanttMilestoneType.Regular
     };
+
+    private void OnTaskClick(GanttNode node)
+    {
+        _selectedTask = node;
+        _showTaskModal = true;
+    }
+
+    private void CloseTaskModal()
+    {
+        _showTaskModal = false;
+    }
 }
