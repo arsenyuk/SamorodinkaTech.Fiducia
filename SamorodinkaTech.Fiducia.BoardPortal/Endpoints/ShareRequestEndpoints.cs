@@ -99,6 +99,36 @@ public static class ShareRequestEndpoints
             }
         });
 
+        // GET: справочники для требования "Требование о предоставлении информации"
+        shareRequests.MapGet("/ref-data", async (
+            IDbContextFactory<FiduciaDbContext> dbFactory) =>
+        {
+            await using var ctx = await dbFactory.CreateDbContextAsync();
+
+            var documentTypes = await ctx.DocumentTypes
+                .OrderBy(d => d.SortOrder)
+                .Select(d => new { d.Id, d.Code, d.Name, d.GroupCode, d.GroupName, d.IsElectronicAvailable, d.StorageYears })
+                .ToListAsync();
+
+            // Группируем документы
+            var documentGroups = documentTypes
+                .GroupBy(d => d.GroupCode)
+                .Select(g => new
+                {
+                    Code = g.Key,
+                    Name = g.First().GroupName,
+                    Documents = g.ToList()
+                })
+                .ToList();
+
+            var accessMethods = await ctx.DocumentAccessMethods
+                .OrderBy(m => m.SortOrder)
+                .Select(m => new { m.Id, m.Code, m.Name, m.Description, m.DeadlineDays })
+                .ToListAsync();
+
+            return Results.Ok(new { documentGroups, accessMethods });
+        });
+
         // GET: порог для типа требования
         shareRequests.MapGet("/threshold", async (
             string typeCode,
@@ -875,6 +905,29 @@ public static class ShareRequestEndpoints
                     request.Status = dto.Decision;
                 }
                 request.CeoComment = dto.Comment;
+
+                // Валидация ReviewLocation для REQUEST_INFORMATION с способом "Ознакомление в офисе"
+                if (request.RequestType?.Code == "REQUEST_INFORMATION" && dto.Decision == "ACCEPTED")
+                {
+                    if (!string.IsNullOrEmpty(request.Payload))
+                    {
+                        try
+                        {
+                            var payload = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(request.Payload);
+                            if (payload.TryGetProperty("accessMethodCode", out var methodProp))
+                            {
+                                var accessMethod = methodProp.GetString();
+                                if (accessMethod == "IN_PERSON" && string.IsNullOrWhiteSpace(dto.ReviewLocation))
+                                {
+                                    return Results.BadRequest(new { error = "Для способа 'Ознакомление в офисе' необходимо указать место ознакомления" });
+                                }
+                            }
+                        }
+                        catch { /* payload не JSON — пропускаем валидацию */ }
+                    }
+                }
+
+                request.ReviewLocation = dto.ReviewLocation;
                 request.CeoDecisionAt = DateTime.UtcNow;
                 request.DecidedByUserId = userId;
                 request.CompletedAt = DateTime.UtcNow;
@@ -1566,6 +1619,8 @@ public static class ShareRequestEndpoints
         r.RevokedAt,
         r.RevokedByNotarized,
         r.VisibleToAll,
+        r.CeoComment,
+        r.ReviewLocation,
         IsEditable = r.Status == "draft"
     };
 
@@ -1587,6 +1642,7 @@ public static class ShareRequestEndpoints
         r.SubmittedToCeoAt,
         r.CeoDecisionAt,
         r.CeoComment,
+        r.ReviewLocation,
         r.OrgIntentId,
         IsEditable = r.CollectiveStatus == "COLLECTING"
     };
@@ -1645,5 +1701,5 @@ public record ShareRequestUpdateDto(string? Payload);
 public record ShareRequestCompleteDto(string? Status, string? Payload);
 public record ShareRequestRevokeDto(bool Notarized);
 public record ShareRequestCollectiveCreateDto(Guid RequestTypeId, string? Payload, string? DemandText);
-public record ShareRequestDecideDto(string Decision, string? Comment);
+public record ShareRequestDecideDto(string Decision, string? Comment, string? ReviewLocation);
 public record ShareRequestAttachFileDto(Guid FileId);

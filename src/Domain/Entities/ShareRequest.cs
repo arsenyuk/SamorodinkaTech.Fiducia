@@ -92,6 +92,9 @@ public class ShareRequest
     /// <summary>Пользователь, принявший решение.</summary>
     public User? DecidedByUser { get; set; }
 
+    /// <summary>Место ознакомления с документами (review_location). Заполняется ГД при способе "Ознакомление в офисе".</summary>
+    public string? ReviewLocation { get; set; }
+
     /// <summary>Поддержки участников.</summary>
     public ICollection<ShareRequestSupport> Supports { get; set; } = new List<ShareRequestSupport>();
 

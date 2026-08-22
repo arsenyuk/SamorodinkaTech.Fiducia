@@ -15,6 +15,15 @@ public class RefDocumentType
     /// <summary>Наименование документа (name).</summary>
     public string Name { get; set; } = default!;
 
+    /// <summary>Код группы (group_code): FOUNDING, PROPERTY, PROTOCOLS и т.д.</summary>
+    public string GroupCode { get; set; } = default!;
+
+    /// <summary>Наименование группы (group_name).</summary>
+    public string GroupName { get; set; } = default!;
+
+    /// <summary>Доступно в электронном виде (is_electronic_available).</summary>
+    public bool IsElectronicAvailable { get; set; }
+
     /// <summary>Единичный документ (is_unitary). TRUE — документ уникальный, FALSE — многократный.</summary>
     public bool IsUnitary { get; set; }
 

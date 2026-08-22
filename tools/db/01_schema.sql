@@ -602,6 +602,16 @@ CREATE TABLE IF NOT EXISTS legal_entity_extra_settings (
     notary_list_decision_date date
 );
 
+-- Настройки доступности документов для ЮЛ (какие типы документов доступны в электронном виде)
+CREATE TABLE IF NOT EXISTS legal_entity_document_access (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    legal_entity_id uuid NOT NULL REFERENCES legal_entities(id) ON DELETE CASCADE,
+    document_type_code varchar(50) NOT NULL,
+    is_electronic_available boolean NOT NULL DEFAULT FALSE,
+    created_at timestamp with time zone NOT NULL DEFAULT NOW(),
+    UNIQUE (legal_entity_id, document_type_code)
+);
+
 -- ============================================================================
 -- Совет директоров
 -- ============================================================================
@@ -1418,6 +1428,8 @@ CREATE TABLE IF NOT EXISTS share_request (
     ceo_decision_at timestamp with time zone,
     ceo_comment text,
     decided_by_user_id uuid REFERENCES users(id) ON DELETE SET NULL,
+    -- Место ознакомления (для способа "Ознакомление в офисе")
+    review_location text,
     -- Орг-план ВОСУ
     org_intent_id uuid REFERENCES org_intents(id) ON DELETE SET NULL
 );
@@ -1467,6 +1479,9 @@ CREATE TABLE IF NOT EXISTS ref_document_type (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     code varchar(50) NOT NULL,
     name varchar(300) NOT NULL,
+    group_code varchar(50) NOT NULL,
+    group_name varchar(200) NOT NULL,
+    is_electronic_available boolean NOT NULL DEFAULT FALSE,
     is_unitary boolean NOT NULL DEFAULT FALSE,
     storage_years integer NOT NULL DEFAULT 3,
     is_for_llc boolean NOT NULL DEFAULT FALSE,

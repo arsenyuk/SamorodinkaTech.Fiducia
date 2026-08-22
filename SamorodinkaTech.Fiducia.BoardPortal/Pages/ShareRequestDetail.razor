@@ -1,5 +1,6 @@
 @page "/share-requests/{Id:guid}"
 @using System.Net.Http.Json
+@using System.Text.Json
 @inject HttpClient Http
 @inject NavigationManager Nav
 @inject ILogger<ShareRequestDetail> Logger
@@ -43,6 +44,26 @@ else
             }
         </div>
     </div>
+
+    @* ── Место ознакомления (для принятых требований) ──────────────── *@
+    @if (_request.Status == "accepted" && !string.IsNullOrEmpty(_request.ReviewLocation))
+    {
+        <div class="card mb-4 border-success">
+            <div class="card-body">
+                <h5 class="text-success">Документы готовы к ознакомлению</h5>
+                <p class="mb-1"><strong>Место ознакомления:</strong></p>
+                <p class="mb-0">@_request.ReviewLocation</p>
+            </div>
+        </div>
+    }
+
+    @* ── Комментарий ГД (для завершённых требований) ────────────────── *@
+    @if ((_request.Status == "accepted" || _request.Status == "rejected") && !string.IsNullOrEmpty(_request.CeoComment))
+    {
+        <div class="alert alert-info mb-4">
+            <strong>Комментарий ГД:</strong> @_request.CeoComment
+        </div>
+    }
 
     @* ── Действия для черновика ────────────────────────────────────── *@
     @if (_request.Status == "draft")
@@ -98,7 +119,39 @@ else
     }
 
     @* ── Payload для других типов ──────────────────────────────────── *@
-    @if (_request.RequestTypeCode != "PREEMPTIVE_LIST" && !string.IsNullOrEmpty(_request.Payload))
+    @if (_request.RequestTypeCode == "REQUEST_INFORMATION" && !string.IsNullOrEmpty(_request.Payload))
+    {
+        <h4>Запрошенные документы</h4>
+        <div class="card mb-4">
+            <div class="card-body">
+                @if (_infoDocumentTypes.Count > 0)
+                {
+                    <div class="mb-3">
+                        <strong>Типы документов:</strong>
+                        <ul class="mb-0">
+                            @foreach (var dt in _infoDocumentTypes)
+                            {
+                                <li>@dt</li>
+                            }
+                        </ul>
+                    </div>
+                }
+                @if (!string.IsNullOrEmpty(_infoAccessMethod))
+                {
+                    <div class="mb-3">
+                        <strong>Способ предоставления:</strong> @_infoAccessMethod
+                    </div>
+                }
+                @if (!string.IsNullOrEmpty(_infoText))
+                {
+                    <div>
+                        <strong>Комментарий:</strong> @_infoText
+                    </div>
+                }
+            </div>
+        </div>
+    }
+    else if (_request.RequestTypeCode != "PREEMPTIVE_LIST" && !string.IsNullOrEmpty(_request.Payload))
     {
         <h4>Данные запроса</h4>
         <pre class="bg-light p-3 rounded"><code>@_request.Payload</code></pre>
@@ -130,11 +183,62 @@ else
     private List<FileDto> _files = new();
     private bool _loading = true;
 
+    // Данные для REQUEST_INFORMATION
+    private List<string> _infoDocumentTypes = new();
+    private string? _infoAccessMethod;
+    private string? _infoText;
+
+    // Справочники для кодирования
+    private Dictionary<string, string> _documentTypeNames = new();
+    private Dictionary<string, string> _accessMethodNames = new();
+
     protected override async Task OnInitializedAsync()
     {
         try
         {
             _request = await Http.GetFromJsonAsync<ShareRequestDto>($"/api/share-requests/{Id}");
+
+            // Загружаем справочники для отображения REQUEST_INFORMATION
+            try
+            {
+                var refData = await Http.GetFromJsonAsync<RefDataDto>("/api/share-requests/ref-data");
+                if (refData?.DocumentGroups is not null)
+                {
+                    foreach (var group in refData.DocumentGroups)
+                    {
+                        foreach (var doc in group.Documents)
+                            _documentTypeNames[doc.Code] = doc.Name;
+                    }
+                }
+                if (refData?.AccessMethods is not null)
+                    _accessMethodNames = refData.AccessMethods.ToDictionary(m => m.Code, m => m.Name);
+            }
+            catch { /* не критично */ }
+
+            // Парсим payload для REQUEST_INFORMATION
+            if (_request?.RequestTypeCode == "REQUEST_INFORMATION" && !string.IsNullOrEmpty(_request.Payload))
+            {
+                try
+                {
+                    var payload = System.Text.Json.JsonSerializer.Deserialize<JsonElement>(_request.Payload);
+                    if (payload.TryGetProperty("documentTypeCodes", out var codesProp))
+                    {
+                        foreach (var code in codesProp.EnumerateArray())
+                        {
+                            var codeStr = code.GetString() ?? "";
+                            _infoDocumentTypes.Add(_documentTypeNames.GetValueOrDefault(codeStr, codeStr));
+                        }
+                    }
+                    if (payload.TryGetProperty("accessMethodCode", out var methodProp))
+                    {
+                        var methodCode = methodProp.GetString() ?? "";
+                        _infoAccessMethod = _accessMethodNames.GetValueOrDefault(methodCode, methodCode);
+                    }
+                    if (payload.TryGetProperty("text", out var textProp))
+                        _infoText = textProp.GetString();
+                }
+                catch { /* payload не JSON */ }
+            }
 
             if (_request?.RequestTypeCode == "PREEMPTIVE_LIST" && _request.Status == "completed")
             {
@@ -176,9 +280,13 @@ else
         _ => new($"<span class='badge bg-secondary'>{status}</span>")
     };
 
-    private record ShareRequestDto(Guid Id, Guid RequestTypeId, string? RequestTypeCode, string? RequestTypeName, string Status, string? Payload, DateTime CreatedAt, DateTime? CompletedAt, DateTime? RevokedAt, bool RevokedByNotarized, bool VisibleToAll);
+    private record ShareRequestDto(Guid Id, Guid RequestTypeId, string? RequestTypeCode, string? RequestTypeName, string Status, string? Payload, DateTime CreatedAt, DateTime? CompletedAt, DateTime? RevokedAt, bool RevokedByNotarized, bool VisibleToAll, string? CeoComment, string? ReviewLocation);
     private record ParticipantResultDto(Guid ParticipantId, string? FullName, string? CompanyName, string ParticipantType, decimal? SharePercent, decimal? ShareAmount);
     private record FileDto(Guid Id, Guid FileId, string FileName, long SizeBytes, string? ContentType, DateTime CreatedAt);
+    private record RefDataDto(List<DocumentGroupDto>? DocumentGroups, List<AccessMethodDto>? AccessMethods);
+    private record DocumentGroupDto(string Code, string Name, List<DocumentTypeDto> Documents);
+    private record DocumentTypeDto(Guid Id, string Code, string Name, string GroupCode, string GroupName, bool IsElectronicAvailable, int StorageYears);
+    private record AccessMethodDto(Guid Id, string Code, string Name, string? Description, int? DeadlineDays);
 
     private static string FormatSize(long bytes)
     {

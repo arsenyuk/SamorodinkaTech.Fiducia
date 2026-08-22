@@ -48,6 +48,88 @@ public static class AgendaItemEndpoints
             }
         });
 
+        // GET: настройки доступности документов для текущего ЮЛ
+        extraSettings.MapGet("/document-access", async (
+            IDbContextFactory<FiduciaDbContext> dbFactory,
+            ILoggerFactory loggerFactory,
+            HttpContext http) =>
+        {
+            var logger = loggerFactory.CreateLogger("LegalEntity.DocumentAccess");
+            try
+            {
+                await using var ctx = await dbFactory.CreateDbContextAsync();
+                var leId = await GetLegalEntityIdAsync(ctx, http);
+                if (leId is null)
+                    return Results.Ok(new List<object>());
+
+                var accesses = await ctx.LegalEntityDocumentAccesses
+                    .Where(x => x.LegalEntityId == leId.Value)
+                    .Select(x => new { x.DocumentTypeCode, x.IsElectronicAvailable })
+                    .ToListAsync();
+
+                return Results.Ok(accesses);
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Ошибка получения настроек доступности документов");
+                return Results.BadRequest(new { error = ex.Message });
+            }
+        });
+
+        // POST: сохранить настройки доступности документов для текущего ЮЛ
+        extraSettings.MapPost("/document-access", async (
+            List<DocumentAccessDto> accesses,
+            IDbContextFactory<FiduciaDbContext> dbFactory,
+            ILoggerFactory loggerFactory,
+            HttpContext http) =>
+        {
+            var logger = loggerFactory.CreateLogger("LegalEntity.DocumentAccess.Save");
+            try
+            {
+                await using var ctx = await dbFactory.CreateDbContextAsync();
+                var leId = await GetLegalEntityIdAsync(ctx, http);
+                if (leId is null)
+                    return Results.BadRequest(new { error = "Юридическое лицо не выбрано" });
+
+                // Валидация: проверяем существование document_type_code в справочнике
+                var validCodes = await ctx.DocumentTypes.Select(d => d.Code).ToListAsync();
+                foreach (var access in accesses)
+                {
+                    if (string.IsNullOrWhiteSpace(access.DocumentTypeCode))
+                        return Results.BadRequest(new { error = "Код типа документа не может быть пустым" });
+
+                    if (!validCodes.Contains(access.DocumentTypeCode))
+                        return Results.BadRequest(new { error = $"Неизвестный тип документа: {access.DocumentTypeCode}" });
+                }
+
+                // Удаляем старые настройки
+                await ctx.LegalEntityDocumentAccesses
+                    .Where(x => x.LegalEntityId == leId.Value)
+                    .ExecuteDeleteAsync();
+
+                // Добавляем новые
+                foreach (var access in accesses)
+                {
+                    ctx.LegalEntityDocumentAccesses.Add(new LegalEntityDocumentAccess
+                    {
+                        Id = Guid.NewGuid(),
+                        LegalEntityId = leId.Value,
+                        DocumentTypeCode = access.DocumentTypeCode,
+                        IsElectronicAvailable = access.IsElectronicAvailable
+                    });
+                }
+
+                await ctx.SaveChangesAsync();
+
+                return Results.Ok(new { message = "Настройки сохранены" });
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Ошибка сохранения настроек доступности документов");
+                return Results.BadRequest(new { error = ex.Message });
+            }
+        });
+
         // GET: список пунктов повестки ОСУ для текущего ЮЛ
         agendaItems.MapGet("/", async (
             string? targetType,
@@ -263,4 +345,5 @@ public static class AgendaItemEndpoints
     public record AgendaItemDto(Guid Id, string Title, string TargetType, string Reason, string Status, Guid? ShareRequestId, DateTime CreatedAt);
     public record AgendaItemCreateDto(string Title, string TargetType, string Reason, Guid? ShareRequestId);
     public record ExtraSettingsDto(bool NotaryListApproved, string? NotaryListDecisionDate);
+    public record DocumentAccessDto(string DocumentTypeCode, bool IsElectronicAvailable);
 }

@@ -45,6 +45,7 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
     public DbSet<LegalEntityVotingRules> LegalEntityVotingRules => Set<LegalEntityVotingRules>();
     public DbSet<LegalEntityEmailSettings> LegalEntityEmailSettings => Set<LegalEntityEmailSettings>();
     public DbSet<LegalEntityExtraSettings> LegalEntityExtraSettings => Set<LegalEntityExtraSettings>();
+    public DbSet<LegalEntityDocumentAccess> LegalEntityDocumentAccesses => Set<LegalEntityDocumentAccess>();
     public DbSet<RefStandardCharter> RefStandardCharters => Set<RefStandardCharter>();
     public DbSet<LegalEntityCharter> LegalEntityCharters => Set<LegalEntityCharter>();
     public DbSet<AgendaItem> AgendaItems => Set<AgendaItem>();

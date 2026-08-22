@@ -154,6 +154,65 @@ else
                                   placeholder="@(_selectedType.Code == "OTHER" ? "Опишите ваше требование или запрос..." : "Дополнительная информация...")"></textarea>
                     </div>
                 }
+
+                @* ── Типы документов и способ предоставления (REQUEST_INFORMATION) ── *@
+                @if (_selectedType.Code == "REQUEST_INFORMATION")
+                {
+                    <div class="col-12">
+                        <label class="form-label">Какие документы вы запрашиваете? *</label>
+                        @if (_documentGroups.Count > 0)
+                        {
+                            @foreach (var group in _documentGroups)
+                            {
+                                <div class="mb-3">
+                                    <h6 class="text-muted mb-2">@group.Name</h6>
+                                    @foreach (var dt in group.Documents)
+                                    {
+                                        <div class="form-check ms-3">
+                                            <input class="form-check-input" type="checkbox"
+                                                   checked="@_selectedDocumentTypeCodes.Contains(dt.Code)"
+                                                   @onchange="e => ToggleDocumentType(dt.Code, e.Value)" />
+                                            <label class="form-check-label">
+                                                @dt.Name
+                                                <small class="text-muted">(хранение @dt.StorageYears лет)</small>
+                                            </label>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <div class="text-muted">Загрузка справочника...</div>
+                        }
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">Способ предоставления *</label>
+                        @if (_accessMethods.Count > 0)
+                        {
+                            @foreach (var am in _accessMethods.Where(m => m.Code != "ELECTRONIC_COPY" || HasElectronicAvailable()))
+                            {
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="accessMethod"
+                                           value="@am.Code"
+                                           checked="@(_selectedAccessMethodCode == am.Code)"
+                                           @onchange="() => _selectedAccessMethodCode = am.Code" />
+                                    <label class="form-check-label">
+                                        @am.Name
+                                        @if (am.DeadlineDays.HasValue)
+                                        {
+                                            <small class="text-muted">(в течение @am.DeadlineDays раб. дней)</small>
+                                        }
+                                    </label>
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <div class="text-muted">Загрузка справочника...</div>
+                        }
+                    </div>
+                }
             </div>
 
             @* ── Файлы (общий блок для всех типов) ────────────────────── *@
@@ -208,7 +267,16 @@ else
     private decimal? _participantSharePercent;
     private List<UploadedFileInfo> _uploadedFiles = new();
 
+    // Справочники для REQUEST_INFORMATION
+    private List<DocumentGroupDto> _documentGroups = new();
+    private List<AccessMethodDto> _accessMethods = new();
+    private HashSet<string> _selectedDocumentTypeCodes = new();
+    private string? _selectedAccessMethodCode;
+
     private record UploadedFileInfo(Guid FileId, string Name);
+    private record DocumentGroupDto(string Code, string Name, List<DocumentTypeDto> Documents);
+    private record DocumentTypeDto(Guid Id, string Code, string Name, string GroupCode, string GroupName, bool IsElectronicAvailable, int StorageYears);
+    private record AccessMethodDto(Guid Id, string Code, string Name, string? Description, int? DeadlineDays);
 
     protected override async Task OnInitializedAsync()
     {
@@ -221,6 +289,18 @@ else
             {
                 var participant = await Http.GetFromJsonAsync<ParticipantDto>("/api/participants/current");
                 _participantSharePercent = participant?.SharePercent;
+            }
+            catch { /* не критично */ }
+
+            // Загружаем справочники для REQUEST_INFORMATION
+            try
+            {
+                var refData = await Http.GetFromJsonAsync<RefDataDto>("/api/share-requests/ref-data");
+                if (refData is not null)
+                {
+                    _documentGroups = refData.DocumentGroups ?? new();
+                    _accessMethods = refData.AccessMethods ?? new();
+                }
             }
             catch { /* не критично */ }
 
@@ -245,6 +325,13 @@ else
                                     _demandReason = reasonProp.GetString();
                                 if (payload.TryGetProperty("newCharterNumber", out var charterProp))
                                     _newCharterNumber = charterProp.GetString();
+                                if (payload.TryGetProperty("documentTypeCodes", out var codesProp))
+                                {
+                                    foreach (var code in codesProp.EnumerateArray())
+                                        _selectedDocumentTypeCodes.Add(code.GetString() ?? "");
+                                }
+                                if (payload.TryGetProperty("accessMethodCode", out var methodProp))
+                                    _selectedAccessMethodCode = methodProp.GetString();
                             }
                             catch { /* payload не JSON — игнорируем */ }
                         }
@@ -465,11 +552,41 @@ else
         {
             return System.Text.Json.JsonSerializer.Serialize(new { newCharterNumber = _newCharterNumber });
         }
+        if (_selectedType.Code == "REQUEST_INFORMATION")
+        {
+            return System.Text.Json.JsonSerializer.Serialize(new
+            {
+                documentTypeCodes = _selectedDocumentTypeCodes.ToList(),
+                accessMethodCode = _selectedAccessMethodCode,
+                text = _demandText
+            });
+        }
         if (!string.IsNullOrWhiteSpace(_demandText))
         {
             return System.Text.Json.JsonSerializer.Serialize(new { text = _demandText });
         }
         return null;
+    }
+
+    private void ToggleDocumentType(string code, object? isChecked)
+    {
+        if (isChecked is bool checkedVal && checkedVal)
+            _selectedDocumentTypeCodes.Add(code);
+        else
+            _selectedDocumentTypeCodes.Remove(code);
+    }
+
+    private bool HasElectronicAvailable()
+    {
+        foreach (var group in _documentGroups)
+        {
+            foreach (var doc in group.Documents)
+            {
+                if (_selectedDocumentTypeCodes.Contains(doc.Code) && doc.IsElectronicAvailable)
+                    return true;
+            }
+        }
+        return false;
     }
 
     private static string GetDescription(string code) => code switch
@@ -542,4 +659,5 @@ else
     private record ParticipantDto(Guid Id, string? FullName, decimal? SharePercent);
     private record CreatedRequestDto(Guid? Id);
     private record ExistingRequestDto(Guid Id, Guid RequestTypeId, string? Payload, string Status);
+    private record RefDataDto(List<DocumentGroupDto>? DocumentGroups, List<AccessMethodDto>? AccessMethods);
 }
