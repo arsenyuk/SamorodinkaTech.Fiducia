@@ -1,0 +1,192 @@
+@page "/documents/catalog"
+@using System.Net.Http.Json
+@inject HttpClient Http
+@inject NavigationManager Nav
+@inject ILogger<DocumentsCatalog> Logger
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "PARTICIPANT")]
+
+<PageTitle>Fiducia — Предоставленные документы</PageTitle>
+
+<h3>Предоставленные документы</h3>
+
+@if (_error is not null)
+{
+    <div class="alert alert-danger">@_error</div>
+}
+
+@if (_loading)
+{
+    <div class="text-center py-4">
+        <div class="spinner-border text-primary" role="status"></div>
+    </div>
+}
+else if (_groups.Count == 0)
+{
+    <div class="alert alert-info">
+        Нет предоставленных документов. Документы появятся здесь после принятия ваших требований
+        о предоставлении информации.
+    </div>
+}
+else
+{
+    @* ── Группы документов (accordion) ──────────────────────────── *@
+    <div class="accordion" id="documentCatalog">
+        @foreach (var group in _groups)
+        {
+            var collapseId = $"group-{group.GroupName.GetHashCode()}";
+            var isFirst = group == _groups.First();
+
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button @(isFirst ? "" : "collapsed")"
+                            type="button"
+                            data-bs-toggle="collapse"
+                            data-bs-target="#@collapseId"
+                            aria-expanded="@(isFirst ? "true" : "false")">
+                        <span class="me-2">
+                            @GetGroupIcon(group.GroupName)
+                        </span>
+                        <strong>@group.GroupName</strong>
+                        <span class="badge bg-secondary ms-2">@group.TotalFiles файл(ов)</span>
+                        @if (group.LatestProvisionDate.HasValue)
+                        {
+                            <small class="text-muted ms-auto me-3">
+                                Обновлено: @group.LatestProvisionDate.Value.ToString("dd.MM.yyyy")
+                            </small>
+                        }
+                    </button>
+                </h2>
+                <div id="@collapseId" class="accordion-collapse collapse @(isFirst ? "show" : "")"
+                     data-bs-parent="#documentCatalog">
+                    <div class="accordion-body">
+                        @if (group.Demands.Count == 0)
+                        {
+                            <div class="text-muted">Нет предоставленных файлов</div>
+                        }
+                        else
+                        {
+                            @foreach (var demand in group.Demands)
+                            {
+                                <div class="mb-3">
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <a href="/share-requests/@demand.ShareRequestId"
+                                           class="text-decoration-none fw-bold">
+                                            @demand.DemandNumber
+                                        </a>
+                                        @GetDemandStatusBadge(demand.Status)
+                                    </div>
+
+                                    @foreach (var item in demand.Items)
+                                    {
+                                        @if (item.Files.Count == 0)
+                                        {
+                                            <div class="text-muted small ms-3">Ожидает предоставления</div>
+                                        }
+                                        else
+                                        {
+                                            <ul class="list-unstyled ms-3 mb-0">
+                                                @foreach (var file in item.Files)
+                                                {
+                                                    <li class="mb-1">
+                                                        <a href="/api/files/@file.FileId/download"
+                                                           target="_blank"
+                                                           class="text-decoration-none">
+                                                            <span class="oi oi-document me-1"></span>
+                                                            @file.FileName
+                                                        </a>
+                                                        <span class="text-muted small">
+                                                            (@FormatSize(file.SizeBytes))
+                                                        </span>
+                                                        <small class="text-muted">
+                                                            — @file.ProvisionDate.ToString("dd.MM.yyyy HH:mm")
+                                                        </small>
+                                                    </li>
+                                                }
+                                            </ul>
+                                        }
+                                    }
+                                </div>
+                                <hr />
+                            }
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    private List<CatalogGroupDto> _groups = new();
+    private bool _loading = true;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var response = await Http.GetFromJsonAsync<CatalogResponseDto>("/api/documents/catalog");
+            _groups = response?.Groups ?? new();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Ошибка загрузки каталога документов");
+            _error = "Не удалось загрузить каталог документов.";
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private static string GetGroupIcon(string groupName) => groupName switch
+    {
+        var n when n.Contains("учредительн", StringComparison.OrdinalIgnoreCase) => "📄",
+        var n when n.Contains("имуществ", StringComparison.OrdinalIgnoreCase) => "🏢",
+        var n when n.Contains("протокол", StringComparison.OrdinalIgnoreCase) => "📋",
+        var n when n.Contains("финанс", StringComparison.OrdinalIgnoreCase) => "💰",
+        var n when n.Contains("сделк", StringComparison.OrdinalIgnoreCase) => "📝",
+        var n when n.Contains("внутренн", StringComparison.OrdinalIgnoreCase) => "📁",
+        _ => "📄"
+    };
+
+    private static MarkupString GetDemandStatusBadge(string status) => status switch
+    {
+        "accepted" => new("<span class='badge bg-success'>Принято</span>"),
+        "completed" => new("<span class='badge bg-success'>Завершено</span>"),
+        _ => new($"<span class='badge bg-secondary'>{status}</span>")
+    };
+
+    private static string FormatSize(long bytes)
+    {
+        if (bytes < 1024) return $"{bytes} Б";
+        if (bytes < 1024 * 1024) return $"{bytes / 1024.0:F1} КБ";
+        if (bytes < 1024 * 1024 * 1024) return $"{bytes / (1024.0 * 1024.0):F1} МБ";
+        return $"{bytes / (1024.0 * 1024.0 * 1024.0):F1} ГБ";
+    }
+
+    // ── DTO ──────────────────────────────────────────────────────
+
+    private record CatalogResponseDto(List<CatalogGroupDto> Groups);
+    private record CatalogGroupDto(
+        string GroupName,
+        int TotalFiles,
+        DateTime? LatestProvisionDate,
+        List<CatalogDemandDto> Demands);
+    private record CatalogDemandDto(
+        Guid ShareRequestId,
+        string DemandNumber,
+        DateTime CreatedAt,
+        string Status,
+        List<CatalogItemDto> Items);
+    private record CatalogItemDto(
+        Guid ItemId,
+        string? Title,
+        List<CatalogFileDto> Files);
+    private record CatalogFileDto(
+        Guid FileId,
+        string FileName,
+        long SizeBytes,
+        string? ContentType,
+        DateTime ProvisionDate);
+}

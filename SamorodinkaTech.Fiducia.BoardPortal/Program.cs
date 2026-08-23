@@ -118,6 +118,9 @@ builder.Services.AddSingleton<ILegalEntityGosaIntervalService, LegalEntityGosaIn
 // Template instantiation — подстановка данных в шаблоны документов
 builder.Services.AddScoped<ITemplateInstantiationService, TemplateInstantiationService>();
 
+// Document provision — автоматическая подгрузка документов при принятии требования
+builder.Services.AddScoped<IDocumentProvisionService, DocumentProvisionService>();
+
 // Meeting services — сохранение и загрузка данных собраний (OsaMeeting + BoardOfDirectors + BoardMembers)
 builder.Services.AddScoped<IMeetingSaveService, MeetingSaveService>();
 builder.Services.AddScoped<IMeetingLoadService, MeetingLoadService>();
@@ -458,6 +461,9 @@ app.MapParticipantEndpoints();
 
 // ── Share Requests API (Запросы участника в общество + коллективные) ───
 app.MapShareRequestEndpoints();
+
+// ── Document Catalog API (Каталог предоставленных документов) ────────
+app.MapDocumentCatalogEndpoints();
 
 // ── Agenda Items API (Повестка ОСУ) ────────────────────────────────────
 app.MapAgendaItemEndpoints();

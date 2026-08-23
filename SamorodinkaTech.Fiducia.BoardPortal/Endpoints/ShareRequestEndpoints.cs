@@ -1037,6 +1037,13 @@ public static class ShareRequestEndpoints
                     }
                 }
 
+                // Если требование принято и тип = REQUEST_INFORMATION — автоматически подгружаем документы
+                if (dto.Decision == "ACCEPTED" && request.RequestType?.Code == "REQUEST_INFORMATION")
+                {
+                    var docProvisionService = http.RequestServices.GetRequiredService<IDocumentProvisionService>();
+                    await docProvisionService.AutoProvisionDocumentsAsync(request.Id);
+                }
+
                 // Уведомляем всех поддержавших
                 await NotifySupportersAsync(ctx, request, logger);
 
