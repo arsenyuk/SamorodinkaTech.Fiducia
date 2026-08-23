@@ -43,7 +43,7 @@ else
                     <td>@(c.InheritanceWithoutConsent ? "Без согласия" : "С согласия")</td>
                     <td>@ExecBodyLabel(c.ExecutiveBody)</td>
                     <td>@DirectorTermLabel(c.ExecutiveBody)</td>
-                    <td>@(c.DecisionConfirmationByAllSign ? "Подписание всеми" : "Нотариальное")</td>
+                    <td>@(c.ProtocolConfirmationMethod?.Name ?? "—")</td>
                 </tr>
             }
             </tbody>
@@ -61,7 +61,9 @@ else
     protected override async Task OnInitializedAsync()
     {
         await using var ctx = await DbFactory.CreateDbContextAsync();
-        _charters = await ctx.RefStandardCharters.OrderBy(x => x.Number).ToListAsync();
+        _charters = await ctx.RefStandardCharters
+            .Include(x => x.ProtocolConfirmationMethod)
+            .OrderBy(x => x.Number).ToListAsync();
     }
 
     private static string ExecBodyLabel(char body) => body switch

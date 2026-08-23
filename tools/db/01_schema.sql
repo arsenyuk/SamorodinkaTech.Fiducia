@@ -184,7 +184,7 @@ CREATE TABLE IF NOT EXISTS ref_standard_charter (
     preemptive_right boolean NOT NULL DEFAULT true,
     inheritance_without_consent boolean NOT NULL DEFAULT true,
     executive_body char(1) NOT NULL DEFAULT 'A' CHECK (executive_body IN ('A', 'B', 'C')),
-    decision_confirmation_by_all_sign boolean NOT NULL DEFAULT false,
+    protocol_confirmation_method_id uuid NOT NULL REFERENCES ref_protocol_confirmation_method(id),
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     created_by uuid NOT NULL REFERENCES users(id)
 );
@@ -260,6 +260,16 @@ CREATE TABLE IF NOT EXISTS ref_gd_term (
     code varchar(20) UNIQUE NOT NULL,
     name varchar(200) NOT NULL,
     duration_years int,           -- NULL = безсрочно
+    sort_order int NOT NULL DEFAULT 0,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    created_by uuid NOT NULL REFERENCES users(id)
+);
+
+-- Справочник: ref_protocol_confirmation_method (способы подтверждения протоколов ОСУ)
+CREATE TABLE IF NOT EXISTS ref_protocol_confirmation_method (
+    id uuid PRIMARY KEY,
+    code varchar(20) UNIQUE NOT NULL,
+    name varchar(200) NOT NULL,
     sort_order int NOT NULL DEFAULT 0,
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     created_by uuid NOT NULL REFERENCES users(id)
@@ -456,7 +466,7 @@ CREATE TABLE IF NOT EXISTS legal_entity_charter (
     preemptive_right boolean NOT NULL DEFAULT true,
     inheritance_without_consent boolean NOT NULL DEFAULT true,
     executive_body char(1) NOT NULL DEFAULT 'A',
-    decision_confirmation_by_all_sign boolean NOT NULL DEFAULT false,
+    protocol_confirmation_method_id uuid REFERENCES ref_protocol_confirmation_method(id),
     charter_document_id uuid REFERENCES files(id),
     board_regulation_document_id uuid REFERENCES files(id),
     committee_regulation_document_id uuid REFERENCES files(id),

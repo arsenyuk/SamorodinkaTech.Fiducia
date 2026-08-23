@@ -15,6 +15,30 @@ public class LegalEntityCharter
     /// <summary>Выход участника из общества разрешён (exit_allowed).</summary>
     public bool ExitAllowed { get; set; }
 
+    /// <summary>
+    /// Минимальная доля участника для права на выход (exit_allowed_min_share_percent).
+    /// NULL — выход разрешён всем. Только для нетипового устава.
+    /// </summary>
+    public decimal? ExitAllowedMinSharePercent { get; set; }
+
+    /// <summary>
+    /// Максимальная доля участника для права на выход (exit_allowed_max_share_percent).
+    /// NULL — без ограничения по максимуму. Только для нетипового устава.
+    /// </summary>
+    public decimal? ExitAllowedMaxSharePercent { get; set; }
+
+    /// <summary>
+    /// Условия выхода — свободный текст (exit_condition_description).
+    /// Например: "по истечении 2 лет с момента вступления". NULL — без условий.
+    /// </summary>
+    public string? ExitConditionDescription { get; set; }
+
+    /// <summary>
+    /// Выход требует единогласного решения ОСУ (exit_requires_unanimous_osu).
+    /// Если TRUE — заявление о выходе направляется на рассмотрение ОСУ.
+    /// </summary>
+    public bool ExitRequiresUnanimousOsu { get; set; }
+
     /// <summary>Переход доли к участникам без согласия остальных (transfer_to_participants_without_consent).</summary>
     public bool TransferToParticipantsWithoutConsent { get; set; } = true;
 
@@ -30,8 +54,11 @@ public class LegalEntityCharter
     /// <summary>Тип единоличного исполнительного органа: A — гендиректор, B — каждый участник, C — все совместно (executive_body).</summary>
     public char ExecutiveBody { get; set; } = 'A';
 
-    /// <summary>Подтверждение решений подписанием протокола всеми участниками, а не нотариально (decision_confirmation_by_all_sign).</summary>
-    public bool DecisionConfirmationByAllSign { get; set; }
+    /// <summary>Идентификатор способа подтверждения протоколов ОСУ (protocol_confirmation_method_id).</summary>
+    public Guid? ProtocolConfirmationMethodId { get; set; }
+
+    /// <summary>Способ подтверждения протоколов ОСУ.</summary>
+    public RefProtocolConfirmationMethod? ProtocolConfirmationMethod { get; set; }
 
     /// <summary>Файл текста устава (charter_document_id).</summary>
     public Guid? CharterDocumentId { get; set; }

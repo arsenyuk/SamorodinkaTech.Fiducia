@@ -720,7 +720,7 @@
                                 <dd class="col-sm-7">@_charterSettings.InheritanceLabel</dd>
 
                                 <dt class="col-sm-5 text-muted fw-normal">7. Подтверждение решений</dt>
-                                <dd class="col-sm-7">@_charterSettings.DecisionConfirmationLabel</dd>
+                                <dd class="col-sm-7">@_charterSettings.ProtocolConfirmationLabel</dd>
                             </dl>
                         </div>
                     }
@@ -771,6 +771,38 @@
                                         <option value="True">Разрешён</option>
                                     </select>
                                 </div>
+                                @if (_customExitAllowed)
+                                {
+                                    <div class="col-md-3">
+                                        <label class="form-label" title="Минимальная доля участника для права на выход. Пусто = без ограничения.">Мин. доля для выхода, %</label>
+                                        <input type="number" class="form-control" @bind="_customExitAllowedMinSharePercent"
+                                               min="0" max="100" step="0.01" placeholder="Без ограничения" />
+                                        <div class="form-text">Пусто = без минимального порога</div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label" title="Максимальная доля участника для права на выход. Пусто = без ограничения.">Макс. доля для выхода, %</label>
+                                        <input type="number" class="form-control" @bind="_customExitAllowedMaxSharePercent"
+                                               min="0" max="100" step="0.01" placeholder="Без ограничения" />
+                                        <div class="form-text">Пусто = без максимального порога</div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label" title="Условия выхода из общества (свободный текст). Например: &quot;по истечении 2 лет с момента вступления&quot;">Условия выхода</label>
+                                        <input type="text" class="form-control" @bind="_customExitConditionDescription"
+                                               placeholder="Например: по истечении 2 лет с момента вступления" />
+                                        <div class="form-text">Пусто = без дополнительных условий</div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="form-check mt-2">
+                                            <input class="form-check-input" type="checkbox" id="exitRequiresUnanimousOsu"
+                                                   @bind="_customExitRequiresUnanimousOsu">
+                                            <label class="form-check-label fw-bold" for="exitRequiresUnanimousOsu"
+                                                   title="Выход требует единогласного решения общего собрания участников. Заявление направляется на повестку ОСУ.">
+                                                Требуется единогласное решение ОСУ
+                                            </label>
+                                        </div>
+                                        <div class="form-text">Заявление о выходе рассматривается ОСУ, а не ГД напрямую</div>
+                                    </div>
+                                }
                                 <div class="col-md-4">
                                     <label class="form-label fw-bold" title="Требуется ли согласие участников при переходе доли между участниками. Влияет на голосование ОСУ.">Переход доли к участникам</label>
                                     <select class="form-select" @bind="_transferParticipantsStr">
@@ -793,10 +825,12 @@
                                     </select>
                                 </div>
                                 <div class="col-md-4">
-                                    <label class="form-label fw-bold" title="Способ подтверждения решений ОСУ: нотариальное удостоверение или подписание протокола всеми участниками. Определяет процесс оформления собрания.">Подтверждение решений собрания</label>
-                                    <select class="form-select" @bind="_decisionConfirmStr">
-                                        <option value="False">Нотариальное</option>
-                                        <option value="True">Подписание всеми участниками</option>
+                                    <label class="form-label fw-bold" title="Способ подтверждения протоколов ОСУ. Определяет процесс оформления собрания.">Подтверждение протокола</label>
+                                    <select class="form-select" @bind="_protocolConfirmationMethodId">
+                                        @foreach (var m in _protocolConfirmationMethods)
+                                        {
+                                            <option value="@m.Id">@m.Name</option>
+                                        }
                                     </select>
                                 </div>
                                 <div class="col-md-4">
@@ -1013,12 +1047,17 @@
 
     // Нетиповой устав
     private bool _customExitAllowed;
+    private decimal? _customExitAllowedMinSharePercent;
+    private decimal? _customExitAllowedMaxSharePercent;
+    private string? _customExitConditionDescription;
+    private bool _customExitRequiresUnanimousOsu;
     private bool _customTransferToParticipants = true;
     private bool _customTransferToThirdParties;
     private bool _customPreemptiveRight = true;
     private bool _customInheritance = true;
     private char _customExecutiveBody = 'A';
-    private bool _customDecisionConfirmation;
+    private Guid? _customProtocolConfirmationMethodId;
+    private List<SamorodinkaTech.Fiducia.Domain.Entities.RefProtocolConfirmationMethod> _protocolConfirmationMethods = new();
     private string? _customCharterDocName;
     private Guid? _customCharterDocId;
     private IBrowserFile? _charterFile;
@@ -1107,10 +1146,10 @@
         get => _customInheritance.ToString();
         set => _customInheritance = bool.Parse(value);
     }
-    private string _decisionConfirmStr
+    private string _protocolConfirmationMethodId
     {
-        get => _customDecisionConfirmation.ToString();
-        set => _customDecisionConfirmation = bool.Parse(value);
+        get => _customProtocolConfirmationMethodId?.ToString() ?? "";
+        set => _customProtocolConfirmationMethodId = string.IsNullOrEmpty(value) ? null : Guid.Parse(value);
     }
 
     private Guid? _influentialPersonId;
@@ -1143,6 +1182,7 @@
         // Авто-загрузка последнего выбранного ЮЛ при открытии страницы
         await using var ctx = await DbFactory.CreateDbContextAsync();
         _gdTerms = await ctx.RefGdTerms.OrderBy(t => t.SortOrder).ToListAsync();
+        _protocolConfirmationMethods = await ctx.RefProtocolConfirmationMethods.OrderBy(t => t.SortOrder).ToListAsync();
         var workplace = await ctx.CurrentWorkplaces.FirstOrDefaultAsync();
         Guid? targetId = workplace?.LastSelectedLegalEntityId;
 
@@ -1545,12 +1585,23 @@
                         ctx.LegalEntityCharters.Add(charterParams);
                     }
                     charterParams.ExitAllowed = _customExitAllowed;
+                    charterParams.ExitAllowedMinSharePercent = _customExitAllowed
+                        ? _customExitAllowedMinSharePercent
+                        : null;
+                    charterParams.ExitAllowedMaxSharePercent = _customExitAllowed
+                        ? _customExitAllowedMaxSharePercent
+                        : null;
+                    charterParams.ExitConditionDescription = _customExitAllowed
+                        ? _customExitConditionDescription
+                        : null;
+                    charterParams.ExitRequiresUnanimousOsu = _customExitAllowed
+                        && _customExitRequiresUnanimousOsu;
                     charterParams.TransferToParticipantsWithoutConsent = _customTransferToParticipants;
                     charterParams.TransferToThirdPartiesWithoutConsent = _customTransferToThirdParties;
                     charterParams.PreemptiveRight = _customPreemptiveRight;
                     charterParams.InheritanceWithoutConsent = _customInheritance;
                     charterParams.ExecutiveBody = _customExecutiveBody;
-                    charterParams.DecisionConfirmationByAllSign = _customDecisionConfirmation;
+                    charterParams.ProtocolConfirmationMethodId = _customProtocolConfirmationMethodId;
                     charterParams.CharterDocumentId = _customCharterDocId ?? charterParams.CharterDocumentId;
                     charterParams.BoardRegulationDocumentId = _customBoardRegulationDocId ?? charterParams.BoardRegulationDocumentId;
                     charterParams.CommitteeRegulationDocumentId = _customCommitteeRegulationDocId ?? charterParams.CommitteeRegulationDocumentId;
@@ -2042,12 +2093,16 @@
             if (custom != null)
             {
                 _customExitAllowed = custom.ExitAllowed;
+                _customExitAllowedMinSharePercent = custom.ExitAllowedMinSharePercent;
+                _customExitAllowedMaxSharePercent = custom.ExitAllowedMaxSharePercent;
+                _customExitConditionDescription = custom.ExitConditionDescription;
+                _customExitRequiresUnanimousOsu = custom.ExitRequiresUnanimousOsu;
                 _customTransferToParticipants = custom.TransferToParticipantsWithoutConsent;
                 _customTransferToThirdParties = custom.TransferToThirdPartiesWithoutConsent;
                 _customPreemptiveRight = custom.PreemptiveRight;
                 _customInheritance = custom.InheritanceWithoutConsent;
                 _customExecutiveBody = custom.ExecutiveBody;
-                _customDecisionConfirmation = custom.DecisionConfirmationByAllSign;
+                _customProtocolConfirmationMethodId = custom.ProtocolConfirmationMethodId;
                 _customCharterDocId = custom.CharterDocumentId;
                 _customBoardRegulationDocId = custom.BoardRegulationDocumentId;
                 _customCommitteeRegulationDocId = custom.CommitteeRegulationDocumentId;
@@ -2087,12 +2142,16 @@
             {
                 // Если записи в БД ещё нет, но выбран типовой устав — заполняем из справочника
                 _customExitAllowed = _charterSettings.ExitAllowed;
+                _customExitAllowedMinSharePercent = null;
+                _customExitAllowedMaxSharePercent = null;
+                _customExitConditionDescription = null;
+                _customExitRequiresUnanimousOsu = false;
                 _customTransferToParticipants = _charterSettings.TransferToParticipantsWithoutConsent;
                 _customTransferToThirdParties = _charterSettings.TransferToThirdPartiesWithoutConsent;
                 _customPreemptiveRight = _charterSettings.PreemptiveRight;
                 _customInheritance = _charterSettings.InheritanceWithoutConsent;
                 _customExecutiveBody = _charterSettings.ExecutiveBody;
-                _customDecisionConfirmation = _charterSettings.DecisionConfirmationByAllSign;
+                _customProtocolConfirmationMethodId = _charterSettings.ProtocolConfirmationMethodId;
                 _customMandatoryAudit = null;
                 _customHasRevisionCommission = null;
                 _customHasBoardOfDirectors = false;
@@ -2105,12 +2164,16 @@
             else
             {
                 _customExitAllowed = false;
+                _customExitAllowedMinSharePercent = null;
+                _customExitAllowedMaxSharePercent = null;
+                _customExitConditionDescription = null;
+                _customExitRequiresUnanimousOsu = false;
                 _customTransferToParticipants = true;
                 _customTransferToThirdParties = false;
                 _customPreemptiveRight = true;
                 _customInheritance = true;
                 _customExecutiveBody = 'A';
-                _customDecisionConfirmation = false;
+                _customProtocolConfirmationMethodId = null;
                 _customMandatoryAudit = null;
                 _customHasRevisionCommission = null;
                 _customHasBoardOfDirectors = false;
@@ -2229,7 +2292,7 @@
                 _customPreemptiveRight = charter.PreemptiveRight;
                 _customInheritance = charter.InheritanceWithoutConsent;
                 _customExecutiveBody = charter.ExecutiveBody;
-                _customDecisionConfirmation = charter.DecisionConfirmationByAllSign;
+                _customProtocolConfirmationMethodId = charter.ProtocolConfirmationMethodId;
             }
         }
         catch (Exception ex)

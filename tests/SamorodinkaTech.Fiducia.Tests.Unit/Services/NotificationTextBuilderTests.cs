@@ -351,6 +351,7 @@ public class EmptyDbContext : DbContext, IApplicationDbContext
     public DbSet<FileEntry> Files => Set<FileEntry>();
     public DbSet<RefMeetingForm> MeetingForms => Set<RefMeetingForm>();
     public DbSet<RefGdTerm> RefGdTerms => Set<RefGdTerm>();
+    public DbSet<RefProtocolConfirmationMethod> RefProtocolConfirmationMethods => Set<RefProtocolConfirmationMethod>();
     public DbSet<RefMeasurementUnit> RefMeasurementUnits => Set<RefMeasurementUnit>();
     public DbSet<Employee> Employees => Set<Employee>();
     public DbSet<TplOrgIntent> TplOrgIntents => Set<TplOrgIntent>();

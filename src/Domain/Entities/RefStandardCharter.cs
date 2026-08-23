@@ -30,8 +30,11 @@ public class RefStandardCharter
     /// <summary>Тип единоличного исполнительного органа: A/B/C (executive_body).</summary>
     public char ExecutiveBody { get; set; }
 
-    /// <summary>Подтверждение решений подписанием протокола всеми участниками, а не нотариально (decision_confirmation_by_all_sign).</summary>
-    public bool DecisionConfirmationByAllSign { get; set; }
+    /// <summary>Идентификатор способа подтверждения протоколов ОСУ (protocol_confirmation_method_id).</summary>
+    public Guid ProtocolConfirmationMethodId { get; set; }
+
+    /// <summary>Способ подтверждения протоколов ОСУ.</summary>
+    public RefProtocolConfirmationMethod ProtocolConfirmationMethod { get; set; } = default!;
     /// <summary>Дата и время создания записи (created_at).</summary>
     public DateTime CreatedAt { get; set; }
     /// <summary>Идентификатор создателя (created_by).</summary>

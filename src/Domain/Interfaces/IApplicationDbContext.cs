@@ -49,6 +49,7 @@ public interface IApplicationDbContext
     DbSet<ExtSparkCompany> ExtSparkCompanies { get; }
     DbSet<RefMeetingForm> MeetingForms { get; }
     DbSet<RefGdTerm> RefGdTerms { get; }
+    DbSet<RefProtocolConfirmationMethod> RefProtocolConfirmationMethods { get; }
     DbSet<RefMeasurementUnit> RefMeasurementUnits { get; }
     DbSet<ExtSparkManager> ExtSparkManagers { get; }
     DbSet<ExtSparkFounder> ExtSparkFounders { get; }

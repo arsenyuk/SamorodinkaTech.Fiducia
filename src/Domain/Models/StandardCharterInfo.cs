@@ -14,7 +14,8 @@ public record StandardCharterInfo(
     bool PreemptiveRight,
     bool InheritanceWithoutConsent,
     char ExecutiveBody,
-    bool DecisionConfirmationByAllSign
+    Guid ProtocolConfirmationMethodId,
+    string ProtocolConfirmationLabel
 )
 {
     /// <summary>Создаёт модель отображения из сущности БД.</summary>
@@ -25,7 +26,8 @@ public record StandardCharterInfo(
         entity.PreemptiveRight,
         entity.InheritanceWithoutConsent,
         entity.ExecutiveBody,
-        entity.DecisionConfirmationByAllSign
+        entity.ProtocolConfirmationMethodId,
+        entity.ProtocolConfirmationMethod?.Name ?? "Нотариальное удостоверение"
     );
 
     public string ExitLabel => ExitAllowed
@@ -55,8 +57,4 @@ public record StandardCharterInfo(
         'C' => "Все участники общества — совместно действующие директора",
         _ => "—"
     };
-
-    public string DecisionConfirmationLabel => DecisionConfirmationByAllSign
-        ? "Подписание протокола всеми участниками"
-        : "Нотариальное удостоверение";
 }

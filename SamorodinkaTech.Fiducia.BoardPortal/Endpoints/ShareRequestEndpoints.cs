@@ -82,6 +82,12 @@ public static class ShareRequestEndpoints
                     UnavailabilityReason = t.Code switch
                     {
                         "EXIT_APPLICATION" when !(charter?.ExitAllowed ?? false) => "Выход из общества не предусмотрен уставом",
+                        "EXIT_APPLICATION" when (charter?.ExitAllowed == true && charter.ExitAllowedMinSharePercent.HasValue && charter.ExitAllowedMaxSharePercent.HasValue)
+                            => $"Выход разрешён участникам с долей от {charter.ExitAllowedMinSharePercent}% до {charter.ExitAllowedMaxSharePercent}%",
+                        "EXIT_APPLICATION" when (charter?.ExitAllowed == true && charter.ExitAllowedMinSharePercent.HasValue)
+                            => $"Выход разрешён участникам с долей ≥ {charter.ExitAllowedMinSharePercent}%",
+                        "EXIT_APPLICATION" when (charter?.ExitAllowed == true && charter.ExitAllowedMaxSharePercent.HasValue)
+                            => $"Выход разрешён участникам с долей ≤ {charter.ExitAllowedMaxSharePercent}%",
                         "PREEMPTIVE_LIST" when !(charter?.PreemptiveRight ?? true) => "Преимущественное право не действует",
                         "NOTARY_LIST_MAINTENANCE" when extraSettings?.NotaryListApproved == true => "Ведение списка через нотариат уже утверждено",
                         "CONVERT_STANDARD_TO_CUSTOM_CHARTER" when !(le?.StandardCharterId.HasValue ?? false) => "Текущий устав уже является нетиповым",
@@ -262,14 +268,6 @@ public static class ShareRequestEndpoints
                     return Results.BadRequest(new { error = $"Тип запроса «{requestType.Name}» не доступен для данного типа организации" });
                 }
 
-                // Специфичная валидация по типам
-                var validationError = await ValidateRequestTypeAsync(ctx, requestType, leId.Value, dto);
-                if (validationError is not null)
-                {
-                    logger.LogWarning("Ошибка валидации типа запроса: {ValidationError}", validationError);
-                    return Results.BadRequest(new { error = validationError });
-                }
-
                 var userIdStr = http.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
                 var createdBy = Guid.TryParse(userIdStr, out var uid) ? uid : Guid.Empty;
 
@@ -289,6 +287,14 @@ public static class ShareRequestEndpoints
                     return Results.BadRequest(new { error = "Не найден участник для текущего пользователя" });
                 }
 
+                // Специфичная валидация по типам
+                var validationError = await ValidateRequestTypeAsync(ctx, requestType, leId.Value, dto, participant.SharePercent);
+                if (validationError is not null)
+                {
+                    logger.LogWarning("Ошибка валидации типа запроса: {ValidationError}", validationError);
+                    return Results.BadRequest(new { error = validationError });
+                }
+
                 var entity = new ShareRequest
                 {
                     Id = Guid.NewGuid(),
@@ -302,6 +308,19 @@ public static class ShareRequestEndpoints
 
                 ctx.ShareRequests.Add(entity);
                 await ctx.SaveChangesAsync();
+
+                // Если выход требует единогласного решения ОСУ — помечаем для рассмотрения ОСУ
+                if (requestType.Code == "EXIT_APPLICATION")
+                {
+                    var charter = await ctx.LegalEntityCharters.FindAsync(leId.Value);
+                    if (charter?.ExitRequiresUnanimousOsu == true)
+                    {
+                        entity.IsCollective = true;
+                        entity.CollectiveStatus = "OSU_REVIEW";
+                        entity.Status = "submitted";
+                        await ctx.SaveChangesAsync();
+                    }
+                }
 
                 return Results.Ok(MapToDto(entity));
             }
@@ -1044,6 +1063,19 @@ public static class ShareRequestEndpoints
                     await docProvisionService.AutoProvisionDocumentsAsync(request.Id);
                 }
 
+                // Если требование принято и тип = EXIT_APPLICATION — помечаем участника как выбывшего
+                if (dto.Decision == "ACCEPTED" && request.RequestType?.Code == "EXIT_APPLICATION")
+                {
+                    var exitingParticipant = await ctx.BoardParticipants
+                        .FirstOrDefaultAsync(p => p.Id == request.ParticipantId);
+                    if (exitingParticipant is not null)
+                    {
+                        exitingParticipant.ExitDate = DateOnly.FromDateTime(DateTime.UtcNow);
+                        exitingParticipant.IsActive = false;
+                        await ctx.SaveChangesAsync();
+                    }
+                }
+
                 // Уведомляем всех поддержавших
                 await NotifySupportersAsync(ctx, request, logger);
 
@@ -1548,7 +1580,7 @@ public static class ShareRequestEndpoints
 
     /// <summary>Специфичная валидация по типу запроса.</summary>
     private static async Task<string?> ValidateRequestTypeAsync(
-        FiduciaDbContext ctx, RefRequestType requestType, Guid leId, ShareRequestCreateDto dto)
+        FiduciaDbContext ctx, RefRequestType requestType, Guid leId, ShareRequestCreateDto dto, decimal? participantSharePercent = null)
     {
         // Общая проверка: нет ли уже активного запроса того же типа
         var existingPending = await ctx.ShareRequests
@@ -1562,7 +1594,7 @@ public static class ShareRequestEndpoints
         {
             "NOTARY_LIST_MAINTENANCE" => await ValidateNotaryListMaintenanceAsync(ctx, leId),
             "PREEMPTIVE_LIST" => await ValidatePreemptiveListAsync(ctx, leId),
-            "EXIT_APPLICATION" => await ValidateExitApplicationAsync(ctx, leId),
+            "EXIT_APPLICATION" => await ValidateExitApplicationAsync(ctx, leId, participantSharePercent),
             "CHANGE_STANDARD_CHARTER_NUMBER" => await ValidateChangeStandardCharterNumberAsync(ctx, leId, dto),
             "CONVERT_STANDARD_TO_CUSTOM_CHARTER" => await ValidateConvertToCustomCharterAsync(ctx, leId, dto),
             "CHANGE_CUSTOM_CHARTER_PROVISION" => await ValidateChangeCustomCharterProvisionAsync(ctx, leId),
@@ -1591,11 +1623,27 @@ public static class ShareRequestEndpoints
         return null;
     }
 
-    private static async Task<string?> ValidateExitApplicationAsync(FiduciaDbContext ctx, Guid leId)
+    private static async Task<string?> ValidateExitApplicationAsync(FiduciaDbContext ctx, Guid leId, decimal? sharePercent)
     {
         var charter = await ctx.LegalEntityCharters.FindAsync(leId);
         if (charter is not null && !charter.ExitAllowed)
             return "Выход из ООО не предусмотрен уставом";
+
+        if (charter?.ExitAllowedMinSharePercent.HasValue == true && sharePercent.HasValue)
+        {
+            if (sharePercent.Value < charter.ExitAllowedMinSharePercent.Value)
+                return $"Ваша доля ({sharePercent}%) ниже минимальной для выхода ({charter.ExitAllowedMinSharePercent}%)";
+        }
+
+        if (charter?.ExitAllowedMaxSharePercent.HasValue == true && sharePercent.HasValue)
+        {
+            if (sharePercent.Value > charter.ExitAllowedMaxSharePercent.Value)
+                return $"Ваша доля ({sharePercent}%) выше максимальной для выхода ({charter.ExitAllowedMaxSharePercent}%)";
+        }
+
+        if (!string.IsNullOrEmpty(charter?.ExitConditionDescription))
+            return $"Выход возможен при условии: {charter.ExitConditionDescription}";
+
         return null;
     }
 
@@ -1822,7 +1870,8 @@ public static class ShareRequestEndpoints
             "submit_decision" => (!request.IsCollective && request.Status == "submitted")
                 || (request.IsCollective && (request.CollectiveStatus == "THRESHOLD_REACHED"
                     || request.CollectiveStatus == "SUBMITTED_TO_CEO"
-                    || request.CollectiveStatus == "BOARD_REVIEW"))
+                    || request.CollectiveStatus == "BOARD_REVIEW"
+                    || request.CollectiveStatus == "OSU_REVIEW"))
                 ? (true, null)
                 : (false, "Требование не может быть рассмотрено в текущем статусе"),
             "revoke" => request.Status == "submitted"

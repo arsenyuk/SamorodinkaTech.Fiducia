@@ -57,6 +57,7 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
     public DbSet<ExtSparkCompany> ExtSparkCompanies => Set<ExtSparkCompany>();
     public DbSet<RefMeetingForm> MeetingForms => Set<RefMeetingForm>();
     public DbSet<RefGdTerm> RefGdTerms => Set<RefGdTerm>();
+    public DbSet<RefProtocolConfirmationMethod> RefProtocolConfirmationMethods => Set<RefProtocolConfirmationMethod>();
     public DbSet<RefMeasurementUnit> RefMeasurementUnits => Set<RefMeasurementUnit>();
     public DbSet<ExtSparkManager> ExtSparkManagers => Set<ExtSparkManager>();
     public DbSet<ExtSparkFounder> ExtSparkFounders => Set<ExtSparkFounder>();
@@ -148,7 +149,8 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.Property(x => x.PreemptiveRight).HasColumnName("preemptive_right");
             b.Property(x => x.InheritanceWithoutConsent).HasColumnName("inheritance_without_consent");
             b.Property(x => x.ExecutiveBody).HasColumnName("executive_body").HasMaxLength(1);
-            b.Property(x => x.DecisionConfirmationByAllSign).HasColumnName("decision_confirmation_by_all_sign");
+            b.Property(x => x.ProtocolConfirmationMethodId).HasColumnName("protocol_confirmation_method_id");
+            b.HasOne(x => x.ProtocolConfirmationMethod).WithMany().HasForeignKey(x => x.ProtocolConfirmationMethodId);
             b.Property(x => x.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("CURRENT_TIMESTAMP");
             b.Property(x => x.CreatedBy).HasColumnName("created_by").IsRequired();
         });
@@ -159,12 +161,17 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.HasKey(x => x.LegalEntityId);
             b.Property(x => x.LegalEntityId).HasColumnName("legal_entity_id");
             b.Property(x => x.ExitAllowed).HasColumnName("exit_allowed");
+            b.Property(x => x.ExitAllowedMinSharePercent).HasColumnName("exit_allowed_min_share_percent");
+            b.Property(x => x.ExitAllowedMaxSharePercent).HasColumnName("exit_allowed_max_share_percent");
+            b.Property(x => x.ExitConditionDescription).HasColumnName("exit_condition_description");
+            b.Property(x => x.ExitRequiresUnanimousOsu).HasColumnName("exit_requires_unanimous_osu");
             b.Property(x => x.TransferToParticipantsWithoutConsent).HasColumnName("transfer_to_participants_without_consent");
             b.Property(x => x.TransferToThirdPartiesWithoutConsent).HasColumnName("transfer_to_third_parties_without_consent");
             b.Property(x => x.PreemptiveRight).HasColumnName("preemptive_right");
             b.Property(x => x.InheritanceWithoutConsent).HasColumnName("inheritance_without_consent");
             b.Property(x => x.ExecutiveBody).HasColumnName("executive_body").HasMaxLength(1);
-            b.Property(x => x.DecisionConfirmationByAllSign).HasColumnName("decision_confirmation_by_all_sign");
+            b.Property(x => x.ProtocolConfirmationMethodId).HasColumnName("protocol_confirmation_method_id");
+            b.HasOne(x => x.ProtocolConfirmationMethod).WithMany().HasForeignKey(x => x.ProtocolConfirmationMethodId);
             b.Property(x => x.CharterDocumentId).HasColumnName("charter_document_id");
             b.Property(x => x.BoardRegulationDocumentId).HasColumnName("board_regulation_document_id");
             b.Property(x => x.CommitteeRegulationDocumentId).HasColumnName("committee_regulation_document_id");
@@ -202,6 +209,19 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.HasIndex(x => x.Code).IsUnique().HasDatabaseName("ux_ref_gd_term_code");
             b.Property(x => x.Name).HasColumnName("name").HasMaxLength(200).IsRequired();
             b.Property(x => x.DurationYears).HasColumnName("duration_years");
+            b.Property(x => x.SortOrder).HasColumnName("sort_order");
+            b.Property(x => x.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("CURRENT_TIMESTAMP");
+            b.Property(x => x.CreatedBy).HasColumnName("created_by").IsRequired();
+        });
+
+        modelBuilder.Entity<RefProtocolConfirmationMethod>(b =>
+        {
+            b.ToTable("ref_protocol_confirmation_method");
+            b.HasKey(x => x.Id);
+            b.Property(x => x.Id).HasColumnName("id");
+            b.Property(x => x.Code).HasColumnName("code").HasMaxLength(20).IsRequired();
+            b.HasIndex(x => x.Code).IsUnique().HasDatabaseName("ux_ref_protocol_confirmation_method_code");
+            b.Property(x => x.Name).HasColumnName("name").HasMaxLength(200).IsRequired();
             b.Property(x => x.SortOrder).HasColumnName("sort_order");
             b.Property(x => x.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("CURRENT_TIMESTAMP");
             b.Property(x => x.CreatedBy).HasColumnName("created_by").IsRequired();

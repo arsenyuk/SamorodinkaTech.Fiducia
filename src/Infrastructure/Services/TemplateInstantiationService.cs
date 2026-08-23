@@ -293,14 +293,14 @@ public class TemplateInstantiationService : ITemplateInstantiationService
 
     private static bool ShouldInclude(TplOrgTaskOffer to, LegalEntityCharter? charter, LegalEntityBoardSettings? board, Guid? boardOfDirectorsId, LegalEntityVotingRules? rules)
     {
-        if (to.RequireNotaryConfirmation == true && charter?.DecisionConfirmationByAllSign != false)
+        if (to.RequireNotaryConfirmation == true && charter?.ProtocolConfirmationMethod?.Code != "NOTARIAL")
             return false;
-        if (to.RequireNotaryConfirmation == false && charter?.DecisionConfirmationByAllSign != true)
+        if (to.RequireNotaryConfirmation == false && charter?.ProtocolConfirmationMethod?.Code == "NOTARIAL")
             return false;
 
-        if (to.RequireAllSignConfirmation == true && charter?.DecisionConfirmationByAllSign != true)
+        if (to.RequireAllSignConfirmation == true && charter?.ProtocolConfirmationMethod?.Code != "SIGN")
             return false;
-        if (to.RequireAllSignConfirmation == false && charter?.DecisionConfirmationByAllSign != false)
+        if (to.RequireAllSignConfirmation == false && charter?.ProtocolConfirmationMethod?.Code == "SIGN")
             return false;
 
         if (to.RequireCommittees == true && board?.CommitteesMandatory != true)
