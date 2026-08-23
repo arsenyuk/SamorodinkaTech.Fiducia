@@ -174,6 +174,16 @@ CREATE TABLE IF NOT EXISTS ref_okopf (
 
 CREATE INDEX IF NOT EXISTS ix_ref_okopf_name ON ref_okopf(name);
 
+-- Справочник: ref_protocol_confirmation_method (способы подтверждения протоколов ОСУ)
+CREATE TABLE IF NOT EXISTS ref_protocol_confirmation_method (
+    id uuid PRIMARY KEY,
+    code varchar(20) UNIQUE NOT NULL,
+    name varchar(200) NOT NULL,
+    sort_order int NOT NULL DEFAULT 0,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    created_by uuid NOT NULL REFERENCES users(id)
+);
+
 -- Справочник: ref_standard_charter (типовые уставы ООО, Приказ № 411 от 01.08.2018)
 CREATE TABLE IF NOT EXISTS ref_standard_charter (
     id uuid PRIMARY KEY,
@@ -260,16 +270,6 @@ CREATE TABLE IF NOT EXISTS ref_gd_term (
     code varchar(20) UNIQUE NOT NULL,
     name varchar(200) NOT NULL,
     duration_years int,           -- NULL = безсрочно
-    sort_order int NOT NULL DEFAULT 0,
-    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by uuid NOT NULL REFERENCES users(id)
-);
-
--- Справочник: ref_protocol_confirmation_method (способы подтверждения протоколов ОСУ)
-CREATE TABLE IF NOT EXISTS ref_protocol_confirmation_method (
-    id uuid PRIMARY KEY,
-    code varchar(20) UNIQUE NOT NULL,
-    name varchar(200) NOT NULL,
     sort_order int NOT NULL DEFAULT 0,
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     created_by uuid NOT NULL REFERENCES users(id)
@@ -710,6 +710,157 @@ CREATE TABLE IF NOT EXISTS agenda_proposals (
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 
+-- ============================================================================
+-- Участники Совета директоров (board_participant)
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS board_participant (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    legal_entity_id uuid NOT NULL REFERENCES legal_entities(id) ON DELETE RESTRICT,
+    participant_type varchar(20) NOT NULL DEFAULT 'FL',
+    full_name varchar(300),
+    passport_series varchar(10),
+    passport_number varchar(10),
+    passport_issued_by varchar(500),
+    passport_issue_date date,
+    passport_department_code varchar(10),
+    passport_registration_address text,
+    person_inn varchar(12),
+    citizenship varchar(100),
+    company_name varchar(500),
+    company_inn varchar(12),
+    company_ogrn varchar(15),
+    company_kpp varchar(9),
+    company_address text,
+    ogrnip varchar(15),
+    share_percent numeric(5,2),
+    share_amount numeric(18,2),
+    payment_info varchar(500),
+    share_registration_info varchar(500),
+    entry_date date,
+    exit_date date,
+    is_active boolean NOT NULL DEFAULT true,
+    sort_order int NOT NULL DEFAULT 0,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    created_by uuid,
+    person_id uuid REFERENCES persons(id) ON DELETE SET NULL
+);
+
+CREATE INDEX IF NOT EXISTS ix_board_participant_legal_entity ON board_participant(legal_entity_id);
+CREATE UNIQUE INDEX IF NOT EXISTS ux_board_participant_le_sort ON board_participant(legal_entity_id, sort_order);
+
+-- ============================================================================
+-- Нотариальные удостоверения (notarization)
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS notarization (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    legal_entity_id uuid NOT NULL REFERENCES legal_entities(id) ON DELETE RESTRICT,
+    document_type varchar(50) NOT NULL,
+    related_entity_id uuid,
+    related_entity_type varchar(50),
+    document_file_id uuid NOT NULL REFERENCES files(id) ON DELETE RESTRICT,
+    notary_full_name varchar(300) NOT NULL,
+    notary_license_number varchar(100),
+    registry_number varchar(100),
+    notarization_date date NOT NULL,
+    valid_from date,
+    valid_until date,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    created_by uuid REFERENCES users(id) ON DELETE SET NULL
+);
+
+CREATE INDEX IF NOT EXISTS ix_notarization_le ON notarization(legal_entity_id);
+CREATE INDEX IF NOT EXISTS ix_notarization_type ON notarization(document_type);
+CREATE INDEX IF NOT EXISTS ix_notarization_related ON notarization(related_entity_type, related_entity_id);
+
+-- ============================================================================
+-- Запросы участника ООО в общество (share_request)
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS share_request (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    legal_entity_id uuid NOT NULL REFERENCES legal_entities(id) ON DELETE RESTRICT,
+    participant_id uuid NOT NULL REFERENCES board_participant(id) ON DELETE RESTRICT,
+    request_type_id uuid NOT NULL REFERENCES ref_request_type(id) ON DELETE RESTRICT,
+    status varchar(20) NOT NULL DEFAULT 'draft',
+    payload jsonb,
+    notarization_id uuid REFERENCES notarization(id) ON DELETE SET NULL,
+    revoked_at timestamp with time zone,
+    revoked_by_notarized boolean NOT NULL DEFAULT FALSE,
+    visible_to_all boolean NOT NULL DEFAULT FALSE,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    completed_at timestamp with time zone,
+    created_by uuid REFERENCES users(id) ON DELETE SET NULL,
+    is_collective boolean NOT NULL DEFAULT FALSE,
+    threshold_percent numeric(4,2),
+    total_support_percent numeric(6,2) NOT NULL DEFAULT 0,
+    supporter_count integer NOT NULL DEFAULT 0,
+    collective_status varchar(20),
+    submitted_to_ceo_at timestamp with time zone,
+    ceo_decision_at timestamp with time zone,
+    ceo_comment text,
+    decided_by_user_id uuid REFERENCES users(id) ON DELETE SET NULL,
+    review_location text,
+    org_intent_id uuid,
+    decision_status varchar(20),
+    decision_comment text,
+    decided_at timestamp with time zone
+);
+
+CREATE INDEX IF NOT EXISTS ix_share_request_le ON share_request(legal_entity_id);
+CREATE INDEX IF NOT EXISTS ix_share_request_participant ON share_request(participant_id);
+CREATE INDEX IF NOT EXISTS ix_share_request_type_id ON share_request(request_type_id);
+CREATE INDEX IF NOT EXISTS ix_share_request_status ON share_request(status);
+CREATE INDEX IF NOT EXISTS ix_share_request_visible ON share_request(visible_to_all) WHERE visible_to_all = TRUE;
+
+CREATE TABLE IF NOT EXISTS share_request_support (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    share_request_id uuid NOT NULL REFERENCES share_request(id) ON DELETE RESTRICT,
+    participant_id uuid NOT NULL REFERENCES board_participant(id) ON DELETE RESTRICT,
+    share_percent_at_support numeric(6,2) NOT NULL,
+    supported_at timestamp with time zone NOT NULL DEFAULT NOW(),
+    withdrawn_at timestamp with time zone,
+    created_at timestamp with time zone NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS ix_srs_request ON share_request_support(share_request_id);
+CREATE INDEX IF NOT EXISTS ix_srs_participant ON share_request_support(participant_id);
+CREATE UNIQUE INDEX IF NOT EXISTS ux_srs_request_participant ON share_request_support(share_request_id, participant_id) WHERE withdrawn_at IS NULL;
+
+CREATE TABLE IF NOT EXISTS share_request_files (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    share_request_id uuid NOT NULL REFERENCES share_request(id) ON DELETE RESTRICT,
+    file_id uuid NOT NULL REFERENCES files(id) ON DELETE RESTRICT,
+    CONSTRAINT ux_share_request_files UNIQUE (share_request_id, file_id)
+);
+CREATE INDEX IF NOT EXISTS ix_srf_request ON share_request_files(share_request_id);
+CREATE INDEX IF NOT EXISTS ix_srf_file ON share_request_files(file_id);
+
+CREATE TABLE IF NOT EXISTS share_request_items (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    share_request_id uuid NOT NULL REFERENCES share_request(id) ON DELETE CASCADE,
+    sequence_number integer NOT NULL,
+    title varchar(500) NOT NULL,
+    description text,
+    status varchar(20) NOT NULL DEFAULT 'pending',
+    rejection_reason text,
+    created_at timestamp with time zone NOT NULL DEFAULT NOW(),
+    updated_at timestamp with time zone
+);
+CREATE INDEX IF NOT EXISTS ix_sri_request ON share_request_items(share_request_id);
+CREATE UNIQUE INDEX IF NOT EXISTS ix_sri_request_seq ON share_request_items(share_request_id, sequence_number);
+
+CREATE TABLE IF NOT EXISTS share_request_item_files (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    share_request_item_id uuid NOT NULL REFERENCES share_request_items(id) ON DELETE CASCADE,
+    file_id uuid NOT NULL REFERENCES files(id) ON DELETE RESTRICT,
+    created_at timestamp with time zone NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS ix_srif_item ON share_request_item_files(share_request_item_id);
+CREATE INDEX IF NOT EXISTS ix_srif_file ON share_request_item_files(file_id);
+CREATE UNIQUE INDEX IF NOT EXISTS ix_srif_item_file ON share_request_item_files(share_request_item_id, file_id);
+
 -- Таблица: agenda_items (повестка совета директоров)
 CREATE TABLE IF NOT EXISTS agenda_items (
     id uuid PRIMARY KEY,
@@ -1080,6 +1231,14 @@ CREATE TABLE IF NOT EXISTS org_intents (
 );
 CREATE INDEX IF NOT EXISTS ix_org_intents_legal_entity ON org_intents(legal_entity_id);
 
+-- Восстанавливаем FK для share_request.org_intent_id после создания org_intents
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_share_request_org_intent') THEN
+        ALTER TABLE share_request ADD CONSTRAINT fk_share_request_org_intent
+            FOREIGN KEY (org_intent_id) REFERENCES org_intents(id) ON DELETE SET NULL;
+    END IF;
+END $$;
+
 CREATE TABLE IF NOT EXISTS org_stages (
     id uuid PRIMARY KEY,
     intent_id uuid NOT NULL REFERENCES org_intents(id) ON DELETE RESTRICT,
@@ -1281,48 +1440,6 @@ CREATE TABLE IF NOT EXISTS system_settings (
 );
 
 -- ============================================================================
--- Реестр участников общества (Board Portal)
--- Хранит актуальный состав участников с данными ДУЛ/реквизитов ЮЛ.
--- Источник: ручной ввод или импорт из СПАРК.
--- ============================================================================
-
-CREATE TABLE IF NOT EXISTS board_participant (
-    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    legal_entity_id uuid NOT NULL REFERENCES legal_entities(id) ON DELETE RESTRICT,
-    participant_type varchar(20) NOT NULL DEFAULT 'FL',
-    full_name varchar(300),
-    passport_series varchar(10),
-    passport_number varchar(10),
-    passport_issued_by varchar(500),
-    passport_issue_date date,
-    passport_department_code varchar(10),
-    passport_registration_address text,
-    person_inn varchar(12),
-    citizenship varchar(100),
-    company_name varchar(500),
-    company_inn varchar(12),
-    company_ogrn varchar(15),
-    company_kpp varchar(9),
-    company_address text,
-    ogrnip varchar(15),
-    share_percent numeric(5,2),
-    share_amount numeric(18,2),
-    payment_info varchar(500),
-    share_registration_info varchar(500),
-    entry_date date,
-    exit_date date,
-    is_active boolean NOT NULL DEFAULT true,
-    sort_order int NOT NULL DEFAULT 0,
-    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by uuid,
-    person_id uuid REFERENCES persons(id) ON DELETE SET NULL
-);
-
-CREATE INDEX IF NOT EXISTS ix_board_participant_legal_entity ON board_participant(legal_entity_id);
-CREATE UNIQUE INDEX IF NOT EXISTS ux_board_participant_le_sort ON board_participant(legal_entity_id, sort_order);
-
--- ============================================================================
 -- Доли, принадлежащие Обществу (казначейские доли)
 -- ============================================================================
 
@@ -1411,136 +1528,6 @@ CREATE TABLE IF NOT EXISTS board_participant_change (
 
 CREATE INDEX IF NOT EXISTS ix_board_participant_change_le ON board_participant_change(legal_entity_id);
 CREATE INDEX IF NOT EXISTS ix_board_participant_change_participant ON board_participant_change(participant_id);
-
--- ============================================================================
--- Нотариальные заверения (notarization) — единая таблица
--- ============================================================================
-CREATE TABLE IF NOT EXISTS notarization (
-    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    legal_entity_id uuid NOT NULL REFERENCES legal_entities(id) ON DELETE RESTRICT,
-    document_type varchar(50) NOT NULL,
-    related_entity_id uuid,
-    related_entity_type varchar(50),
-    document_file_id uuid NOT NULL REFERENCES files(id) ON DELETE RESTRICT,
-    notary_full_name varchar(300) NOT NULL,
-    notary_license_number varchar(100),
-    registry_number varchar(100),
-    notarization_date date NOT NULL,
-    valid_from date,
-    valid_until date,
-    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by uuid REFERENCES users(id) ON DELETE SET NULL
-);
-
-CREATE INDEX IF NOT EXISTS ix_notarization_le ON notarization(legal_entity_id);
-CREATE INDEX IF NOT EXISTS ix_notarization_type ON notarization(document_type);
-CREATE INDEX IF NOT EXISTS ix_notarization_related ON notarization(related_entity_type, related_entity_id);
-
--- ============================================================================
--- Запросы участника ООО в общество (share_request)
--- ============================================================================
-CREATE TABLE IF NOT EXISTS share_request (
-    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    legal_entity_id uuid NOT NULL REFERENCES legal_entities(id) ON DELETE RESTRICT,
-    participant_id uuid NOT NULL REFERENCES board_participant(id) ON DELETE RESTRICT,
-    request_type_id uuid NOT NULL REFERENCES ref_request_type(id) ON DELETE RESTRICT,
-    status varchar(20) NOT NULL DEFAULT 'draft',
-    payload jsonb,
-    notarization_id uuid REFERENCES notarization(id) ON DELETE SET NULL,
-    revoked_at timestamp with time zone,
-    revoked_by_notarized boolean NOT NULL DEFAULT FALSE,
-    visible_to_all boolean NOT NULL DEFAULT FALSE,
-    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    completed_at timestamp with time zone,
-    created_by uuid REFERENCES users(id) ON DELETE SET NULL,
-    -- Коллективные требования
-    is_collective boolean NOT NULL DEFAULT FALSE,
-    threshold_percent numeric(4,2),
-    total_support_percent numeric(6,2) NOT NULL DEFAULT 0,
-    supporter_count integer NOT NULL DEFAULT 0,
-    collective_status varchar(20),
-    submitted_to_ceo_at timestamp with time zone,
-    ceo_decision_at timestamp with time zone,
-    ceo_comment text,
-    decided_by_user_id uuid REFERENCES users(id) ON DELETE SET NULL,
-    -- Место ознакомления (для способа "Ознакомление в офисе")
-    review_location text,
-    -- Орг-план ВОСУ
-    org_intent_id uuid REFERENCES org_intents(id) ON DELETE SET NULL,
-    -- Решение по структурированному требованию
-    decision_status varchar(20),
-    decision_comment text,
-    decided_at timestamp with time zone
-);
-
-CREATE INDEX IF NOT EXISTS ix_share_request_le ON share_request(legal_entity_id);
-CREATE INDEX IF NOT EXISTS ix_share_request_participant ON share_request(participant_id);
-CREATE INDEX IF NOT EXISTS ix_share_request_type_id ON share_request(request_type_id);
-CREATE INDEX IF NOT EXISTS ix_share_request_status ON share_request(status);
-CREATE INDEX IF NOT EXISTS ix_share_request_visible ON share_request(visible_to_all) WHERE visible_to_all = TRUE;
-
--- ============================================================
--- SHARE REQUEST SUPPORT — поддержки коллективных требований
--- ============================================================
-
-CREATE TABLE IF NOT EXISTS share_request_support (
-    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    share_request_id uuid NOT NULL REFERENCES share_request(id) ON DELETE RESTRICT,
-    participant_id uuid NOT NULL REFERENCES board_participant(id) ON DELETE RESTRICT,
-    share_percent_at_support numeric(6,2) NOT NULL,
-    supported_at timestamp with time zone NOT NULL DEFAULT NOW(),
-    withdrawn_at timestamp with time zone,
-    created_at timestamp with time zone NOT NULL DEFAULT NOW()
-);
-
-CREATE INDEX IF NOT EXISTS ix_srs_request ON share_request_support(share_request_id);
-CREATE INDEX IF NOT EXISTS ix_srs_participant ON share_request_support(participant_id);
-CREATE UNIQUE INDEX IF NOT EXISTS ux_srs_request_participant ON share_request_support(share_request_id, participant_id) WHERE withdrawn_at IS NULL;
-
--- ============================================================
--- SHARE REQUEST FILES — файлы требований участников
--- ============================================================
-
-CREATE TABLE IF NOT EXISTS share_request_files (
-    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    share_request_id uuid NOT NULL REFERENCES share_request(id) ON DELETE RESTRICT,
-    file_id uuid NOT NULL REFERENCES files(id) ON DELETE RESTRICT,
-    CONSTRAINT ux_share_request_files UNIQUE (share_request_id, file_id)
-);
-CREATE INDEX IF NOT EXISTS ix_srf_request ON share_request_files(share_request_id);
-CREATE INDEX IF NOT EXISTS ix_srf_file ON share_request_files(file_id);
-
--- ============================================================
--- SHARE REQUEST ITEMS — пункты структурированного требования
--- ============================================================
-
-CREATE TABLE IF NOT EXISTS share_request_items (
-    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    share_request_id uuid NOT NULL REFERENCES share_request(id) ON DELETE CASCADE,
-    sequence_number integer NOT NULL,
-    title varchar(500) NOT NULL,
-    description text,
-    status varchar(20) NOT NULL DEFAULT 'pending',
-    rejection_reason text,
-    created_at timestamp with time zone NOT NULL DEFAULT NOW(),
-    updated_at timestamp with time zone
-);
-CREATE INDEX IF NOT EXISTS ix_sri_request ON share_request_items(share_request_id);
-CREATE UNIQUE INDEX IF NOT EXISTS ix_sri_request_seq ON share_request_items(share_request_id, sequence_number);
-
--- ============================================================
--- SHARE REQUEST ITEM FILES — файлы пунктов требования
--- ============================================================
-
-CREATE TABLE IF NOT EXISTS share_request_item_files (
-    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    share_request_item_id uuid NOT NULL REFERENCES share_request_items(id) ON DELETE CASCADE,
-    file_id uuid NOT NULL REFERENCES files(id) ON DELETE RESTRICT,
-    created_at timestamp with time zone NOT NULL DEFAULT NOW()
-);
-CREATE INDEX IF NOT EXISTS ix_srif_item ON share_request_item_files(share_request_item_id);
-CREATE INDEX IF NOT EXISTS ix_srif_file ON share_request_item_files(file_id);
-CREATE UNIQUE INDEX IF NOT EXISTS ix_srif_item_file ON share_request_item_files(share_request_item_id, file_id);
 
 -- ============================================================
 -- REF_DOCUMENT_TYPE — справочник типов документов для требования
