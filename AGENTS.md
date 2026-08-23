@@ -1954,6 +1954,70 @@ using var page = await _browser.NewPageAsync();
 
 При изменении бизнес-сценария — обновлять оба файла одновременно: и user story в документации, и соответствующий тестовый метод. Не допускать рассинхрона — документация описывает то, что реально проверяется сквозными тестами, и наоборот.
 
+### E2E-тесты: жизненный цикл при реализации фичи (КРИТИЧНО)
+
+При реализации каждой новой функциональности параллельно проводятся три действия:
+
+1. **Ревизия существующих E2E-тестов** (анализ, не запуск): проверить, не повлияла ли новая фича на существующие страницы и тесты.
+
+2. **Создание новых E2E-тестов**: тесты создаются ДАЖЕ ЕСЛИ сценарий не может завершиться, но может начаться (страница загружается, UI-элементы присутствуют, контент корректен). Не ждать полной реализации — тест покрывает то, что уже работает.
+
+3. **Обновление документации**: `docs/user-stories.md` (новый US или изменённые критерии) + `docs/e2e-tests.md` (маппинг «бизнес-процесс → E2E-тест»).
+
+Подробнее: `docs/e2e-tests.md`.
+
+### E2E-тесты: правила создания (КРИТИЧНО)
+
+#### Паттерн теста для незавершённого сценария
+
+Тесты создаются даже если сценарий не может завершиться. Минимальный тест проверяет:
+- Страница загружается (содержит `_framework/blazor.server.js`)
+- UI-элементы присутствуют (кнопки, формы, таблицы)
+- Контент корректен (ожидаемый текст)
+
+```csharp
+/// <summary>
+/// US-0XX: [Название фичи] — E2E-тест через Playwright.
+/// Сценарий: страница загружается, базовые UI-элементы присутствуют.
+/// Полный сценарий требует [описание зависимостей].
+/// </summary>
+public class US0XX_FeatureTests : BrowserFixture
+{
+    [Fact]
+    public async Task BoardPortal_FeaturePage_ShouldLoadWithExpectedContent()
+    {
+        var page = await CreateBoardPortalPageAsync("/feature-page");
+        var content = await page.ContentAsync();
+        content.Should().Contain("_framework/blazor.server.js");
+        content.Should().Contain("Ожидаемый заголовок");
+    }
+
+    [Fact]
+    public async Task BoardPortal_FeaturePage_HasCreateButton()
+    {
+        var page = await CreateBoardPortalPageAsync("/feature-page");
+        (await page.QuerySelectorAsync("button.btn-primary"))
+            .Should().NotBeNull();
+    }
+}
+```
+
+#### Маппинг US → E2E-класс
+
+| US-номер | E2E-класс | Файл |
+|----------|-----------|------|
+| US-001 | `US001_AuthorizationTests` | `Tests/US001_AuthorizationTests.cs` |
+| US-002 | `US002_MeetingTests` | `Tests/US002_MeetingTests.cs` |
+| US-004 | `US004_CommitteeTests` | `Tests/US004_CommitteeTests.cs` |
+| US-0XX | `US0XX_FeatureTests` | `Tests/US0XX_FeatureTests.cs` |
+
+#### Чек-лист перед мержем
+
+- [ ] E2E-тесты созданы для новой страницы/фичи
+- [ ] `docs/user-stories.md` обновлён (новый US или изменён критерий)
+- [ ] `docs/e2e-tests.md` обновлён (маппинг бизнес-процесс → тест)
+- [ ] Существующие E2E-тесты не сломаны (ревизия)
+
 ### Структура тестов
 
 ```csharp
