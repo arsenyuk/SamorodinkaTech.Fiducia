@@ -184,6 +184,30 @@ else
         </div>
     }
 
+    @* ── Решение СД ──────────────────────────────────────────────── *@
+    @if (_request.CollectiveStatus == "BOARD_REVIEW" && _isBoardMember)
+    {
+        <div class="card mb-4 border-primary">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">Рассмотрение Советом директоров</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label">Комментарий</label>
+                    <textarea class="form-control" @bind="_ceoComment" rows="3" placeholder="Комментарий к решению СД..."></textarea>
+                </div>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-success" @onclick='() => DecideAsync("ACCEPTED")'>
+                        Принять
+                    </button>
+                    <button class="btn btn-danger" @onclick='() => DecideAsync("REJECTED")'>
+                        Отклонить
+                    </button>
+                </div>
+            </div>
+        </div>
+    }
+
     @* ── Комментарий ГД ──────────────────────────────────────────── *@
     @if (!string.IsNullOrEmpty(_request.CeoComment))
     {
@@ -270,6 +294,7 @@ else
     private string? _error;
     private bool _currentUserHasSupported;
     private bool _isCeo;
+    private bool _isBoardMember;
     private string? _ceoComment;
 
     protected override async Task OnInitializedAsync()
@@ -283,6 +308,7 @@ else
                 _supports = supportsResponse ?? new();
                 _currentUserHasSupported = _supports.Any(s => s.IsCurrentUser && s.IsActive);
                 _isCeo = await CheckIsCeoAsync();
+                _isBoardMember = await CheckIsBoardMemberAsync();
 
                 var filesResponse = await Http.GetFromJsonAsync<List<FileDto>>($"/api/share-requests/{Id}/files");
                 _files = filesResponse ?? new();
@@ -313,6 +339,24 @@ else
         catch (Exception ex)
         {
             Logger.LogWarning(ex, "Ошибка проверки роли CEO");
+        }
+        return false;
+    }
+
+    private async Task<bool> CheckIsBoardMemberAsync()
+    {
+        try
+        {
+            var response = await Http.GetAsync("/api/session/me");
+            if (response.IsSuccessStatusCode)
+            {
+                var me = await response.Content.ReadFromJsonAsync<SessionMe>();
+                return me?.Roles?.Any(r => r == "MEMBER_BOARD" || r == "CHAIR_BOARD") ?? false;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Ошибка проверки роли члена СД");
         }
         return false;
     }
@@ -396,6 +440,7 @@ else
         "COLLECTING" => new("<span class='badge bg-info fs-6'>Сбор поддержек</span>"),
         "THRESHOLD_REACHED" => new("<span class='badge bg-warning fs-6'>Порог достигнут</span>"),
         "SUBMITTED_TO_CEO" => new("<span class='badge bg-primary fs-6'>На рассмотрении ГД</span>"),
+        "BOARD_REVIEW" => new("<span class='badge bg-primary fs-6'>На рассмотрении СД</span>"),
         "ACCEPTED" => new("<span class='badge bg-success fs-6'>Принято</span>"),
         "REJECTED" => new("<span class='badge bg-danger fs-6'>Отклонено</span>"),
         _ => new($"<span class='badge bg-secondary fs-6'>{status}</span>")

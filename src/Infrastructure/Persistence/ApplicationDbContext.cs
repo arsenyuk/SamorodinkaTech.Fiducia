@@ -172,6 +172,7 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.Property(x => x.HasBoardOfDirectors).HasColumnName("has_board_of_directors");
             b.Property(x => x.GdTermId).HasColumnName("gd_term_id");
             b.Property(x => x.VosuThresholdPercent).HasColumnName("vosu_threshold_percent");
+            b.Property(x => x.BoardDecidesConveningOsu).HasColumnName("board_decides_convening_osu");
             b.HasOne(x => x.GdTerm).WithMany().HasForeignKey(x => x.GdTermId);
             b.HasOne(x => x.CharterDocument).WithMany().HasForeignKey(x => x.CharterDocumentId);
             b.HasOne(x => x.BoardRegulationDocument).WithMany().HasForeignKey(x => x.BoardRegulationDocumentId);

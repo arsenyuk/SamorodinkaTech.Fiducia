@@ -68,4 +68,8 @@ public class LegalEntityCharter
 
     /// <summary>Порог доли участника для требования о созыве ВОСУ (vosu_threshold_percent). null = 10% по закону.</summary>
     public decimal? VosuThresholdPercent { get; set; }
+
+    /// <summary>СД принимает решение о созыве ОСУ (board_decides_convening_osu).
+    /// Для ООО с нетиповым уставом. Определяет流向 требований участников: если включено — СД вместо ГД.</summary>
+    public bool BoardDecidesConveningOsu { get; set; }
 }

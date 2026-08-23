@@ -464,7 +464,8 @@ CREATE TABLE IF NOT EXISTS legal_entity_charter (
     has_revision_commission boolean,
     has_board_of_directors boolean NOT NULL DEFAULT false,
     gd_term_id uuid REFERENCES ref_gd_term(id) ON DELETE SET NULL,
-    vosu_threshold_percent numeric(4,2) CHECK (vosu_threshold_percent > 0 AND vosu_threshold_percent <= 10)
+    vosu_threshold_percent numeric(4,2) CHECK (vosu_threshold_percent > 0 AND vosu_threshold_percent <= 10),
+    board_decides_convening_osu boolean NOT NULL DEFAULT false
 );
 
 -- Таблица: legal_entity_email_settings (настройки email-писем для ЮЛ)

@@ -651,6 +651,10 @@ public static class ShareRequestEndpoints
                     _ => null
                 };
 
+                // Определяем: направлять ли требование СД (вместо ГД)
+                bool isForBoard = charter?.BoardDecidesConveningOsu == true
+                    && requestType.ConsideredByOsu;
+
                 // Создаём запрос
                 var entity = new ShareRequest
                 {
@@ -665,7 +669,9 @@ public static class ShareRequestEndpoints
                     ThresholdPercent = threshold,
                     TotalSupportPercent = participant.SharePercent ?? 0m,
                     SupporterCount = 1,
-                    CollectiveStatus = threshold.HasValue ? "COLLECTING" : "SUBMITTED_TO_CEO"
+                    CollectiveStatus = threshold.HasValue
+                        ? "COLLECTING"
+                        : isForBoard ? "BOARD_REVIEW" : "SUBMITTED_TO_CEO"
                 };
 
                 // Автоматически добавляем поддержку инициатора
@@ -684,6 +690,32 @@ public static class ShareRequestEndpoints
                 ctx.ShareRequests.Add(entity);
                 ctx.ShareRequestSupports.Add(initiatorSupport);
                 await ctx.SaveChangesAsync();
+
+                // Если требование направлено СД — создаём пункт повестки заседания СД
+                if (entity.CollectiveStatus == "BOARD_REVIEW")
+                {
+                    var activeBoard = await ctx.BoardsOfDirectors
+                        .Include(b => b.OsaMeeting)
+                        .Where(b => b.OsaMeeting!.LegalEntityId == leId && b.EndedAt == null)
+                        .OrderByDescending(b => b.ElectionYear)
+                        .FirstOrDefaultAsync();
+                    if (activeBoard is not null)
+                    {
+                        var agendaItem = new AgendaItem
+                        {
+                            Id = Guid.NewGuid(),
+                            BoardOfDirectorsId = activeBoard.Id,
+                            LegalEntityId = leId!.Value,
+                            ShareRequestId = entity.Id,
+                            Title = $"Требование: {requestType.Name}",
+                            TargetType = "BOARD_MEETING",
+                            Reason = "Требование участника (ст. 35 14-ФЗ)",
+                            Status = "PENDING"
+                        };
+                        ctx.AgendaItems.Add(agendaItem);
+                        await ctx.SaveChangesAsync();
+                    }
+                }
 
                 return Results.Ok(MapToDto(entity));
             }
@@ -768,8 +800,42 @@ public static class ShareRequestEndpoints
                     && request.TotalSupportPercent >= request.ThresholdPercent.Value
                     && request.CollectiveStatus == "COLLECTING")
                 {
-                    request.CollectiveStatus = "THRESHOLD_REACHED";
-                    await NotifyCeoAsync(ctx, request, logger);
+                    // Определяем: направлять ли требование СД (вместо ГД)
+                    var reqType = await ctx.RequestTypes.FindAsync(request.RequestTypeId);
+                    var charterForBoard = await ctx.LegalEntityCharters.FindAsync(leId);
+                    bool isForBoard = charterForBoard?.BoardDecidesConveningOsu == true
+                        && reqType?.ConsideredByOsu == true;
+
+                    request.CollectiveStatus = isForBoard ? "BOARD_REVIEW" : "THRESHOLD_REACHED";
+
+                    if (isForBoard)
+                    {
+                        // Создаём пункт повестки заседания СД
+                        var activeBoard = await ctx.BoardsOfDirectors
+                            .Include(b => b.OsaMeeting)
+                            .Where(b => b.OsaMeeting!.LegalEntityId == leId && b.EndedAt == null)
+                            .OrderByDescending(b => b.ElectionYear)
+                            .FirstOrDefaultAsync();
+                        if (activeBoard is not null)
+                        {
+                            var agendaItem = new AgendaItem
+                            {
+                                Id = Guid.NewGuid(),
+                                BoardOfDirectorsId = activeBoard.Id,
+                                LegalEntityId = leId!.Value,
+                                ShareRequestId = request.Id,
+                                Title = $"Требование: {reqType?.Name ?? "Требование участника"}",
+                                TargetType = "BOARD_MEETING",
+                                Reason = "Требование участника (ст. 35 14-ФЗ)",
+                                Status = "PENDING"
+                            };
+                            ctx.AgendaItems.Add(agendaItem);
+                        }
+                    }
+                    else
+                    {
+                        await NotifyCeoAsync(ctx, request, logger);
+                    }
                 }
 
                 await ctx.SaveChangesAsync();
@@ -869,7 +935,7 @@ public static class ShareRequestEndpoints
                 var (leId, error) = await ValidateAccessAsync(ctx, http, audit, logger);
                 if (error is not null) return error;
 
-                // Проверяем роль CEO
+                // Проверяем роль: CEO (для обычных требований) или MEMBER_BOARD/CHAIR_BOARD (для BOARD_REVIEW)
                 var userIdStr = http.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
                 var userId = Guid.TryParse(userIdStr, out var uid) ? uid : Guid.Empty;
 
@@ -877,17 +943,28 @@ public static class ShareRequestEndpoints
                     .Include(u => u.UserRoles).ThenInclude(ur => ur.Role)
                     .FirstOrDefaultAsync(u => u.Id == userId);
                 var isCeo = user?.UserRoles?.Any(ur => ur.Role?.Code == "CEO") ?? false;
-                if (!isCeo)
-                    return Results.Forbid();
+                var isBoardMember = user?.UserRoles?.Any(ur =>
+                    ur.Role?.Code == "MEMBER_BOARD" || ur.Role?.Code == "CHAIR_BOARD") ?? false;
 
                 var request = await ctx.ShareRequests.FindAsync(id);
                 if (request is null || request.LegalEntityId != leId)
                     return Results.NotFound();
 
+                // Требования на рассмотрении СД могут решать только члены СД
+                if (request.CollectiveStatus == "BOARD_REVIEW")
+                {
+                    if (!isBoardMember)
+                        return Results.Forbid();
+                }
+                else if (!isCeo)
+                {
+                    return Results.Forbid();
+                }
+
                 var (allowed, statusError) = ValidateStatusForOperation(request, "submit_decision");
                 if (!allowed)
                 {
-                    logger.LogWarning("Решение ГД по требованию {RequestId}: неверный статус {Status}", id, request.Status);
+                    logger.LogWarning("Решение по требованию {RequestId}: неверный статус {Status}", id, request.Status);
                     return Results.BadRequest(new { error = statusError });
                 }
 
@@ -1035,12 +1112,13 @@ public static class ShareRequestEndpoints
                 // ГД видит требования, которые:
                 // 1. Достигли порога (collective_status = "THRESHOLD_REACHED")
                 // 2. ИЛИ когда есть активная ОСУ (any OsaMeeting with Status = "DRAFT")
+                // Исключаются требования на рассмотрении СД (BOARD_REVIEW)
                 var hasActiveOsa = await ctx.OsaMeetings.AnyAsync(m => m.LegalEntityId == leId && m.Status == "DRAFT");
 
                 var query = ctx.ShareRequests
                     .Include(r => r.RequestType)
                     .Include(r => r.Participant)
-                    .Where(r => r.LegalEntityId == leId);
+                    .Where(r => r.LegalEntityId == leId && r.CollectiveStatus != "BOARD_REVIEW");
 
                 if (hasActiveOsa)
                 {
@@ -1064,6 +1142,51 @@ public static class ShareRequestEndpoints
             catch (Exception ex)
             {
                 logger.LogWarning(ex, "Ошибка получения требований для ГД");
+                return Results.BadRequest(new { error = ex.Message });
+            }
+        });
+
+        // GET: требования на рассмотрении СД
+        shareRequests.MapGet("/board-review", async (
+            IDbContextFactory<FiduciaDbContext> dbFactory,
+            ISecurityAuditService audit,
+            ILoggerFactory loggerFactory,
+            HttpContext http) =>
+        {
+            var logger = loggerFactory.CreateLogger("ShareRequests.BoardReview");
+            try
+            {
+                await using var ctx = await dbFactory.CreateDbContextAsync();
+                var (leId, error) = await ValidateAccessAsync(ctx, http, audit, logger);
+                if (error is not null) return error;
+
+                // Проверяем роль: MEMBER_BOARD, CHAIR_BOARD или SECRETARY
+                var userIdStr = http.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                var userId = Guid.TryParse(userIdStr, out var uid) ? uid : Guid.Empty;
+                var user = await ctx.Users
+                    .Include(u => u.UserRoles).ThenInclude(ur => ur.Role)
+                    .FirstOrDefaultAsync(u => u.Id == userId);
+                var isAuthorized = user?.UserRoles?.Any(ur =>
+                    ur.Role?.Code == "MEMBER_BOARD"
+                    || ur.Role?.Code == "CHAIR_BOARD"
+                    || ur.Role?.Code == "SECRETARY") ?? false;
+                if (!isAuthorized)
+                    return Results.Forbid();
+
+                var query = ctx.ShareRequests
+                    .Include(r => r.RequestType)
+                    .Include(r => r.Participant)
+                    .Where(r => r.LegalEntityId == leId && r.CollectiveStatus == "BOARD_REVIEW");
+
+                var items = await query
+                    .OrderByDescending(r => r.CreatedAt)
+                    .ToListAsync();
+
+                return Results.Ok(items.Select(MapToCollectiveDto));
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Ошибка получения требований для СД");
                 return Results.BadRequest(new { error = ex.Message });
             }
         });
@@ -1314,6 +1437,10 @@ public static class ShareRequestEndpoints
             .ToListAsync();
 
         var decisionText = request.CollectiveStatus == "ACCEPTED" ? "принято" : "отклонено";
+        var decisionBy = request.CollectiveStatus == "BOARD_REVIEW"
+            ? "Совет директоров"
+            : "Генеральный директор";
+        var notificationTitle = $"Решение СД: {decisionText}";
         foreach (var userId in userIds)
         {
             ctx.Notifications.Add(new Notification
@@ -1321,8 +1448,8 @@ public static class ShareRequestEndpoints
                 Id = Guid.NewGuid(),
                 UserId = userId,
                 NotificationType = "COLLECTIVE_DEMAND_DECISION",
-                Title = $"Решение ГД: {decisionText}",
-                Body = $"Генеральный директор {decisionText} коллективное требование.",
+                Title = notificationTitle,
+                Body = $"{decisionBy} {decisionText} коллективное требование.",
                 CreatedAt = DateTime.UtcNow
             });
         }
@@ -1686,7 +1813,9 @@ public static class ShareRequestEndpoints
                 ? (true, null)
                 : (false, "Прикрепление файлов недоступно для этого статуса"),
             "submit_decision" => (!request.IsCollective && request.Status == "submitted")
-                || (request.IsCollective && (request.CollectiveStatus == "THRESHOLD_REACHED" || request.CollectiveStatus == "SUBMITTED_TO_CEO"))
+                || (request.IsCollective && (request.CollectiveStatus == "THRESHOLD_REACHED"
+                    || request.CollectiveStatus == "SUBMITTED_TO_CEO"
+                    || request.CollectiveStatus == "BOARD_REVIEW"))
                 ? (true, null)
                 : (false, "Требование не может быть рассмотрено в текущем статусе"),
             "revoke" => request.Status == "submitted"

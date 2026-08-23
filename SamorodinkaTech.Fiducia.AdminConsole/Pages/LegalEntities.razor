@@ -834,6 +834,23 @@
                                 </div>
                             </div>
 
+                            @if (_customHasBoardOfDirectors && _orgType == OrgType.LLC)
+                            {
+                                <div class="row g-3 mt-2">
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-bold" title="Если включено, требования участников о созыве/включении вопросов в повестку ОСУ рассматривает СД, а не ГД. ГД полностью исключается из процесса (ст. 35 14-ФЗ).">СД принимает решение о созыве ОСУ</label>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="boardDecidesConveningOsu"
+                                                   @bind="_boardDecidesConveningOsu">
+                                            <label class="form-check-label" for="boardDecidesConveningOsu">
+                                                Требования участников рассматривает СД
+                                            </label>
+                                        </div>
+                                        <div class="form-text">ГД исключается из процесса рассмотрения требований о созыве ВОСУ и включении вопросов в повестку ОСУ.</div>
+                                    </div>
+                                </div>
+                            }
+
                             @if (_orgType == OrgType.LLC && string.IsNullOrEmpty(_editCharterNumber))
                             {
                                 <div class="row g-3 mt-2">
@@ -1017,6 +1034,7 @@
     private bool? _customHasRevisionCommission;
 
     private bool _customHasBoardOfDirectors;
+    private bool _boardDecidesConveningOsu;
 
     private Guid? _customGdTermId;
     private decimal? _customVosuThresholdPercent;
@@ -1317,6 +1335,15 @@
         saveError = null;
         saveSuccess = null;
 
+        // Запоминаем предыдущее значение для обработки изменения крыжика
+        bool wasBoardDecidesConveningOsu = false;
+        await using (var ctxCheck = await DbFactory.CreateDbContextAsync())
+        {
+            var existingCharter = await ctxCheck.LegalEntityCharters
+                .FirstOrDefaultAsync(x => x.LegalEntityId == selectedEntity.Id);
+            wasBoardDecidesConveningOsu = existingCharter?.BoardDecidesConveningOsu ?? false;
+        }
+
         Logger.LogDebug("[Save] TransferToThird={Transfer}, PreemptiveRight={Preemptive}, CanSave={CanSave}, gosaError={GosaError}",
             _customTransferToThirdParties, _customPreemptiveRight, CanSave, gosaError);
 
@@ -1532,6 +1559,7 @@
                     charterParams.HasBoardOfDirectors = _customHasBoardOfDirectors;
                     charterParams.GdTermId = _customGdTermId;
                     charterParams.VosuThresholdPercent = _customVosuThresholdPercent;
+                    charterParams.BoardDecidesConveningOsu = _boardDecidesConveningOsu;
                 }
             }
 
@@ -1542,6 +1570,21 @@
             // Обновляем видимость вкладки «Совет директоров» для ООО после сохранения устава
             if (_orgType == OrgType.LLC)
                 editHasBoardOfDirectors = string.IsNullOrEmpty(_editCharterNumber) && _customHasBoardOfDirectors;
+
+            // При снятии крыжика «СД созывает ОСУ» — переводим нерассмотренные требования к ГД
+            if (wasBoardDecidesConveningOsu && !_boardDecidesConveningOsu)
+            {
+                var pendingBoardReview = await ctx.ShareRequests
+                    .Where(r => r.LegalEntityId == selectedEntity.Id && r.CollectiveStatus == "BOARD_REVIEW")
+                    .ToListAsync();
+                foreach (var req in pendingBoardReview)
+                {
+                    req.CollectiveStatus = "SUBMITTED_TO_CEO";
+                    req.SubmittedToCeoAt ??= DateTime.UtcNow;
+                }
+                if (pendingBoardReview.Count > 0)
+                    await ctx.SaveChangesAsync();
+            }
         }
         catch (Exception ex)
         {
@@ -2011,6 +2054,7 @@
                 _customMandatoryAudit = custom.MandatoryAudit;
                 _customHasRevisionCommission = custom.HasRevisionCommission;
                 _customHasBoardOfDirectors = custom.HasBoardOfDirectors;
+                _boardDecidesConveningOsu = custom.BoardDecidesConveningOsu;
                 _customGdTermId = custom.GdTermId;
                 _customVosuThresholdPercent = custom.VosuThresholdPercent;
 
@@ -2052,6 +2096,7 @@
                 _customMandatoryAudit = null;
                 _customHasRevisionCommission = null;
                 _customHasBoardOfDirectors = false;
+                _boardDecidesConveningOsu = false;
                 _customGdTermId = null;
                 if (_customExecutiveBody == 'A' && _gdTerms.Count > 0)
                     _customGdTermId = _gdTerms.FirstOrDefault(t => t.Code == "5_YEARS")?.Id
@@ -2069,6 +2114,7 @@
                 _customMandatoryAudit = null;
                 _customHasRevisionCommission = null;
                 _customHasBoardOfDirectors = false;
+                _boardDecidesConveningOsu = false;
                 _customGdTermId = null;
                 if (_customExecutiveBody == 'A' && _gdTerms.Count > 0)
                     _customGdTermId = _gdTerms.FirstOrDefault(t => t.Code == "5_YEARS")?.Id
