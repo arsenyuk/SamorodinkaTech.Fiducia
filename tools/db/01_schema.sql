@@ -938,6 +938,29 @@ CREATE UNIQUE INDEX IF NOT EXISTS ux_ao_contractors_le_type_active
     WHERE is_active = true;
 
 -- ============================================================================
+-- Договоры ООО с управляющими (ст. 42 14-ФЗ)
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS llc_management_contracts (
+    id                  uuid PRIMARY KEY,
+    legal_entity_id     uuid NOT NULL REFERENCES legal_entities(id) ON DELETE RESTRICT,
+    manager_full_name   varchar(500) NOT NULL,
+    manager_inn         varchar(12) NOT NULL,
+    manager_ogrnip      varchar(15),
+    contract_number     varchar(100),
+    contract_date       date,
+    contract_valid_from date NOT NULL,
+    contract_valid_to   date,
+    is_indefinite       boolean NOT NULL DEFAULT true,
+    contract_document_id uuid REFERENCES files(id) ON DELETE SET NULL,
+    is_active           boolean NOT NULL DEFAULT true,
+    created_at          timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_by          uuid
+);
+
+CREATE INDEX IF NOT EXISTS ix_llc_mgmt_contracts_le_id ON llc_management_contracts(legal_entity_id);
+
+-- ============================================================================
 -- Шаблоны организационных мероприятий (Org Templates)
 -- Иерархия: tpl_org_intents → tpl_org_stages → tpl_org_offers (офер = шаблон задачи)
 -- ============================================================================

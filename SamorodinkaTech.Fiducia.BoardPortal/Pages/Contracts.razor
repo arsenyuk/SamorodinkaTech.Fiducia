@@ -16,10 +16,16 @@
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h3>Договоры</h3>
-        @if (_isLawyer)
-        {
-            <button class="btn btn-primary" @onclick='() => Navigation.NavigateTo("/contracts/add")'>+ Добавить договор</button>
-        }
+        <div class="d-flex gap-2">
+            @if (_isLlc && (_isLawyer || _isCeo))
+            {
+                <button class="btn btn-outline-primary" @onclick='() => Navigation.NavigateTo("/management-contracts/add")'>+ Договор с управляющим</button>
+            }
+            @if (_isLawyer)
+            {
+                <button class="btn btn-primary" @onclick='() => Navigation.NavigateTo("/contracts/add")'>+ Добавить договор</button>
+            }
+        </div>
     </div>
 
     @if (!string.IsNullOrEmpty(_globalError))
@@ -235,6 +241,73 @@
                 </div>
             }
         }
+
+        @* ═══════════════════════════════════════════════════════════════════ *@
+        @* Договоры с управляющими (ООО)                                        *@
+        @* ═══════════════════════════════════════════════════════════════════ *@
+        @if (_isLlc && _managementContracts.Count > 0)
+        {
+            <h4 class="mt-4 mb-3">Договоры с управляющими</h4>
+            @foreach (var c in _managementContracts)
+            {
+                <div class="card mb-3 @(c.IsActive ? "" : "border-secondary opacity-75")">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>@c.ManagerFullName</strong>
+                            <span class="badge bg-secondary ms-2">ИНН @c.ManagerInn</span>
+                            @if (!string.IsNullOrEmpty(c.ManagerOgrnip))
+                            {
+                                <span class="badge bg-secondary ms-1">ОГРНИП @c.ManagerOgrnip</span>
+                            }
+                            <span class="badge bg-success ms-1">Договор с управляющим</span>
+                            @if (!c.IsActive)
+                            {
+                                <span class="badge bg-warning ms-2">Не действует</span>
+                            }
+                        </div>
+                        <div>
+                            @if (_isLawyer || _isCeo)
+                            {
+                                <button class="btn btn-sm btn-outline-primary ms-2"
+                                        @onclick="@(() => Navigation.NavigateTo($"/management-contracts/{c.Id}"))">Редактировать</button>
+                            }
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <table class="table table-sm table-borderless mb-0">
+                            <tr><td class="text-muted" style="width:200px">Номер:</td><td>@(c.ContractNumber ?? "—")</td></tr>
+                            <tr><td class="text-muted">Дата:</td><td>@(c.ContractDate?.ToString("dd.MM.yyyy") ?? "—")</td></tr>
+                            <tr><td class="text-muted">Начало:</td><td>@c.ContractValidFrom.ToString("dd.MM.yyyy")</td></tr>
+                            <tr>
+                                <td class="text-muted">Срок:</td>
+                                <td>
+                                    @if (c.IsIndefinite)
+                                    {
+                                        <span>Бессрочный</span>
+                                    }
+                                    else
+                                    {
+                                        <span>@c.ContractValidFrom.ToString("dd.MM.yyyy") — @(c.ContractValidTo?.ToString("dd.MM.yyyy") ?? "—")</span>
+                                    }
+                                </td>
+                            </tr>
+                            @if (c.ContractDocumentId.HasValue)
+                            {
+                                <tr>
+                                    <td class="text-muted">Файл:</td>
+                                    <td>
+                                        <a href="/api/files/@c.ContractDocumentId/download" target="_blank"
+                                           class="btn btn-sm btn-outline-secondary">
+                                            📄 Скачать
+                                        </a>
+                                    </td>
+                                </tr>
+                            }
+                        </table>
+                    </div>
+                </div>
+            }
+        }
     }
 </div>
 
@@ -244,8 +317,12 @@
 
     private bool _loading = true;
     private bool _isLawyer;
+    private bool _isCeo;
+    private bool _isParticipant;
+    private bool _isLlc;
     private bool _isPjsc;
     private List<ContractorView> _contractors = new();
+    private List<ManagementContractView> _managementContracts = new();
     private string? _globalError;
     private string? _legalEntityName;
     private bool _hasRegistrar;
@@ -259,6 +336,8 @@
     {
         var role = await JS.InvokeAsync<string>("localStorage.getItem", "currentUserRole");
         _isLawyer = role?.Contains("LAWYER", StringComparison.OrdinalIgnoreCase) == true;
+        _isCeo = role?.Contains("CEO", StringComparison.OrdinalIgnoreCase) == true;
+        _isParticipant = role?.Contains("PARTICIPANT", StringComparison.OrdinalIgnoreCase) == true;
 
         // Определяем ОКОПФ текущего ЮЛ и загружаем единицы измерения
         try
@@ -272,6 +351,7 @@
                     .Where(x => x.Id == leId.Value)
                     .Select(x => new { x.RefOkopf!.Code, x.ShortName })
                     .FirstOrDefaultAsync();
+                _isLlc = OkopfTypeMapper.IsLlc(le?.Code);
                 _isPjsc = OkopfTypeMapper.IsPjsc(le?.Code);
                 _legalEntityName = le?.ShortName;
             }
@@ -297,56 +377,87 @@
             var leId = workplace?.LastSelectedLegalEntityId;
             if (leId is null || leId == Guid.Empty) return;
 
-            var contractors = await ctx.AoContractors
-                .Where(c => c.LegalEntityId == leId.Value)
-                .OrderByDescending(c => c.IsActive)
-                .ThenBy(c => c.ContractorName)
-                .ToListAsync();
-
-            var inns = contractors.Select(c => c.ContractorInn).Distinct().ToList();
-            var cbrOrgs = await ctx.ExtCbrFinOrgOrganizations
-                .Where(o => inns.Contains(o.Inn))
-                .ToDictionaryAsync(o => o.Inn);
-            var cbrLicenses = await ctx.ExtCbrFinOrgLicenses
-                .Where(l => inns.Contains(l.OrganizationInn))
-                .ToListAsync();
-
-            _contractors = contractors.Select(c =>
+            // Загружаем договоры АО (если не ООО или если пользователь не только PARTICIPANT)
+            if (!_isLlc || !_isParticipant || _isLawyer || _isCeo)
             {
-                cbrOrgs.TryGetValue(c.ContractorInn, out var org);
-                var licenses = cbrLicenses.Where(l => l.OrganizationInn == c.ContractorInn).ToList();
-                return new ContractorView
+                var contractors = await ctx.AoContractors
+                    .Where(c => c.LegalEntityId == leId.Value)
+                    .OrderByDescending(c => c.IsActive)
+                    .ThenBy(c => c.ContractorName)
+                    .ToListAsync();
+
+                var inns = contractors.Select(c => c.ContractorInn).Distinct().ToList();
+                var cbrOrgs = await ctx.ExtCbrFinOrgOrganizations
+                    .Where(o => inns.Contains(o.Inn))
+                    .ToDictionaryAsync(o => o.Inn);
+                var cbrLicenses = await ctx.ExtCbrFinOrgLicenses
+                    .Where(l => inns.Contains(l.OrganizationInn))
+                    .ToListAsync();
+
+                _contractors = contractors.Select(c =>
                 {
-                    Id = c.Id,
-                    ContractorInn = c.ContractorInn,
-                    ContractorName = c.ContractorName,
-                    ContractorType = c.ContractorType.ToString(),
-                    ContractNumber = c.ContractNumber,
-                    ContractDate = c.ContractDate?.ToString("dd.MM.yyyy"),
-                    ContractValidFrom = c.ContractValidFrom?.ToString("dd.MM.yyyy"),
-                    ContractValidTo = c.ContractValidTo?.ToString("dd.MM.yyyy"),
-                    IsIndefinite = c.IsIndefinite,
-                    ContractDocumentId = c.ContractDocumentId,
-                    RegistryPreparationDays = c.RegistryPreparationDays,
-                    RegistryPreparationUnit = c.RegistryPreparationUnit?.ToString(),
-                    DividendRegistryPreparationDays = c.DividendRegistryPreparationDays,
-                    DividendRegistryPreparationUnit = c.DividendRegistryPreparationUnit?.ToString(),
-                    RegistryRulesUrl = c.RegistryRulesUrl,
-                    RegistryRulesDocumentId = c.RegistryRulesDocumentId,
-                    IsActive = c.IsActive,
-                    CbrStatus = org?.Status,
-                    CbrFetchedAt = org?.FetchedAt,
-                    Licenses = licenses.Select(l => new LicenseView
+                    cbrOrgs.TryGetValue(c.ContractorInn, out var org);
+                    var licenses = cbrLicenses.Where(l => l.OrganizationInn == c.ContractorInn).ToList();
+                    return new ContractorView
                     {
-                        VidId = l.VidId,
-                        ActivityName = l.ActivityName,
-                        Number = l.Number,
-                        Name = l.Name,
-                        StartDate = l.StartDate?.ToString("dd.MM.yyyy"),
-                        EndDate = l.EndDate?.ToString("dd.MM.yyyy")
-                    }).ToList()
-                };
-            }).ToList();
+                        Id = c.Id,
+                        ContractorInn = c.ContractorInn,
+                        ContractorName = c.ContractorName,
+                        ContractorType = c.ContractorType.ToString(),
+                        ContractNumber = c.ContractNumber,
+                        ContractDate = c.ContractDate?.ToString("dd.MM.yyyy"),
+                        ContractValidFrom = c.ContractValidFrom?.ToString("dd.MM.yyyy"),
+                        ContractValidTo = c.ContractValidTo?.ToString("dd.MM.yyyy"),
+                        IsIndefinite = c.IsIndefinite,
+                        ContractDocumentId = c.ContractDocumentId,
+                        RegistryPreparationDays = c.RegistryPreparationDays,
+                        RegistryPreparationUnit = c.RegistryPreparationUnit?.ToString(),
+                        DividendRegistryPreparationDays = c.DividendRegistryPreparationDays,
+                        DividendRegistryPreparationUnit = c.DividendRegistryPreparationUnit?.ToString(),
+                        RegistryRulesUrl = c.RegistryRulesUrl,
+                        RegistryRulesDocumentId = c.RegistryRulesDocumentId,
+                        IsActive = c.IsActive,
+                        CbrStatus = org?.Status,
+                        CbrFetchedAt = org?.FetchedAt,
+                        Licenses = licenses.Select(l => new LicenseView
+                        {
+                            VidId = l.VidId,
+                            ActivityName = l.ActivityName,
+                            Number = l.Number,
+                            Name = l.Name,
+                            StartDate = l.StartDate?.ToString("dd.MM.yyyy"),
+                            EndDate = l.EndDate?.ToString("dd.MM.yyyy")
+                        }).ToList()
+                    };
+                }).ToList();
+
+                _hasRegistrar = _contractors.Any(c => c.ContractorType == "REGISTRAR" && c.IsActive);
+                _hasInfoAgency = _contractors.Any(c => c.ContractorType == "INFO_AGENCY" && c.IsActive);
+            }
+
+            // Загружаем договоры с управляющими для ООО
+            if (_isLlc)
+            {
+                _managementContracts = await ctx.LlcManagementContracts
+                    .Where(c => c.LegalEntityId == leId.Value)
+                    .OrderByDescending(c => c.IsActive)
+                    .ThenBy(c => c.ManagerFullName)
+                    .Select(c => new ManagementContractView
+                    {
+                        Id = c.Id,
+                        ManagerFullName = c.ManagerFullName,
+                        ManagerInn = c.ManagerInn,
+                        ManagerOgrnip = c.ManagerOgrnip,
+                        ContractNumber = c.ContractNumber,
+                        ContractDate = c.ContractDate,
+                        ContractValidFrom = c.ContractValidFrom,
+                        ContractValidTo = c.ContractValidTo,
+                        IsIndefinite = c.IsIndefinite,
+                        ContractDocumentId = c.ContractDocumentId,
+                        IsActive = c.IsActive
+                    })
+                    .ToListAsync();
+            }
         }
         catch (Exception ex)
         {
@@ -356,9 +467,6 @@
         {
             _loading = false;
         }
-
-        _hasRegistrar = _contractors.Any(c => c.ContractorType == "REGISTRAR" && c.IsActive);
-        _hasInfoAgency = _contractors.Any(c => c.ContractorType == "INFO_AGENCY" && c.IsActive);
     }
 
     /// <summary>Проверка статуса контрагента в ЦБР по ИНН.</summary>
@@ -458,5 +566,20 @@
         public string? FoTypes { get; set; }
         [System.Text.Json.Serialization.JsonPropertyName("licenses")]
         public List<LicenseView>? Licenses { get; set; }
+    }
+
+    private class ManagementContractView
+    {
+        public Guid Id { get; set; }
+        public string ManagerFullName { get; set; } = "";
+        public string ManagerInn { get; set; } = "";
+        public string? ManagerOgrnip { get; set; }
+        public string? ContractNumber { get; set; }
+        public DateOnly? ContractDate { get; set; }
+        public DateOnly ContractValidFrom { get; set; }
+        public DateOnly? ContractValidTo { get; set; }
+        public bool IsIndefinite { get; set; }
+        public Guid? ContractDocumentId { get; set; }
+        public bool IsActive { get; set; }
     }
 }

@@ -73,6 +73,8 @@ public interface IApplicationDbContext
 
     DbSet<AoContractor> AoContractors { get; }
 
+    DbSet<LlcManagementContract> LlcManagementContracts { get; }
+
     DbSet<SystemSetting> SystemSettings { get; }
 
     DbSet<BoardParticipant> BoardParticipants { get; }

@@ -1,0 +1,231 @@
+@page "/management-contracts/{Id:guid}"
+@using Microsoft.EntityFrameworkCore
+@inject IDbContextFactory<SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext> DbFactory
+@inject ILogger<ManagementContractEdit> Logger
+@inject IJSRuntime JS
+@inject NavigationManager Navigation
+@inject HttpClient Http
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+
+<PageTitle>Fiducia — Редактирование договора с управляющим</PageTitle>
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3>Редактирование договора с управляющим</h3>
+        <button class="btn btn-outline-secondary" @onclick='() => Navigation.NavigateTo("/contracts")'>← Назад к списку</button>
+    </div>
+
+    @if (_loading)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status"></div>
+        </div>
+    }
+    else if (_contract is null)
+    {
+        <div class="alert alert-danger">Договор не найден</div>
+    }
+    else
+    {
+        @if (!string.IsNullOrEmpty(_formError))
+        {
+            <div class="alert alert-danger">@_formError</div>
+        }
+
+        <div class="card bg-light mb-3">
+            <div class="card-body py-2">
+                <strong>@_contract.ManagerFullName</strong> (ИНН @_contract.ManagerInn)
+                @if (!string.IsNullOrEmpty(_contract.ManagerOgrnip))
+                {
+                    <span class="text-muted ms-2">ОГРНИП @_contract.ManagerOgrnip</span>
+                }
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label">ФИО управляющего</label>
+                        <input class="form-control" @bind="_formFullName" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">ИНН ИП</label>
+                        <input class="form-control" @bind="_formInn" readonly />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">ОГРНИП</label>
+                        <input class="form-control" @bind="_formOgrnip" />
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-3">
+                        <label class="form-label">Номер договора</label>
+                        <input class="form-control" @bind="_formContractNumber" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Дата договора</label>
+                        <input type="date" class="form-control" @bind="_formContractDate" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Начало действия *</label>
+                        <input type="date" class="form-control" @bind="_formValidFrom" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Срок действия</label>
+                        <div class="form-check mt-2">
+                            <input class="form-check-input" type="checkbox" id="isIndefinite" @bind="_formIsIndefinite">
+                            <label class="form-check-label" for="isIndefinite">Бессрочный</label>
+                        </div>
+                        @if (!_formIsIndefinite)
+                        {
+                            <input type="date" class="form-control mt-1" @bind="_formValidTo" />
+                        }
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Файл договора</label>
+                    @if (_contract.ContractDocumentId.HasValue)
+                    {
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <a href="/api/files/@_contract.ContractDocumentId/download" target="_blank"
+                               class="btn btn-sm btn-outline-secondary">📄 Текущий файл</a>
+                        </div>
+                    }
+                    <InputFile class="form-control" OnChange="OnFileSelected" accept=".pdf,.doc,.docx" />
+                    @if (_selectedFile is not null)
+                    {
+                        <div class="text-muted small mt-1">Выбран: @_selectedFile.Name (@(_selectedFile.Size / 1024) КБ)</div>
+                    }
+                </div>
+            </div>
+            <div class="card-footer">
+                <button type="button" class="btn btn-secondary me-2" @onclick='() => Navigation.NavigateTo("/contracts")'>← Отмена</button>
+                <button type="button" class="btn btn-primary" @onclick="Save" disabled="@(_saving)">
+                    @if (_saving) { <span class="spinner-border spinner-border-sm me-1"></span> }
+                    Сохранить
+                </button>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+
+    private bool _loading = true;
+    private ContractDto? _contract;
+    private string? _formError;
+    private bool _saving;
+
+    private string _formFullName = "";
+    private string _formInn = "";
+    private string? _formOgrnip;
+    private string? _formContractNumber;
+    private DateOnly? _formContractDate;
+    private DateOnly _formValidFrom;
+    private DateOnly? _formValidTo;
+    private bool _formIsIndefinite = true;
+    private IBrowserFile? _selectedFile;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _contract = await Http.GetFromJsonAsync<ContractDto>($"/api/llc-management-contracts/{Id}");
+            if (_contract is not null)
+            {
+                _formFullName = _contract.ManagerFullName;
+                _formInn = _contract.ManagerInn;
+                _formOgrnip = _contract.ManagerOgrnip;
+                _formContractNumber = _contract.ContractNumber;
+                _formIsIndefinite = _contract.IsIndefinite;
+                if (DateOnly.TryParse(_contract.ContractValidFrom, out var vf))
+                    _formValidFrom = vf;
+                if (DateOnly.TryParse(_contract.ContractValidTo, out var vt))
+                    _formValidTo = vt;
+                if (DateOnly.TryParse(_contract.ContractDate, out var cd))
+                    _formContractDate = cd;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Ошибка загрузки договора {Id}", Id);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private void OnFileSelected(InputFileChangeEventArgs e)
+    {
+        _selectedFile = e.File;
+    }
+
+    private async Task Save()
+    {
+        _saving = true;
+        _formError = null;
+
+        try
+        {
+            using var content = new MultipartFormDataContent();
+            content.Add(new StringContent(_formFullName), "managerFullName");
+            content.Add(new StringContent(_formInn), "managerInn");
+            if (!string.IsNullOrEmpty(_formOgrnip))
+                content.Add(new StringContent(_formOgrnip), "managerOgrnip");
+            if (!string.IsNullOrEmpty(_formContractNumber))
+                content.Add(new StringContent(_formContractNumber), "contractNumber");
+            if (_formContractDate.HasValue)
+                content.Add(new StringContent(_formContractDate.Value.ToString("yyyy-MM-dd")), "contractDate");
+            content.Add(new StringContent(_formValidFrom.ToString("yyyy-MM-dd")), "contractValidFrom");
+            content.Add(new StringContent(_formIsIndefinite ? "true" : "false"), "isIndefinite");
+            if (!_formIsIndefinite && _formValidTo.HasValue)
+                content.Add(new StringContent(_formValidTo.Value.ToString("yyyy-MM-dd")), "contractValidTo");
+
+            if (_selectedFile is not null)
+            {
+                var stream = _selectedFile.OpenReadStream(maxAllowedSize: 52_428_800);
+                var fileContent = new StreamContent(stream);
+                content.Add(fileContent, "file", _selectedFile.Name);
+            }
+
+            var response = await Http.PutAsync($"/api/llc-management-contracts/{Id}", content);
+            if (response.IsSuccessStatusCode)
+            {
+                Navigation.NavigateTo("/contracts");
+            }
+            else
+            {
+                var body = await response.Content.ReadAsStringAsync();
+                _formError = $"Ошибка сохранения: {body}";
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Ошибка сохранения договора {Id}", Id);
+            _formError = $"Ошибка: {ex.Message}";
+        }
+        finally
+        {
+            _saving = false;
+            StateHasChanged();
+        }
+    }
+
+    private record ContractDto(
+        Guid Id,
+        string ManagerFullName,
+        string ManagerInn,
+        string? ManagerOgrnip,
+        string? ContractNumber,
+        string? ContractDate,
+        string? ContractValidFrom,
+        string? ContractValidTo,
+        bool IsIndefinite,
+        Guid? ContractDocumentId,
+        bool IsActive);
+}
