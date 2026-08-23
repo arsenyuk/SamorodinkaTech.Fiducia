@@ -825,7 +825,7 @@
                                     </select>
                                 </div>
                                 <div class="col-md-4">
-                                    <label class="form-label fw-bold" title="Способ подтверждения протоколов ОСУ. Определяет процесс оформления собрания.">Подтверждение протокола</label>
+                                    <label class="form-label fw-bold" title="Способ подтверждения протоколов ОСУ. Определяет процесс оформления собрания.">Подтверждение протокола ОСУ</label>
                                     <select class="form-select" @bind="_protocolConfirmationMethodId">
                                         @foreach (var m in _protocolConfirmationMethods)
                                         {
@@ -892,7 +892,7 @@
                                         <label class="form-label fw-bold" title="Порог доли участника для требования о созыве ВОСУ. По умолчанию 10% (ст. 35 14-ФЗ). Устав может установить пониженный порог (не более 10%).">Порог для требования ВОСУ, %</label>
                                         <input type="number" class="form-control" @bind="_customVosuThresholdPercent"
                                                min="0.01" max="10" step="0.01" placeholder="10 (по умолчанию)" />
-                                        <div class="form-text">По умолчанию 10% (ст. 35 14-ФЗ). Устав может установить пониженный порог.</div>
+                                        <div class="form-text">По умолчанию 10% (одна десятая от общего числа голосов, ст. 35 14-ФЗ). Устав может установить пониженный порог.</div>
                                     </div>
                                 </div>
                             }

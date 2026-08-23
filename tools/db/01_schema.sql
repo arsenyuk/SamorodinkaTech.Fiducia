@@ -461,6 +461,10 @@ CREATE INDEX IF NOT EXISTS ix_legal_entities_ogrn ON legal_entities(ogrn);
 CREATE TABLE IF NOT EXISTS legal_entity_charter (
     legal_entity_id uuid PRIMARY KEY REFERENCES legal_entities(id) ON DELETE RESTRICT,
     exit_allowed boolean NOT NULL DEFAULT false,
+    exit_allowed_min_share_percent numeric(5,2),
+    exit_allowed_max_share_percent numeric(5,2),
+    exit_condition_description text,
+    exit_requires_unanimous_osu boolean NOT NULL DEFAULT false,
     transfer_to_participants_without_consent boolean NOT NULL DEFAULT true,
     transfer_to_third_parties_without_consent boolean NOT NULL DEFAULT false,
     preemptive_right boolean NOT NULL DEFAULT true,
