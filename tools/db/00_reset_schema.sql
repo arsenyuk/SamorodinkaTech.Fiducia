@@ -35,7 +35,7 @@ END $$;
 SET session_replication_role = 'origin';
 
 -- Применяем схему из 01_schema.sql
-\i /Users/evgenij/Проекты/SamorodinkaTech.Fiducia/tools/db/01_schema.sql
+--\i /Users/evgenij/Проекты/SamorodinkaTech.Fiducia/tools/db/01_schema.sql
 
 -- Применяем seed-данные из 02_seed.sql (если нужно)
 -- \i /Users/evgenij/Проекты/SamorodinkaTech.Fiducia/tools/db/02_seed.sql
@@ -44,4 +44,4 @@ SET session_replication_role = 'origin';
 -- \i /Users/evgenij/Проекты/SamorodinkaTech.Fiducia/tools/db/03_demo.sql
 
 -- Проверяем результат
-SELECT 'Schema applied successfully!' AS status;
+SELECT 'Schema dropped successfully!' AS status;
