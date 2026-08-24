@@ -42,8 +42,8 @@ public class LegalEntityCharter
     /// <summary>Переход доли к участникам без согласия остальных (transfer_to_participants_without_consent).</summary>
     public bool TransferToParticipantsWithoutConsent { get; set; } = true;
 
-    /// <summary>Переход доли к третьим лицам без согласия остальных (transfer_to_third_parties_without_consent).</summary>
-    public bool TransferToThirdPartiesWithoutConsent { get; set; }
+    /// <summary>Переход доли к третьим лицам: CONSENT — с согласия, WITHOUT_CONSENT — без согласия, FORBIDDEN — запрещён (transfer_to_third_parties).</summary>
+    public string TransferToThirdParties { get; set; } = "CONSENT";
 
     /// <summary>Преимущественное право покупки доли участниками (preemptive_right).</summary>
     public bool PreemptiveRight { get; set; } = true;

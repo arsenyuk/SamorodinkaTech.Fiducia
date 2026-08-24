@@ -466,7 +466,7 @@ CREATE TABLE IF NOT EXISTS legal_entity_charter (
     exit_condition_description text,
     exit_requires_unanimous_osu boolean NOT NULL DEFAULT false,
     transfer_to_participants_without_consent boolean NOT NULL DEFAULT true,
-    transfer_to_third_parties_without_consent boolean NOT NULL DEFAULT false,
+    transfer_to_third_parties varchar(20) NOT NULL DEFAULT 'CONSENT' CHECK (transfer_to_third_parties IN ('CONSENT','WITHOUT_CONSENT','FORBIDDEN')),
     preemptive_right boolean NOT NULL DEFAULT true,
     inheritance_without_consent boolean NOT NULL DEFAULT true,
     executive_body char(1) NOT NULL DEFAULT 'A',

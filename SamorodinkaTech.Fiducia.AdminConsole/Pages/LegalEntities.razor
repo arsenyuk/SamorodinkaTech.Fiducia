@@ -741,161 +741,206 @@
                             <div class="alert alert-info small py-2">
                                 <strong>Насыщенным шрифтом</strong> выделены заголовки параметров, влияющих на бизнес-процессы системы. Подробнее — в <a href="/docs/business-processes/standard-charter-impact.html" target="_blank">документации</a>.
                             </div>
-                            <div class="row g-3">
-                                <div class="col-md-4">
-                                    <label class="form-label fw-bold" title="Тип исполнительного органа: A — гендиректор, B — каждый участник = директор, C — все совместно. Определяет процедуру избрания и подписания документов.">Исполнительный орган</label>
-                                    <select class="form-select" @bind="_executiveBodyStr">
-                                        <option value="A">A — Генеральный директор</option>
-                                        <option value="B">B — Каждый участник — директор</option>
-                                        <option value="C">C — Все участники совместно</option>
-                                    </select>
-                                </div>
-                                @if (_customExecutiveBody == 'A')
-                                {
-                                    <div class="col-md-4">
-                                        <label class="form-label fw-bold" title="Срок полномочий генерального директора ООО. Определяет период, на который избирается ГД.">Срок полномочий</label>
-                                        <select class="form-select" @bind="_gdTermStr">
-                                            @foreach (var term in _gdTerms)
+                            <div class="accordion" id="charterAccordion">
+                                @* --- Секция 1: Общие --- *@
+                                <div class="accordion-item">
+                                    <h2 class="accordion-header">
+                                        <button class="accordion-button" type="button" data-bs-toggle="collapse"
+                                                data-bs-target="#charterGeneral" aria-expanded="true">
+                                            Общие
+                                        </button>
+                                    </h2>
+                                    <div id="charterGeneral" class="accordion-collapse collapse show"
+                                         data-bs-parent="#charterAccordion">
+                                        <div class="accordion-body">
+                                            <div class="row g-3">
+                                                <div class="col-md-4">
+                                                    <label class="form-label fw-bold">Исполнительный орган</label>
+                                                    <select class="form-select" @bind="_executiveBodyStr">
+                                                        <option value="A">A — Генеральный директор</option>
+                                                        <option value="B">B — Каждый участник — директор</option>
+                                                        <option value="C">C — Все участники совместно</option>
+                                                    </select>
+                                                    <div class="form-text">Тип исполнительного органа: A — гендиректор, B — каждый участник = директор, C — все совместно. Определяет процедуру избрания и подписания документов.</div>
+                                                </div>
+                                                @if (_customExecutiveBody == 'A')
+                                                {
+                                                    <div class="col-md-4">
+                                                        <label class="form-label fw-bold">Срок полномочий</label>
+                                                        <select class="form-select" @bind="_gdTermStr">
+                                                            @foreach (var term in _gdTerms)
+                                                            {
+                                                                <option value="@term.Id">@term.Name</option>
+                                                            }
+                                                        </select>
+                                                        <div class="form-text">Срок полномочий генерального директора ООО. Определяет период, на который избирается ГД.</div>
+                                                    </div>
+                                                }
+                                            </div>
+
+                                            <div class="row g-3 mt-2">
+                                                <div class="col-md-4">
+                                                    <label class="form-label">Выход участника из общества</label>
+                                                    <select class="form-select" @bind="_exitAllowedStr">
+                                                        <option value="False">Запрещён</option>
+                                                        <option value="True">Разрешён</option>
+                                                    </select>
+                                                </div>
+                                                @if (_customExitAllowed)
+                                                {
+                                                    <div class="col-md-3">
+                                                        <label class="form-label">Мин. доля для выхода, %</label>
+                                                        <input type="number" class="form-control" @bind="_customExitAllowedMinSharePercent"
+                                                               min="0" max="100" step="0.01" placeholder="Без ограничения" />
+                                                        <div class="form-text">Минимальная доля участника для права на выход. Пусто = без минимального порога.</div>
+                                                    </div>
+                                                    <div class="col-md-3">
+                                                        <label class="form-label">Макс. доля для выхода, %</label>
+                                                        <input type="number" class="form-control" @bind="_customExitAllowedMaxSharePercent"
+                                                               min="0" max="100" step="0.01" placeholder="Без ограничения" />
+                                                        <div class="form-text">Максимальная доля участника для права на выход. Пусто = без максимального порога.</div>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <label class="form-label">Условия выхода</label>
+                                                        <input type="text" class="form-control" @bind="_customExitConditionDescription"
+                                                               placeholder="Например: по истечении 2 лет с момента вступления" />
+                                                        <div class="form-text">Условия выхода из общества (свободный текст). Пусто = без дополнительных условий.</div>
+                                                    </div>
+                                                    <div class="col-md-4">
+                                                        <div class="form-check mt-2">
+                                                            <input class="form-check-input" type="checkbox" id="exitRequiresUnanimousOsu"
+                                                                   @bind="_customExitRequiresUnanimousOsu">
+                                                            <label class="form-check-label fw-bold" for="exitRequiresUnanimousOsu">
+                                                                Требуется единогласное решение ОСУ
+                                                            </label>
+                                                        </div>
+                                                        <div class="form-text">Выход требует единогласного решения общего собрания участников. Заявление направляется на повестку ОСУ, а не ГД напрямую.</div>
+                                                    </div>
+                                                }
+                                            </div>
+
+                                            <div class="row g-3 mt-2">
+                                                <div class="col-md-4">
+                                                    <label class="form-label fw-bold">Преимущественное право покупки</label>
+                                                    <select class="form-select" @bind="_preemptiveStr">
+                                                        <option value="True">Есть</option>
+                                                        <option value="False">Нет</option>
+                                                    </select>
+                                                    <div class="form-text">Приоритет участников перед третьими лицами при покупке доли. Запускает обязательную рассылку оферт с дедлайном 30 дней.</div>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <label class="form-label fw-bold">Подтверждение протокола ОСУ</label>
+                                                    <select class="form-select" @bind="_protocolConfirmationMethodId">
+                                                        @foreach (var m in _protocolConfirmationMethods)
+                                                        {
+                                                            <option value="@m.Id">@m.Name</option>
+                                                        }
+                                                    </select>
+                                                    <div class="form-text">Способ подтверждения протоколов ОСУ. Определяет процесс оформления собрания.</div>
+                                                </div>
+                                            </div>
+
+                                            <div class="row g-3 mt-2">
+                                                <div class="col-md-4">
+                                                    <label class="form-label fw-bold">Обязательный аудит</label>
+                                                    <select class="form-select" @bind="_mandatoryAuditStr">
+                                                        <option value="True">Да</option>
+                                                        <option value="False">Нет</option>
+                                                    </select>
+                                                    <div class="form-text">Обязательный аудит годовой отчётности — выручка &gt;800 млн или активы &gt;400 млн (ст. 5 307-ФЗ). Влияет на состав задач при подготовке к ООСУ/ВОСУ.</div>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <label class="form-label fw-bold">Ревизионная комиссия</label>
+                                                    <select class="form-select" @bind="_hasRevisionStr">
+                                                        <option value="True">Да</option>
+                                                        <option value="False">Нет</option>
+                                                    </select>
+                                                    <div class="form-text">Наличие ревизионной комиссии (ревизора) — &gt;15 участников ООО по ст. 32 14-ФЗ. Влияет на состав задач при подготовке к ООСУ/ВОСУ.</div>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <label class="form-label fw-bold">Совет директоров</label>
+                                                    <select class="form-select" @bind="_hasBoardOfDirectorsStr">
+                                                        <option value="False">Нет</option>
+                                                        <option value="True">Да</option>
+                                                    </select>
+                                                    <div class="form-text">Наличие Совета директоров. Для ООО — только по нетиповому уставу. Определяет доступность вкладки «Совет директоров».</div>
+                                                </div>
+                                            </div>
+
+                                            @if (_customHasBoardOfDirectors && _orgType == OrgType.LLC)
                                             {
-                                                <option value="@term.Id">@term.Name</option>
+                                                <div class="row g-3 mt-2">
+                                                    <div class="col-md-6">
+                                                        <label class="form-label fw-bold">СД принимает решение о созыве ОСУ</label>
+                                                        <div class="form-check">
+                                                            <input class="form-check-input" type="checkbox" id="boardDecidesConveningOsu"
+                                                                   @bind="_boardDecidesConveningOsu">
+                                                            <label class="form-check-label" for="boardDecidesConveningOsu">
+                                                                Требования участников рассматривает СД
+                                                            </label>
+                                                        </div>
+                                                        <div class="form-text">Если включено, требования участников о созыве/включении вопросов в повестку ОСУ рассматривает СД, а не ГД. ГД полностью исключается из процесса (ст. 35 14-ФЗ).</div>
+                                                    </div>
+                                                </div>
                                             }
-                                        </select>
-                                    </div>
-                                }
-                            </div>
-                            <div class="row g-3 mt-2">
-                                <div class="col-md-4">
-                                    <label class="form-label">Выход участника из общества</label>
-                                    <select class="form-select" @bind="_exitAllowedStr">
-                                        <option value="False">Запрещён</option>
-                                        <option value="True">Разрешён</option>
-                                    </select>
-                                </div>
-                                @if (_customExitAllowed)
-                                {
-                                    <div class="col-md-3">
-                                        <label class="form-label" title="Минимальная доля участника для права на выход. Пусто = без ограничения.">Мин. доля для выхода, %</label>
-                                        <input type="number" class="form-control" @bind="_customExitAllowedMinSharePercent"
-                                               min="0" max="100" step="0.01" placeholder="Без ограничения" />
-                                        <div class="form-text">Пусто = без минимального порога</div>
-                                    </div>
-                                    <div class="col-md-3">
-                                        <label class="form-label" title="Максимальная доля участника для права на выход. Пусто = без ограничения.">Макс. доля для выхода, %</label>
-                                        <input type="number" class="form-control" @bind="_customExitAllowedMaxSharePercent"
-                                               min="0" max="100" step="0.01" placeholder="Без ограничения" />
-                                        <div class="form-text">Пусто = без максимального порога</div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label class="form-label" title="Условия выхода из общества (свободный текст). Например: &quot;по истечении 2 лет с момента вступления&quot;">Условия выхода</label>
-                                        <input type="text" class="form-control" @bind="_customExitConditionDescription"
-                                               placeholder="Например: по истечении 2 лет с момента вступления" />
-                                        <div class="form-text">Пусто = без дополнительных условий</div>
-                                    </div>
-                                    <div class="col-md-4">
-                                        <div class="form-check mt-2">
-                                            <input class="form-check-input" type="checkbox" id="exitRequiresUnanimousOsu"
-                                                   @bind="_customExitRequiresUnanimousOsu">
-                                            <label class="form-check-label fw-bold" for="exitRequiresUnanimousOsu"
-                                                   title="Выход требует единогласного решения общего собрания участников. Заявление направляется на повестку ОСУ.">
-                                                Требуется единогласное решение ОСУ
-                                            </label>
+
+                                            @if (_orgType == OrgType.LLC && string.IsNullOrEmpty(_editCharterNumber))
+                                            {
+                                                <div class="row g-3 mt-2">
+                                                    <div class="col-md-4">
+                                                        <label class="form-label fw-bold">Порог для требования ВОСУ, %</label>
+                                                        <input type="number" class="form-control" @bind="_customVosuThresholdPercent"
+                                                               min="0.01" max="10" step="0.01" placeholder="10 (по умолчанию)" />
+                                                        <div class="form-text">Порог доли участника для требования о созыве ВОСУ. По умолчанию 10% (одна десятая от общего числа голосов, ст. 35 14-ФЗ). Устав может установить пониженный порог (не более 10%).</div>
+                                                    </div>
+                                                </div>
+                                            }
                                         </div>
-                                        <div class="form-text">Заявление о выходе рассматривается ОСУ, а не ГД напрямую</div>
                                     </div>
-                                }
-                                <div class="col-md-4">
-                                    <label class="form-label fw-bold" title="Требуется ли согласие участников при переходе доли между участниками. Влияет на голосование ОСУ.">Переход доли к участникам</label>
-                                    <select class="form-select" @bind="_transferParticipantsStr">
-                                        <option value="False">С согласия участников</option>
-                                        <option value="True">Без согласия участников</option>
-                                    </select>
                                 </div>
-                                <div class="col-md-4">
-                                    <label class="form-label fw-bold" title="Требуется ли согласие участников при продаже доли третьему лицу. Влияет на голосование ОСУ.">Переход доли к третьим лицам</label>
-                                    <select class="form-select" @bind="_transferThirdStr">
-                                        <option value="False">С согласия участников</option>
-                                        <option value="True">Без согласия участников</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-4">
-                                    <label class="form-label fw-bold" title="Приоритет участников перед третьими лицами при покупке доли. Запускает обязательную рассылку оферт с дедлайном 30 дней.">Преимущественное право покупки</label>
-                                    <select class="form-select" @bind="_preemptiveStr">
-                                        <option value="True">Есть</option>
-                                        <option value="False">Нет</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-4">
-                                    <label class="form-label fw-bold" title="Способ подтверждения протоколов ОСУ. Определяет процесс оформления собрания.">Подтверждение протокола ОСУ</label>
-                                    <select class="form-select" @bind="_protocolConfirmationMethodId">
-                                        @foreach (var m in _protocolConfirmationMethods)
-                                        {
-                                            <option value="@m.Id">@m.Name</option>
-                                        }
-                                    </select>
-                                </div>
-                                <div class="col-md-4">
-                                    <label class="form-label">Переход доли наследникам</label>
-                                    <select class="form-select" @bind="_inheritanceStr">
-                                        <option value="False">С согласия участников</option>
-                                        <option value="True">Без согласия участников</option>
-                                    </select>
-                                </div>
-                            </div>
 
-                            <div class="row g-3 mt-2">
-                                <div class="col-md-4">
-                                    <label class="form-label fw-bold" title="Обязательный аудит годовой отчётности — выручка >800 млн или активы >400 млн (ст. 5 307-ФЗ). Влияет на состав задач при подготовке к ООСУ/ВОСУ.">Обязательный аудит</label>
-                                    <select class="form-select" @bind="_mandatoryAuditStr">
-                                        <option value="">Не указано</option>
-                                        <option value="True">Да</option>
-                                        <option value="False">Нет</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-4">
-                                    <label class="form-label fw-bold" title="Наличие ревизионной комиссии (ревизора) — >15 участников ООО по ст. 32 14-ФЗ. Влияет на состав задач при подготовке к ООСУ/ВОСУ.">Ревизионная комиссия</label>
-                                    <select class="form-select" @bind="_hasRevisionStr">
-                                        <option value="">Не указано</option>
-                                        <option value="True">Да</option>
-                                        <option value="False">Нет</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-4">
-                                    <label class="form-label fw-bold" title="Наличие Совета директоров. Для ООО — только по нетиповому уставу. Определяет доступность вкладки «Совет директоров».">Совет директоров</label>
-                                    <select class="form-select" @bind="_hasBoardOfDirectorsStr">
-                                        <option value="False">Нет</option>
-                                        <option value="True">Да</option>
-                                    </select>
-                                </div>
-                            </div>
-
-                            @if (_customHasBoardOfDirectors && _orgType == OrgType.LLC)
-                            {
-                                <div class="row g-3 mt-2">
-                                    <div class="col-md-6">
-                                        <label class="form-label fw-bold" title="Если включено, требования участников о созыве/включении вопросов в повестку ОСУ рассматривает СД, а не ГД. ГД полностью исключается из процесса (ст. 35 14-ФЗ).">СД принимает решение о созыве ОСУ</label>
-                                        <div class="form-check">
-                                            <input class="form-check-input" type="checkbox" id="boardDecidesConveningOsu"
-                                                   @bind="_boardDecidesConveningOsu">
-                                            <label class="form-check-label" for="boardDecidesConveningOsu">
-                                                Требования участников рассматривает СД
-                                            </label>
+                                @* --- Секция 2: Требуется согласие участников --- *@
+                                <div class="accordion-item">
+                                    <h2 class="accordion-header">
+                                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                                                data-bs-target="#charterConsent">
+                                            Требуется согласие участников
+                                        </button>
+                                    </h2>
+                                    <div id="charterConsent" class="accordion-collapse collapse"
+                                         data-bs-parent="#charterAccordion">
+                                        <div class="accordion-body">
+                                            <div class="row g-3">
+                                                <div class="col-md-4">
+                                                    <label class="form-label fw-bold">Переход доли к участникам</label>
+                                                    <select class="form-select" @bind="_transferParticipantsStr">
+                                                        <option value="False">С согласия участников</option>
+                                                        <option value="True">Без согласия участников</option>
+                                                    </select>
+                                                    <div class="form-text">Требуется ли согласие участников при переходе доли между участниками. Влияет на голосование ОСУ.</div>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <label class="form-label fw-bold">Переход доли к третьим лицам</label>
+                                                    <select class="form-select" @bind="_transferThirdStr">
+                                                        <option value="False">С согласия участников</option>
+                                                        <option value="True">Без согласия участников</option>
+                                                        <option value="FORBIDDEN">Запрещён</option>
+                                                    </select>
+                                                    <div class="form-text">Требуется ли согласие участников при продаже доли третьему лицу. Влияет на голосование ОСУ.</div>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <label class="form-label fw-bold">Переход доли наследникам</label>
+                                                    <select class="form-select" @bind="_inheritanceStr">
+                                                        <option value="False">С согласия участников</option>
+                                                        <option value="True">Без согласия участников</option>
+                                                    </select>
+                                                    <div class="form-text">Требуется ли согласие участников при переходе доли наследникам. Влияет на голосование ОСУ.</div>
+                                                </div>
+                                            </div>
                                         </div>
-                                        <div class="form-text">ГД исключается из процесса рассмотрения требований о созыве ВОСУ и включении вопросов в повестку ОСУ.</div>
                                     </div>
                                 </div>
-                            }
-
-                            @if (_orgType == OrgType.LLC && string.IsNullOrEmpty(_editCharterNumber))
-                            {
-                                <div class="row g-3 mt-2">
-                                    <div class="col-md-4">
-                                        <label class="form-label fw-bold" title="Порог доли участника для требования о созыве ВОСУ. По умолчанию 10% (ст. 35 14-ФЗ). Устав может установить пониженный порог (не более 10%).">Порог для требования ВОСУ, %</label>
-                                        <input type="number" class="form-control" @bind="_customVosuThresholdPercent"
-                                               min="0.01" max="10" step="0.01" placeholder="10 (по умолчанию)" />
-                                        <div class="form-text">По умолчанию 10% (одна десятая от общего числа голосов, ст. 35 14-ФЗ). Устав может установить пониженный порог.</div>
-                                    </div>
-                                </div>
-                            }
+                            </div>
                         </div>
                     }
                 </div>
@@ -1052,7 +1097,7 @@
     private string? _customExitConditionDescription;
     private bool _customExitRequiresUnanimousOsu;
     private bool _customTransferToParticipants = true;
-    private bool _customTransferToThirdParties;
+    private string _customTransferToThirdParties = "CONSENT";
     private bool _customPreemptiveRight = true;
     private bool _customInheritance = true;
     private char _customExecutiveBody = 'A';
@@ -1087,13 +1132,13 @@
 
     private string _mandatoryAuditStr
     {
-        get => _customMandatoryAudit?.ToString() ?? "";
-        set => _customMandatoryAudit = string.IsNullOrEmpty(value) ? null : bool.Parse(value);
+        get => (_customMandatoryAudit ?? false).ToString();
+        set => _customMandatoryAudit = string.IsNullOrEmpty(value) ? false : bool.Parse(value);
     }
     private string _hasRevisionStr
     {
-        get => _customHasRevisionCommission?.ToString() ?? "";
-        set => _customHasRevisionCommission = string.IsNullOrEmpty(value) ? null : bool.Parse(value);
+        get => (_customHasRevisionCommission ?? false).ToString();
+        set => _customHasRevisionCommission = string.IsNullOrEmpty(value) ? false : bool.Parse(value);
     }
     private string _hasBoardOfDirectorsStr
     {
@@ -1133,8 +1178,8 @@
     }
     private string _transferThirdStr
     {
-        get => _customTransferToThirdParties.ToString();
-        set => _customTransferToThirdParties = bool.Parse(value);
+        get => _customTransferToThirdParties;
+        set => _customTransferToThirdParties = value;
     }
     private string _preemptiveStr
     {
@@ -1597,7 +1642,7 @@
                     charterParams.ExitRequiresUnanimousOsu = _customExitAllowed
                         && _customExitRequiresUnanimousOsu;
                     charterParams.TransferToParticipantsWithoutConsent = _customTransferToParticipants;
-                    charterParams.TransferToThirdPartiesWithoutConsent = _customTransferToThirdParties;
+                    charterParams.TransferToThirdParties = _customTransferToThirdParties;
                     charterParams.PreemptiveRight = _customPreemptiveRight;
                     charterParams.InheritanceWithoutConsent = _customInheritance;
                     charterParams.ExecutiveBody = _customExecutiveBody;
@@ -2098,7 +2143,7 @@
                 _customExitConditionDescription = custom.ExitConditionDescription;
                 _customExitRequiresUnanimousOsu = custom.ExitRequiresUnanimousOsu;
                 _customTransferToParticipants = custom.TransferToParticipantsWithoutConsent;
-                _customTransferToThirdParties = custom.TransferToThirdPartiesWithoutConsent;
+                _customTransferToThirdParties = custom.TransferToThirdParties;
                 _customPreemptiveRight = custom.PreemptiveRight;
                 _customInheritance = custom.InheritanceWithoutConsent;
                 _customExecutiveBody = custom.ExecutiveBody;
@@ -2106,8 +2151,8 @@
                 _customCharterDocId = custom.CharterDocumentId;
                 _customBoardRegulationDocId = custom.BoardRegulationDocumentId;
                 _customCommitteeRegulationDocId = custom.CommitteeRegulationDocumentId;
-                _customMandatoryAudit = custom.MandatoryAudit;
-                _customHasRevisionCommission = custom.HasRevisionCommission;
+                _customMandatoryAudit = custom.MandatoryAudit ?? false;
+                _customHasRevisionCommission = custom.HasRevisionCommission ?? false;
                 _customHasBoardOfDirectors = custom.HasBoardOfDirectors;
                 _boardDecidesConveningOsu = custom.BoardDecidesConveningOsu;
                 _customGdTermId = custom.GdTermId;
@@ -2147,13 +2192,13 @@
                 _customExitConditionDescription = null;
                 _customExitRequiresUnanimousOsu = false;
                 _customTransferToParticipants = _charterSettings.TransferToParticipantsWithoutConsent;
-                _customTransferToThirdParties = _charterSettings.TransferToThirdPartiesWithoutConsent;
+                _customTransferToThirdParties = _charterSettings.TransferToThirdPartiesWithoutConsent ? "WITHOUT_CONSENT" : "CONSENT";
                 _customPreemptiveRight = _charterSettings.PreemptiveRight;
                 _customInheritance = _charterSettings.InheritanceWithoutConsent;
                 _customExecutiveBody = _charterSettings.ExecutiveBody;
                 _customProtocolConfirmationMethodId = _charterSettings.ProtocolConfirmationMethodId;
-                _customMandatoryAudit = null;
-                _customHasRevisionCommission = null;
+                _customMandatoryAudit = false;
+                _customHasRevisionCommission = false;
                 _customHasBoardOfDirectors = false;
                 _boardDecidesConveningOsu = false;
                 _customGdTermId = null;
@@ -2169,13 +2214,13 @@
                 _customExitConditionDescription = null;
                 _customExitRequiresUnanimousOsu = false;
                 _customTransferToParticipants = true;
-                _customTransferToThirdParties = false;
+                _customTransferToThirdParties = "CONSENT";
                 _customPreemptiveRight = true;
                 _customInheritance = true;
                 _customExecutiveBody = 'A';
                 _customProtocolConfirmationMethodId = null;
-                _customMandatoryAudit = null;
-                _customHasRevisionCommission = null;
+                _customMandatoryAudit = false;
+                _customHasRevisionCommission = false;
                 _customHasBoardOfDirectors = false;
                 _boardDecidesConveningOsu = false;
                 _customGdTermId = null;
@@ -2288,7 +2333,7 @@
             {
                 _customExitAllowed = charter.ExitAllowed;
                 _customTransferToParticipants = charter.TransferToParticipantsWithoutConsent;
-                _customTransferToThirdParties = charter.TransferToThirdPartiesWithoutConsent;
+                _customTransferToThirdParties = charter.TransferToThirdPartiesWithoutConsent ? "WITHOUT_CONSENT" : "CONSENT";
                 _customPreemptiveRight = charter.PreemptiveRight;
                 _customInheritance = charter.InheritanceWithoutConsent;
                 _customExecutiveBody = charter.ExecutiveBody;

@@ -166,7 +166,7 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.Property(x => x.ExitConditionDescription).HasColumnName("exit_condition_description");
             b.Property(x => x.ExitRequiresUnanimousOsu).HasColumnName("exit_requires_unanimous_osu");
             b.Property(x => x.TransferToParticipantsWithoutConsent).HasColumnName("transfer_to_participants_without_consent");
-            b.Property(x => x.TransferToThirdPartiesWithoutConsent).HasColumnName("transfer_to_third_parties_without_consent");
+            b.Property(x => x.TransferToThirdParties).HasColumnName("transfer_to_third_parties").HasMaxLength(20).IsRequired();
             b.Property(x => x.PreemptiveRight).HasColumnName("preemptive_right");
             b.Property(x => x.InheritanceWithoutConsent).HasColumnName("inheritance_without_consent");
             b.Property(x => x.ExecutiveBody).HasColumnName("executive_body").HasMaxLength(1);
