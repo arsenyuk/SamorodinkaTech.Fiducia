@@ -121,16 +121,6 @@
                         <label class="form-label">Срок действия (дней)</label>
                         <input type="number" class="form-control" @bind="_inviteExpiryDays" min="1" max="30">
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label">Юридическое лицо *</label>
-                        <select class="form-select" @bind="_inviteLegalEntityId">
-                            <option value="">— Выберите ЮЛ —</option>
-                            @foreach (var le in _legalEntities)
-                            {
-                                <option value="@le.Id">@le.Name (@le.Inn)</option>
-                            }
-                        </select>
-                    </div>
 
                     @if (!string.IsNullOrEmpty(_inviteLink))
                     {
@@ -146,7 +136,7 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" @onclick="CloseModals">Закрыть</button>
                     <button type="button" class="btn btn-primary" @onclick="GenerateInvite"
-                            disabled="@(_isGenerating || string.IsNullOrWhiteSpace(_inviteEmail) || !_inviteLegalEntityId.HasValue)">
+                            disabled="@(_isGenerating || string.IsNullOrWhiteSpace(_inviteEmail))">
                         @if (_isGenerating)
                         {
                             <span class="spinner-border spinner-border-sm me-1"></span>
@@ -180,15 +170,9 @@
     private string _invitePhone = string.Empty;
     private int _inviteExpiryDays = 7;
     private string _inviteLink = string.Empty;
-    private Guid? _inviteLegalEntityId;
-    private List<LegalEntity> _legalEntities = new();
 
     protected override async Task OnInitializedAsync()
     {
-        _legalEntities = await DbContext.LegalEntities.AsNoTracking()
-            .OrderBy(le => le.Name)
-            .ToListAsync();
-
         var users = await DbContext.Users.AsNoTracking()
             .Where(u => !u.IsSystem)
             .ToListAsync();
@@ -258,7 +242,6 @@
     {
         _showCreateModal = false;
         _showInviteModal = false;
-        _inviteLegalEntityId = null;
     }
 
     private async Task CreateUser()
@@ -297,7 +280,6 @@
                 Email = _inviteEmail,
                 Phone = _invitePhone,
                 IsExternal = true,
-                LegalEntityId = _inviteLegalEntityId,
                 InvitationToken = token,
                 InvitationExpiresAt = expiresAt,
                 CreatedAt = DateTime.UtcNow

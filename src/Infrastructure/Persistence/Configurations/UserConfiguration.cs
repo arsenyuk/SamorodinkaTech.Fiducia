@@ -21,7 +21,6 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(u => u.Email).HasColumnName("email").HasMaxLength(255).IsRequired();
         builder.Property(u => u.Phone).HasColumnName("phone").HasMaxLength(20).IsRequired();
         builder.Property(u => u.IsExternal).HasColumnName("is_external").HasDefaultValue(false);
-        builder.Property(u => u.LegalEntityId).HasColumnName("legal_entity_id");
         builder.Property(u => u.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("CURRENT_TIMESTAMP");
         builder.Property(u => u.CreatedBy).HasColumnName("created_by").IsRequired();
         builder.Property(u => u.IsActive).HasColumnName("is_active").HasDefaultValue(true);
@@ -41,13 +40,6 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
         builder.HasOne(u => u.Person)
             .WithMany(p => p.Users)
             .HasForeignKey(u => u.PersonId)
-            .OnDelete(DeleteBehavior.SetNull);
-
-        builder.HasIndex(u => u.LegalEntityId);
-
-        builder.HasOne(u => u.LegalEntity)
-            .WithMany()
-            .HasForeignKey(u => u.LegalEntityId)
             .OnDelete(DeleteBehavior.SetNull);
     }
 }

@@ -57,6 +57,8 @@ public interface IApplicationDbContext
     DbSet<ExtCbrFinOrgLicense> ExtCbrFinOrgLicenses { get; }
     DbSet<Employee> Employees { get; }
 
+    DbSet<ExternalAttractedPerson> ExternalAttractedPersons { get; }
+
     DbSet<TplOrgIntent> TplOrgIntents { get; }
     DbSet<TplOrgStage> TplOrgStages { get; }
     DbSet<TplOrgTaskOffer> TplOrgOffers { get; }

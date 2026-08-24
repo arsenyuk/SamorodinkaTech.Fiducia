@@ -65,6 +65,8 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
     public DbSet<ExtCbrFinOrgLicense> ExtCbrFinOrgLicenses => Set<ExtCbrFinOrgLicense>();
     public DbSet<Employee> Employees => Set<Employee>();
 
+    public DbSet<ExternalAttractedPerson> ExternalAttractedPersons => Set<ExternalAttractedPerson>();
+
     public DbSet<TplOrgIntent> TplOrgIntents => Set<TplOrgIntent>();
     public DbSet<TplOrgStage> TplOrgStages => Set<TplOrgStage>();
     public DbSet<TplOrgTaskOffer> TplOrgOffers => Set<TplOrgTaskOffer>();

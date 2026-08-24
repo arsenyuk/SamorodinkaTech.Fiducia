@@ -18,7 +18,6 @@ CREATE TABLE IF NOT EXISTS users (
     email varchar(255) UNIQUE NOT NULL,
     phone varchar(20) UNIQUE NOT NULL,
     is_external boolean DEFAULT FALSE NOT NULL,
-    legal_entity_id uuid,
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     created_by uuid REFERENCES users(id),
     -- онбординг внешних директоров
@@ -35,7 +34,6 @@ CREATE INDEX IF NOT EXISTS ix_users_is_external ON users(is_external);
 CREATE INDEX IF NOT EXISTS ix_users_is_active ON users(is_active);
 CREATE INDEX IF NOT EXISTS ix_users_is_system ON users(is_system);
 CREATE INDEX IF NOT EXISTS ix_users_person_id ON users(person_id);
-CREATE INDEX IF NOT EXISTS ix_users_legal_entity_id ON users(legal_entity_id);
 
 -- FK users → persons (добавляется после создания persons)
 -- см. конец файла
@@ -461,10 +459,6 @@ CREATE TABLE IF NOT EXISTS legal_entities (
 CREATE INDEX IF NOT EXISTS ix_legal_entities_name ON legal_entities(name);
 CREATE INDEX IF NOT EXISTS ix_legal_entities_inn ON legal_entities(inn);
 CREATE INDEX IF NOT EXISTS ix_legal_entities_ogrn ON legal_entities(ogrn);
-
--- Добавление FK users → legal_entities (после создания обеих таблиц)
-ALTER TABLE users ADD CONSTRAINT fk_users_legal_entity_id
-    FOREIGN KEY (legal_entity_id) REFERENCES legal_entities(id) ON DELETE SET NULL;
 
 -- Параметры устава ООО (1:1 с legal_entities, обслуживает и типовой и нетиповой)
 CREATE TABLE IF NOT EXISTS legal_entity_charter (
@@ -1441,6 +1435,26 @@ CREATE TABLE IF NOT EXISTS employee (
 
 CREATE INDEX IF NOT EXISTS ix_employee_person_id ON employee(person_id);
 CREATE INDEX IF NOT EXISTS ix_employee_legal_entity_id ON employee(legal_entity_id);
+
+-- ============================================================================
+-- Внешнее привлеченное лицо (parallel to employee — external directors/consultants)
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS external_attracted_persons (
+    id uuid PRIMARY KEY,
+    person_id uuid NOT NULL REFERENCES persons(id) ON DELETE RESTRICT,
+    legal_entity_id uuid NOT NULL REFERENCES legal_entities(id) ON DELETE RESTRICT,
+    position varchar(200) NOT NULL,
+    started_at timestamp with time zone,
+    ended_at timestamp with time zone,
+    is_active boolean DEFAULT TRUE NOT NULL,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    created_by uuid NOT NULL REFERENCES users(id)
+);
+
+CREATE INDEX IF NOT EXISTS ix_eap_person_id ON external_attracted_persons(person_id);
+CREATE INDEX IF NOT EXISTS ix_eap_legal_entity_id ON external_attracted_persons(legal_entity_id);
+CREATE INDEX IF NOT EXISTS ix_eap_person_le ON external_attracted_persons(person_id, legal_entity_id);
 
 -- system_settings: системные настройки (ключ-значение)
 CREATE TABLE IF NOT EXISTS system_settings (

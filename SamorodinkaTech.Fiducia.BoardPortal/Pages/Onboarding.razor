@@ -319,11 +319,20 @@
                     DbContext.PepAgreements.Add(pepAgreement);
 
                     // Создаём запись согласия на обработку ПДн, привязанную к ФЛ и ЮЛ
+                    // ЮЛ определяется через внешнее привлеченное лицо (Person → ExternalAttractedPerson → LegalEntity)
+                    var externalPerson = await DbContext.ExternalAttractedPersons
+                        .FirstOrDefaultAsync(e => e.PersonId == _user.PersonId!.Value && e.IsActive);
+                    if (externalPerson == null)
+                    {
+                        _otpError = "Не найдена запись внешнего привлеченного лица. Обратитесь к администратору.";
+                        return;
+                    }
+
                     var consent = new PdnConsent
                     {
                         Id = Guid.NewGuid(),
                         PersonId = _user.PersonId.Value,
-                        LegalEntityId = _user.LegalEntityId ?? Guid.Empty,
+                        LegalEntityId = externalPerson.LegalEntityId,
                         ConsentGiven = _pdnConsentGiven,
                         ConsentAt = DateTime.UtcNow,
                         ConsentIp = null, // TODO: получить IP из HttpContext
