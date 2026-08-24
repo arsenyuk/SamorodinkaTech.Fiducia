@@ -280,15 +280,15 @@ public static class ShareRequestEndpoints
                 }
 
                 var participant = await ctx.BoardParticipants
-                    .FirstOrDefaultAsync(p => p.LegalEntityId == leId.Value && p.PersonId == user.PersonId && p.IsActive);
+                    .FirstOrDefaultAsync(p => p.LegalEntityId == leId!.Value && p.PersonId == user.PersonId && p.IsActive);
                 if (participant is null)
                 {
-                    logger.LogWarning("Не найден участник для пользователя {UserId} (PersonId={PersonId}) в ЮЛ {LegalEntityId}", createdBy, user.PersonId, leId.Value);
+                    logger.LogWarning("Не найден участник для пользователя {UserId} (PersonId={PersonId}) в ЮЛ {LegalEntityId}", createdBy, user.PersonId, leId!.Value);
                     return Results.BadRequest(new { error = "Не найден участник для текущего пользователя" });
                 }
 
                 // Специфичная валидация по типам
-                var validationError = await ValidateRequestTypeAsync(ctx, requestType, leId.Value, dto, participant.SharePercent);
+                var validationError = await ValidateRequestTypeAsync(ctx, requestType, leId!.Value, dto, participant.SharePercent);
                 if (validationError is not null)
                 {
                     logger.LogWarning("Ошибка валидации типа запроса: {ValidationError}", validationError);

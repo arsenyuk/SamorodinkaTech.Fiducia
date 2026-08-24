@@ -11,17 +11,6 @@
         {
             <p><strong>Request Id:</strong> <code>@RequestId</code></p>
         }
-        @if (_details?.Any() == true)
-        {
-            <hr />
-            <h5>Детали</h5>
-            <ul>
-                @foreach (var d in _details!)
-                {
-                    <li><code>@d.Type</code>: @d.Message</li>
-                }
-            </ul>
-        }
         <a href="/" class="btn btn-primary">На главную</a>
     </div>
 </div>
@@ -29,11 +18,9 @@
 @code {
     private string? RequestId { get; set; }
     private bool ShowRequestId => !string.IsNullOrEmpty(RequestId);
-    private List<SamorodinkaTech.Fiducia.Infrastructure.Common.Exceptions.ExceptionFlattener.ExceptionInfo>? _details;
 
     protected override void OnInitialized()
     {
         RequestId = Activity.Current?.Id;
-        // Детали исключений выводятся в логах; на странице — упрощённый список (если будет источником данных)
     }
 }

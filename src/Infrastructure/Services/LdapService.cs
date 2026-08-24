@@ -337,7 +337,7 @@ public class LdapService : ILdapService
     {
         return new LdapUser
         {
-            DistinguishedName = GetStringAttr(entry, "distinguishedName"),
+            DistinguishedName = GetStringAttr(entry, "distinguishedName") ?? string.Empty,
             LoginName = GetStringAttr(entry, "uid")
                          ?? GetStringAttr(entry, "sAMAccountName")
                          ?? string.Empty,

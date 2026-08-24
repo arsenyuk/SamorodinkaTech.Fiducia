@@ -38,7 +38,6 @@ public static class DocumentCatalogEndpoints
                             .ThenInclude(f => f.File)
                     .Where(r => r.RequestType!.Code == "REQUEST_INFORMATION"
                              && r.LegalEntityId == leId
-                             && r.ParticipantId != null
                              && (r.Status == "accepted" || r.Status == "completed"))
                     .OrderByDescending(r => r.CreatedAt)
                     .ToListAsync();
