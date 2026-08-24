@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS users (
     email varchar(255) UNIQUE NOT NULL,
     phone varchar(20) UNIQUE NOT NULL,
     is_external boolean DEFAULT FALSE NOT NULL,
+    legal_entity_id uuid,
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     created_by uuid REFERENCES users(id),
     -- онбординг внешних директоров
@@ -34,6 +35,7 @@ CREATE INDEX IF NOT EXISTS ix_users_is_external ON users(is_external);
 CREATE INDEX IF NOT EXISTS ix_users_is_active ON users(is_active);
 CREATE INDEX IF NOT EXISTS ix_users_is_system ON users(is_system);
 CREATE INDEX IF NOT EXISTS ix_users_person_id ON users(person_id);
+CREATE INDEX IF NOT EXISTS ix_users_legal_entity_id ON users(legal_entity_id);
 
 -- FK users → persons (добавляется после создания persons)
 -- см. конец файла
@@ -72,6 +74,7 @@ ALTER TABLE users ADD CONSTRAINT fk_users_person_id
 CREATE TABLE IF NOT EXISTS pdn_consents (
     id uuid PRIMARY KEY,
     person_id uuid NOT NULL REFERENCES persons(id) ON DELETE RESTRICT,
+    legal_entity_id uuid NOT NULL REFERENCES legal_entities(id) ON DELETE RESTRICT,
     consent_given boolean DEFAULT FALSE NOT NULL,
     consent_at timestamp with time zone,
     consent_ip varchar(45),
@@ -79,6 +82,8 @@ CREATE TABLE IF NOT EXISTS pdn_consents (
 );
 
 CREATE INDEX IF NOT EXISTS ix_pdn_consents_person_id ON pdn_consents(person_id);
+CREATE INDEX IF NOT EXISTS ix_pdn_consents_legal_entity_id ON pdn_consents(legal_entity_id);
+CREATE UNIQUE INDEX IF NOT EXISTS ux_pdn_consents_person_le ON pdn_consents(person_id, legal_entity_id);
 
 -- ============================================================================
 -- ПЭП: соглашение о Politically Exposed Person (привязано к ФЛ)
@@ -456,6 +461,10 @@ CREATE TABLE IF NOT EXISTS legal_entities (
 CREATE INDEX IF NOT EXISTS ix_legal_entities_name ON legal_entities(name);
 CREATE INDEX IF NOT EXISTS ix_legal_entities_inn ON legal_entities(inn);
 CREATE INDEX IF NOT EXISTS ix_legal_entities_ogrn ON legal_entities(ogrn);
+
+-- Добавление FK users → legal_entities (после создания обеих таблиц)
+ALTER TABLE users ADD CONSTRAINT fk_users_legal_entity_id
+    FOREIGN KEY (legal_entity_id) REFERENCES legal_entities(id) ON DELETE SET NULL;
 
 -- Параметры устава ООО (1:1 с legal_entities, обслуживает и типовой и нетиповой)
 CREATE TABLE IF NOT EXISTS legal_entity_charter (

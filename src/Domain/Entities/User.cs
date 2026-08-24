@@ -33,6 +33,9 @@ public class User
     /// <summary>Признак внешнего директора (is_external).</summary>
     public bool IsExternal { get; set; }
 
+    /// <summary>Ссылка на юридическое лицо (legal_entity_id) — для внешних директоров.</summary>
+    public Guid? LegalEntityId { get; set; }
+
     /// <summary>Дата создания записи (created_at).</summary>
     public DateTime CreatedAt { get; set; }
 
@@ -59,6 +62,9 @@ public class User
 
     /// <summary>Ссылка на физическое лицо (навигация).</summary>
     public Person? Person { get; set; }
+
+    /// <summary>Ссылка на юридическое лицо (навигация) — для внешних директоров.</summary>
+    public LegalEntity? LegalEntity { get; set; }
 
     /// <summary>Роли пользователя.</summary>
     public ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();

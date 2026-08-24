@@ -2,7 +2,7 @@ namespace SamorodinkaTech.Fiducia.Domain.Entities;
 
 /// <summary>
 /// Согласие на обработку персональных данных (pdn_consents).
-/// Привязано к физическому лицу, а не к учётной записи пользователя.
+/// Привязано к физическому лицу и юридическому лицу.
 /// </summary>
 public class PdnConsent
 {
@@ -11,6 +11,9 @@ public class PdnConsent
 
     /// <summary>Ссылка на физическое лицо (person_id).</summary>
     public Guid PersonId { get; set; }
+
+    /// <summary>Ссылка на юридическое лицо (legal_entity_id).</summary>
+    public Guid LegalEntityId { get; set; }
 
     /// <summary>Факт выдачи согласия (consent_given).</summary>
     public bool ConsentGiven { get; set; }
@@ -25,4 +28,5 @@ public class PdnConsent
     public DateTime CreatedAt { get; set; }
 
     public Person? Person { get; set; }
+    public LegalEntity? LegalEntity { get; set; }
 }

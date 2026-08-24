@@ -318,11 +318,12 @@
                     };
                     DbContext.PepAgreements.Add(pepAgreement);
 
-                    // Создаём запись согласия на обработку ПДн, привязанную к ФЛ
+                    // Создаём запись согласия на обработку ПДн, привязанную к ФЛ и ЮЛ
                     var consent = new PdnConsent
                     {
                         Id = Guid.NewGuid(),
                         PersonId = _user.PersonId.Value,
+                        LegalEntityId = _user.LegalEntityId ?? Guid.Empty,
                         ConsentGiven = _pdnConsentGiven,
                         ConsentAt = DateTime.UtcNow,
                         ConsentIp = null, // TODO: получить IP из HttpContext
