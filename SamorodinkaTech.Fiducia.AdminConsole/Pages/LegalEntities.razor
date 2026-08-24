@@ -18,7 +18,15 @@
 {
     <div class="mb-3">
         <label class="form-label">Поиск ЮЛ</label>
-        <input class="form-control" value="@search" @oninput="OnSearchInput" placeholder="Наименование / ИНН / ОГРН" />
+        <div class="input-group">
+            <input class="form-control" @bind="_searchInput" @bind:event="oninput"
+                   placeholder="Наименование / ИНН / ОГРН"
+                   @onkeydown="OnSearchKeyDown" />
+            <button class="btn btn-outline-secondary" @onclick="ExecuteSearch"
+                    disabled="@(_searchInput?.Trim().Length < 2)">
+                Найти
+            </button>
+        </div>
         @if (searchResults?.Any() == true)
         {
             <div class="dropdown-menu show w-100 mt-1" style="display:block; position:relative;">
@@ -992,7 +1000,7 @@
 }
 
 @code {
-    private string search = string.Empty;
+    private string _searchInput = string.Empty;
     private int limit = 15;
     private List<LegalEntityVm>? searchResults;
 
@@ -1257,16 +1265,21 @@
     private void ShowSearch()
     {
         selectedEntity = null;
-        search = string.Empty;
+        _searchInput = string.Empty;
         searchResults = null;
         saveError = null;
         saveSuccess = null;
     }
 
-    private async Task OnSearchInput(ChangeEventArgs e)
+    private void OnSearchKeyDown(KeyboardEventArgs e)
     {
-        search = e.Value?.ToString() ?? string.Empty;
-        if (string.IsNullOrWhiteSpace(search) || search.Trim().Length < 2)
+        if (e.Key == "Enter")
+            _ = ExecuteSearch();
+    }
+
+    private async Task ExecuteSearch()
+    {
+        if (string.IsNullOrWhiteSpace(_searchInput) || _searchInput.Trim().Length < 2)
         {
             searchResults = null;
             return;
@@ -1275,7 +1288,7 @@
         try
         {
             await using var ctx = await DbFactory.CreateDbContextAsync();
-            var q = search.Trim();
+            var q = _searchInput.Trim();
             searchResults = await ctx.ExtSparkCompanies
                 .Where(le =>
                     (le.FullName != null && EF.Functions.ILike(le.FullName, $"%{q}%")) ||
@@ -1297,7 +1310,7 @@
         }
         catch (Exception ex)
         {
-            Logger.LogWarning(ex, "Ошибка поиска ЮЛ по запросу '{Query}'", search);
+            Logger.LogWarning(ex, "Ошибка поиска ЮЛ по запросу '{Query}'", _searchInput);
             searchResults = null;
         }
     }
