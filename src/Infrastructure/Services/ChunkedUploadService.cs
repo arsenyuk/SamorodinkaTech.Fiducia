@@ -23,17 +23,26 @@ namespace SamorodinkaTech.Fiducia.Infrastructure.Services
         private readonly FileUploadOptions _options;
         private readonly IFileStorage _fileStorage;
         private readonly IDbContextFactory<FiduciaDbContext> _dbFactory;
+        private readonly IQrCodeReaderService _qrReader;
+        private readonly INotarizationQrParser _qrParser;
+        private readonly QrCodeReaderOptions _qrOptions;
 
         public ChunkedUploadService(
             ILogger<ChunkedUploadService> logger,
             IOptions<FileUploadOptions> options,
             IFileStorage fileStorage,
-            IDbContextFactory<FiduciaDbContext> dbFactory)
+            IDbContextFactory<FiduciaDbContext> dbFactory,
+            IQrCodeReaderService qrReader,
+            INotarizationQrParser qrParser,
+            IOptions<QrCodeReaderOptions> qrOptions)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _options = options?.Value ?? throw new ArgumentNullException(nameof(options));
             _fileStorage = fileStorage ?? throw new ArgumentNullException(nameof(fileStorage));
             _dbFactory = dbFactory ?? throw new ArgumentNullException(nameof(dbFactory));
+            _qrReader = qrReader ?? throw new ArgumentNullException(nameof(qrReader));
+            _qrParser = qrParser ?? throw new ArgumentNullException(nameof(qrParser));
+            _qrOptions = qrOptions?.Value ?? new QrCodeReaderOptions();
         }
 
         /// <inheritdoc/>
@@ -147,6 +156,9 @@ namespace SamorodinkaTech.Fiducia.Infrastructure.Services
 
             await ctx.SaveChangesAsync(cancellationToken);
 
+            // Автоматическое сканирование QR-кода нотариального документа
+            await TryScanQrCodeAsync(fileEntry, ct: cancellationToken);
+
             // Удаляем временную папку
             TryDeleteDirectory(tempDir);
 
@@ -238,6 +250,62 @@ namespace SamorodinkaTech.Fiducia.Infrastructure.Services
             }
 
             return _options.BlockedExtensions;
+        }
+
+        /// <summary>
+        /// Пытается прочитать QR-код нотариального документа из загруженного файла.
+        /// Если QR найден и распарсен — обновляет QR-поля в записи файла.
+        /// </summary>
+        private async Task TryScanQrCodeAsync(FileEntry fileEntry, CancellationToken ct = default)
+        {
+            try
+            {
+                var ext = $".{fileEntry.Extension?.ToLowerInvariant() ?? ""}";
+                var isImage = _qrOptions.AllowedImageContentTypes.Contains(fileEntry.ContentType ?? "")
+                    || (_qrOptions.AllowedExtensions.Contains(ext) && ext != ".pdf");
+                var isPdf = string.Equals(ext, ".pdf", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(fileEntry.ContentType, _qrOptions.PdfContentType, StringComparison.OrdinalIgnoreCase);
+
+                if (!isImage && !isPdf)
+                    return;
+
+                await using var stream = await _fileStorage.OpenReadAsync(fileEntry.StorageKeyOrPath);
+
+                string? qrText = isPdf
+                    ? await _qrReader.ReadFromPdfAsync(stream, ct)
+                    : await _qrReader.ReadFromImageAsync(stream, ct);
+
+                if (qrText is null)
+                    return;
+
+                var qrData = _qrParser.Parse(qrText);
+                if (qrData is null)
+                    return;
+
+                // Сохраняем результат в отдельную таблицу file_notarization
+                await using var ctx = await _dbFactory.CreateDbContextAsync(ct);
+                var fileNotarization = new FileNotarization
+                {
+                    Id = Guid.NewGuid(),
+                    FileId = fileEntry.Id,
+                    RawUrl = qrData.RawUrl,
+                    RegistryNumber = qrData.RegistryNumber,
+                    NotaryFullName = qrData.NotaryFullName,
+                    DocumentType = qrData.DocumentType,
+                    ApplicantName = qrData.ApplicantName,
+                    NotarizationDate = qrData.NotarizationDate
+                };
+                ctx.FileNotarizations.Add(fileNotarization);
+                await ctx.SaveChangesAsync(ct);
+
+                _logger.LogInformation(
+                    "QR-код нотариального документа распознан при загрузке: fileId={FileId}, рег.номер={RegistryNumber}, нотариус={Notary}",
+                    fileEntry.Id, qrData.RegistryNumber, qrData.NotaryFullName);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex, "Не удалось распознать QR-код для файла {FileId} — пропускаем", fileEntry.Id);
+            }
         }
     }
 }

@@ -46,6 +46,7 @@ public interface IApplicationDbContext
     DbSet<LegalEntityEmailSettings> LegalEntityEmailSettings { get; }
     DbSet<LegalEntityExtraSettings> LegalEntityExtraSettings { get; }
     DbSet<FileEntry> Files { get; }
+    DbSet<FileNotarization> FileNotarizations { get; }
     DbSet<ExtSparkCompany> ExtSparkCompanies { get; }
     DbSet<RefMeetingForm> MeetingForms { get; }
     DbSet<RefGdTerm> RefGdTerms { get; }

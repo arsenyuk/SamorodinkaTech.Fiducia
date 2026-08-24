@@ -45,9 +45,9 @@
     else
     {
         <InputFile OnChange="OnFileSelected"
-                   accept=".png,.jpg,.jpeg,.bmp,.gif,.tiff,.pdf"
+                   accept="@string.Join(",", GetAllowedExtensions())"
                    class="form-control form-control-sm" />
-        <div class="form-text">Загрузите скан документа (PNG, JPEG или PDF) для чтения QR-кода</div>
+        <div class="form-text">Загрузите скан документа для чтения QR-кода. Допустимые форматы: @string.Join(", ", GetAllowedExtensions())</div>
     }
 </div>
 
@@ -67,6 +67,9 @@
     /// <summary>ID файла в системе, к которому привязать QR-данные (опционально).</summary>
     [Parameter] public Guid? RelatedFileId { get; set; }
 
+    /// <summary>Расширения файлов, допустимые для чтения QR-кода (с точкой, в нижнем регистре).</summary>
+    [Parameter] public string[]? AllowedExtensions { get; set; }
+
     [Inject] private HttpClient Http { get; set; } = default!;
     [Inject] private ILogger<QrScanButton> Logger { get; set; } = default!;
 
@@ -76,6 +79,12 @@
 
     private const long MaxFileSize = 50 * 1024 * 1024; // 50 MB
 
+    /// <summary>Расширения по умолчанию, если не передан параметр AllowedExtensions.</summary>
+    private static readonly string[] DefaultAllowedExtensions =
+        [".png", ".jpg", ".jpeg", ".bmp", ".gif", ".tiff", ".pdf"];
+
+    private string[] GetAllowedExtensions() => AllowedExtensions ?? DefaultAllowedExtensions;
+
     private async Task OnFileSelected(InputFileChangeEventArgs e)
     {
         _error = null;
@@ -84,7 +93,17 @@
 
         if (file.Size > MaxFileSize)
         {
-            _error = $"Файл слишком большой. Максимум: 50 МБ.";
+            _error = "Файл слишком большой. Максимум: 50 МБ.";
+            await OnQrError.InvokeAsync(_error);
+            return;
+        }
+
+        var extension = Path.GetExtension(file.Name)?.ToLowerInvariant();
+        var allowed = GetAllowedExtensions();
+        if (extension is null || !allowed.Contains(extension))
+        {
+            var extList = string.Join(", ", allowed);
+            _error = $"Недопустимое расширение файла: {extension ?? "отсутствует"}. Допустимые: {extList}";
             await OnQrError.InvokeAsync(_error);
             return;
         }

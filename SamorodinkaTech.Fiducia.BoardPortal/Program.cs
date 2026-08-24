@@ -126,6 +126,7 @@ builder.Services.AddScoped<IMeetingSaveService, MeetingSaveService>();
 builder.Services.AddScoped<IMeetingLoadService, MeetingLoadService>();
 
 // QR-кодирование нотариальных документов — чтение QR со сканов
+builder.Services.Configure<QrCodeReaderOptions>(builder.Configuration.GetSection("QrCodeReader"));
 builder.Services.AddScoped<IQrCodeReaderService, QrCodeReaderService>();
 builder.Services.AddScoped<INotarizationQrParser, NotarizationQrParser>();
 
@@ -469,8 +470,7 @@ fileGroup.MapGet("/{id}/info", async (Guid id, IApplicationDbContext db) =>
             }
         }
 
-        var hasQrData = !string.IsNullOrWhiteSpace(fileEntry.QrRawUrl)
-            || !string.IsNullOrWhiteSpace(fileEntry.QrRegistryNumber);
+        var qrEntry = await db.FileNotarizations.FirstOrDefaultAsync(fn => fn.FileId == fileEntry.Id);
 
         return Results.Ok(new
         {
@@ -489,14 +489,14 @@ fileGroup.MapGet("/{id}/info", async (Guid id, IApplicationDbContext db) =>
                 Login = uploaderLogin,
                 IsDefined = fileEntry.CreatedBy.HasValue
             },
-            QrData = hasQrData ? new
+            QrData = qrEntry is not null ? new
             {
-                RawUrl = fileEntry.QrRawUrl,
-                RegistryNumber = fileEntry.QrRegistryNumber,
-                NotaryFullName = fileEntry.QrNotaryFullName,
-                NotarizationDate = fileEntry.QrNotarizationDate?.ToString("yyyy-MM-dd"),
-                DocumentType = fileEntry.QrDocumentType,
-                ApplicantName = fileEntry.QrApplicantName
+                RawUrl = qrEntry.RawUrl,
+                RegistryNumber = qrEntry.RegistryNumber,
+                NotaryFullName = qrEntry.NotaryFullName,
+                NotarizationDate = qrEntry.NotarizationDate?.ToString("yyyy-MM-dd"),
+                DocumentType = qrEntry.DocumentType,
+                ApplicantName = qrEntry.ApplicantName
             } : null
         });
     }

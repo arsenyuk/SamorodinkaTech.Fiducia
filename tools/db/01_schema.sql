@@ -431,14 +431,7 @@ CREATE TABLE IF NOT EXISTS files (
     -- Chunked upload (BDR-011)
     is_uploaded boolean NOT NULL DEFAULT true,
     upload_id varchar(64),
-    expires_at timestamp with time zone,
-    -- QR-код нотариального документа (распознан при сканировании)
-    qr_raw_url varchar(2048),
-    qr_registry_number varchar(100),
-    qr_notary_full_name varchar(300),
-    qr_notarization_date date,
-    qr_document_type varchar(200),
-    qr_applicant_name varchar(300)
+    expires_at timestamp with time zone
 );
 
 -- Уникальность: один и тот же ключ хранения в пределах провайдера
@@ -448,6 +441,24 @@ CREATE UNIQUE INDEX IF NOT EXISTS ux_files_provider_key ON files(storage_provide
 CREATE INDEX IF NOT EXISTS ix_files_created_at ON files(created_at);
 CREATE INDEX IF NOT EXISTS ix_files_checksum ON files(checksum);
 CREATE INDEX IF NOT EXISTS ix_files_upload_id ON files(upload_id) WHERE upload_id IS NOT NULL;
+
+-- ============================================================================
+-- Результаты сканирования QR-кодов нотариальных документов (file_notarization)
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS file_notarization (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    file_id uuid NOT NULL REFERENCES files(id) ON DELETE CASCADE,
+    raw_url varchar(2048),
+    registry_number varchar(100),
+    notary_full_name varchar(300),
+    notarization_date date,
+    document_type varchar(200),
+    applicant_name varchar(300),
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS ix_file_notarization_file_id ON file_notarization(file_id);
+CREATE INDEX IF NOT EXISTS ix_file_notarization_registry_number ON file_notarization(registry_number);
 
 -- ============================================================================
 -- Юридические лица

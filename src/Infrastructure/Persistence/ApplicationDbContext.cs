@@ -54,6 +54,7 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
     public DbSet<ElectionCandidacy> ElectionCandidacies => Set<ElectionCandidacy>();
     public DbSet<ElectionConsent> ElectionConsents => Set<ElectionConsent>();
     public DbSet<FileEntry> Files => Set<FileEntry>();
+    public DbSet<FileNotarization> FileNotarizations => Set<FileNotarization>();
     public DbSet<ExtSparkCompany> ExtSparkCompanies => Set<ExtSparkCompany>();
     public DbSet<RefMeetingForm> MeetingForms => Set<RefMeetingForm>();
     public DbSet<RefGdTerm> RefGdTerms => Set<RefGdTerm>();

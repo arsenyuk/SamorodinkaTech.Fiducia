@@ -113,6 +113,11 @@ builder.Services.AddFileStorage(builder.Configuration);
 builder.Services.Configure<FileUploadOptions>(builder.Configuration.GetSection("FileUpload"));
 builder.Services.AddScoped<IChunkedUploadService, ChunkedUploadService>();
 
+// QR-кодирование нотариальных документов — автоматическое чтение QR при загрузке файлов
+builder.Services.Configure<QrCodeReaderOptions>(builder.Configuration.GetSection("QrCodeReader"));
+builder.Services.AddScoped<IQrCodeReaderService, QrCodeReaderService>();
+builder.Services.AddScoped<INotarizationQrParser, NotarizationQrParser>();
+
 // SPARK SOAP API — проверка ЮЛ по ИНН, карточка компании, руководитель, учредители
 // Протокол: SOAP/XML (ifaborern.asmx), аутентификация: Authmethod(Login, Password)
 // Все настройки — в appsettings.json, секция Spark (ADR-022)

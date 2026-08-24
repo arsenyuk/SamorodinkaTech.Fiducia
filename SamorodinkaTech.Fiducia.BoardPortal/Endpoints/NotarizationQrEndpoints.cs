@@ -1,5 +1,7 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using SamorodinkaTech.Fiducia.Domain.Interfaces;
+using SamorodinkaTech.Fiducia.Infrastructure.Services;
 
 namespace SamorodinkaTech.Fiducia.BoardPortal;
 
@@ -8,14 +10,6 @@ namespace SamorodinkaTech.Fiducia.BoardPortal;
 /// </summary>
 public static class NotarizationQrEndpoints
 {
-    private static readonly HashSet<string> AllowedImageTypes = new(StringComparer.OrdinalIgnoreCase)
-    {
-        "image/png", "image/jpeg", "image/jpg", "image/bmp", "image/gif", "image/tiff"
-    };
-
-    private const string PdfContentType = "application/pdf";
-    private const long MaxFileSize = 50 * 1024 * 1024; // 50 MB
-
     /// <summary>
     /// Регистрирует endpoint'ы для чтения QR-кодов.
     /// </summary>
@@ -54,14 +48,37 @@ public static class NotarizationQrEndpoints
             if (file is null)
                 return Results.NotFound(new { error = $"Файл {request.FileId} не найден." });
 
-            file.QrRawUrl = request.RawUrl;
-            file.QrRegistryNumber = request.RegistryNumber;
-            file.QrNotaryFullName = request.NotaryFullName;
-            file.QrDocumentType = request.DocumentType;
-            file.QrApplicantName = request.ApplicantName;
+            // Проверяем, есть ли уже запись для этого файла
+            var existing = await db.FileNotarizations.FirstOrDefaultAsync(fn => fn.FileId == request.FileId, ct);
 
-            if (DateOnly.TryParse(request.NotarizationDate, out var parsedDate))
-                file.QrNotarizationDate = parsedDate;
+            DateOnly? parsedDate = null;
+            if (DateOnly.TryParse(request.NotarizationDate, out var d))
+                parsedDate = d;
+
+            if (existing is not null)
+            {
+                existing.RawUrl = request.RawUrl;
+                existing.RegistryNumber = request.RegistryNumber;
+                existing.NotaryFullName = request.NotaryFullName;
+                existing.DocumentType = request.DocumentType;
+                existing.ApplicantName = request.ApplicantName;
+                if (parsedDate.HasValue)
+                    existing.NotarizationDate = parsedDate;
+            }
+            else
+            {
+                db.FileNotarizations.Add(new Domain.Entities.FileNotarization
+                {
+                    Id = Guid.NewGuid(),
+                    FileId = request.FileId,
+                    RawUrl = request.RawUrl,
+                    RegistryNumber = request.RegistryNumber,
+                    NotaryFullName = request.NotaryFullName,
+                    DocumentType = request.DocumentType,
+                    ApplicantName = request.ApplicantName,
+                    NotarizationDate = parsedDate
+                });
+            }
 
             await db.SaveChangesAsync(ct);
 
@@ -82,10 +99,14 @@ public static class NotarizationQrEndpoints
         HttpRequest request,
         IQrCodeReaderService qrReader,
         INotarizationQrParser qrParser,
+        IOptions<QrCodeReaderOptions> options,
         ILoggerFactory loggerFactory,
         CancellationToken ct)
     {
         var logger = loggerFactory.CreateLogger("NotarizationQr.ReadQrCode");
+        var opts = options.Value;
+        var allowedImageTypes = new HashSet<string>(opts.AllowedImageContentTypes, StringComparer.OrdinalIgnoreCase);
+        var allowedExtensions = new HashSet<string>(opts.AllowedExtensions, StringComparer.OrdinalIgnoreCase);
 
         try
         {
@@ -98,22 +119,28 @@ public static class NotarizationQrEndpoints
             if (file is null || file.Length == 0)
                 return Results.BadRequest(new { error = "Файл не загружен." });
 
-            if (file.Length > MaxFileSize)
-                return Results.BadRequest(new { error = $"Файл слишком большой. Максимум: {MaxFileSize / 1024 / 1024} МБ." });
+            if (file.Length > opts.MaxFileSizeBytes)
+                return Results.BadRequest(new { error = $"Файл слишком большой. Максимум: {opts.MaxFileSizeBytes / 1024 / 1024} МБ." });
 
             var contentType = file.ContentType ?? "";
-            var isImage = AllowedImageTypes.Contains(contentType);
-            var isPdf = string.Equals(contentType, PdfContentType, StringComparison.OrdinalIgnoreCase);
+            var isImage = allowedImageTypes.Contains(contentType);
+            var isPdf = string.Equals(contentType, opts.PdfContentType, StringComparison.OrdinalIgnoreCase);
 
             if (!isImage && !isPdf)
             {
                 var extension = Path.GetExtension(file.FileName)?.ToLowerInvariant();
-                isImage = extension is ".png" or ".jpg" or ".jpeg" or ".bmp" or ".gif" or ".tiff";
-                isPdf = extension == ".pdf";
+                if (extension is not null)
+                {
+                    isImage = allowedExtensions.Contains(extension) && !string.Equals(extension, ".pdf", StringComparison.OrdinalIgnoreCase);
+                    isPdf = string.Equals(extension, ".pdf", StringComparison.OrdinalIgnoreCase);
+                }
             }
 
             if (!isImage && !isPdf)
-                return Results.BadRequest(new { error = "Поддерживаются только изображения (PNG, JPEG) и PDF-файлы." });
+            {
+                var extList = string.Join(", ", opts.AllowedExtensions);
+                return Results.BadRequest(new { error = $"Поддерживаются только файлы с расширениями: {extList}." });
+            }
 
             await using var stream = file.OpenReadStream();
 
