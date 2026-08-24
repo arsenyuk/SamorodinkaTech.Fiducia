@@ -65,25 +65,6 @@ ALTER TABLE users ADD CONSTRAINT fk_users_person_id
     FOREIGN KEY (person_id) REFERENCES persons(id) ON DELETE SET NULL;
 
 -- ============================================================================
--- Согласия на обработку ПДн (привязаны к ФЛ, а не к пользователю)
--- ============================================================================
-
--- Таблица: pdn_consents (согласия на обработку персональных данных)
-CREATE TABLE IF NOT EXISTS pdn_consents (
-    id uuid PRIMARY KEY,
-    person_id uuid NOT NULL REFERENCES persons(id) ON DELETE RESTRICT,
-    legal_entity_id uuid NOT NULL REFERENCES legal_entities(id) ON DELETE RESTRICT,
-    consent_given boolean DEFAULT FALSE NOT NULL,
-    consent_at timestamp with time zone,
-    consent_ip varchar(45),
-    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
-);
-
-CREATE INDEX IF NOT EXISTS ix_pdn_consents_person_id ON pdn_consents(person_id);
-CREATE INDEX IF NOT EXISTS ix_pdn_consents_legal_entity_id ON pdn_consents(legal_entity_id);
-CREATE UNIQUE INDEX IF NOT EXISTS ux_pdn_consents_person_le ON pdn_consents(person_id, legal_entity_id);
-
--- ============================================================================
 -- ПЭП: соглашение о Politically Exposed Person (привязано к ФЛ)
 -- ============================================================================
 
@@ -477,6 +458,25 @@ CREATE TABLE IF NOT EXISTS legal_entities (
 CREATE INDEX IF NOT EXISTS ix_legal_entities_name ON legal_entities(name);
 CREATE INDEX IF NOT EXISTS ix_legal_entities_inn ON legal_entities(inn);
 CREATE INDEX IF NOT EXISTS ix_legal_entities_ogrn ON legal_entities(ogrn);
+
+-- ============================================================================
+-- Согласия на обработку ПДн (привязаны к ФЛ, а не к пользователю)
+-- ============================================================================
+
+-- Таблица: pdn_consents (согласия на обработку персональных данных)
+CREATE TABLE IF NOT EXISTS pdn_consents (
+    id uuid PRIMARY KEY,
+    person_id uuid NOT NULL REFERENCES persons(id) ON DELETE RESTRICT,
+    legal_entity_id uuid NOT NULL REFERENCES legal_entities(id) ON DELETE RESTRICT,
+    consent_given boolean DEFAULT FALSE NOT NULL,
+    consent_at timestamp with time zone,
+    consent_ip varchar(45),
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS ix_pdn_consents_person_id ON pdn_consents(person_id);
+CREATE INDEX IF NOT EXISTS ix_pdn_consents_legal_entity_id ON pdn_consents(legal_entity_id);
+CREATE UNIQUE INDEX IF NOT EXISTS ux_pdn_consents_person_le ON pdn_consents(person_id, legal_entity_id);
 
 -- Параметры устава ООО (1:1 с legal_entities, обслуживает и типовой и нетиповой)
 CREATE TABLE IF NOT EXISTS legal_entity_charter (
