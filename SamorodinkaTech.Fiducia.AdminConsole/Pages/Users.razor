@@ -4,6 +4,7 @@
 @using SamorodinkaTech.Fiducia.Domain.Interfaces
 @inject IApplicationDbContext DbContext
 @inject NavigationManager Navigation
+@inject IConfiguration Configuration
 
 <PageTitle>Fiducia — Пользователи</PageTitle>
 
@@ -288,7 +289,8 @@
             DbContext.Users.Add(user);
             await DbContext.SaveChangesAsync();
 
-            _inviteLink = $"http://localhost:5000/onboarding/{token}";
+            var boardPortalUrl = Configuration["BoardPortal:Url"]?.TrimEnd('/') ?? "http://localhost:5002";
+            _inviteLink = $"{boardPortalUrl}/onboarding/{token}";
         }
         finally
         {
