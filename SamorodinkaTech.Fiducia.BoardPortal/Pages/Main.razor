@@ -110,6 +110,13 @@
 
     protected override async Task OnInitializedAsync()
     {
+        await LoadPlannedMeetingsAsync();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+
         var role = await JS.InvokeAsync<string?>("localStorage.getItem", "currentUserRole");
         _isParticipant = role == "PARTICIPANT";
 
@@ -125,7 +132,7 @@
             await JS.InvokeVoidAsync("localStorage.setItem", "greetingShownAt", DateTime.UtcNow.ToString("o"));
         }
 
-        await LoadPlannedMeetingsAsync();
+        StateHasChanged();
     }
 
     private async Task LoadPlannedMeetingsAsync()
