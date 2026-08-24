@@ -386,4 +386,6 @@ public class EmptyDbContext : DbContext, IApplicationDbContext
     public DbSet<ExtSparkFounder> ExtSparkFounders => Set<ExtSparkFounder>();
     public DbSet<ExtCbrFinOrgOrganization> ExtCbrFinOrgOrganizations => Set<ExtCbrFinOrgOrganization>();
     public DbSet<ExtCbrFinOrgLicense> ExtCbrFinOrgLicenses => Set<ExtCbrFinOrgLicense>();
+    public DbSet<ExternalAttractedPerson> ExternalAttractedPersons => Set<ExternalAttractedPerson>();
+    public DbSet<LlcManagementContract> LlcManagementContracts => Set<LlcManagementContract>();
 }

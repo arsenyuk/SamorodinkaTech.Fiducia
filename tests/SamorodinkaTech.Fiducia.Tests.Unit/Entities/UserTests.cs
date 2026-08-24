@@ -25,8 +25,6 @@ public class UserTests
         user.Email.Should().BeEmpty();
         user.Phone.Should().BeEmpty();
         user.IsExternal.Should().BeFalse();
-        user.PepAgreementSigned.Should().BeFalse();
-        user.PepSignedAt.Should().BeNull();
         user.IsSystem.Should().BeFalse();
         user.UserRoles.Should().NotBeNull();
         user.UserRoles.Should().BeEmpty();
@@ -48,26 +46,5 @@ public class UserTests
 
         // Assert
         user.IsExternal.Should().BeTrue();
-    }
-
-    /// <summary>
-    /// При подписании ПЭП фиксируется дата подписания.
-    /// </summary>
-    [Fact]
-    public void User_PepAgreementSigned_ShouldTrackDate()
-    {
-        // Arrange
-        var signedAt = DateTime.UtcNow;
-
-        // Act
-        var user = new User
-        {
-            PepAgreementSigned = true,
-            PepSignedAt = signedAt
-        };
-
-        // Assert
-        user.PepAgreementSigned.Should().BeTrue();
-        user.PepSignedAt.Should().Be(signedAt);
     }
 }

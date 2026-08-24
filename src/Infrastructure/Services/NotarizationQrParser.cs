@@ -111,6 +111,7 @@ public sealed class NotarizationQrParser : INotarizationQrParser
         if (registryNumber is null)
             dict.TryGetValue("reg", out registryNumber);
         registryNumber ??= dict.GetValueOrDefault("registry_number");
+        registryNumber ??= dict.GetValueOrDefault("номер");
 
         dict.TryGetValue("date", out var dateStr);
         dateStr ??= dict.GetValueOrDefault("дата");
