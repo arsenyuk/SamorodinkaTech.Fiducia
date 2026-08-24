@@ -260,9 +260,12 @@ namespace SamorodinkaTech.Fiducia.Infrastructure.Services
         {
             try
             {
+                // Читаем расширения из БД (или дефолт из опций)
+                var allowedExtensions = await GetQrExtensionsAsync(ct);
+
                 var ext = $".{fileEntry.Extension?.ToLowerInvariant() ?? ""}";
                 var isImage = _qrOptions.AllowedImageContentTypes.Contains(fileEntry.ContentType ?? "")
-                    || (_qrOptions.AllowedExtensions.Contains(ext) && ext != ".pdf");
+                    || (allowedExtensions.Contains(ext) && ext != ".pdf");
                 var isPdf = string.Equals(ext, ".pdf", StringComparison.OrdinalIgnoreCase)
                     || string.Equals(fileEntry.ContentType, _qrOptions.PdfContentType, StringComparison.OrdinalIgnoreCase);
 
@@ -306,6 +309,37 @@ namespace SamorodinkaTech.Fiducia.Infrastructure.Services
             {
                 _logger.LogDebug(ex, "Не удалось распознать QR-код для файла {FileId} — пропускаем", fileEntry.Id);
             }
+        }
+
+        /// <summary>
+        /// Получает расширения файлов для чтения QR-кода из system_settings.
+        /// Если настройка не найдена — возвращает дефолт из QrCodeReaderOptions.
+        /// </summary>
+        private async Task<HashSet<string>> GetQrExtensionsAsync(CancellationToken ct)
+        {
+            try
+            {
+                await using var ctx = await _dbFactory.CreateDbContextAsync(ct);
+                var setting = await ctx.SystemSettings
+                    .FirstOrDefaultAsync(x => x.Key == "qr_code_extensions", ct);
+
+                if (setting is not null && !string.IsNullOrEmpty(setting.Value))
+                {
+                    return new HashSet<string>(
+                        setting.Value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                            .Select(e => $".{e.TrimStart('.').ToLowerInvariant()}"),
+                        StringComparer.OrdinalIgnoreCase);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex, "Ошибка чтения qr_code_extensions из system_settings — используем дефолт");
+            }
+
+            // Дефолт из опций (с точкой)
+            return new HashSet<string>(
+                _qrOptions.AllowedExtensions.Select(e => e.ToLowerInvariant()),
+                StringComparer.OrdinalIgnoreCase);
         }
     }
 }

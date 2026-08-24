@@ -1074,6 +1074,8 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.Property(x => x.Key).HasColumnName("key").IsRequired().HasMaxLength(100);
             b.Property(x => x.Value).HasColumnName("value");
             b.Property(x => x.Description).HasColumnName("description");
+            b.Property(x => x.ValidationType).HasColumnName("validation_type").HasMaxLength(50);
+            b.Property(x => x.CreatedBy).HasColumnName("created_by");
             b.Property(x => x.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("CURRENT_TIMESTAMP");
             b.Property(x => x.UpdatedAt).HasColumnName("updated_at");
             b.HasIndex(x => x.Key).IsUnique();

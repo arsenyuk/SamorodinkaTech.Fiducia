@@ -770,11 +770,12 @@ ON CONFLICT (number) DO NOTHING;
 -- ============================================================================
 -- Системные настройки
 -- ============================================================================
-INSERT INTO system_settings (id, key, value, description, created_at) VALUES
-    ('ffffffff-ffff-ffff-ffff-ffffffffffff', 'gantt_end_padding_weeks', '2', 'Запас в неделях после окончания последней задачи на диаграмме Ганта', CURRENT_TIMESTAMP),
-    ('ffffffff-ffff-ffff-ffff-fffffffffff1', 'gosa_title_template', 'Годовое за {YYYY} год', 'Шаблон названия ГОСА', CURRENT_TIMESTAMP),
-    ('ffffffff-ffff-ffff-ffff-fffffffffff2', 'oosu_title_template', 'Очередное за {YYYY} год', 'Шаблон названия ООСУ', CURRENT_TIMESTAMP),
-    ('ffffffff-ffff-ffff-ffff-fffffffffff3', 'blocked_extensions', 'exe,dll,com,msi,bat,cmd,scr,pif,vbs,vbe,js,jse,ws,wsh,wsf,ps1,psm1,psd1,psc1,sh,bash,csh,ksh,zsh,app,bin,command,cpl,hta,inf,ins,isp,job,lnk,mdb,msc,msp,reg,rgs,scf,snap,application,gadget,paf,xbap,xll,xnk,zip,rar,7z,tar,gz,bz2,xz,zst,iso,img,vhd,vhdx,vmdk,ova,ovf,cab,dmg,pak,war,ear,sys,drv,diagnostics,msix,appx,widget,webpnp', 'Запрещённые расширения файлов (через запятую)', CURRENT_TIMESTAMP)
+INSERT INTO system_settings (id, key, value, description, validation_type, created_by, created_at) VALUES
+    ('ffffffff-ffff-ffff-ffff-ffffffffffff', 'gantt_end_padding_weeks', '2', 'Запас в неделях после окончания последней задачи на диаграмме Ганта', 'non_negative_int', '00000000-0000-0000-0000-000000000000', CURRENT_TIMESTAMP),
+    ('ffffffff-ffff-ffff-ffff-fffffffffff1', 'gosa_title_template', 'Годовое за {YYYY} год', 'Шаблон названия ГОСА', 'template_string', '00000000-0000-0000-0000-000000000000', CURRENT_TIMESTAMP),
+    ('ffffffff-ffff-ffff-ffff-fffffffffff2', 'oosu_title_template', 'Очередное за {YYYY} год', 'Шаблон названия ООСУ', 'template_string', '00000000-0000-0000-0000-000000000000', CURRENT_TIMESTAMP),
+    ('ffffffff-ffff-ffff-ffff-fffffffffff3', 'blocked_extensions', 'exe,dll,com,msi,bat,cmd,scr,pif,vbs,vbe,js,jse,ws,wsh,wsf,ps1,psm1,psd1,psc1,sh,bash,csh,ksh,zsh,app,bin,command,cpl,hta,inf,ins,isp,job,lnk,mdb,msc,msp,reg,rgs,scf,snap,application,gadget,paf,xbap,xll,xnk,zip,rar,7z,tar,gz,bz2,xz,zst,iso,img,vhd,vhdx,vmdk,ova,ovf,cab,dmg,pak,war,ear,sys,drv,diagnostics,msix,appx,widget,webpnp', 'Запрещённые расширения файлов (через запятую)', 'extension_list', '00000000-0000-0000-0000-000000000000', CURRENT_TIMESTAMP),
+    ('ffffffff-ffff-ffff-ffff-fffffffffff4', 'qr_code_extensions', 'png,jpg,jpeg,bmp,gif,tiff,pdf', 'Расширения файлов для чтения QR-кода нотариуса (через запятую)', 'extension_list', '00000000-0000-0000-0000-000000000000', CURRENT_TIMESTAMP)
 ON CONFLICT (key) DO NOTHING;
 
 -- ============================================================================

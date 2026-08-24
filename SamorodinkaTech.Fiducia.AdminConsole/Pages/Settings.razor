@@ -1,6 +1,7 @@
 @page "/settings"
 @using Microsoft.EntityFrameworkCore
 @inject IDbContextFactory<SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext> DbFactory
+@inject IHttpContextAccessor HttpContextAccessor
 
 <PageTitle>Fiducia — Системные настройки</PageTitle>
 
@@ -57,7 +58,12 @@
             <div class="row mb-3">
                 <div class="col-md-6">
                     <label class="form-label">Запас шкалы Ганта (недель)</label>
-                    <input type="number" class="form-control" @bind="_ganttPaddingWeeks" min="0" max="12">
+                    <input type="number" class="form-control @(_ganttPaddingError is not null ? "is-invalid" : "")" @bind="_ganttPaddingWeeks"
+                           @oninput="() => _ganttPaddingError = null" min="0">
+                    @if (_ganttPaddingError is not null)
+                    {
+                        <div class="invalid-feedback">@_ganttPaddingError</div>
+                    }
                     <small class="text-muted">После окончания последней задачи на диаграмме оргплана</small>
                 </div>
             </div>
@@ -66,13 +72,25 @@
             <div class="row mb-3">
                 <div class="col-md-6">
                     <label class="form-label">Шаблон наименования ГОСА</label>
-                    <input type="text" class="form-control" @bind="_gosaTitleTemplate" placeholder="Годовое за {YYYY} год">
-                    <small class="text-muted">Используется плейсхолдер <code>{YYYY}</code> для года</small>
+                    <input type="text" class="form-control @(_gosaTitleError is not null ? "is-invalid" : "")" @bind="_gosaTitleTemplate"
+                           @oninput="() => _gosaTitleError = null"
+                           placeholder="Годовое за {YYYY} год">
+                    @if (_gosaTitleError is not null)
+                    {
+                        <div class="invalid-feedback">@_gosaTitleError</div>
+                    }
+                    <small class="text-muted">Доступные плейсхолдеры: <code>{YYYY}</code> — год, <code>{YY}</code> — год (2 цифры), <code>{MM}</code> — месяц, <code>{DD}</code> — день</small>
                 </div>
                 <div class="col-md-6">
                     <label class="form-label">Шаблон наименования ООСУ</label>
-                    <input type="text" class="form-control" @bind="_oosuTitleTemplate" placeholder="Очередное за {YYYY} год">
-                    <small class="text-muted">Используется плейсхолдер <code>{YYYY}</code> для года</small>
+                    <input type="text" class="form-control @(_oosuTitleError is not null ? "is-invalid" : "")" @bind="_oosuTitleTemplate"
+                           @oninput="() => _oosuTitleError = null"
+                           placeholder="Очередное за {YYYY} год">
+                    @if (_oosuTitleError is not null)
+                    {
+                        <div class="invalid-feedback">@_oosuTitleError</div>
+                    }
+                    <small class="text-muted">Доступные плейсхолдеры: <code>{YYYY}</code> — год, <code>{YY}</code> — год (2 цифры), <code>{MM}</code> — месяц, <code>{DD}</code> — день</small>
                 </div>
             </div>
             <hr />
@@ -87,6 +105,18 @@
                     <div class="invalid-feedback">@_blockedExtensionsError</div>
                 }
                 <small class="text-muted">Файлы с этими расширениями будут отклоняться при загрузке. Только латинские буквы без точки (пример: exe, dll, bat)</small>
+            </div>
+            <h6>Чтение QR-кодов</h6>
+            <div class="mb-3">
+                <label class="form-label">Расширения файлов для QR-кода (через запятую)</label>
+                <textarea class="form-control @(_qrExtensionsError is not null ? "is-invalid" : "")" rows="2" @bind="_qrExtensions"
+                          @oninput="() => _qrExtensionsError = null"
+                          placeholder="png, jpg, jpeg, bmp, gif, tiff, pdf"></textarea>
+                @if (_qrExtensionsError is not null)
+                {
+                    <div class="invalid-feedback">@_qrExtensionsError</div>
+                }
+                <small class="text-muted">Файлы с этими расширениями будут сканироваться на наличие QR-кода нотариуса. Только латинские буквы без точки</small>
             </div>
             <button class="btn btn-primary" @onclick="SaveSystemSettings">Сохранить настройки</button>
         </div>
@@ -340,6 +370,11 @@
     private string _oosuTitleTemplate = "Очередное за {YYYY} год";
     private string _blockedExtensions = "exe,dll,com,msi,bat,cmd,scr,pif";
     private string? _blockedExtensionsError;
+    private string _qrExtensions = "png,jpg,jpeg,bmp,gif,tiff,pdf";
+    private string? _qrExtensionsError;
+    private string? _gosaTitleError;
+    private string? _oosuTitleError;
+    private string? _ganttPaddingError;
 
     // Авторизация
     private string _authMethod = "Basic";
@@ -404,6 +439,8 @@
                 _oosuTitleTemplate = oosuTemplate;
             if (settings.TryGetValue("blocked_extensions", out var blockedExt) && !string.IsNullOrEmpty(blockedExt))
                 _blockedExtensions = blockedExt;
+            if (settings.TryGetValue("qr_code_extensions", out var qrExt) && !string.IsNullOrEmpty(qrExt))
+                _qrExtensions = qrExt;
         }
         catch { }
     }
@@ -431,9 +468,22 @@
         try
         {
             // Валидация запрещённых расширений
-            _blockedExtensionsError = ValidateBlockedExtensions(_blockedExtensions);
+            _blockedExtensionsError = ValidateExtensionList(_blockedExtensions);
+
+            // Валидация расширений QR
+            _qrExtensionsError = ValidateExtensionList(_qrExtensions);
+
+            // Валидация шаблонов
+            _gosaTitleError = ValidateTemplate(_gosaTitleTemplate);
+            _oosuTitleError = ValidateTemplate(_oosuTitleTemplate);
+
+            // Валидация запаса Ганта
+            _ganttPaddingError = ValidateNonNegativeInt(_ganttPaddingWeeks);
+
             StateHasChanged();
-            if (_blockedExtensionsError is not null) return;
+            if (_blockedExtensionsError is not null || _qrExtensionsError is not null
+                || _gosaTitleError is not null || _oosuTitleError is not null
+                || _ganttPaddingError is not null) return;
 
             await using var ctx = await DbFactory.CreateDbContextAsync();
 
@@ -456,33 +506,42 @@
             }
 
             // Сохраняем шаблоны заседаний
-            await UpsertSetting(ctx, "gosa_title_template", _gosaTitleTemplate, "Шаблон названия ГОСА");
-            await UpsertSetting(ctx, "oosu_title_template", _oosuTitleTemplate, "Шаблон названия ООСУ");
+            await UpsertSetting(ctx, "gosa_title_template", _gosaTitleTemplate, "Шаблон названия ГОСА", "template_string");
+            await UpsertSetting(ctx, "oosu_title_template", _oosuTitleTemplate, "Шаблон названия ООСУ", "template_string");
 
             // Сохраняем запрещённые расширения
-            await UpsertSetting(ctx, "blocked_extensions", _blockedExtensions, "Запрещённые расширения файлов (через запятую)");
+            await UpsertSetting(ctx, "blocked_extensions", _blockedExtensions, "Запрещённые расширения файлов (через запятую)", "extension_list");
+
+            // Сохраняем расширения QR
+            await UpsertSetting(ctx, "qr_code_extensions", _qrExtensions, "Расширения файлов для чтения QR-кода нотариуса (через запятую)", "extension_list");
 
             await ctx.SaveChangesAsync();
         }
         catch { }
     }
 
-    private static async Task UpsertSetting(SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext ctx, string key, string value, string description)
+    private async Task UpsertSetting(SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext ctx, string key, string value, string description, string? validationType = null)
     {
         var setting = await ctx.SystemSettings.FirstOrDefaultAsync(x => x.Key == key);
         if (setting != null)
         {
             setting.Value = value;
+            setting.ValidationType = validationType;
             setting.UpdatedAt = DateTime.UtcNow;
         }
         else
         {
+            var userIdStr = HttpContextAccessor.HttpContext?.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            Guid? userId = Guid.TryParse(userIdStr, out var uid) ? uid : null;
+
             ctx.SystemSettings.Add(new SamorodinkaTech.Fiducia.Domain.Entities.SystemSetting
             {
                 Id = Guid.NewGuid(),
                 Key = key,
                 Value = value,
-                Description = description
+                Description = description,
+                ValidationType = validationType,
+                CreatedBy = userId
             });
         }
     }
@@ -492,7 +551,7 @@
         _authMethod = e.Value?.ToString() ?? "Basic";
     }
 
-    private static string? ValidateBlockedExtensions(string? value)
+    private static string? ValidateExtensionList(string? value)
     {
         if (string.IsNullOrWhiteSpace(value))
             return null; // Пустое значение допустимо (нет запрещённых расширений)
@@ -516,6 +575,48 @@
             // Проверяем длину
             if (ext.Length > 20)
                 return $"Расширение «{ext}» слишком длинное (максимум 20 символов).";
+        }
+
+        return null;
+    }
+
+    private static string? ValidateNonNegativeInt(int value)
+    {
+        if (value < 0)
+            return $"Значение не может быть отрицательным.";
+        return null;
+    }
+
+    // Известные плейсхолдеры для шаблонов наименований заседаний
+    private static readonly HashSet<string> KnownPlaceholders = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "{YYYY}", "{YY}", "{MM}", "{DD}"
+    };
+
+    private static string? ValidateTemplate(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return null; // Пустое значение допустимо
+
+        // Проверяем длину
+        if (value.Length > 200)
+            return "Шаблон слишком длинный (максимум 200 символов).";
+
+        // Ищем все плейсхолдеры вида {XXX}
+        var placeholderPattern = new System.Text.RegularExpressions.Regex(@"\{[A-Za-z]+\}");
+        var matches = placeholderPattern.Matches(value);
+
+        foreach (System.Text.RegularExpressions.Match match in matches)
+        {
+            var placeholder = match.Value;
+
+            // Проверяем регистр — плейсхолдеры должны быть в верхнем регистре
+            if (placeholder != placeholder.ToUpperInvariant())
+                return $"Плейсхолдер «{placeholder}» должен быть в верхнем регистре: «{placeholder.ToUpperInvariant()}».";
+
+            // Проверяем что плейсхолдер известен
+            if (!KnownPlaceholders.Contains(placeholder))
+                return $"Неизвестный плейсхолдер «{placeholder}». Допустимы: {string.Join(", ", KnownPlaceholders)}";
         }
 
         return null;

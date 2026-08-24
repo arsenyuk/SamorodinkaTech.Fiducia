@@ -1480,6 +1480,8 @@ CREATE TABLE IF NOT EXISTS system_settings (
     key varchar(100) UNIQUE NOT NULL,
     value text,
     description text,
+    validation_type varchar(50),
+    created_by uuid REFERENCES users(id) ON DELETE SET NULL,
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at timestamp with time zone
 );
