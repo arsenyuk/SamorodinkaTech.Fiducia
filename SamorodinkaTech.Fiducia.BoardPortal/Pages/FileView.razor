@@ -152,6 +152,54 @@ else if (_fileInfo is not null)
             </div>
         </div>
     }
+
+    @* ── Информация о подписи реестра участников ────────────────── *@
+    @if (_fileInfo.SignatureInfo is not null)
+    {
+        <div class="card mb-4 border-info">
+            <div class="card-body">
+                <h5 class="card-title text-info">Подпись реестра участников</h5>
+                <table class="table table-sm table-borderless mb-0">
+                    <tbody>
+                        <tr>
+                            <td class="text-muted" style="width:200px">Тип</td>
+                            <td>@_fileInfo.SignatureInfo.Type</td>
+                        </tr>
+                        @if (_fileInfo.SignatureInfo.Type == "XML_реестра")
+                        {
+                            <tr>
+                                <td class="text-muted">Связанный файл подписи</td>
+                                <td>
+                                    <a href="/files/@_fileInfo.SignatureInfo.RelatedSignatureFileId/view">
+                                        @_fileInfo.SignatureInfo.RelatedSignatureFileName
+                                    </a>
+                                    @if (_fileInfo.SignatureInfo.RelatedSignatureSizeBytes.HasValue)
+                                    {
+                                        <span class="text-muted ms-2">(@FormatSize(_fileInfo.SignatureInfo.RelatedSignatureSizeBytes.Value))</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                        else if (_fileInfo.SignatureInfo.Type == "Подпись")
+                        {
+                            <tr>
+                                <td class="text-muted">Связанный XML-файл</td>
+                                <td>
+                                    <a href="/files/@_fileInfo.SignatureInfo.RelatedXmlFileId/view">
+                                        @_fileInfo.SignatureInfo.RelatedXmlFileName
+                                    </a>
+                                    @if (_fileInfo.SignatureInfo.RelatedXmlSizeBytes.HasValue)
+                                    {
+                                        <span class="text-muted ms-2">(@FormatSize(_fileInfo.SignatureInfo.RelatedXmlSizeBytes.Value))</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
 }
 
 @code {
@@ -200,7 +248,8 @@ else if (_fileInfo is not null)
         string? DisplayName,
         DateTime CreatedAt,
         UploaderDto Uploader,
-        QrDataDto? QrData);
+        QrDataDto? QrData,
+        SignatureInfoDto? SignatureInfo);
 
     private record UploaderDto(
         string? FullName,
@@ -215,4 +264,14 @@ else if (_fileInfo is not null)
         string? NotarizationDate,
         string? DocumentType,
         string? ApplicantName);
+
+    private record SignatureInfoDto(
+        string? Type,
+        Guid? RelatedSignatureFileId,
+        string? RelatedSignatureFileName,
+        long? RelatedSignatureSizeBytes,
+        string? RelatedSignatureExtension,
+        Guid? RelatedXmlFileId,
+        string? RelatedXmlFileName,
+        long? RelatedXmlSizeBytes);
 }

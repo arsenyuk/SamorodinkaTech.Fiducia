@@ -294,15 +294,18 @@ else
                                    class="form-control form-control-sm" disabled="@_isUploadingRegistry" />
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label">Отсоединённая подпись (необязательно)</label>
-                        <InputFile OnChange="OnSignatureFileSelected"
+                        <label class="form-label">Отсоединённая подпись (.sig или .p7s)</label>
+                        <InputFile OnChange="OnSignatureFileSelected" accept=".sig,.p7s"
                                    class="form-control form-control-sm" disabled="@_isUploadingRegistry" />
                     </div>
                 </div>
-                @if (_selectedXmlFileName is not null)
+                @if (_selectedXmlFileName is not null || _selectedSignatureFileName is not null)
                 {
                     <div class="mb-2">
-                        <span class="badge bg-secondary me-2">XML: @_selectedXmlFileName</span>
+                        @if (_selectedXmlFileName is not null)
+                        {
+                            <span class="badge bg-secondary me-2">XML: @_selectedXmlFileName</span>
+                        }
                         @if (_selectedSignatureFileName is not null)
                         {
                             <span class="badge bg-secondary">Подпись: @_selectedSignatureFileName</span>
@@ -323,7 +326,7 @@ else
                     <div class="alert alert-danger py-1 px-2 mb-2 small">@_registryUploadError</div>
                 }
                 <button class="btn btn-primary btn-sm" @onclick="UploadRegistry"
-                        disabled="@(_selectedXmlFile is null || _isUploadingRegistry)">
+                        disabled="@(_selectedXmlFile is null || _selectedSignatureFile is null || _isUploadingRegistry)">
                     Загрузить
                 </button>
             </div>
@@ -377,19 +380,9 @@ else
                                     }
                                 </td>
                                 <td>
-                                    <div class="d-flex gap-1">
-                                        @if (u.SignatureFileId is null)
-                                        {
-                                            <label class="btn btn-outline-secondary btn-sm mb-0" title="Загрузить подпись">
-                                                📎
-                                                <InputFile OnChange="e => OnSignatureFileForUploadSelected(e, u.Id)"
-                                                           style="display: none;" />
-                                            </label>
-                                        }
-                                        <button class="btn btn-outline-danger btn-sm" @onclick="() => DeleteRegistryUpload(u.Id)">
-                                            ✕
-                                        </button>
-                                    </div>
+                                    <button class="btn btn-outline-danger btn-sm" @onclick="() => DeleteRegistryUpload(u.Id)">
+                                        ✕
+                                    </button>
                                 </td>
                             </tr>
                         }
@@ -1014,7 +1007,7 @@ else
 
     private async Task UploadRegistry()
     {
-        if (_selectedXmlFile is null) return;
+        if (_selectedXmlFile is null || _selectedSignatureFile is null) return;
 
         _isUploadingRegistry = true;
         _registryUploadError = null;
@@ -1022,47 +1015,44 @@ else
 
         try
         {
-            // Загружаем XML
-            using var xmlContent = new MultipartFormDataContent();
+            // Валидация расширений на клиенте
+            var xmlExt = System.IO.Path.GetExtension(_selectedXmlFileName)?.ToLowerInvariant();
+            if (xmlExt != ".xml")
+            {
+                _registryUploadError = "XML-файл должен иметь расширение .xml";
+                return;
+            }
+
+            var sigExt = System.IO.Path.GetExtension(_selectedSignatureFileName)?.ToLowerInvariant();
+            if (sigExt != ".sig" && sigExt != ".p7s")
+            {
+                _registryUploadError = "Файл подписи должен иметь расширение .sig или .p7s";
+                return;
+            }
+
+            // Загружаем XML + подпись одним запросом
+            using var content = new MultipartFormDataContent();
+
             using var xmlStream = _selectedXmlFile.OpenReadStream(10 * 1024 * 1024);
             using var xmlMs = new MemoryStream();
             await xmlStream.CopyToAsync(xmlMs);
             xmlMs.Position = 0;
             var xmlBytes = xmlMs.ToArray();
-            xmlContent.Add(new ByteArrayContent(xmlBytes), "file", _selectedXmlFileName ?? "registry.xml");
+            content.Add(new ByteArrayContent(xmlBytes), "file", _selectedXmlFileName ?? "registry.xml");
 
-            var xmlResponse = await Http.PostAsync("/api/registry-uploads/upload-xml", xmlContent);
-            if (!xmlResponse.IsSuccessStatusCode)
+            using var sigStream = _selectedSignatureFile.OpenReadStream(10 * 1024 * 1024);
+            using var sigMs = new MemoryStream();
+            await sigStream.CopyToAsync(sigMs);
+            sigMs.Position = 0;
+            var sigBytes = sigMs.ToArray();
+            content.Add(new ByteArrayContent(sigBytes), "signature", _selectedSignatureFileName ?? "signature.sig");
+
+            var response = await Http.PostAsync("/api/registry-uploads/upload-xml", content);
+            if (!response.IsSuccessStatusCode)
             {
-                var body = await xmlResponse.Content.ReadAsStringAsync();
-                _registryUploadError = $"Ошибка загрузки XML ({(int)xmlResponse.StatusCode}): {body}";
+                var body = await response.Content.ReadAsStringAsync();
+                _registryUploadError = $"Ошибка загрузки ({(int)response.StatusCode}): {body}";
                 return;
-            }
-
-            var uploadResult = await xmlResponse.Content.ReadFromJsonAsync<RegistryUploadRow>();
-            if (uploadResult is null)
-            {
-                _registryUploadError = "Не удалось получить результат загрузки.";
-                return;
-            }
-
-            // Загружаем подпись, если выбрана
-            if (_selectedSignatureFile is not null)
-            {
-                using var sigContent = new MultipartFormDataContent();
-                using var sigStream = _selectedSignatureFile.OpenReadStream(10 * 1024 * 1024);
-                using var sigMs = new MemoryStream();
-                await sigStream.CopyToAsync(sigMs);
-                sigMs.Position = 0;
-                var sigBytes = sigMs.ToArray();
-                sigContent.Add(new ByteArrayContent(sigBytes), "file", _selectedSignatureFileName ?? "signature.sig");
-
-                var sigResponse = await Http.PostAsync($"/api/registry-uploads/{uploadResult.Id}/upload-signature", sigContent);
-                if (!sigResponse.IsSuccessStatusCode)
-                {
-                    var body = await sigResponse.Content.ReadAsStringAsync();
-                    Logger.LogWarning("Ошибка загрузки подписи: {Body}", body);
-                }
             }
 
             // Сбрасываем выбор
@@ -1081,28 +1071,6 @@ else
         finally
         {
             _isUploadingRegistry = false;
-        }
-    }
-
-    private async Task OnSignatureFileForUploadSelected(InputFileChangeEventArgs e, Guid uploadId)
-    {
-        try
-        {
-            using var content = new MultipartFormDataContent();
-            using var stream = e.File.OpenReadStream(10 * 1024 * 1024);
-            using var ms = new MemoryStream();
-            await stream.CopyToAsync(ms);
-            ms.Position = 0;
-            var bytes = ms.ToArray();
-            content.Add(new ByteArrayContent(bytes), "file", e.File.Name);
-
-            var response = await Http.PostAsync($"/api/registry-uploads/{uploadId}/upload-signature", content);
-            if (response.IsSuccessStatusCode)
-                await LoadRegistryUploads();
-        }
-        catch (Exception ex)
-        {
-            Logger.LogWarning(ex, "Ошибка загрузки подписи к акту {Id}", uploadId);
         }
     }
 

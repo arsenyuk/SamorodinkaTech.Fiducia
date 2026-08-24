@@ -472,6 +472,46 @@ fileGroup.MapGet("/{id}/info", async (Guid id, IApplicationDbContext db) =>
 
         var qrEntry = await db.FileNotarizations.FirstOrDefaultAsync(fn => fn.FileId == fileEntry.Id);
 
+        // Проверяем, является ли файл XML или подписью реестра участников
+        var registryUpload = await db.BoardRegistryUploads
+            .FirstOrDefaultAsync(u => u.XmlFileId == id || u.SignatureFileId == id);
+
+        object? signatureInfo = null;
+        if (registryUpload is not null)
+        {
+            if (registryUpload.XmlFileId == id && registryUpload.SignatureFileId.HasValue)
+            {
+                // Это XML файл — показываем информацию о связанной подписи
+                var sigFile = await db.Files.FirstOrDefaultAsync(f => f.Id == registryUpload.SignatureFileId.Value);
+                if (sigFile is not null)
+                {
+                    signatureInfo = new
+                    {
+                        Type = "XML_реестра",
+                        RelatedSignatureFileId = sigFile.Id,
+                        RelatedSignatureFileName = sigFile.OriginalName,
+                        RelatedSignatureSizeBytes = sigFile.SizeBytes,
+                        RelatedSignatureExtension = sigFile.Extension
+                    };
+                }
+            }
+            else if (registryUpload.SignatureFileId == id)
+            {
+                // Это файл подписи — показываем информацию о связанном XML
+                var xmlFile = await db.Files.FirstOrDefaultAsync(f => f.Id == registryUpload.XmlFileId);
+                if (xmlFile is not null)
+                {
+                    signatureInfo = new
+                    {
+                        Type = "Подпись",
+                        RelatedXmlFileId = xmlFile.Id,
+                        RelatedXmlFileName = xmlFile.OriginalName,
+                        RelatedXmlSizeBytes = xmlFile.SizeBytes
+                    };
+                }
+            }
+        }
+
         return Results.Ok(new
         {
             fileEntry.Id,
@@ -497,7 +537,8 @@ fileGroup.MapGet("/{id}/info", async (Guid id, IApplicationDbContext db) =>
                 NotarizationDate = qrEntry.NotarizationDate?.ToString("yyyy-MM-dd"),
                 DocumentType = qrEntry.DocumentType,
                 ApplicantName = qrEntry.ApplicantName
-            } : null
+            } : null,
+            SignatureInfo = signatureInfo
         });
     }
     catch (Exception ex)

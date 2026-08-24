@@ -476,10 +476,11 @@ public static class ParticipantEndpoints
             return Results.Ok(items.Select(MapRegistryUploadToDto));
         });
 
-        // POST: загрузка XML-файла реестра
+        // POST: загрузка XML-файла реестра + отсоединённая подпись (оба обязательны)
         registryUploads.MapPost("/upload-xml", async (
             HttpContext http,
             IFormFile file,
+            IFormFile signature,
             ISecurityAuditService audit,
             ILoggerFactory loggerFactory,
             IDbContextFactory<FiduciaDbContext> dbFactory,
@@ -492,21 +493,64 @@ public static class ParticipantEndpoints
                 var llcCheck = await ValidateAccessAsync(ctx, http, audit, logger);
                 if (llcCheck is not null) return llcCheck;
 
+                // Валидация XML
+                var xmlExt = System.IO.Path.GetExtension(file.FileName)?.ToLowerInvariant();
+                if (xmlExt != ".xml")
+                    return Results.BadRequest(new { error = "XML-файл должен иметь расширение .xml" });
+
+                // Валидация подписи
+                var sigExt = System.IO.Path.GetExtension(signature.FileName)?.ToLowerInvariant();
+                if (sigExt != ".sig" && sigExt != ".p7s")
+                    return Results.BadRequest(new { error = "Файл подписи должен иметь расширение .sig или .p7s" });
+
                 var workplace = await ctx.CurrentWorkplaces.FirstOrDefaultAsync();
                 var leId = workplace!.LastSelectedLegalEntityId!.Value;
 
-                // Сохраняем файл через IFileStorage
-                await using var stream = file.OpenReadStream();
-                var storageKey = await fileStorage.SaveAsync(stream, file.FileName, file.ContentType);
-
                 var userIdStr = http.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
                 Guid? userId = Guid.TryParse(userIdStr, out var uid) ? uid : null;
+
+                // Сохраняем XML
+                await using var xmlStream = file.OpenReadStream();
+                var xmlStorageKey = await fileStorage.SaveAsync(xmlStream, file.FileName, file.ContentType);
+
+                var xmlFileEntry = new FileEntry
+                {
+                    Id = Guid.NewGuid(),
+                    OriginalName = file.FileName,
+                    ContentType = file.ContentType,
+                    SizeBytes = file.Length,
+                    StorageProvider = "LOCAL",
+                    StorageKeyOrPath = xmlStorageKey,
+                    IsUploaded = true,
+                    Extension = xmlExt?.TrimStart('.')
+                };
+                ctx.Files.Add(xmlFileEntry);
+
+                // Сохраняем подпись
+                await using var sigStream = signature.OpenReadStream();
+                var sigStorageKey = await fileStorage.SaveAsync(sigStream, signature.FileName, signature.ContentType);
+
+                var sigFileEntry = new FileEntry
+                {
+                    Id = Guid.NewGuid(),
+                    OriginalName = signature.FileName,
+                    ContentType = signature.ContentType,
+                    SizeBytes = signature.Length,
+                    StorageProvider = "LOCAL",
+                    StorageKeyOrPath = sigStorageKey,
+                    IsUploaded = true,
+                    Extension = sigExt?.TrimStart('.')
+                };
+                ctx.Files.Add(sigFileEntry);
 
                 var entity = new BoardRegistryUpload
                 {
                     Id = Guid.NewGuid(),
                     LegalEntityId = leId,
+                    XmlFileId = xmlFileEntry.Id,
                     XmlOriginalName = file.FileName,
+                    SignatureFileId = sigFileEntry.Id,
+                    SignatureOriginalName = signature.FileName,
                     Status = "uploaded",
                     UploadedBy = userId,
                     UploadedAt = DateTime.UtcNow,
@@ -514,26 +558,11 @@ public static class ParticipantEndpoints
                     UpdatedAt = DateTime.UtcNow
                 };
 
-                // Создаём запись в files для ссылки
-                var fileEntry = new FileEntry
-                {
-                    Id = Guid.NewGuid(),
-                    OriginalName = file.FileName,
-                    ContentType = file.ContentType,
-                    SizeBytes = file.Length,
-                    StorageProvider = "LOCAL",
-                    StorageKeyOrPath = storageKey,
-                    IsUploaded = true,
-                    Extension = System.IO.Path.GetExtension(file.FileName)?.TrimStart('.')
-                };
-                ctx.Files.Add(fileEntry);
-                entity.XmlFileId = fileEntry.Id;
-
                 ctx.BoardRegistryUploads.Add(entity);
                 await ctx.SaveChangesAsync();
 
-                logger.LogInformation("[{Ip}] Загружен XML реестра: {FileName}, id={Id}",
-                    ClientIpHelper.GetClientIp(http), file.FileName, entity.Id);
+                logger.LogInformation("[{Ip}] Загружен XML реестра: {FileName} + подпись: {SigName}, id={Id}",
+                    ClientIpHelper.GetClientIp(http), file.FileName, signature.FileName, entity.Id);
 
                 return Results.Ok(MapRegistryUploadToDto(entity));
             }

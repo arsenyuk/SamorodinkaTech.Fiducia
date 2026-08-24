@@ -79,9 +79,14 @@
             <h6>Загрузка файлов</h6>
             <div class="mb-3">
                 <label class="form-label">Запрещённые расширения (через запятую)</label>
-                <textarea class="form-control" rows="3" @bind="_blockedExtensions"
+                <textarea class="form-control @(_blockedExtensionsError is not null ? "is-invalid" : "")" rows="3" @bind="_blockedExtensions"
+                          @oninput="() => _blockedExtensionsError = null"
                           placeholder="exe, dll, bat, cmd, ..."></textarea>
-                <small class="text-muted">Файлы с этими расширениями будут отклоняться при загрузке</small>
+                @if (_blockedExtensionsError is not null)
+                {
+                    <div class="invalid-feedback">@_blockedExtensionsError</div>
+                }
+                <small class="text-muted">Файлы с этими расширениями будут отклоняться при загрузке. Только латинские буквы без точки (пример: exe, dll, bat)</small>
             </div>
             <button class="btn btn-primary" @onclick="SaveSystemSettings">Сохранить настройки</button>
         </div>
@@ -334,6 +339,7 @@
     private string _gosaTitleTemplate = "Годовое за {YYYY} год";
     private string _oosuTitleTemplate = "Очередное за {YYYY} год";
     private string _blockedExtensions = "exe,dll,com,msi,bat,cmd,scr,pif";
+    private string? _blockedExtensionsError;
 
     // Авторизация
     private string _authMethod = "Basic";
@@ -424,6 +430,11 @@
     {
         try
         {
+            // Валидация запрещённых расширений
+            _blockedExtensionsError = ValidateBlockedExtensions(_blockedExtensions);
+            StateHasChanged();
+            if (_blockedExtensionsError is not null) return;
+
             await using var ctx = await DbFactory.CreateDbContextAsync();
 
             // Сохраняем gantt_end_padding_weeks
@@ -479,5 +490,34 @@
     private void SetAuthMethod(ChangeEventArgs e)
     {
         _authMethod = e.Value?.ToString() ?? "Basic";
+    }
+
+    private static string? ValidateBlockedExtensions(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return null; // Пустое значение допустимо (нет запрещённых расширений)
+
+        var extensions = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+        if (extensions.Length == 0)
+            return null;
+
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var ext in extensions)
+        {
+            // Проверяем что расширение содержит только латинские буквы и цифры
+            if (!System.Text.RegularExpressions.Regex.IsMatch(ext, @"^[a-zA-Z0-9]+$"))
+                return $"Недопустимое расширение «{ext}». Допустимы только латинские буквы и цифры без точки.";
+
+            // Проверяем дубликаты
+            if (!seen.Add(ext))
+                return $"Дубликат расширения «{ext}».";
+
+            // Проверяем длину
+            if (ext.Length > 20)
+                return $"Расширение «{ext}» слишком длинное (максимум 20 символов).";
+        }
+
+        return null;
     }
 }
