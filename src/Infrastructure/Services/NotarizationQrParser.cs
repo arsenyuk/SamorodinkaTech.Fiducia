@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text;
 using System.Web;
 using Microsoft.Extensions.Logging;
 using SamorodinkaTech.Fiducia.Domain.Interfaces;
@@ -19,8 +20,14 @@ public sealed class NotarizationQrParser : INotarizationQrParser
     {
         "reestr.notariat.ru",
         "notariat.ru",
-        "notarialact.ru"
+        "notarialact.ru",
+        "checkmark.eisnot.ru"
     };
+
+    static NotarizationQrParser()
+    {
+        Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+    }
 
     public NotarizationQrParser(ILogger<NotarizationQrParser> logger)
     {
@@ -68,6 +75,11 @@ public sealed class NotarizationQrParser : INotarizationQrParser
     {
         var query = HttpUtility.ParseQueryString(uri.Query);
 
+        // checkmark.eisnot.ru: параметр "d" содержит base64-encoded данные
+        var dParam = query["d"];
+        if (!string.IsNullOrWhiteSpace(dParam))
+            return ParseBase64Data(dParam, rawUrl);
+
         var registryNumber = GetFirstValue(query, "id", "reg", "registry_number", "regnum", "номер");
         var dateStr = GetFirstValue(query, "date", "dt", "notarization_date", "дата");
         var notary = GetFirstValue(query, "notary", "notary_name", "notary_fio", "нотариус");
@@ -89,6 +101,77 @@ public sealed class NotarizationQrParser : INotarizationQrParser
             DocumentType: docType,
             ApplicantName: applicant,
             RawUrl: rawUrl);
+    }
+
+    /// <summary>
+    /// Парсит base64-encoded данные из параметра "d" (checkmark.eisnot.ru).
+    /// Формат: строка1\nстрока2\n... где строки разделены переносами.
+    /// </summary>
+    private NotarizationQrData ParseBase64Data(string dParam, string rawUrl)
+    {
+        try
+        {
+            // Убираем URL-safe символы и декодируем
+            var base64 = dParam.Replace('-', '+').Replace('_', '/');
+            switch (base64.Length % 4)
+            {
+                case 2: base64 += "=="; break;
+                case 3: base64 += "="; break;
+            }
+
+            var bytes = Convert.FromBase64String(base64);
+            var text = Encoding.GetEncoding(1251).GetString(bytes);
+            var lines = text.Split('\n', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+
+            if (lines.Length == 0)
+                return new NotarizationQrData(null, null, null, null, null, null, rawUrl);
+
+            // Строка 0: реестровый номер
+            var registryNumber = lines.Length > 0 ? lines[0] : null;
+
+            // Строка 1: дата;номер_нотариального_акта
+            DateOnly? notarizationDate = null;
+            if (lines.Length > 1)
+            {
+                var parts = lines[1].Split(';', StringSplitOptions.TrimEntries);
+                if (parts.Length > 0)
+                    notarizationDate = ParseDate(parts[0]);
+            }
+
+            // Строка 2: вид документа
+            var docType = lines.Length > 2 ? lines[2] : null;
+
+            // Строка 3: ФИО нотариуса;нотариальный округ
+            string? notary = null;
+            string? district = null;
+            if (lines.Length > 3)
+            {
+                var parts = lines[3].Split(';', StringSplitOptions.TrimEntries);
+                if (parts.Length > 0) notary = parts[0];
+                if (parts.Length > 1) district = parts[1];
+            }
+
+            // Строка 4: заявитель
+            var applicant = lines.Length > 4 ? lines[4] : null;
+
+            _logger.LogInformation(
+                "QR base64 распарсен: рег.номер={RegistryNumber}, дата={Date}, нотариус={Notary}",
+                registryNumber, notarizationDate?.ToString("O"), notary);
+
+            return new NotarizationQrData(
+                RegistryNumber: registryNumber,
+                NotarizationDate: notarizationDate,
+                NotaryFullName: notary,
+                NotaryDistrict: district,
+                DocumentType: docType,
+                ApplicantName: applicant,
+                RawUrl: rawUrl);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Ошибка декодирования base64 параметра d");
+            return new NotarizationQrData(null, null, null, null, null, null, rawUrl);
+        }
     }
 
     private NotarizationQrData ParseKeyValue(string data)
