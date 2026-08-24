@@ -27,6 +27,14 @@ public class FileEntryConfiguration : IEntityTypeConfiguration<FileEntry>
         b.Property(x => x.UploadId).HasColumnName("upload_id").HasMaxLength(64);
         b.Property(x => x.ExpiresAt).HasColumnName("expires_at");
 
+        // QR-код нотариального документа
+        b.Property(x => x.QrRawUrl).HasColumnName("qr_raw_url").HasMaxLength(2048);
+        b.Property(x => x.QrRegistryNumber).HasColumnName("qr_registry_number").HasMaxLength(100);
+        b.Property(x => x.QrNotaryFullName).HasColumnName("qr_notary_full_name").HasMaxLength(300);
+        b.Property(x => x.QrNotarizationDate).HasColumnName("qr_notarization_date");
+        b.Property(x => x.QrDocumentType).HasColumnName("qr_document_type").HasMaxLength(200);
+        b.Property(x => x.QrApplicantName).HasColumnName("qr_applicant_name").HasMaxLength(300);
+
         b.HasIndex(x => new { x.StorageProvider, x.StorageKeyOrPath })
             .IsUnique()
             .HasDatabaseName("ux_files_provider_key");

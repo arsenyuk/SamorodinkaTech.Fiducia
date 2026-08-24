@@ -444,6 +444,68 @@ fileGroup.MapGet("/{id}/download", async (Guid id, IApplicationDbContext db, IFi
     catch (FileNotFoundException) { return Results.NotFound(); }
 });
 
+fileGroup.MapGet("/{id}/info", async (Guid id, IApplicationDbContext db) =>
+{
+    try
+    {
+        var fileEntry = await db.Files.FirstOrDefaultAsync(f => f.Id == id);
+        if (fileEntry is null)
+            return Results.NotFound(new { error = $"Файл {id} не найден." });
+
+        string? uploaderFullName = null;
+        string? uploaderEmail = null;
+        string? uploaderLogin = null;
+
+        if (fileEntry.CreatedBy.HasValue)
+        {
+            var uploader = await db.Users.FirstOrDefaultAsync(u => u.Id == fileEntry.CreatedBy.Value);
+            if (uploader is not null)
+            {
+                var parts = new[] { uploader.LastName, uploader.FirstName, uploader.MiddleName }
+                    .Where(p => !string.IsNullOrWhiteSpace(p));
+                uploaderFullName = string.Join(" ", parts);
+                uploaderEmail = uploader.Email;
+                uploaderLogin = uploader.Login;
+            }
+        }
+
+        var hasQrData = !string.IsNullOrWhiteSpace(fileEntry.QrRawUrl)
+            || !string.IsNullOrWhiteSpace(fileEntry.QrRegistryNumber);
+
+        return Results.Ok(new
+        {
+            fileEntry.Id,
+            fileEntry.OriginalName,
+            fileEntry.ContentType,
+            fileEntry.SizeBytes,
+            fileEntry.Extension,
+            fileEntry.FileType,
+            fileEntry.DisplayName,
+            fileEntry.CreatedAt,
+            Uploader = new
+            {
+                FullName = uploaderFullName,
+                Email = uploaderEmail,
+                Login = uploaderLogin,
+                IsDefined = fileEntry.CreatedBy.HasValue
+            },
+            QrData = hasQrData ? new
+            {
+                RawUrl = fileEntry.QrRawUrl,
+                RegistryNumber = fileEntry.QrRegistryNumber,
+                NotaryFullName = fileEntry.QrNotaryFullName,
+                NotarizationDate = fileEntry.QrNotarizationDate?.ToString("yyyy-MM-dd"),
+                DocumentType = fileEntry.QrDocumentType,
+                ApplicantName = fileEntry.QrApplicantName
+            } : null
+        });
+    }
+    catch (Exception ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
+});
+
 fileGroup.MapDelete("/{id}", async (Guid id, IApplicationDbContext db, IFileStorage fileStorage) =>
 {
     var fileEntry = db.Files.FirstOrDefault(f => f.Id == id);

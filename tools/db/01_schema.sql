@@ -431,7 +431,14 @@ CREATE TABLE IF NOT EXISTS files (
     -- Chunked upload (BDR-011)
     is_uploaded boolean NOT NULL DEFAULT true,
     upload_id varchar(64),
-    expires_at timestamp with time zone
+    expires_at timestamp with time zone,
+    -- QR-код нотариального документа (распознан при сканировании)
+    qr_raw_url varchar(2048),
+    qr_registry_number varchar(100),
+    qr_notary_full_name varchar(300),
+    qr_notarization_date date,
+    qr_document_type varchar(200),
+    qr_applicant_name varchar(300)
 );
 
 -- Уникальность: один и тот же ключ хранения в пределах провайдера

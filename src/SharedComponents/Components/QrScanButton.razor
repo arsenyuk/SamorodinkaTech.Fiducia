@@ -64,6 +64,9 @@
     /// <summary>JWT-токен для Authorization-заголовка.</summary>
     [Parameter] public string? Token { get; set; }
 
+    /// <summary>ID файла в системе, к которому привязать QR-данные (опционально).</summary>
+    [Parameter] public Guid? RelatedFileId { get; set; }
+
     [Inject] private HttpClient Http { get; set; } = default!;
     [Inject] private ILogger<QrScanButton> Logger { get; set; } = default!;
 
@@ -115,6 +118,11 @@
                 if (_result is not null)
                 {
                     await OnQrScanned.InvokeAsync(_result);
+
+                    if (RelatedFileId.HasValue)
+                    {
+                        await SaveQrDataToFileAsync(RelatedFileId.Value, _result);
+                    }
                 }
             }
             else
@@ -159,6 +167,33 @@
         }
         catch { }
         return null;
+    }
+
+    private async Task SaveQrDataToFileAsync(Guid fileId, QrReadResult qrResult)
+    {
+        try
+        {
+            var baseUrl = ApiBaseUrl ?? "";
+            var saveRequest = new
+            {
+                FileId = fileId,
+                qrResult.RegistryNumber,
+                qrResult.NotarizationDate,
+                qrResult.NotaryFullName,
+                qrResult.DocumentType,
+                qrResult.ApplicantName,
+                qrResult.RawUrl
+            };
+            var response = await Http.PostAsJsonAsync($"{baseUrl}/api/notarization/save-qr-data", saveRequest);
+            if (!response.IsSuccessStatusCode)
+            {
+                Logger.LogWarning("Не удалось сохранить QR-данные для файла {FileId}: {StatusCode}", fileId, (int)response.StatusCode);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Ошибка сохранения QR-данных для файла {FileId}", fileId);
+        }
     }
 
     /// <summary>DTO ответа API чтения QR-кода.</summary>

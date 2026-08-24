@@ -1,0 +1,218 @@
+@page "/files/{Id:guid}/view"
+@using System.Net.Http.Json
+@inject HttpClient Http
+@inject NavigationManager Nav
+@inject ILogger<FileView> Logger
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+
+<PageTitle>Fiducia — Просмотр файла</PageTitle>
+
+@if (_loading)
+{
+    <div class="text-center py-4">
+        <div class="spinner-border text-primary" role="status"></div>
+    </div>
+}
+else if (_error is not null)
+{
+    <div class="alert alert-danger">@_error</div>
+}
+else if (_fileInfo is not null)
+{
+    <h3 class="mb-4">Просмотр файла</h3>
+
+    @* ── Метаданные файла ────────────────────────────────────────── *@
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title">Метаданные файла</h5>
+            <table class="table table-sm table-borderless mb-0">
+                <tbody>
+                    <tr>
+                        <td class="text-muted" style="width:200px">Имя файла</td>
+                        <td>@_fileInfo.OriginalName</td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">Расширение</td>
+                        <td>@(_fileInfo.Extension ?? "—")</td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">Тип MIME</td>
+                        <td>@(_fileInfo.ContentType ?? "—")</td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">Размер</td>
+                        <td>@FormatSize(_fileInfo.SizeBytes)</td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">Дата загрузки</td>
+                        <td>@_fileInfo.CreatedAt.ToString("dd.MM.yyyy HH:mm:ss")</td>
+                    </tr>
+                    @if (!string.IsNullOrEmpty(_fileInfo.FileType))
+                    {
+                        <tr>
+                            <td class="text-muted">Тип файла</td>
+                            <td><span class="badge bg-secondary">@_fileInfo.FileType</span></td>
+                        </tr>
+                    }
+                    @if (!string.IsNullOrEmpty(_fileInfo.DisplayName))
+                    {
+                        <tr>
+                            <td class="text-muted">Отображаемое имя</td>
+                            <td>@_fileInfo.DisplayName</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    @* ── Информация о загрузчике ──────────────────────────────────── *@
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title">Загрузил</h5>
+            @if (_fileInfo.Uploader.IsDefined)
+            {
+                <table class="table table-sm table-borderless mb-0">
+                    <tbody>
+                        <tr>
+                            <td class="text-muted" style="width:200px">ФИО</td>
+                            <td>@(_fileInfo.Uploader.FullName ?? "—")</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Email</td>
+                            <td>@(_fileInfo.Uploader.Email ?? "—")</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">Логин</td>
+                            <td>@(_fileInfo.Uploader.Login ?? "—")</td>
+                        </tr>
+                    </tbody>
+                </table>
+            }
+            else
+            {
+                <div class="text-muted">Учётная запись не определена</div>
+            }
+        </div>
+    </div>
+
+    @* ── QR-код нотариального документа ──────────────────────────── *@
+    @if (_fileInfo.QrData is not null)
+    {
+        <div class="card mb-4 border-success">
+            <div class="card-body">
+                <h5 class="card-title text-success">QR-код нотариального документа</h5>
+                <table class="table table-sm table-borderless mb-0">
+                    <tbody>
+                        @if (!string.IsNullOrEmpty(_fileInfo.QrData.NotaryFullName))
+                        {
+                            <tr>
+                                <td class="text-muted" style="width:200px">Нотариус</td>
+                                <td>@_fileInfo.QrData.NotaryFullName</td>
+                            </tr>
+                        }
+                        @if (!string.IsNullOrEmpty(_fileInfo.QrData.RegistryNumber))
+                        {
+                            <tr>
+                                <td class="text-muted">Реестровый номер</td>
+                                <td>@_fileInfo.QrData.RegistryNumber</td>
+                            </tr>
+                        }
+                        @if (!string.IsNullOrEmpty(_fileInfo.QrData.NotarizationDate))
+                        {
+                            <tr>
+                                <td class="text-muted">Дата заверения</td>
+                                <td>@_fileInfo.QrData.NotarizationDate</td>
+                            </tr>
+                        }
+                        @if (!string.IsNullOrEmpty(_fileInfo.QrData.DocumentType))
+                        {
+                            <tr>
+                                <td class="text-muted">Вид документа</td>
+                                <td>@_fileInfo.QrData.DocumentType</td>
+                            </tr>
+                        }
+                        @if (!string.IsNullOrEmpty(_fileInfo.QrData.ApplicantName))
+                        {
+                            <tr>
+                                <td class="text-muted">Заявитель</td>
+                                <td>@_fileInfo.QrData.ApplicantName</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+                @if (!string.IsNullOrEmpty(_fileInfo.QrData.RawUrl))
+                {
+                    <div class="mt-3">
+                        <a href="@_fileInfo.QrData.RawUrl" target="_blank" rel="noopener noreferrer" class="btn btn-outline-success btn-sm">
+                            <span class="oi oi-external-link me-1"></span> Открыть в реестре нотариальных актов
+                        </a>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+}
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+
+    private FileInfoDto? _fileInfo;
+    private bool _loading = true;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _fileInfo = await Http.GetFromJsonAsync<FileInfoDto>($"/api/files/{Id}/info");
+            if (_fileInfo is null)
+                _error = "Файл не найден.";
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Ошибка загрузки информации о файле {FileId}", Id);
+            _error = "Не удалось загрузить информацию о файле.";
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private static string FormatSize(long bytes)
+    {
+        if (bytes < 1024) return $"{bytes} Б";
+        if (bytes < 1024 * 1024) return $"{bytes / 1024.0:F1} КБ";
+        if (bytes < 1024 * 1024 * 1024) return $"{bytes / (1024.0 * 1024.0):F1} МБ";
+        return $"{bytes / (1024.0 * 1024.0 * 1024.0):F1} ГБ";
+    }
+
+    // ── DTO ──────────────────────────────────────────────────────
+
+    private record FileInfoDto(
+        Guid Id,
+        string OriginalName,
+        string? ContentType,
+        long SizeBytes,
+        string? Extension,
+        string? FileType,
+        string? DisplayName,
+        DateTime CreatedAt,
+        UploaderDto Uploader,
+        QrDataDto? QrData);
+
+    private record UploaderDto(
+        string? FullName,
+        string? Email,
+        string? Login,
+        bool IsDefined);
+
+    private record QrDataDto(
+        string? RawUrl,
+        string? RegistryNumber,
+        string? NotaryFullName,
+        string? NotarizationDate,
+        string? DocumentType,
+        string? ApplicantName);
+}
