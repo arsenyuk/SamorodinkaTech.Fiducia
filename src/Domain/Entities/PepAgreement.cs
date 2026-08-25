@@ -2,15 +2,15 @@ namespace SamorodinkaTech.Fiducia.Domain.Entities;
 
 /// <summary>
 /// Соглашение о ПЭП (pep_agreements).
-/// Привязано к физическому лицу (persons).
+/// Привязано к участнику экосистемы.
 /// </summary>
 public class PepAgreement
 {
     /// <summary>Идентификатор (id).</summary>
     public Guid Id { get; set; }
 
-    /// <summary>Ссылка на физическое лицо (person_id).</summary>
-    public Guid PersonId { get; set; }
+    /// <summary>Ссылка на участника экосистемы (ecosystem_participant_id).</summary>
+    public Guid EcosystemParticipantId { get; set; }
 
     /// <summary>Факт подписания соглашения (agreement_signed).</summary>
     public bool AgreementSigned { get; set; }
@@ -21,5 +21,5 @@ public class PepAgreement
     /// <summary>Дата создания записи (created_at).</summary>
     public DateTime CreatedAt { get; set; }
 
-    public Person? Person { get; set; }
+    public EcosystemParticipant? EcosystemParticipant { get; set; }
 }

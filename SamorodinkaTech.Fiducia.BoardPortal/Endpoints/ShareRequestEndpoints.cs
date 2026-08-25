@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using SamorodinkaTech.Fiducia.Domain.Entities;
+using SamorodinkaTech.Fiducia.Domain.Helpers;
 using SamorodinkaTech.Fiducia.Domain.Interfaces;
 using SamorodinkaTech.Fiducia.Domain.Validation;
 using SamorodinkaTech.Fiducia.Infrastructure;
@@ -273,17 +274,18 @@ public static class ShareRequestEndpoints
 
                 // Находим участника: user → person → person.id = participant.person_id
                 var user = await ctx.Users.FindAsync(createdBy);
-                if (user?.PersonId is null)
+                var person = user is not null ? await PersonHelper.FindPersonByUserIdAsync(ctx, user.Id) : null;
+                if (person is null)
                 {
                     logger.LogWarning("Пользователь {UserId} не привязан к физическому лицу", createdBy);
                     return Results.BadRequest(new { error = "Пользователь не привязан к физическому лицу" });
                 }
 
                 var participant = await ctx.BoardParticipants
-                    .FirstOrDefaultAsync(p => p.LegalEntityId == leId!.Value && p.PersonId == user.PersonId && p.IsActive);
+                    .FirstOrDefaultAsync(p => p.LegalEntityId == leId!.Value && p.PersonId == person.Id && p.IsActive);
                 if (participant is null)
                 {
-                    logger.LogWarning("Не найден участник для пользователя {UserId} (PersonId={PersonId}) в ЮЛ {LegalEntityId}", createdBy, user.PersonId, leId!.Value);
+                    logger.LogWarning("Не найден участник для пользователя {UserId} (PersonId={PersonId}) в ЮЛ {LegalEntityId}", createdBy, person.Id, leId!.Value);
                     return Results.BadRequest(new { error = "Не найден участник для текущего пользователя" });
                 }
 
@@ -625,17 +627,18 @@ public static class ShareRequestEndpoints
                 var createdBy = Guid.TryParse(userIdStr, out var uid) ? uid : Guid.Empty;
 
                 var user = await ctx.Users.FindAsync(createdBy);
-                if (user?.PersonId is null)
+                var person = user is not null ? await PersonHelper.FindPersonByUserIdAsync(ctx, user.Id) : null;
+                if (person is null)
                 {
                     logger.LogWarning("Пользователь {UserId} не привязан к физическому лицу", createdBy);
                     return Results.BadRequest(new { error = "Пользователь не привязан к физическому лицу" });
                 }
 
                 var participant = await ctx.BoardParticipants
-                    .FirstOrDefaultAsync(p => p.LegalEntityId == leId && p.PersonId == user.PersonId && p.IsActive);
+                    .FirstOrDefaultAsync(p => p.LegalEntityId == leId && p.PersonId == person.Id && p.IsActive);
                 if (participant is null)
                 {
-                    logger.LogWarning("Не найден участник для пользователя {UserId} (PersonId={PersonId}) в ЮЛ {LegalEntityId}", createdBy, user.PersonId, leId);
+                    logger.LogWarning("Не найден участник для пользователя {UserId} (PersonId={PersonId}) в ЮЛ {LegalEntityId}", createdBy, person.Id, leId);
                     return Results.BadRequest(new { error = "Не найден участник для текущего пользователя" });
                 }
 
@@ -775,17 +778,18 @@ public static class ShareRequestEndpoints
                 var userId = Guid.TryParse(userIdStr, out var uid) ? uid : Guid.Empty;
 
                 var user = await ctx.Users.FindAsync(userId);
-                if (user?.PersonId is null)
+                var person = user is not null ? await PersonHelper.FindPersonByUserIdAsync(ctx, user.Id) : null;
+                if (person is null)
                 {
                     logger.LogWarning("Поддержка требования {RequestId}: пользователь {UserId} не привязан к физическому лицу", id, userId);
                     return Results.BadRequest(new { error = "Пользователь не привязан к физическому лицу" });
                 }
 
                 var participant = await ctx.BoardParticipants
-                    .FirstOrDefaultAsync(p => p.LegalEntityId == leId && p.PersonId == user.PersonId && p.IsActive);
+                    .FirstOrDefaultAsync(p => p.LegalEntityId == leId && p.PersonId == person.Id && p.IsActive);
                 if (participant is null)
                 {
-                    logger.LogWarning("Поддержка требования {RequestId}: не найден участник для пользователя {UserId} (PersonId={PersonId})", id, userId, user.PersonId);
+                    logger.LogWarning("Поддержка требования {RequestId}: не найден участник для пользователя {UserId} (PersonId={PersonId})", id, userId, person.Id);
                     return Results.BadRequest(new { error = "Не найден участник для текущего пользователя" });
                 }
 
@@ -898,17 +902,18 @@ public static class ShareRequestEndpoints
                 var userId = Guid.TryParse(userIdStr, out var uid) ? uid : Guid.Empty;
 
                 var user = await ctx.Users.FindAsync(userId);
-                if (user?.PersonId is null)
+                var person = user is not null ? await PersonHelper.FindPersonByUserIdAsync(ctx, user.Id) : null;
+                if (person is null)
                 {
                     logger.LogWarning("Отзыв поддержки требования {RequestId}: пользователь {UserId} не привязан к физическому лицу", id, userId);
                     return Results.BadRequest(new { error = "Пользователь не привязан к физическому лицу" });
                 }
 
                 var participant = await ctx.BoardParticipants
-                    .FirstOrDefaultAsync(p => p.LegalEntityId == leId && p.PersonId == user.PersonId && p.IsActive);
+                    .FirstOrDefaultAsync(p => p.LegalEntityId == leId && p.PersonId == person.Id && p.IsActive);
                 if (participant is null)
                 {
-                    logger.LogWarning("Отзыв поддержки требования {RequestId}: не найден участник для пользователя {UserId} (PersonId={PersonId})", id, userId, user.PersonId);
+                    logger.LogWarning("Отзыв поддержки требования {RequestId}: не найден участник для пользователя {UserId} (PersonId={PersonId})", id, userId, person.Id);
                     return Results.BadRequest(new { error = "Не найден участник для текущего пользователя" });
                 }
 
@@ -1252,8 +1257,9 @@ public static class ShareRequestEndpoints
                 var userIdStr = http.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
                 var userId = Guid.TryParse(userIdStr, out var uid) ? uid : Guid.Empty;
                 var currentUser = await ctx.Users.FindAsync(userId);
-                var currentParticipant = currentUser?.PersonId is not null
-                    ? await ctx.BoardParticipants.FirstOrDefaultAsync(p => p.LegalEntityId == leId && p.PersonId == currentUser.PersonId && p.IsActive)
+                var currentPerson = currentUser is not null ? await PersonHelper.FindPersonByUserIdAsync(ctx, currentUser.Id) : null;
+                var currentParticipant = currentPerson is not null
+                    ? await ctx.BoardParticipants.FirstOrDefaultAsync(p => p.LegalEntityId == leId && p.PersonId == currentPerson.Id && p.IsActive)
                     : null;
 
                 var supports = await ctx.ShareRequestSupports
@@ -1470,9 +1476,9 @@ public static class ShareRequestEndpoints
             .Select(p => p.PersonId!.Value)
             .ToListAsync();
 
-        var userIds = await ctx.Users
-            .Where(u => personIds.Contains(u.PersonId!.Value))
-            .Select(u => u.Id)
+        var userIds = await ctx.Persons
+            .Where(p => personIds.Contains(p.Id) && p.UserId != null)
+            .Select(p => p.UserId!.Value)
             .ToListAsync();
 
         var decisionText = request.CollectiveStatus == "ACCEPTED" ? "принято" : "отклонено";

@@ -339,26 +339,29 @@
                 new[] { _user.LastName, _user.FirstName, _user.MiddleName }
                 .Where(s => !string.IsNullOrWhiteSpace(s)));
 
-            if (_user.PersonId.HasValue)
-            {
-                _person = await DbContext.Persons
-                    .AsNoTracking()
-                    .FirstOrDefaultAsync(p => p.Id == _user.PersonId.Value);
+            // Находим Person по UserId
+            _person = await DbContext.Persons
+                .AsNoTracking()
+                .FirstOrDefaultAsync(p => p.UserId == _user.Id);
 
+            if (_person is not null)
+            {
                 _pepAgreement = await DbContext.PepAgreements
                     .AsNoTracking()
-                    .FirstOrDefaultAsync(a => a.PersonId == _user.PersonId.Value);
+                    .FirstOrDefaultAsync(a => a.PersonId == _person.Id);
 
                 _independenceDeclaration = await DbContext.IndependenceDeclarations
                     .AsNoTracking()
-                    .FirstOrDefaultAsync(d => d.PersonId == _user.PersonId.Value);
-
-                _employees = await DbContext.Employees
-                    .AsNoTracking()
-                    .Include(e => e.LegalEntity)
-                    .Where(e => e.PersonId == _user.PersonId.Value)
-                    .ToListAsync();
+                    .FirstOrDefaultAsync(d => d.PersonId == _person.Id);
             }
+
+            // Находим сотрудников по логину участника экосистемы
+            _employees = await DbContext.Employees
+                .AsNoTracking()
+                .Include(e => e.LegalEntity)
+                .Include(e => e.EcosystemParticipant)
+                .Where(e => e.EcosystemParticipant != null && e.EcosystemParticipant.Login == _user.Login)
+                .ToListAsync();
 
             _userRoles = await DbContext.UserRoles
                 .AsNoTracking()

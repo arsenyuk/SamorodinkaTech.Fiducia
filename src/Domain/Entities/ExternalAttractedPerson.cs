@@ -2,15 +2,15 @@ namespace SamorodinkaTech.Fiducia.Domain.Entities;
 
 /// <summary>
 /// Внешнее привлеченное лицо (external_attracted_persons).
-/// Параллельна таблице employee — связывает ФЛ с ЮЛ для внешних директоров/консультантов.
+/// Связывает участника экосистемы с ЮЛ для внешних директоров/консультантов.
 /// </summary>
 public class ExternalAttractedPerson
 {
     /// <summary>Идентификатор (id).</summary>
     public Guid Id { get; set; }
 
-    /// <summary>Ссылка на физическое лицо (person_id).</summary>
-    public Guid PersonId { get; set; }
+    /// <summary>Ссылка на участника экосистемы (ecosystem_participant_id).</summary>
+    public Guid EcosystemParticipantId { get; set; }
 
     /// <summary>Ссылка на юридическое лицо (legal_entity_id).</summary>
     public Guid LegalEntityId { get; set; }
@@ -33,6 +33,6 @@ public class ExternalAttractedPerson
     /// <summary>Кто создал запись (created_by).</summary>
     public Guid CreatedBy { get; set; }
 
-    public Person? Person { get; set; }
+    public EcosystemParticipant? EcosystemParticipant { get; set; }
     public LegalEntity? LegalEntity { get; set; }
 }

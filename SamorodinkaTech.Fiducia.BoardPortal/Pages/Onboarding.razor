@@ -243,12 +243,16 @@
             }
 
             // Если уже завершил онбординг (анкета заполнена + ПЭП подписан)
-            if (_user?.PersonId.HasValue == true)
+            var person = _user is not null
+                ? await DbContext.Persons.FirstOrDefaultAsync(p => p.UserId == _user.Id)
+                : null;
+
+            if (person is not null)
             {
                 var hasDeclaration = await DbContext.IndependenceDeclarations
-                    .AnyAsync(d => d.PersonId == _user.PersonId.Value && d.Completed);
+                    .AnyAsync(d => d.PersonId == person.Id && d.Completed);
                 var hasPep = await DbContext.PepAgreements
-                    .AnyAsync(a => a.PersonId == _user.PersonId.Value && a.AgreementSigned);
+                    .AnyAsync(a => a.PersonId == person.Id && a.AgreementSigned);
                 if (hasDeclaration && hasPep)
                 {
                     _isCompleted = true;
@@ -269,12 +273,15 @@
 
     private async Task SaveDeclaration()
     {
-        if (_user == null || !_user.PersonId.HasValue) return;
+        if (_user == null) return;
+
+        var person = await DbContext.Persons.FirstOrDefaultAsync(p => p.UserId == _user.Id);
+        if (person is null) return;
 
         var declaration = new IndependenceDeclaration
         {
             Id = Guid.NewGuid(),
-            PersonId = _user.PersonId.Value,
+            PersonId = person.Id,
             HiddenShares = _hiddenShares,
             FamilyConnections = _familyConnections,
             OtherBoards = _otherBoards,
@@ -305,13 +312,14 @@
         {
             if (_user != null)
             {
-                // Создаём запись ПЭП, привязанную к ФЛ
-                if (_user.PersonId.HasValue)
+                var person = await DbContext.Persons.FirstOrDefaultAsync(p => p.UserId == _user.Id);
+                if (person is not null)
                 {
+                    // Создаём запись ПЭП, привязанную к ФЛ
                     var pepAgreement = new PepAgreement
                     {
                         Id = Guid.NewGuid(),
-                        PersonId = _user.PersonId.Value,
+                        PersonId = person.Id,
                         AgreementSigned = true,
                         SignedAt = DateTime.UtcNow,
                         CreatedAt = DateTime.UtcNow
@@ -319,9 +327,10 @@
                     DbContext.PepAgreements.Add(pepAgreement);
 
                     // Создаём запись согласия на обработку ПДн, привязанную к ФЛ и ЮЛ
-                    // ЮЛ определяется через внешнее привлеченное лицо (Person → ExternalAttractedPerson → LegalEntity)
+                    // ЮЛ определяется через внешнее привлеченное лицо (EcosystemParticipant → ExternalAttractedPerson → LegalEntity)
                     var externalPerson = await DbContext.ExternalAttractedPersons
-                        .FirstOrDefaultAsync(e => e.PersonId == _user.PersonId!.Value && e.IsActive);
+                        .Include(e => e.EcosystemParticipant)
+                        .FirstOrDefaultAsync(e => e.EcosystemParticipant != null && e.EcosystemParticipant.Login == _user.Login && e.IsActive);
                     if (externalPerson == null)
                     {
                         _otpError = "Не найдена запись внешнего привлеченного лица. Обратитесь к администратору.";
@@ -331,7 +340,7 @@
                     var consent = new PdnConsent
                     {
                         Id = Guid.NewGuid(),
-                        PersonId = _user.PersonId.Value,
+                        PersonId = person.Id,
                         LegalEntityId = externalPerson.LegalEntityId,
                         ConsentGiven = _pdnConsentGiven,
                         ConsentAt = DateTime.UtcNow,
@@ -339,10 +348,10 @@
                         CreatedAt = DateTime.UtcNow
                     };
                     DbContext.PdnConsents.Add(consent);
-                }
 
-                await DbContext.SaveChangesAsync();
-                _isCompleted = true;
+                    await DbContext.SaveChangesAsync();
+                    _isCompleted = true;
+                }
             }
         }
         else

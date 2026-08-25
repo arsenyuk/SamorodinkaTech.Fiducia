@@ -42,10 +42,14 @@ public class BasicProvider : IAuthProvider
 
         // Проверяем наличие подписанного ПЭП для внешнего директора
         var hasPep = false;
-        if (user.IsExternal && user.PersonId.HasValue)
+        if (user.IsExternal)
         {
-            hasPep = await _dbContext.PepAgreements
-                .AnyAsync(a => a.PersonId == user.PersonId.Value && a.AgreementSigned);
+            var person = await _dbContext.Persons.FirstOrDefaultAsync(p => p.UserId == user.Id);
+            if (person is not null)
+            {
+                hasPep = await _dbContext.PepAgreements
+                    .AnyAsync(a => a.PersonId == person.Id && a.AgreementSigned);
+            }
         }
 
         return new AuthResult

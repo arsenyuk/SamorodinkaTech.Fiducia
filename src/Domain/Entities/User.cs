@@ -2,17 +2,14 @@ namespace SamorodinkaTech.Fiducia.Domain.Entities;
 
 /// <summary>
 /// Пользователь системы (users).
-/// Учётная запись привязана к физическому лицу (persons).
+/// Учётная запись. Физическое лицо ссылается на пользователя через user_id.
 /// </summary>
 public class User
 {
     /// <summary>Идентификатор (id).</summary>
     public Guid Id { get; set; }
 
-    /// <summary>Ссылка на физическое лицо (person_id).</summary>
-    public Guid? PersonId { get; set; }
-
-    /// <summary>Логин (login).</summary>
+    /// <summary>Логин (login). Уникальный идентификатор пользователя.</summary>
     public string Login { get; set; } = string.Empty;
 
     /// <summary>Фамилия (last_name).</summary>
@@ -56,9 +53,6 @@ public class User
 
     /// <summary>Срок действия приглашения (invitation_expires_at).</summary>
     public DateTime? InvitationExpiresAt { get; set; }
-
-    /// <summary>Ссылка на физическое лицо (навигация).</summary>
-    public Person? Person { get; set; }
 
     /// <summary>Роли пользователя.</summary>
     public ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();

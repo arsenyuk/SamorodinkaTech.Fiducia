@@ -10,7 +10,6 @@
 -- Таблица: users
 CREATE TABLE IF NOT EXISTS users (
     id uuid PRIMARY KEY,
-    person_id uuid,
     login varchar(100) UNIQUE NOT NULL,
     last_name varchar(150) NOT NULL,
     first_name varchar(150) NOT NULL,
@@ -33,51 +32,25 @@ CREATE TABLE IF NOT EXISTS users (
 CREATE INDEX IF NOT EXISTS ix_users_is_external ON users(is_external);
 CREATE INDEX IF NOT EXISTS ix_users_is_active ON users(is_active);
 CREATE INDEX IF NOT EXISTS ix_users_is_system ON users(is_system);
-CREATE INDEX IF NOT EXISTS ix_users_person_id ON users(person_id);
-
--- FK users → persons (добавляется после создания persons)
--- см. конец файла
 
 -- ============================================================================
 -- Физические лица (создаются после users — ссылаются на users через created_by)
 -- ============================================================================
 
--- Таблица: persons (физические лица)
-CREATE TABLE IF NOT EXISTS persons (
-    id uuid PRIMARY KEY,
-    last_name varchar(150) NOT NULL,
-    first_name varchar(150) NOT NULL,
-    middle_name varchar(150),
-    email varchar(255) UNIQUE NOT NULL,
-    phone varchar(20),
-    inn varchar(12),
-    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by uuid NOT NULL REFERENCES users(id)
-);
-
-CREATE INDEX IF NOT EXISTS ix_persons_inn ON persons(inn);
-
 -- ============================================================================
--- Добавление FK users → persons (после создания обеих таблиц)
--- ============================================================================
-
-ALTER TABLE users ADD CONSTRAINT fk_users_person_id
-    FOREIGN KEY (person_id) REFERENCES persons(id) ON DELETE SET NULL;
-
--- ============================================================================
--- ПЭП: соглашение о Politically Exposed Person (привязано к ФЛ)
+-- ПЭП: соглашение о Politically Exposed Person (привязано к участнику экосистемы)
 -- ============================================================================
 
 -- Таблица: pep_agreements (соглашения о ПЭП)
 CREATE TABLE IF NOT EXISTS pep_agreements (
     id uuid PRIMARY KEY,
-    person_id uuid NOT NULL REFERENCES persons(id) ON DELETE RESTRICT,
+    ecosystem_participant_id uuid NOT NULL REFERENCES ecosystem_participants(id) ON DELETE RESTRICT,
     agreement_signed boolean DEFAULT FALSE NOT NULL,
     signed_at timestamp with time zone,
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 
-CREATE INDEX IF NOT EXISTS ix_pep_agreements_person_id ON pep_agreements(person_id);
+CREATE INDEX IF NOT EXISTS ix_pep_agreements_participant_id ON pep_agreements(ecosystem_participant_id);
 
 -- ============================================================================
 -- Анкета соответствия критериям независимости (привязана к ФЛ)
@@ -475,9 +448,9 @@ CREATE TABLE IF NOT EXISTS pdn_consents (
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 
-CREATE INDEX IF NOT EXISTS ix_pdn_consents_person_id ON pdn_consents(person_id);
+CREATE INDEX IF NOT EXISTS ix_pdn_consents_participant_id ON pdn_consents(ecosystem_participant_id);
 CREATE INDEX IF NOT EXISTS ix_pdn_consents_legal_entity_id ON pdn_consents(legal_entity_id);
-CREATE UNIQUE INDEX IF NOT EXISTS ux_pdn_consents_person_le ON pdn_consents(person_id, legal_entity_id);
+CREATE UNIQUE INDEX IF NOT EXISTS ux_pdn_consents_participant_le ON pdn_consents(ecosystem_participant_id, legal_entity_id);
 
 -- Параметры устава ООО (1:1 с legal_entities, обслуживает и типовой и нетиповой)
 CREATE TABLE IF NOT EXISTS legal_entity_charter (
@@ -1442,17 +1415,43 @@ CREATE TABLE IF NOT EXISTS trueconf_test_answer (
 
 CREATE INDEX IF NOT EXISTS ix_ttanswer_question_id ON trueconf_test_answer(question_id);
 
--- Сотрудник (employee) — связывает ФЛ с ЮЛ и должностью
+-- ============================================================================
+-- Участники экосистемы (ecosystem_participants)
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS ecosystem_participants (
+    id uuid PRIMARY KEY,
+    legal_entity_id uuid NOT NULL REFERENCES legal_entities(id) ON DELETE RESTRICT,
+    last_name varchar(150) NOT NULL,
+    first_name varchar(150) NOT NULL,
+    middle_name varchar(150),
+    email varchar(255),
+    phone varchar(20),
+    inn varchar(12),
+    login varchar(100) NOT NULL,
+    user_id uuid REFERENCES users(id) ON DELETE SET NULL,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    created_by uuid REFERENCES users(id)
+);
+
+CREATE UNIQUE INDEX ux_ecosystem_participant_le_login
+    ON ecosystem_participants(legal_entity_id, login);
+
+CREATE INDEX ix_ecosystem_participant_le ON ecosystem_participants(legal_entity_id);
+
+CREATE INDEX ix_ecosystem_participant_user_id ON ecosystem_participants(user_id);
+
+-- Сотрудник (employee) — связывает участника экосистемы с ЮЛ и должностью
 CREATE TABLE IF NOT EXISTS employee (
     id uuid PRIMARY KEY,
-    person_id uuid NOT NULL REFERENCES persons(id) ON DELETE RESTRICT,
+    ecosystem_participant_id uuid NOT NULL REFERENCES ecosystem_participants(id) ON DELETE RESTRICT,
     legal_entity_id uuid NOT NULL REFERENCES legal_entities(id) ON DELETE RESTRICT,
     position varchar(200) NOT NULL,
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     created_by uuid NOT NULL REFERENCES users(id)
 );
 
-CREATE INDEX IF NOT EXISTS ix_employee_person_id ON employee(person_id);
+CREATE INDEX IF NOT EXISTS ix_employee_ecosystem_participant_id ON employee(ecosystem_participant_id);
 CREATE INDEX IF NOT EXISTS ix_employee_legal_entity_id ON employee(legal_entity_id);
 
 -- ============================================================================
@@ -1461,7 +1460,7 @@ CREATE INDEX IF NOT EXISTS ix_employee_legal_entity_id ON employee(legal_entity_
 
 CREATE TABLE IF NOT EXISTS external_attracted_persons (
     id uuid PRIMARY KEY,
-    person_id uuid NOT NULL REFERENCES persons(id) ON DELETE RESTRICT,
+    ecosystem_participant_id uuid NOT NULL REFERENCES ecosystem_participants(id) ON DELETE RESTRICT,
     legal_entity_id uuid NOT NULL REFERENCES legal_entities(id) ON DELETE RESTRICT,
     position varchar(200) NOT NULL,
     started_at timestamp with time zone,
@@ -1471,9 +1470,9 @@ CREATE TABLE IF NOT EXISTS external_attracted_persons (
     created_by uuid NOT NULL REFERENCES users(id)
 );
 
-CREATE INDEX IF NOT EXISTS ix_eap_person_id ON external_attracted_persons(person_id);
+CREATE INDEX IF NOT EXISTS ix_eap_ecosystem_participant_id ON external_attracted_persons(ecosystem_participant_id);
 CREATE INDEX IF NOT EXISTS ix_eap_legal_entity_id ON external_attracted_persons(legal_entity_id);
-CREATE INDEX IF NOT EXISTS ix_eap_person_le ON external_attracted_persons(person_id, legal_entity_id);
+CREATE INDEX IF NOT EXISTS ix_eap_ecosystem_participant_le ON external_attracted_persons(ecosystem_participant_id, legal_entity_id);
 
 -- system_settings: системные настройки (ключ-значение)
 CREATE TABLE IF NOT EXISTS system_settings (

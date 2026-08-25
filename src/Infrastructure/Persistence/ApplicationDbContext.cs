@@ -68,6 +68,8 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
 
     public DbSet<ExternalAttractedPerson> ExternalAttractedPersons => Set<ExternalAttractedPerson>();
 
+    public DbSet<EcosystemParticipant> EcosystemParticipants => Set<EcosystemParticipant>();
+
     public DbSet<TplOrgIntent> TplOrgIntents => Set<TplOrgIntent>();
     public DbSet<TplOrgStage> TplOrgStages => Set<TplOrgStage>();
     public DbSet<TplOrgTaskOffer> TplOrgOffers => Set<TplOrgTaskOffer>();

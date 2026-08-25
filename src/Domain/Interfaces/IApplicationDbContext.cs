@@ -60,6 +60,8 @@ public interface IApplicationDbContext
 
     DbSet<ExternalAttractedPerson> ExternalAttractedPersons { get; }
 
+    DbSet<EcosystemParticipant> EcosystemParticipants { get; }
+
     DbSet<TplOrgIntent> TplOrgIntents { get; }
     DbSet<TplOrgStage> TplOrgStages { get; }
     DbSet<TplOrgTaskOffer> TplOrgOffers { get; }

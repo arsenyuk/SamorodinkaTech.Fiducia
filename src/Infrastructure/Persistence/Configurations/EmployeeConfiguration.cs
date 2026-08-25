@@ -13,18 +13,18 @@ public class EmployeeConfiguration : IEntityTypeConfiguration<Employee>
         builder.HasKey(e => e.Id);
         builder.Property(e => e.Id).HasColumnName("id");
 
-        builder.Property(e => e.PersonId).HasColumnName("person_id").IsRequired();
+        builder.Property(e => e.EcosystemParticipantId).HasColumnName("ecosystem_participant_id").IsRequired();
         builder.Property(e => e.LegalEntityId).HasColumnName("legal_entity_id").IsRequired();
         builder.Property(e => e.Position).HasColumnName("position").HasMaxLength(200).IsRequired();
         builder.Property(e => e.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("CURRENT_TIMESTAMP");
         builder.Property(e => e.CreatedBy).HasColumnName("created_by").IsRequired();
 
-        builder.HasIndex(e => e.PersonId).HasDatabaseName("ix_employee_person_id");
+        builder.HasIndex(e => e.EcosystemParticipantId).HasDatabaseName("ix_employee_ecosystem_participant_id");
         builder.HasIndex(e => e.LegalEntityId).HasDatabaseName("ix_employee_legal_entity_id");
 
-        builder.HasOne(e => e.Person)
+        builder.HasOne(e => e.EcosystemParticipant)
             .WithMany()
-            .HasForeignKey(e => e.PersonId)
+            .HasForeignKey(e => e.EcosystemParticipantId)
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasOne(e => e.LegalEntity)

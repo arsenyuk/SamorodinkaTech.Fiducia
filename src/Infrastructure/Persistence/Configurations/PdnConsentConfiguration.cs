@@ -13,20 +13,20 @@ public class PdnConsentConfiguration : IEntityTypeConfiguration<PdnConsent>
         builder.HasKey(c => c.Id);
         builder.Property(c => c.Id).HasColumnName("id");
 
-        builder.Property(c => c.PersonId).HasColumnName("person_id").IsRequired();
+        builder.Property(c => c.EcosystemParticipantId).HasColumnName("ecosystem_participant_id").IsRequired();
         builder.Property(c => c.LegalEntityId).HasColumnName("legal_entity_id").IsRequired();
         builder.Property(c => c.ConsentGiven).HasColumnName("consent_given").HasDefaultValue(false);
         builder.Property(c => c.ConsentAt).HasColumnName("consent_at");
         builder.Property(c => c.ConsentIp).HasColumnName("consent_ip").HasMaxLength(45);
         builder.Property(c => c.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("CURRENT_TIMESTAMP");
 
-        builder.HasIndex(c => c.PersonId);
+        builder.HasIndex(c => c.EcosystemParticipantId);
         builder.HasIndex(c => c.LegalEntityId);
-        builder.HasIndex(c => new { c.PersonId, c.LegalEntityId }, "ux_pdn_consents_person_le").IsUnique();
+        builder.HasIndex(c => new { c.EcosystemParticipantId, c.LegalEntityId }, "ux_pdn_consents_ep_le").IsUnique();
 
-        builder.HasOne(c => c.Person)
+        builder.HasOne(c => c.EcosystemParticipant)
             .WithMany(p => p.PdnConsents)
-            .HasForeignKey(c => c.PersonId)
+            .HasForeignKey(c => c.EcosystemParticipantId)
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasOne(c => c.LegalEntity)
