@@ -1,0 +1,715 @@
+@page "/access-management"
+@using Microsoft.EntityFrameworkCore
+@using SamorodinkaTech.Fiducia.Domain.Entities
+@using SamorodinkaTech.Fiducia.Domain.Validation
+@using SamorodinkaTech.Fiducia.Infrastructure.Persistence
+@inject IDbContextFactory<FiduciaDbContext> DbFactory
+@inject ILogger<AccessManagement> Logger
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "SYS_ADMIN")]
+
+<PageTitle>Fiducia — Сотрудники и доступ</PageTitle>
+
+<h3>Сотрудники и доступ</h3>
+
+<ul class="nav nav-tabs mb-3">
+    <li class="nav-item">
+        <button class="nav-link @(_activeTab == 0 ? "active" : "")" @onclick="() => _activeTab = 0">Сотрудники</button>
+    </li>
+    <li class="nav-item">
+        <button class="nav-link @(_activeTab == 1 ? "active" : "")" @onclick="() => _activeTab = 1">Внешние лица</button>
+    </li>
+</ul>
+
+@* ════════════════════════════════════════════════════════════════ *@
+@* Вкладка 0: Сотрудники *@
+@* ════════════════════════════════════════════════════════════════ *@
+@if (_activeTab == 0)
+{
+    <div class="card mb-3">
+        <div class="card-body">
+            <h5>Добавить сотрудника</h5>
+            <div class="row g-2">
+                <div class="col-md-2">
+                    <label class="form-label small">Фамилия *</label>
+                    <input type="text" class="form-control form-control-sm" @bind="_empLastName" />
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small">Имя *</label>
+                    <input type="text" class="form-control form-control-sm" @bind="_empFirstName" />
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small">Отчество</label>
+                    <input type="text" class="form-control form-control-sm" @bind="_empMiddleName" />
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small">Должность *</label>
+                    <input type="text" class="form-control form-control-sm" @bind="_empPosition" />
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small">Логин (УЗ)</label>
+                    <select class="form-select form-select-sm" @bind="_empUserId">
+                        <option value="">— новый пользователь —</option>
+                        @foreach (var u in _availableUsers)
+                        {
+                            <option value="@u.Id">@u.Login (@u.LastName @u.FirstName)</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small">Роль *</label>
+                    <select class="form-select form-select-sm" @bind="_empRoleCode">
+                        <option value="">— выбрать —</option>
+                        @foreach (var r in _assignableRoles)
+                        {
+                            <option value="@r.Code">@r.Name</option>
+                        }
+                    </select>
+                </div>
+            </div>
+            <div class="row g-2 mt-2">
+                <div class="col-md-4">
+                    <label class="form-label small">Юридическое лицо *</label>
+                    <div class="input-group input-group-sm">
+                        <select class="form-select" @bind="_empLegalEntityId">
+                            <option value="">— выбрать ЮЛ —</option>
+                            @foreach (var le in _legalEntities)
+                            {
+                                <option value="@le.Id">@le.Name (@le.Inn)</option>
+                            }
+                        </select>
+                        <button class="btn btn-outline-secondary" @onclick="ShowCreateLeModal">+</button>
+                    </div>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button class="btn btn-primary btn-sm" @onclick="AddEmployee"
+                            disabled="@(_addEmpLoading || string.IsNullOrWhiteSpace(_empLastName) || string.IsNullOrWhiteSpace(_empFirstName) || string.IsNullOrWhiteSpace(_empRoleCode) || string.IsNullOrWhiteSpace(_empLegalEntityId))">
+                        @if (_addEmpLoading) { <span class="spinner-border spinner-border-sm me-1"></span> }
+                        Добавить
+                    </button>
+                </div>
+            </div>
+            @if (!string.IsNullOrEmpty(_empError))
+            {
+                <div class="text-danger mt-2 small">@_empError</div>
+            }
+        </div>
+    </div>
+
+    <table class="table table-sm table-striped">
+        <thead>
+            <tr>
+                <th>ФИО</th>
+                <th>Должность</th>
+                <th>Логин</th>
+                <th>Роль</th>
+                <th>ЮЛ</th>
+                <th style="width:60px"></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var e in _employees)
+            {
+                <tr>
+                    <td>@e.FullName</td>
+                    <td>@(e.Position ?? "—")</td>
+                    <td>@(e.Login ?? "—")</td>
+                    <td><span class="badge bg-info">@e.RoleName</span></td>
+                    <td>@(e.LegalEntityName ?? "—")</td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-danger" @onclick="() => RemoveEmployee(e.Id)">✕</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@* ════════════════════════════════════════════════════════════════ *@
+@* Вкладка 1: Внешние лица *@
+@* ════════════════════════════════════════════════════════════════ *@
+@if (_activeTab == 1)
+{
+    @if (_showLeTypeWarning)
+    {
+        <div class="alert alert-warning">
+            Тип юридического лица не определён. Заполните карточку ЮЛ в разделе
+            <a href="/legal-entities">«Юридические лица»</a> для определения доступных ролей.
+        </div>
+    }
+
+    <div class="card mb-3">
+        <div class="card-body">
+            <h5>Добавить внешнее лицо</h5>
+            <div class="row g-2">
+                <div class="col-md-2">
+                    <label class="form-label small">Фамилия *</label>
+                    <input type="text" class="form-control form-control-sm" @bind="_extLastName" />
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small">Имя *</label>
+                    <input type="text" class="form-control form-control-sm" @bind="_extFirstName" />
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small">Отчество</label>
+                    <input type="text" class="form-control form-control-sm" @bind="_extMiddleName" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small">Юридическое лицо *</label>
+                    <select class="form-select form-select-sm" @onchange="OnExtLeChanged">
+                        <option value="">— выбрать ЮЛ —</option>
+                        @foreach (var le in _legalEntities)
+                        {
+                            <option value="@le.Id">@le.Name (@le.Inn)</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small">Роль *</label>
+                    <select class="form-select form-select-sm" @bind="_extRoleCode" disabled="@_showLeTypeWarning">
+                        <option value="">— выбрать —</option>
+                        @foreach (var r in _extAvailableRoles)
+                        {
+                            <option value="@r.Code">@r.Name</option>
+                        }
+                    </select>
+                </div>
+            </div>
+            <div class="row g-2 mt-2">
+                <div class="col-md-2">
+                    <label class="form-label small">Дата начала</label>
+                    <input type="date" class="form-control form-control-sm" @bind="_extStartDate" />
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small">Дата окончания</label>
+                    <input type="date" class="form-control form-control-sm" @bind="_extEndDate" />
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button class="btn btn-primary btn-sm" @onclick="AddExternalPerson"
+                            disabled="@(_addExtLoading || string.IsNullOrWhiteSpace(_extLastName) || string.IsNullOrWhiteSpace(_extFirstName) || string.IsNullOrWhiteSpace(_extRoleCode) || string.IsNullOrWhiteSpace(_extLegalEntityId) || _showLeTypeWarning)">
+                        @if (_addExtLoading) { <span class="spinner-border spinner-border-sm me-1"></span> }
+                        Добавить
+                    </button>
+                </div>
+            </div>
+            @if (!string.IsNullOrEmpty(_extError))
+            {
+                <div class="text-danger mt-2 small">@_extError</div>
+            }
+        </div>
+    </div>
+
+    <table class="table table-sm table-striped">
+        <thead>
+            <tr>
+                <th>ФИО</th>
+                <th>Роль</th>
+                <th>ЮЛ</th>
+                <th>Период</th>
+                <th>Статус</th>
+                <th style="width:60px"></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var e in _externalPersons)
+            {
+                <tr>
+                    <td>@e.FullName</td>
+                    <td><span class="badge bg-warning text-dark">@e.RoleName</span></td>
+                    <td>@(e.LegalEntityName ?? "—")</td>
+                    <td>
+                        @if (e.StartedAt.HasValue)
+                        {
+                            @e.StartedAt.Value.ToString("dd.MM.yyyy")
+                        }
+                        @if (e.EndedAt.HasValue)
+                        {
+                            @: — @e.EndedAt.Value.ToString("dd.MM.yyyy")
+                        }
+                    </td>
+                    <td>
+                        @if (e.IsActive)
+                        {
+                            <span class="badge bg-success">Активен</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-secondary">Неактивен</span>
+                        }
+                    </td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-danger" @onclick="() => RemoveExternalPerson(e.Id)">✕</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@* ════════════════════════════════════════════════════════════════ *@
+@* Модальное окно: создание ЮЛ *@
+@* ════════════════════════════════════════════════════════════════ *@
+@if (_showCreateLeModal)
+{
+    <div class="modal show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Новое юридическое лицо</h5>
+                    <button type="button" class="btn-close" @onclick="() => _showCreateLeModal = false"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Наименование *</label>
+                        <input type="text" class="form-control" @bind="_createLeName" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">ИНН *</label>
+                        <input type="text" class="form-control" @bind="_createLeInn" maxlength="12" />
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="() => _showCreateLeModal = false">Отмена</button>
+                    <button type="button" class="btn btn-primary" @onclick="CreateLegalEntity"
+                            disabled="@(string.IsNullOrWhiteSpace(_createLeName) || string.IsNullOrWhiteSpace(_createLeInn))">
+                        Создать
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    // ── Табы ───────────────────────────────────────────────────────
+    private int _activeTab;
+
+    // ── Роли ───────────────────────────────────────────────────────
+    private List<RefRole> _assignableRoles = new();
+    private List<RefRole> _extAvailableRoles = new();
+
+    // ── ЮЛ ─────────────────────────────────────────────────────────
+    private List<LegalEntity> _legalEntities = new();
+
+    // ── Сотрудники ─────────────────────────────────────────────────
+    private List<EmployeeRow> _employees = new();
+    private string _empLastName = "";
+    private string _empFirstName = "";
+    private string? _empMiddleName;
+    private string _empPosition = "";
+    private string? _empUserId;
+    private string _empRoleCode = "";
+    private string _empLegalEntityId = "";
+    private bool _addEmpLoading;
+    private string? _empError;
+
+    // ── Внешние лица ───────────────────────────────────────────────
+    private List<ExternalPersonRow> _externalPersons = new();
+    private string _extLastName = "";
+    private string _extFirstName = "";
+    private string? _extMiddleName;
+    private string _extLegalEntityId = "";
+    private string _extRoleCode = "";
+    private DateOnly? _extStartDate;
+    private DateOnly? _extEndDate;
+    private bool _addExtLoading;
+    private string? _extError;
+    private bool _showLeTypeWarning;
+
+    // ── Доступные УЗ ───────────────────────────────────────────────
+    private List<UserVm> _availableUsers = new();
+
+    // ── Создание ЮЛ ───────────────────────────────────────────────
+    private bool _showCreateLeModal;
+    private string _createLeName = "";
+    private string _createLeInn = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDataAsync();
+    }
+
+    private async Task LoadDataAsync()
+    {
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+
+            // Загружаем роли
+            _assignableRoles = await ctx.Roles
+                .Where(r => r.IsAssignable)
+                .OrderBy(r => r.Name)
+                .ToListAsync();
+
+            // Загружаем ЮЛ
+            _legalEntities = await ctx.LegalEntities
+                .OrderBy(le => le.Name)
+                .ToListAsync();
+
+            // Загружаем доступные УЗ
+            _availableUsers = await ctx.Users
+                .Select(u => new UserVm
+                {
+                    Id = u.Id,
+                    Login = u.Login,
+                    LastName = u.LastName,
+                    FirstName = u.FirstName
+                })
+                .OrderBy(u => u.Login)
+                .ToListAsync();
+
+            // Загружаем сотрудников
+            await LoadEmployeesAsync();
+
+            // Загружаем внешних лиц
+            await LoadExternalPersonsAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Ошибка загрузки данных управления доступом");
+        }
+    }
+
+    private async Task LoadEmployeesAsync()
+    {
+        await using var ctx = await DbFactory.CreateDbContextAsync();
+        _employees = await ctx.Employees
+            .Include(e => e.Person)
+            .Include(e => e.LegalEntity)
+            .Select(e => new EmployeeRow
+            {
+                Id = e.Id,
+                FullName = e.Person != null
+                    ? string.Join(" ", new[] { e.Person.LastName, e.Person.FirstName, e.Person.MiddleName }.Where(p => !string.IsNullOrWhiteSpace(p)))
+                    : "—",
+                Position = e.Position,
+                Login = null,
+                RoleName = "—",
+                LegalEntityName = e.LegalEntity != null ? e.LegalEntity.Name : "—"
+            })
+            .ToListAsync();
+    }
+
+    private async Task LoadExternalPersonsAsync()
+    {
+        await using var ctx = await DbFactory.CreateDbContextAsync();
+        _externalPersons = await ctx.ExternalAttractedPersons
+            .Include(e => e.Person)
+            .Include(e => e.LegalEntity)
+            .Select(e => new ExternalPersonRow
+            {
+                Id = e.Id,
+                FullName = e.Person != null
+                    ? string.Join(" ", new[] { e.Person.LastName, e.Person.FirstName, e.Person.MiddleName }.Where(p => !string.IsNullOrWhiteSpace(p)))
+                    : "—",
+                RoleName = e.Position,
+                LegalEntityName = e.LegalEntity != null ? e.LegalEntity.Name : "—",
+                StartedAt = e.StartedAt,
+                EndedAt = e.EndedAt,
+                IsActive = e.IsActive
+            })
+            .ToListAsync();
+    }
+
+    private async Task AddEmployee()
+    {
+        _addEmpLoading = true;
+        _empError = null;
+
+        try
+        {
+            // Проверка: Администратор ЮЛ не может назначать Системного администратора
+            if (_empRoleCode == "SYS_ADMIN")
+            {
+                _empError = "Нельзя назначить роль «Системный администратор». Только Системный администратор может это сделать.";
+                return;
+            }
+
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+
+            // Создаём ФЛ
+            var person = new Person
+            {
+                Id = Guid.NewGuid(),
+                LastName = _empLastName,
+                FirstName = _empFirstName,
+                MiddleName = _empMiddleName,
+                CreatedAt = DateTime.UtcNow
+            };
+            ctx.Persons.Add(person);
+
+            // Создаём сотрудника
+            var employee = new Employee
+            {
+                Id = Guid.NewGuid(),
+                PersonId = person.Id,
+                LegalEntityId = Guid.Parse(_empLegalEntityId),
+                Position = _empPosition,
+                CreatedAt = DateTime.UtcNow,
+                CreatedBy = Guid.Empty
+            };
+            ctx.Employees.Add(employee);
+
+            // Привязываем к УЗ (если выбрана)
+            if (Guid.TryParse(_empUserId, out var userId))
+            {
+                var user = await ctx.Users.FindAsync(userId);
+                if (user is not null)
+                {
+                    user.PersonId = person.Id;
+
+                    // Назначаем роль
+                    var role = await ctx.Roles.FirstOrDefaultAsync(r => r.Code == _empRoleCode);
+                    if (role is not null)
+                    {
+                        var userRole = new UserRole
+                        {
+                            Id = Guid.NewGuid(),
+                            UserId = userId,
+                            RoleId = role.Id
+                        };
+                        ctx.UserRoles.Add(userRole);
+                    }
+                }
+            }
+
+            await ctx.SaveChangesAsync();
+
+            // Сбрасываем форму
+            _empLastName = "";
+            _empFirstName = "";
+            _empMiddleName = null;
+            _empPosition = "";
+            _empUserId = null;
+            _empRoleCode = "";
+            _empLegalEntityId = "";
+
+            await LoadEmployeesAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Ошибка добавления сотрудника");
+            _empError = "Не удалось добавить сотрудника.";
+        }
+        finally
+        {
+            _addEmpLoading = false;
+        }
+    }
+
+    private async Task RemoveEmployee(Guid id)
+    {
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+            var employee = await ctx.Employees.FindAsync(id);
+            if (employee is not null)
+            {
+                ctx.Employees.Remove(employee);
+                await ctx.SaveChangesAsync();
+                await LoadEmployeesAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Ошибка удаления сотрудника");
+        }
+    }
+
+    private async Task OnExtLeChanged(ChangeEventArgs e)
+    {
+        _extLegalEntityId = e.Value?.ToString() ?? "";
+        _showLeTypeWarning = false;
+        _extAvailableRoles.Clear();
+
+        if (string.IsNullOrWhiteSpace(_extLegalEntityId))
+            return;
+
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+            var le = await ctx.LegalEntities
+                .Include(l => l.RefOkopf)
+                .FirstOrDefaultAsync(l => l.Id == Guid.Parse(_extLegalEntityId));
+
+            if (le is null || le.RefOkopf is null)
+            {
+                _showLeTypeWarning = true;
+                return;
+            }
+
+            var orgType = OkopfTypeMapper.DetectType(le.RefOkopf.Code);
+
+            // Формируем список доступных ролей в зависимости от типа ЮЛ
+            var allExtRoles = await ctx.Roles
+                .Where(r => r.Code == "EXTERNAL_DIRECTOR" || r.Code == "PARTICIPANT" || r.Code == "SHAREHOLDER")
+                .ToListAsync();
+
+            _extAvailableRoles = orgType switch
+            {
+                OrgValidationType.LLC => allExtRoles.Where(r => r.Code == "EXTERNAL_DIRECTOR" || r.Code == "PARTICIPANT").ToList(),
+                OrgValidationType.PJSC or OrgValidationType.NJSC => allExtRoles.Where(r => r.Code == "EXTERNAL_DIRECTOR" || r.Code == "SHAREHOLDER").ToList(),
+                _ => new List<RefRole>()
+            };
+
+            if (_extAvailableRoles.Count == 0)
+                _showLeTypeWarning = true;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Ошибка определения типа ЮЛ");
+            _showLeTypeWarning = true;
+        }
+    }
+
+    private async Task AddExternalPerson()
+    {
+        _addExtLoading = true;
+        _extError = null;
+
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+
+            // Создаём ФЛ
+            var person = new Person
+            {
+                Id = Guid.NewGuid(),
+                LastName = _extLastName,
+                FirstName = _extFirstName,
+                MiddleName = _extMiddleName,
+                CreatedAt = DateTime.UtcNow
+            };
+            ctx.Persons.Add(person);
+
+            // Создаём внешнее лицо
+            var role = await ctx.Roles.FirstOrDefaultAsync(r => r.Code == _extRoleCode);
+            var externalPerson = new ExternalAttractedPerson
+            {
+                Id = Guid.NewGuid(),
+                PersonId = person.Id,
+                LegalEntityId = Guid.Parse(_extLegalEntityId),
+                Position = role?.Name ?? _extRoleCode,
+                StartedAt = _extStartDate.HasValue ? _extStartDate.Value.ToDateTime(TimeOnly.MinValue) : null,
+                EndedAt = _extEndDate.HasValue ? _extEndDate.Value.ToDateTime(TimeOnly.MinValue) : null,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow,
+                CreatedBy = Guid.Empty
+            };
+            ctx.ExternalAttractedPersons.Add(externalPerson);
+
+            await ctx.SaveChangesAsync();
+
+            // Сбрасываем форму
+            _extLastName = "";
+            _extFirstName = "";
+            _extMiddleName = null;
+            _extLegalEntityId = "";
+            _extRoleCode = "";
+            _extStartDate = null;
+            _extEndDate = null;
+            _showLeTypeWarning = false;
+            _extAvailableRoles.Clear();
+
+            await LoadExternalPersonsAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Ошибка добавления внешнего лица");
+            _extError = "Не удалось добавить внешнее лицо.";
+        }
+        finally
+        {
+            _addExtLoading = false;
+        }
+    }
+
+    private async Task RemoveExternalPerson(Guid id)
+    {
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+            var person = await ctx.ExternalAttractedPersons.FindAsync(id);
+            if (person is not null)
+            {
+                ctx.ExternalAttractedPersons.Remove(person);
+                await ctx.SaveChangesAsync();
+                await LoadExternalPersonsAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Ошибка удаления внешнего лица");
+        }
+    }
+
+    private void ShowCreateLeModal()
+    {
+        _showCreateLeModal = true;
+        _createLeName = "";
+        _createLeInn = "";
+    }
+
+    private async Task CreateLegalEntity()
+    {
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+
+            if (await ctx.LegalEntities.AnyAsync(le => le.Inn == _createLeInn))
+            {
+                _empError = $"ЮЛ с ИНН {_createLeInn} уже существует.";
+                return;
+            }
+
+            var le = new LegalEntity
+            {
+                Id = Guid.NewGuid(),
+                Name = _createLeName,
+                Inn = _createLeInn
+            };
+
+            ctx.LegalEntities.Add(le);
+            await ctx.SaveChangesAsync();
+
+            _legalEntities.Add(le);
+            _empLegalEntityId = le.Id.ToString();
+            _showCreateLeModal = false;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Ошибка создания ЮЛ");
+            _empError = "Не удалось создать ЮЛ.";
+        }
+    }
+
+    // ── DTO ────────────────────────────────────────────────────────
+
+    private record EmployeeRow
+    {
+        public Guid Id { get; init; }
+        public string FullName { get; init; } = "";
+        public string? Position { get; init; }
+        public string? Login { get; init; }
+        public string RoleName { get; init; } = "";
+        public string? LegalEntityName { get; init; }
+    }
+
+    private record ExternalPersonRow
+    {
+        public Guid Id { get; init; }
+        public string FullName { get; init; } = "";
+        public string RoleName { get; init; } = "";
+        public string? LegalEntityName { get; init; }
+        public DateTime? StartedAt { get; init; }
+        public DateTime? EndedAt { get; init; }
+        public bool IsActive { get; init; }
+    }
+
+    private record UserVm
+    {
+        public Guid Id { get; init; }
+        public string Login { get; init; } = "";
+        public string? LastName { get; init; }
+        public string? FirstName { get; init; }
+    }
+}

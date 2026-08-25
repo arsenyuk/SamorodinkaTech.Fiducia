@@ -30,7 +30,8 @@ INSERT INTO ref_roles (id, code, name, created_at, created_by, is_assignable) VA
     ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaad2','DEPUTY_CHAIR','Заместитель председателя СД',CURRENT_TIMESTAMP,'00000000-0000-0000-0000-000000000000',FALSE),
     ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaad3','LAWYER','Юрист',CURRENT_TIMESTAMP,'00000000-0000-0000-0000-000000000000',TRUE),
     ('99999999-9999-9999-9999-999999999999','PARTICIPANT','Участник',CURRENT_TIMESTAMP,'00000000-0000-0000-0000-000000000000',TRUE),
-    ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaad4','CEO','Генеральный директор',CURRENT_TIMESTAMP,'00000000-0000-0000-0000-000000000000',TRUE)
+    ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaad4','CEO','Генеральный директор',CURRENT_TIMESTAMP,'00000000-0000-0000-0000-000000000000',TRUE),
+    ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaad5','LE_ADMIN','Администратор ЮЛ',CURRENT_TIMESTAMP,'00000000-0000-0000-0000-000000000000',TRUE)
 ON CONFLICT (code) DO NOTHING;
 
 INSERT INTO ref_notification_type (id, code, name, category, created_at, created_by) VALUES

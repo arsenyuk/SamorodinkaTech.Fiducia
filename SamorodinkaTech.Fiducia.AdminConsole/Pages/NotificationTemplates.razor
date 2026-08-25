@@ -157,7 +157,7 @@
         if (_filterSD) activeCategories.Add("SD");
         if (_filterUchastnik) activeCategories.Add("UCHASTNIK");
         if (_filterGd) activeCategories.Add("GD");
-        if (_filterSystem) activeCategories.Add("System");
+        if (_filterSystem) activeCategories.Add("SYSTEM");
 
         _filteredTemplates = _allTemplates
             .Where(t => CategoryMap.TryGetValue(t.NotificationTypeCode, out var cat) && activeCategories.Contains(cat))
