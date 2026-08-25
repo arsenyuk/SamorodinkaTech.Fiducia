@@ -10,11 +10,8 @@ namespace SamorodinkaTech.Fiducia.Domain.Interfaces;
 public interface ISparkApiClient
 {
     /// <summary>
-    /// Возвращает карточку компании по ИНН.
+    /// Возвращает карточку компании по ИНН (краткая справка).
     /// </summary>
-    /// <param name="inn">ИНН (10 знаков для ЮЛ).</param>
-    /// <param name="cancellationToken">Токен отмены.</param>
-    /// <returns>Карточка компании или null, если не найдена.</returns>
     Task<SparkCompany?> GetCompanyByInnAsync(
         string inn,
         CancellationToken cancellationToken = default);
@@ -22,9 +19,6 @@ public interface ISparkApiClient
     /// <summary>
     /// Возвращает данные о генеральном директоре компании.
     /// </summary>
-    /// <param name="inn">ИНН компании.</param>
-    /// <param name="cancellationToken">Токен отмены.</param>
-    /// <returns>Данные руководителя или null.</returns>
     Task<SparkManager?> GetManagerAsync(
         string inn,
         CancellationToken cancellationToken = default);
@@ -32,10 +26,52 @@ public interface ISparkApiClient
     /// <summary>
     /// Возвращает список учредителей (участников) компании.
     /// </summary>
-    /// <param name="inn">ИНН компании.</param>
-    /// <param name="cancellationToken">Токен отмены.</param>
-    /// <returns>Список учредителей или пустой массив.</returns>
     Task<List<SparkFounder>> GetFoundersAsync(
+        string inn,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Возвращает краткую справку по ИП (GetEnterpreneurShortReport).
+    /// </summary>
+    Task<SparkEntrepreneur?> GetEntrepreneurByInnAsync(
+        string inn,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Возвращает расширенную карточку компании (GetCompanyExtendedReport).
+    /// </summary>
+    Task<SparkCompanyExtended?> GetCompanyExtendedAsync(
+        string inn,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Возвращает структуру компании (GetCompanyStructure).
+    /// Материнская → текущая → дочерние + аффилированные лица.
+    /// </summary>
+    Task<SparkCompanyStructure?> GetCompanyStructureAsync(
+        string inn,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Возвращает информацию об аккаунте СПАРК (GetStateAccount).
+    /// Остаток лимита платных запросов.
+    /// </summary>
+    Task<SparkStateAccount?> GetStateAccountAsync(
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Возвращает историю совладельцев компании (GetCompanyCoownersHistory).
+    /// Текущие + бывшие совладельцы с датами.
+    /// </summary>
+    Task<SparkCoownersHistory?> GetCoownersHistoryAsync(
+        string inn,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Возвращает отчёт о соответствии (GetPersonComplianceReport).
+    /// Проверка санкционных рисков, связей с ПДЛ/ПЭП.
+    /// </summary>
+    Task<SparkPersonCompliance?> GetPersonComplianceAsync(
         string inn,
         CancellationToken cancellationToken = default);
 }

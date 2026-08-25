@@ -1,0 +1,191 @@
+@page "/legal-entities"
+@using Microsoft.EntityFrameworkCore
+@using SamorodinkaTech.Fiducia.Domain.Entities
+@inject IDbContextFactory<SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext> DbFactory
+@inject ILogger<LegalEntities> Logger
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+
+<PageTitle>Fiducia — Юридическое лицо</PageTitle>
+
+<h3>Юридическое лицо</h3>
+
+@if (_loading)
+{
+    <div class="text-center py-4">
+        <div class="spinner-border text-primary"></div>
+    </div>
+}
+else if (_error is not null)
+{
+    <div class="alert alert-danger">@_error</div>
+}
+else if (_legalEntity is not null)
+{
+    <div class="card">
+        <div class="card-body">
+            <h5 class="mb-3">@(_legalEntity.Name ?? "Без наименования")</h5>
+
+            @if (!string.IsNullOrEmpty(_successMessage))
+            {
+                <div class="alert alert-success py-2">@_successMessage</div>
+            }
+            @if (!string.IsNullOrEmpty(_errorMessage))
+            {
+                <div class="alert alert-danger py-2">@_errorMessage</div>
+            }
+
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">Полное наименование</label>
+                    <input type="text" class="form-control" @bind="_editName" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Краткое наименование</label>
+                    <input type="text" class="form-control" @bind="_editShortName" />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">ИНН</label>
+                    <input type="text" class="form-control" @bind="_editInn" disabled />
+                    <small class="text-muted">ИНН нельзя изменить</small>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">ОГРН</label>
+                    <input type="text" class="form-control" @bind="_editOgrn" />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">ОКОПФ</label>
+                    <select class="form-select" @bind="_editOkopfId">
+                        <option value="">— не выбрано —</option>
+                        @foreach (var o in _okopfList)
+                        {
+                            <option value="@o.Id">@o.Code — @o.Name</option>
+                        }
+                    </select>
+                </div>
+            </div>
+
+            <div class="mt-3">
+                <button class="btn btn-primary" @onclick="SaveAsync" disabled="@_saving">
+                    @if (_saving)
+                    {
+                        <span class="spinner-border spinner-border-sm me-1"></span>
+                    }
+                    Сохранить
+                </button>
+            </div>
+        </div>
+    </div>
+}
+else
+{
+    <div class="text-muted">Юридическое лицо не выбрано. Перейдите в настройки рабочего места.</div>
+}
+
+@code {
+    private LegalEntity? _legalEntity;
+    private bool _loading = true;
+    private string? _error;
+    private string? _errorMessage;
+    private string? _successMessage;
+    private bool _saving;
+
+    private string _editName = "";
+    private string? _editShortName;
+    private string? _editInn;
+    private string? _editOgrn;
+    private string? _editOkopfId;
+
+    private List<RefOkopf> _okopfList = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+
+            var workplace = await ctx.CurrentWorkplaces.FirstOrDefaultAsync();
+            if (workplace?.LastSelectedLegalEntityId is null)
+            {
+                _error = "Юридическое лицо не выбрано.";
+                _loading = false;
+                return;
+            }
+
+            _legalEntity = await ctx.LegalEntities
+                .Include(le => le.RefOkopf)
+                .FirstOrDefaultAsync(le => le.Id == workplace.LastSelectedLegalEntityId.Value);
+
+            if (_legalEntity is null)
+            {
+                _error = "Юридическое лицо не найдено.";
+                _loading = false;
+                return;
+            }
+
+            _editName = _legalEntity.Name ?? "";
+            _editShortName = _legalEntity.ShortName;
+            _editInn = _legalEntity.Inn;
+            _editOgrn = _legalEntity.Ogrn;
+            _editOkopfId = _legalEntity.OkopfId?.ToString();
+
+            _okopfList = await ctx.RefOkopf.OrderBy(o => o.Code).ToListAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Ошибка загрузки ЮЛ");
+            _error = "Не удалось загрузить данные.";
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        if (_legalEntity is null) return;
+
+        _saving = true;
+        _errorMessage = null;
+        _successMessage = null;
+        StateHasChanged();
+
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+            var le = await ctx.LegalEntities.FindAsync(_legalEntity.Id);
+            if (le is null)
+            {
+                _errorMessage = "Юридическое лицо не найдено.";
+                return;
+            }
+
+            le.Name = _editName;
+            le.ShortName = _editShortName;
+            le.Ogrn = _editOgrn;
+
+            if (Guid.TryParse(_editOkopfId, out var okopfId))
+                le.OkopfId = okopfId;
+            else
+                le.OkopfId = null;
+
+            await ctx.SaveChangesAsync();
+
+            _successMessage = "Настройки сохранены.";
+            _legalEntity.Name = le.Name;
+            _legalEntity.ShortName = le.ShortName;
+            _legalEntity.Ogrn = le.Ogrn;
+            _legalEntity.OkopfId = le.OkopfId;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Ошибка сохранения ЮЛ {LegalEntityId}", _legalEntity.Id);
+            _errorMessage = "Не удалось сохранить.";
+        }
+        finally
+        {
+            _saving = false;
+            StateHasChanged();
+        }
+    }
+}

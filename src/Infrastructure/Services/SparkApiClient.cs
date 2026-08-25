@@ -116,6 +116,111 @@ public class SparkApiClient : ISparkApiClient, IAsyncDisposable
             .ToList();
     }
 
+    /// <inheritdoc />
+    public async Task<SparkEntrepreneur?> GetEntrepreneurByInnAsync(
+        string inn,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(_login))
+            return null;
+
+        _logger.LogDebug("Запрос GetEnterpreneurShortReport из СПАРК по ИНН={Inn}", inn);
+
+        var data = await CallSoapMethodAsync("GetEnterpreneurShortReport",
+            new XElement(Tns + "inn", inn), cancellationToken);
+
+        var report = data?.Descendants("Report").FirstOrDefault();
+        return report is null ? null : SparkXmlParser.ParseEntrepreneur(report);
+    }
+
+    /// <inheritdoc />
+    public async Task<SparkCompanyExtended?> GetCompanyExtendedAsync(
+        string inn,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(_login))
+            return null;
+
+        _logger.LogDebug("Запрос GetCompanyExtendedReport из СПАРК по ИНН={Inn}", inn);
+
+        var data = await CallSoapMethodAsync("GetCompanyExtendedReport",
+            new XElement(Tns + "inn", inn), cancellationToken);
+
+        var report = data?.Descendants("Report").FirstOrDefault();
+        return report is null ? null : SparkXmlParser.ParseCompanyExtended(report);
+    }
+
+    /// <inheritdoc />
+    public async Task<SparkCompanyStructure?> GetCompanyStructureAsync(
+        string inn,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(_login))
+            return null;
+
+        _logger.LogDebug("Запрос GetCompanyStructure из СПАРК по ИНН={Inn}", inn);
+
+        var data = await CallSoapMethodAsync("GetCompanyStructure",
+            new XElement(Tns + "inn", inn), cancellationToken);
+
+        if (data?.Root is null)
+            return null;
+
+        return SparkXmlParser.ParseCompanyStructure(data);
+    }
+
+    /// <inheritdoc />
+    public async Task<SparkStateAccount?> GetStateAccountAsync(
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(_login))
+            return null;
+
+        _logger.LogDebug("Запрос GetStateAccount из СПАРК");
+
+        var data = await CallSoapMethodAsync("GetStateAccount",
+            new XElement(Tns + "dummy"), cancellationToken);
+
+        var report = data?.Descendants("Report").FirstOrDefault();
+        return report is null ? null : SparkXmlParser.ParseStateAccount(report);
+    }
+
+    /// <inheritdoc />
+    public async Task<SparkCoownersHistory?> GetCoownersHistoryAsync(
+        string inn,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(_login))
+            return null;
+
+        _logger.LogDebug("Запрос GetCompanyCoownersHistory из СПАРК по ИНН={Inn}", inn);
+
+        var data = await CallSoapMethodAsync("GetCompanyCoownersHistory",
+            new XElement(Tns + "inn", inn), cancellationToken);
+
+        if (data?.Root is null)
+            return null;
+
+        return SparkXmlParser.ParseCoownersHistory(data, inn);
+    }
+
+    /// <inheritdoc />
+    public async Task<SparkPersonCompliance?> GetPersonComplianceAsync(
+        string inn,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(_login))
+            return null;
+
+        _logger.LogDebug("Запрос GetPersonComplianceReport из СПАРК по ИНН={Inn}", inn);
+
+        var data = await CallSoapMethodAsync("GetPersonComplianceReport",
+            new XElement(Tns + "inn", inn), cancellationToken);
+
+        var report = data?.Descendants("Report").FirstOrDefault();
+        return report is null ? null : SparkXmlParser.ParsePersonCompliance(report);
+    }
+
     /// <summary>
     /// Закрывает SOAP-сессию вызовом End().
     /// </summary>

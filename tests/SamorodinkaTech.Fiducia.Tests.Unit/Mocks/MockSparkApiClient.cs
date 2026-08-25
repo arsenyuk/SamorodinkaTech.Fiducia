@@ -12,6 +12,12 @@ public class MockSparkApiClient : ISparkApiClient
     private readonly Dictionary<string, SparkCompany> _companies = new();
     private readonly Dictionary<string, SparkManager> _managers = new();
     private readonly Dictionary<string, List<SparkFounder>> _founders = new();
+    private readonly Dictionary<string, SparkEntrepreneur> _entrepreneurs = new();
+    private readonly Dictionary<string, SparkCompanyExtended> _extendedCompanies = new();
+    private readonly Dictionary<string, SparkCompanyStructure> _structures = new();
+    private readonly Dictionary<string, SparkCoownersHistory> _coownersHistory = new();
+    private readonly Dictionary<string, SparkPersonCompliance> _personCompliance = new();
+    private SparkStateAccount? _stateAccount;
 
     /// <summary>Задержка ответа в миллисекундах для имитации сети (по умолчанию 0).</summary>
     public int SimulatedDelayMs { get; set; }
@@ -62,6 +68,76 @@ public class MockSparkApiClient : ISparkApiClient
         return founders ?? new List<SparkFounder>();
     }
 
+    /// <inheritdoc />
+    public async Task<SparkEntrepreneur?> GetEntrepreneurByInnAsync(
+        string inn,
+        CancellationToken cancellationToken = default)
+    {
+        await MaybeDelay(cancellationToken);
+        ThrowIfFailure();
+
+        _entrepreneurs.TryGetValue(inn, out var entrepreneur);
+        return entrepreneur;
+    }
+
+    /// <inheritdoc />
+    public async Task<SparkCompanyExtended?> GetCompanyExtendedAsync(
+        string inn,
+        CancellationToken cancellationToken = default)
+    {
+        await MaybeDelay(cancellationToken);
+        ThrowIfFailure();
+
+        _extendedCompanies.TryGetValue(inn, out var company);
+        return company;
+    }
+
+    /// <inheritdoc />
+    public async Task<SparkCompanyStructure?> GetCompanyStructureAsync(
+        string inn,
+        CancellationToken cancellationToken = default)
+    {
+        await MaybeDelay(cancellationToken);
+        ThrowIfFailure();
+
+        _structures.TryGetValue(inn, out var structure);
+        return structure;
+    }
+
+    /// <inheritdoc />
+    public async Task<SparkStateAccount?> GetStateAccountAsync(
+        CancellationToken cancellationToken = default)
+    {
+        await MaybeDelay(cancellationToken);
+        ThrowIfFailure();
+
+        return _stateAccount;
+    }
+
+    /// <inheritdoc />
+    public async Task<SparkCoownersHistory?> GetCoownersHistoryAsync(
+        string inn,
+        CancellationToken cancellationToken = default)
+    {
+        await MaybeDelay(cancellationToken);
+        ThrowIfFailure();
+
+        _coownersHistory.TryGetValue(inn, out var history);
+        return history;
+    }
+
+    /// <inheritdoc />
+    public async Task<SparkPersonCompliance?> GetPersonComplianceAsync(
+        string inn,
+        CancellationToken cancellationToken = default)
+    {
+        await MaybeDelay(cancellationToken);
+        ThrowIfFailure();
+
+        _personCompliance.TryGetValue(inn, out var compliance);
+        return compliance;
+    }
+
     /// <summary>
     /// Добавляет компанию в mock-хранилище (для настройки тестовых данных).
     /// </summary>
@@ -84,6 +160,54 @@ public class MockSparkApiClient : ISparkApiClient
     public void AddFounders(string inn, List<SparkFounder> founders)
     {
         _founders[inn] = founders;
+    }
+
+    /// <summary>
+    /// Добавляет данные ИП в mock-хранилище.
+    /// </summary>
+    public void AddEntrepreneur(string inn, SparkEntrepreneur entrepreneur)
+    {
+        _entrepreneurs[inn] = entrepreneur;
+    }
+
+    /// <summary>
+    /// Добавляет расширенную карточку компании в mock-хранилище.
+    /// </summary>
+    public void AddExtendedCompany(string inn, SparkCompanyExtended company)
+    {
+        _extendedCompanies[inn] = company;
+    }
+
+    /// <summary>
+    /// Добавляет структуру компании в mock-хранилище.
+    /// </summary>
+    public void AddCompanyStructure(string inn, SparkCompanyStructure structure)
+    {
+        _structures[inn] = structure;
+    }
+
+    /// <summary>
+    /// Устанавливает данные аккаунта СПАРК.
+    /// </summary>
+    public void SetStateAccount(SparkStateAccount account)
+    {
+        _stateAccount = account;
+    }
+
+    /// <summary>
+    /// Добавляет историю совладельцев в mock-хранилище.
+    /// </summary>
+    public void AddCoownersHistory(string inn, SparkCoownersHistory history)
+    {
+        _coownersHistory[inn] = history;
+    }
+
+    /// <summary>
+    /// Добавляет отчёт о соответствии в mock-хранилище.
+    /// </summary>
+    public void AddPersonCompliance(string inn, SparkPersonCompliance compliance)
+    {
+        _personCompliance[inn] = compliance;
     }
 
     private async Task MaybeDelay(CancellationToken cancellationToken = default)
