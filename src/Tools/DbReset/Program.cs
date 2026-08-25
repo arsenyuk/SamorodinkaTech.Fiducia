@@ -2,6 +2,11 @@ using Npgsql;
 using System.Text;
 
 // Simple DB reset tool: drop and recreate fiducia schema from tools/db SQLs
+// Usage: dotnet run [--no-demo]
+
+var skipDemo = args.Contains("--no-demo");
+if (skipDemo)
+    Console.WriteLine("Flag --no-demo detected: skipping 03_demo.sql");
 
 var cs = Environment.GetEnvironmentVariable("FIDUCIA_CS")
          ?? "Host=localhost;Port=5434;Database=fiducia;Username=fiducia;Password=fiducia";
@@ -62,6 +67,8 @@ var demoSql   = File.Exists(demoPath) ? ReadFile(demoPath) : string.Empty;
 
 await ExecuteAsync(schemaSql);
 if (!string.IsNullOrWhiteSpace(seedSql)) await ExecuteAsync(seedSql);
-if (!string.IsNullOrWhiteSpace(demoSql)) await ExecuteAsync(demoSql);
+if (!skipDemo && !string.IsNullOrWhiteSpace(demoSql)) await ExecuteAsync(demoSql);
 
-Console.WriteLine("Database reset complete.");
+Console.WriteLine(skipDemo
+    ? "Database reset complete (without demo data)."
+    : "Database reset complete.");
