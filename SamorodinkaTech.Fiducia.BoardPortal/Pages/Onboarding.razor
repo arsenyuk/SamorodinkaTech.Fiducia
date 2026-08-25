@@ -1,5 +1,6 @@
 @page "/onboarding/{Token}"
 @using SamorodinkaTech.Fiducia.Domain.Entities
+@using SamorodinkaTech.Fiducia.Domain.Helpers
 @using SamorodinkaTech.Fiducia.Domain.Interfaces
 @inject IApplicationDbContext DbContext
 @inject NavigationManager NavigationManager
@@ -243,16 +244,16 @@
             }
 
             // Если уже завершил онбординг (анкета заполнена + ПЭП подписан)
-            var person = _user is not null
-                ? await DbContext.Persons.FirstOrDefaultAsync(p => p.UserId == _user.Id)
+            var ecoParticipant = _user is not null
+                ? await PersonHelper.FindParticipantByUserIdAsync(DbContext, _user.Id)
                 : null;
 
-            if (person is not null)
+            if (ecoParticipant is not null)
             {
                 var hasDeclaration = await DbContext.IndependenceDeclarations
-                    .AnyAsync(d => d.PersonId == person.Id && d.Completed);
+                    .AnyAsync(d => d.EcosystemParticipantId == ecoParticipant.Id && d.Completed);
                 var hasPep = await DbContext.PepAgreements
-                    .AnyAsync(a => a.PersonId == person.Id && a.AgreementSigned);
+                    .AnyAsync(a => a.EcosystemParticipantId == ecoParticipant.Id && a.AgreementSigned);
                 if (hasDeclaration && hasPep)
                 {
                     _isCompleted = true;
@@ -275,13 +276,13 @@
     {
         if (_user == null) return;
 
-        var person = await DbContext.Persons.FirstOrDefaultAsync(p => p.UserId == _user.Id);
-        if (person is null) return;
+        var ecoParticipant = await PersonHelper.FindParticipantByUserIdAsync(DbContext, _user.Id);
+        if (ecoParticipant is null) return;
 
         var declaration = new IndependenceDeclaration
         {
             Id = Guid.NewGuid(),
-            PersonId = person.Id,
+            EcosystemParticipantId = ecoParticipant.Id,
             HiddenShares = _hiddenShares,
             FamilyConnections = _familyConnections,
             OtherBoards = _otherBoards,
@@ -312,14 +313,14 @@
         {
             if (_user != null)
             {
-                var person = await DbContext.Persons.FirstOrDefaultAsync(p => p.UserId == _user.Id);
-                if (person is not null)
+                var ecoParticipant = await PersonHelper.FindParticipantByUserIdAsync(DbContext, _user.Id);
+                if (ecoParticipant is not null)
                 {
-                    // Создаём запись ПЭП, привязанную к ФЛ
+                    // Создаём запись ПЭП, привязанную к участнику экосистемы
                     var pepAgreement = new PepAgreement
                     {
                         Id = Guid.NewGuid(),
-                        PersonId = person.Id,
+                        EcosystemParticipantId = ecoParticipant.Id,
                         AgreementSigned = true,
                         SignedAt = DateTime.UtcNow,
                         CreatedAt = DateTime.UtcNow
@@ -340,7 +341,7 @@
                     var consent = new PdnConsent
                     {
                         Id = Guid.NewGuid(),
-                        PersonId = person.Id,
+                        EcosystemParticipantId = ecoParticipant.Id,
                         LegalEntityId = externalPerson.LegalEntityId,
                         ConsentGiven = _pdnConsentGiven,
                         ConsentAt = DateTime.UtcNow,

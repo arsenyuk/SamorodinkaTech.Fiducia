@@ -12,11 +12,11 @@ public class BoardParticipant
     /// <summary>Идентификатор юридического лица (legal_entity_id).</summary>
     public Guid LegalEntityId { get; set; }
 
-    /// <summary>Идентификатор физического лица (person_id).</summary>
-    public Guid? PersonId { get; set; }
+    /// <summary>Идентификатор участника экосистемы (ecosystem_participant_id).</summary>
+    public Guid? EcosystemParticipantId { get; set; }
 
-    /// <summary>Физическое лицо.</summary>
-    public Person? Person { get; set; }
+    /// <summary>Участник экосистемы.</summary>
+    public EcosystemParticipant? EcosystemParticipant { get; set; }
 
     /// <summary>Тип участника: FL — физлицо, UL — юрлицо, IP — ИП (participant_type).</summary>
     public string ParticipantType { get; set; } = "FL";

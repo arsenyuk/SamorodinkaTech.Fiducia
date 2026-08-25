@@ -63,8 +63,8 @@ public static class ParticipantEndpoints
             if (user is null)
                 return Results.Ok(new { Id = (Guid?)null, FullName = (string?)null, SharePercent = (decimal?)null });
 
-            var person = await ctx.Persons.FirstOrDefaultAsync(p => p.UserId == user.Id);
-            if (person is null)
+            var ecoParticipant = await ctx.EcosystemParticipants.FirstOrDefaultAsync(p => p.UserId == user.Id);
+            if (ecoParticipant is null)
                 return Results.Ok(new { Id = (Guid?)null, FullName = (string?)null, SharePercent = (decimal?)null });
 
             var leId = await GetLegalEntityIdAsync(ctx);
@@ -72,7 +72,7 @@ public static class ParticipantEndpoints
                 return Results.Ok(new { Id = (Guid?)null, FullName = (string?)null, SharePercent = (decimal?)null });
 
             var participant = await ctx.BoardParticipants
-                .FirstOrDefaultAsync(p => p.LegalEntityId == leId.Value && p.PersonId == person.Id && p.IsActive);
+                .FirstOrDefaultAsync(p => p.LegalEntityId == leId.Value && p.EcosystemParticipantId == ecoParticipant.Id && p.IsActive);
 
             if (participant is null)
                 return Results.Ok(new { Id = (Guid?)null, FullName = (string?)null, SharePercent = (decimal?)null });

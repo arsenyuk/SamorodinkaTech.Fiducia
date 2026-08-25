@@ -5,7 +5,6 @@ namespace SamorodinkaTech.Fiducia.Domain.Interfaces;
 
 public interface IApplicationDbContext
 {
-    DbSet<Person> Persons { get; }
     DbSet<PdnConsent> PdnConsents { get; }
     DbSet<PepAgreement> PepAgreements { get; }
     DbSet<IndependenceDeclaration> IndependenceDeclarations { get; }

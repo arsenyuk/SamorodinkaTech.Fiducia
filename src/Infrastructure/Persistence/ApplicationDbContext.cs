@@ -9,7 +9,6 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
 {
     public FiduciaDbContext(DbContextOptions<FiduciaDbContext> options) : base(options) { }
 
-    public DbSet<Person> Persons => Set<Person>();
     public DbSet<PdnConsent> PdnConsents => Set<PdnConsent>();
     public DbSet<PepAgreement> PepAgreements => Set<PepAgreement>();
     public DbSet<IndependenceDeclaration> IndependenceDeclarations => Set<IndependenceDeclaration>();
@@ -605,7 +604,7 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.HasKey(x => x.Id);
             b.Property(x => x.Id).HasColumnName("id");
             b.Property(x => x.LegalEntityId).HasColumnName("legal_entity_id").IsRequired();
-            b.Property(x => x.PersonId).HasColumnName("person_id");
+            b.Property(x => x.EcosystemParticipantId).HasColumnName("ecosystem_participant_id");
             b.Property(x => x.ParticipantType).HasColumnName("participant_type").HasMaxLength(20).IsRequired().HasDefaultValue("FL");
             b.Property(x => x.FullName).HasColumnName("full_name").HasMaxLength(300);
             b.Property(x => x.PassportSeries).HasColumnName("passport_series").HasMaxLength(10);

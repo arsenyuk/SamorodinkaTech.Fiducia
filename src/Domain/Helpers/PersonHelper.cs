@@ -43,13 +43,10 @@ public static class PersonHelper
         Guid legalEntityId,
         CancellationToken ct = default)
     {
-        var participant = await FindParticipantByUserIdAsync(db, userId, ct);
-        if (participant is null) return null;
-
         return await db.BoardParticipants
             .FirstOrDefaultAsync(p =>
                 p.LegalEntityId == legalEntityId &&
-                p.EcosystemParticipantId == participant.Id &&
+                p.EcosystemParticipant != null && p.EcosystemParticipant.UserId == userId &&
                 p.IsActive, ct);
     }
 }

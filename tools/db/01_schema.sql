@@ -4,7 +4,7 @@
 -- CREATE EXTENSION IF NOT EXISTS pgcrypto; -- не требуется для явной генерации UUID на стороне приложения/скриптов
 
 -- ============================================================================
--- Пользователи (создаются первыми — persons ссылаются на users через created_by)
+-- Пользователи (создаются первыми — ecosystem_participants ссылаются на users через user_id)
 -- ============================================================================
 
 -- Таблица: users
@@ -53,13 +53,13 @@ CREATE TABLE IF NOT EXISTS pep_agreements (
 CREATE INDEX IF NOT EXISTS ix_pep_agreements_participant_id ON pep_agreements(ecosystem_participant_id);
 
 -- ============================================================================
--- Анкета соответствия критериям независимости (привязана к ФЛ)
+-- Анкета соответствия критериям независимости (привязана к участнику экосистемы)
 -- ============================================================================
 
 -- Таблица: independence_declarations (анкеты независимости)
 CREATE TABLE IF NOT EXISTS independence_declarations (
     id uuid PRIMARY KEY,
-    person_id uuid NOT NULL REFERENCES persons(id) ON DELETE RESTRICT,
+    ecosystem_participant_id uuid NOT NULL REFERENCES ecosystem_participants(id) ON DELETE RESTRICT,
     hidden_shares text,
     family_connections text,
     other_boards text,
@@ -70,7 +70,7 @@ CREATE TABLE IF NOT EXISTS independence_declarations (
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 
-CREATE INDEX IF NOT EXISTS ix_independence_declarations_person_id ON independence_declarations(person_id);
+CREATE INDEX IF NOT EXISTS ix_independence_declarations_ecosystem_participant_id ON independence_declarations(ecosystem_participant_id);
 
 -- ============================================================================
 -- Справочники (ref_*): не зависят от других таблиц
@@ -440,7 +440,7 @@ CREATE INDEX IF NOT EXISTS ix_legal_entities_ogrn ON legal_entities(ogrn);
 -- Таблица: pdn_consents (согласия на обработку персональных данных)
 CREATE TABLE IF NOT EXISTS pdn_consents (
     id uuid PRIMARY KEY,
-    person_id uuid NOT NULL REFERENCES persons(id) ON DELETE RESTRICT,
+    ecosystem_participant_id uuid NOT NULL REFERENCES ecosystem_participants(id) ON DELETE RESTRICT,
     legal_entity_id uuid NOT NULL REFERENCES legal_entities(id) ON DELETE RESTRICT,
     consent_given boolean DEFAULT FALSE NOT NULL,
     consent_at timestamp with time zone,
@@ -743,7 +743,7 @@ CREATE TABLE IF NOT EXISTS board_participant (
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     created_by uuid,
-    person_id uuid REFERENCES persons(id) ON DELETE SET NULL
+    ecosystem_participant_id uuid REFERENCES ecosystem_participants(id) ON DELETE SET NULL
 );
 
 CREATE INDEX IF NOT EXISTS ix_board_participant_legal_entity ON board_participant(legal_entity_id);

@@ -272,20 +272,20 @@ public static class ShareRequestEndpoints
                 var userIdStr = http.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
                 var createdBy = Guid.TryParse(userIdStr, out var uid) ? uid : Guid.Empty;
 
-                // Находим участника: user → person → person.id = participant.person_id
+                // Находим участника: user → ecosystemParticipant → boardParticipant
                 var user = await ctx.Users.FindAsync(createdBy);
-                var person = user is not null ? await PersonHelper.FindPersonByUserIdAsync(ctx, user.Id) : null;
-                if (person is null)
+                var ecoParticipant = user is not null ? await PersonHelper.FindParticipantByUserIdAsync(ctx, user.Id) : null;
+                if (ecoParticipant is null)
                 {
-                    logger.LogWarning("Пользователь {UserId} не привязан к физическому лицу", createdBy);
-                    return Results.BadRequest(new { error = "Пользователь не привязан к физическому лицу" });
+                    logger.LogWarning("Пользователь {UserId} не привязан к участнику экосистемы", createdBy);
+                    return Results.BadRequest(new { error = "Пользователь не привязан к участнику экосистемы" });
                 }
 
                 var participant = await ctx.BoardParticipants
-                    .FirstOrDefaultAsync(p => p.LegalEntityId == leId!.Value && p.PersonId == person.Id && p.IsActive);
+                    .FirstOrDefaultAsync(p => p.LegalEntityId == leId!.Value && p.EcosystemParticipantId == ecoParticipant.Id && p.IsActive);
                 if (participant is null)
                 {
-                    logger.LogWarning("Не найден участник для пользователя {UserId} (PersonId={PersonId}) в ЮЛ {LegalEntityId}", createdBy, person.Id, leId!.Value);
+                    logger.LogWarning("Не найден участник для пользователя {UserId} (EcoParticipantId={EcoParticipantId}) в ЮЛ {LegalEntityId}", createdBy, ecoParticipant.Id, leId!.Value);
                     return Results.BadRequest(new { error = "Не найден участник для текущего пользователя" });
                 }
 
@@ -627,18 +627,18 @@ public static class ShareRequestEndpoints
                 var createdBy = Guid.TryParse(userIdStr, out var uid) ? uid : Guid.Empty;
 
                 var user = await ctx.Users.FindAsync(createdBy);
-                var person = user is not null ? await PersonHelper.FindPersonByUserIdAsync(ctx, user.Id) : null;
-                if (person is null)
+                var ecoParticipant = user is not null ? await PersonHelper.FindParticipantByUserIdAsync(ctx, user.Id) : null;
+                if (ecoParticipant is null)
                 {
-                    logger.LogWarning("Пользователь {UserId} не привязан к физическому лицу", createdBy);
-                    return Results.BadRequest(new { error = "Пользователь не привязан к физическому лицу" });
+                    logger.LogWarning("Пользователь {UserId} не привязан к участнику экосистемы", createdBy);
+                    return Results.BadRequest(new { error = "Пользователь не привязан к участнику экосистемы" });
                 }
 
                 var participant = await ctx.BoardParticipants
-                    .FirstOrDefaultAsync(p => p.LegalEntityId == leId && p.PersonId == person.Id && p.IsActive);
+                    .FirstOrDefaultAsync(p => p.LegalEntityId == leId && p.EcosystemParticipantId == ecoParticipant.Id && p.IsActive);
                 if (participant is null)
                 {
-                    logger.LogWarning("Не найден участник для пользователя {UserId} (PersonId={PersonId}) в ЮЛ {LegalEntityId}", createdBy, person.Id, leId);
+                    logger.LogWarning("Не найден участник для пользователя {UserId} (EcoParticipantId={EcoParticipantId}) в ЮЛ {LegalEntityId}", createdBy, ecoParticipant.Id, leId);
                     return Results.BadRequest(new { error = "Не найден участник для текущего пользователя" });
                 }
 
@@ -778,18 +778,18 @@ public static class ShareRequestEndpoints
                 var userId = Guid.TryParse(userIdStr, out var uid) ? uid : Guid.Empty;
 
                 var user = await ctx.Users.FindAsync(userId);
-                var person = user is not null ? await PersonHelper.FindPersonByUserIdAsync(ctx, user.Id) : null;
-                if (person is null)
+                var ecoParticipant = user is not null ? await PersonHelper.FindParticipantByUserIdAsync(ctx, user.Id) : null;
+                if (ecoParticipant is null)
                 {
-                    logger.LogWarning("Поддержка требования {RequestId}: пользователь {UserId} не привязан к физическому лицу", id, userId);
-                    return Results.BadRequest(new { error = "Пользователь не привязан к физическому лицу" });
+                    logger.LogWarning("Поддержка требования {RequestId}: пользователь {UserId} не привязан к участнику экосистемы", id, userId);
+                    return Results.BadRequest(new { error = "Пользователь не привязан к участнику экосистемы" });
                 }
 
                 var participant = await ctx.BoardParticipants
-                    .FirstOrDefaultAsync(p => p.LegalEntityId == leId && p.PersonId == person.Id && p.IsActive);
+                    .FirstOrDefaultAsync(p => p.LegalEntityId == leId && p.EcosystemParticipantId == ecoParticipant.Id && p.IsActive);
                 if (participant is null)
                 {
-                    logger.LogWarning("Поддержка требования {RequestId}: не найден участник для пользователя {UserId} (PersonId={PersonId})", id, userId, person.Id);
+                    logger.LogWarning("Поддержка требования {RequestId}: не найден участник для пользователя {UserId} (EcoParticipantId={EcoParticipantId})", id, userId, ecoParticipant.Id);
                     return Results.BadRequest(new { error = "Не найден участник для текущего пользователя" });
                 }
 
@@ -902,18 +902,18 @@ public static class ShareRequestEndpoints
                 var userId = Guid.TryParse(userIdStr, out var uid) ? uid : Guid.Empty;
 
                 var user = await ctx.Users.FindAsync(userId);
-                var person = user is not null ? await PersonHelper.FindPersonByUserIdAsync(ctx, user.Id) : null;
-                if (person is null)
+                var ecoParticipant = user is not null ? await PersonHelper.FindParticipantByUserIdAsync(ctx, user.Id) : null;
+                if (ecoParticipant is null)
                 {
-                    logger.LogWarning("Отзыв поддержки требования {RequestId}: пользователь {UserId} не привязан к физическому лицу", id, userId);
-                    return Results.BadRequest(new { error = "Пользователь не привязан к физическому лицу" });
+                    logger.LogWarning("Отзыв поддержки требования {RequestId}: пользователь {UserId} не привязан к участнику экосистемы", id, userId);
+                    return Results.BadRequest(new { error = "Пользователь не привязан к участнику экосистемы" });
                 }
 
                 var participant = await ctx.BoardParticipants
-                    .FirstOrDefaultAsync(p => p.LegalEntityId == leId && p.PersonId == person.Id && p.IsActive);
+                    .FirstOrDefaultAsync(p => p.LegalEntityId == leId && p.EcosystemParticipantId == ecoParticipant.Id && p.IsActive);
                 if (participant is null)
                 {
-                    logger.LogWarning("Отзыв поддержки требования {RequestId}: не найден участник для пользователя {UserId} (PersonId={PersonId})", id, userId, person.Id);
+                    logger.LogWarning("Отзыв поддержки требования {RequestId}: не найден участник для пользователя {UserId} (EcoParticipantId={EcoParticipantId})", id, userId, ecoParticipant.Id);
                     return Results.BadRequest(new { error = "Не найден участник для текущего пользователя" });
                 }
 
@@ -1257,9 +1257,9 @@ public static class ShareRequestEndpoints
                 var userIdStr = http.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
                 var userId = Guid.TryParse(userIdStr, out var uid) ? uid : Guid.Empty;
                 var currentUser = await ctx.Users.FindAsync(userId);
-                var currentPerson = currentUser is not null ? await PersonHelper.FindPersonByUserIdAsync(ctx, currentUser.Id) : null;
-                var currentParticipant = currentPerson is not null
-                    ? await ctx.BoardParticipants.FirstOrDefaultAsync(p => p.LegalEntityId == leId && p.PersonId == currentPerson.Id && p.IsActive)
+                var currentEcoParticipant = currentUser is not null ? await PersonHelper.FindParticipantByUserIdAsync(ctx, currentUser.Id) : null;
+                var currentParticipant = currentEcoParticipant is not null
+                    ? await ctx.BoardParticipants.FirstOrDefaultAsync(p => p.LegalEntityId == leId && p.EcosystemParticipantId == currentEcoParticipant.Id && p.IsActive)
                     : null;
 
                 var supports = await ctx.ShareRequestSupports
@@ -1471,13 +1471,13 @@ public static class ShareRequestEndpoints
             .Select(s => s.ParticipantId)
             .ToListAsync();
 
-        var personIds = await ctx.BoardParticipants
-            .Where(p => supporterIds.Contains(p.Id) && p.PersonId != null)
-            .Select(p => p.PersonId!.Value)
+        var ecoParticipantIds = await ctx.BoardParticipants
+            .Where(p => supporterIds.Contains(p.Id) && p.EcosystemParticipantId != null)
+            .Select(p => p.EcosystemParticipantId!.Value)
             .ToListAsync();
 
-        var userIds = await ctx.Persons
-            .Where(p => personIds.Contains(p.Id) && p.UserId != null)
+        var userIds = await ctx.EcosystemParticipants
+            .Where(p => ecoParticipantIds.Contains(p.Id) && p.UserId != null)
             .Select(p => p.UserId!.Value)
             .ToListAsync();
 

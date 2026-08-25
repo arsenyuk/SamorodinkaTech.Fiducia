@@ -302,7 +302,7 @@
     public Guid UserId { get; set; }
 
     private User? _user;
-    private Person? _person;
+    private EcosystemParticipant? _person;
     private string _fullName = string.Empty;
     private string _tab = "info";
     private bool _loaded;
@@ -339,8 +339,8 @@
                 new[] { _user.LastName, _user.FirstName, _user.MiddleName }
                 .Where(s => !string.IsNullOrWhiteSpace(s)));
 
-            // Находим Person по UserId
-            _person = await DbContext.Persons
+            // Находим участника экосистемы по UserId
+            _person = await DbContext.EcosystemParticipants
                 .AsNoTracking()
                 .FirstOrDefaultAsync(p => p.UserId == _user.Id);
 
@@ -348,11 +348,11 @@
             {
                 _pepAgreement = await DbContext.PepAgreements
                     .AsNoTracking()
-                    .FirstOrDefaultAsync(a => a.PersonId == _person.Id);
+                    .FirstOrDefaultAsync(a => a.EcosystemParticipantId == _person.Id);
 
                 _independenceDeclaration = await DbContext.IndependenceDeclarations
                     .AsNoTracking()
-                    .FirstOrDefaultAsync(d => d.PersonId == _person.Id);
+                    .FirstOrDefaultAsync(d => d.EcosystemParticipantId == _person.Id);
             }
 
             // Находим сотрудников по логину участника экосистемы

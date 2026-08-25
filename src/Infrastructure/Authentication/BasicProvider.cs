@@ -44,11 +44,12 @@ public class BasicProvider : IAuthProvider
         var hasPep = false;
         if (user.IsExternal)
         {
-            var person = await _dbContext.Persons.FirstOrDefaultAsync(p => p.UserId == user.Id);
-            if (person is not null)
+            var participant = await _dbContext.EcosystemParticipants
+                .FirstOrDefaultAsync(p => p.UserId == user.Id);
+            if (participant is not null)
             {
                 hasPep = await _dbContext.PepAgreements
-                    .AnyAsync(a => a.PersonId == person.Id && a.AgreementSigned);
+                    .AnyAsync(a => a.EcosystemParticipantId == participant.Id && a.AgreementSigned);
             }
         }
 

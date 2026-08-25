@@ -13,16 +13,16 @@ public class PepAgreementConfiguration : IEntityTypeConfiguration<PepAgreement>
         builder.HasKey(a => a.Id);
         builder.Property(a => a.Id).HasColumnName("id");
 
-        builder.Property(a => a.PersonId).HasColumnName("person_id").IsRequired();
+        builder.Property(a => a.EcosystemParticipantId).HasColumnName("ecosystem_participant_id").IsRequired();
         builder.Property(a => a.AgreementSigned).HasColumnName("agreement_signed").HasDefaultValue(false);
         builder.Property(a => a.SignedAt).HasColumnName("signed_at");
         builder.Property(a => a.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("CURRENT_TIMESTAMP");
 
-        builder.HasIndex(a => a.PersonId);
+        builder.HasIndex(a => a.EcosystemParticipantId);
 
-        builder.HasOne(a => a.Person)
+        builder.HasOne(a => a.EcosystemParticipant)
             .WithMany(p => p.PepAgreements)
-            .HasForeignKey(a => a.PersonId)
+            .HasForeignKey(a => a.EcosystemParticipantId)
             .OnDelete(DeleteBehavior.Restrict);
     }
 }

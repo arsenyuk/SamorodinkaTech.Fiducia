@@ -13,7 +13,7 @@ public class IndependenceDeclarationConfiguration : IEntityTypeConfiguration<Ind
         builder.HasKey(d => d.Id);
         builder.Property(d => d.Id).HasColumnName("id");
 
-        builder.Property(d => d.PersonId).HasColumnName("person_id").IsRequired();
+        builder.Property(d => d.EcosystemParticipantId).HasColumnName("ecosystem_participant_id").IsRequired();
         builder.Property(d => d.HiddenShares).HasColumnName("hidden_shares");
         builder.Property(d => d.FamilyConnections).HasColumnName("family_connections");
         builder.Property(d => d.OtherBoards).HasColumnName("other_boards");
@@ -23,11 +23,11 @@ public class IndependenceDeclarationConfiguration : IEntityTypeConfiguration<Ind
         builder.Property(d => d.CompletedAt).HasColumnName("completed_at");
         builder.Property(d => d.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("CURRENT_TIMESTAMP");
 
-        builder.HasIndex(d => d.PersonId);
+        builder.HasIndex(d => d.EcosystemParticipantId);
 
-        builder.HasOne(d => d.Person)
+        builder.HasOne(d => d.EcosystemParticipant)
             .WithMany(p => p.IndependenceDeclarations)
-            .HasForeignKey(d => d.PersonId)
+            .HasForeignKey(d => d.EcosystemParticipantId)
             .OnDelete(DeleteBehavior.Restrict);
     }
 }
