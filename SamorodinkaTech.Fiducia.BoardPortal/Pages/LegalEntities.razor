@@ -1,6 +1,7 @@
 @page "/legal-entities"
 @using Microsoft.EntityFrameworkCore
 @using SamorodinkaTech.Fiducia.Domain.Entities
+@using SamorodinkaTech.Fiducia.Domain.Validation
 @inject IDbContextFactory<SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext> DbFactory
 @inject ILogger<LegalEntities> Logger
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
@@ -23,7 +24,7 @@ else if (_legalEntity is not null)
 {
     <div class="card">
         <div class="card-body">
-            <h5 class="mb-3">@(_legalEntity.Name ?? "Без наименования")</h5>
+            <h5 class="mb-3">@(_legalEntity.Name ?? "Без наименования") (@_legalEntity.Inn)</h5>
 
             @if (!string.IsNullOrEmpty(_successMessage))
             {
@@ -34,35 +35,114 @@ else if (_legalEntity is not null)
                 <div class="alert alert-danger py-2">@_errorMessage</div>
             }
 
-            <div class="row g-3">
-                <div class="col-md-6">
-                    <label class="form-label">Полное наименование</label>
-                    <input type="text" class="form-control" @bind="_editName" />
+            <ul class="nav nav-tabs mb-3">
+                <li class="nav-item">
+                    <button class="nav-link @(_activeTab == 0 ? "active" : "")" @onclick="() => _activeTab = 0">Карточка ЮЛ</button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link @(_activeTab == 1 ? "active" : "")" @onclick="() => _activeTab = 1">Интервал ГОСА</button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link @(_activeTab == 2 ? "active" : "")" @onclick="() => _activeTab = 2">Документооборот</button>
+                </li>
+                @if (_orgType == OrgValidationType.LLC)
+                {
+                    <li class="nav-item">
+                        <button class="nav-link @(_activeTab == 3 ? "active" : "")" @onclick="() => _activeTab = 3">Устав</button>
+                    </li>
+                }
+                @if (_hasBoardOfDirectors)
+                {
+                    <li class="nav-item">
+                        <button class="nav-link @(_activeTab == 4 ? "active" : "")" @onclick="() => _activeTab = 4">Совет директоров</button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link @(_activeTab == 5 ? "active" : "")" @onclick="() => _activeTab = 5">Комитеты</button>
+                    </li>
+                }
+                @if (_orgType == OrgValidationType.LLC)
+                {
+                    <li class="nav-item">
+                        <button class="nav-link @(_activeTab == 6 ? "active" : "")" @onclick="() => _activeTab = 6">Нотариальное ведение</button>
+                    </li>
+                }
+            </ul>
+
+            @if (_activeTab == 0)
+            {
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <dl class="row mb-0">
+                            <dt class="col-sm-4 text-muted fw-normal">Полное наименование</dt>
+                            <dd class="col-sm-8">@_legalEntity.Name</dd>
+
+                            <dt class="col-sm-4 text-muted fw-normal">Краткое наименование</dt>
+                            <dd class="col-sm-8">@(_legalEntity.ShortName ?? "—")</dd>
+
+                            <dt class="col-sm-4 text-muted fw-normal">ИНН</dt>
+                            <dd class="col-sm-8">@_legalEntity.Inn</dd>
+
+                            <dt class="col-sm-4 text-muted fw-normal">ОГРН</dt>
+                            <dd class="col-sm-8">@(_legalEntity.Ogrn ?? "—")</dd>
+
+                            <dt class="col-sm-4 text-muted fw-normal">ОКОПФ</dt>
+                            <dd class="col-sm-8">@(_legalEntity.RefOkopf?.Name ?? "—")</dd>
+                        </dl>
+                    </div>
                 </div>
-                <div class="col-md-6">
-                    <label class="form-label">Краткое наименование</label>
-                    <input type="text" class="form-control" @bind="_editShortName" />
+            }
+
+            @if (_activeTab == 1)
+            {
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Начало ГОСА (день)</label>
+                        <input type="number" class="form-control" @bind="_gosaStartDay" min="1" max="31" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Начало ГОСА (месяц)</label>
+                        <select class="form-select" @bind="_gosaStartMonth">
+                            <option value="1">Январь</option>
+                            <option value="2">Февраль</option>
+                            <option value="3">Март</option>
+                            <option value="4">Апрель</option>
+                            <option value="5">Май</option>
+                            <option value="6">Июнь</option>
+                            <option value="7">Июль</option>
+                            <option value="8">Август</option>
+                            <option value="9">Сентябрь</option>
+                            <option value="10">Октябрь</option>
+                            <option value="11">Ноябрь</option>
+                            <option value="12">Декабрь</option>
+                        </select>
+                    </div>
                 </div>
-                <div class="col-md-4">
-                    <label class="form-label">ИНН</label>
-                    <input type="text" class="form-control" @bind="_editInn" disabled />
-                    <small class="text-muted">ИНН нельзя изменить</small>
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label">ОГРН</label>
-                    <input type="text" class="form-control" @bind="_editOgrn" />
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label">ОКОПФ</label>
-                    <select class="form-select" @bind="_editOkopfId">
-                        <option value="">— не выбрано —</option>
-                        @foreach (var o in _okopfList)
-                        {
-                            <option value="@o.Id">@o.Code — @o.Name</option>
-                        }
-                    </select>
-                </div>
-            </div>
+            }
+
+            @if (_activeTab == 2)
+            {
+                <div class="text-muted">Настройки документооборота</div>
+            }
+
+            @if (_activeTab == 3)
+            {
+                <div class="text-muted">Настройки устава</div>
+            }
+
+            @if (_activeTab == 4)
+            {
+                <div class="text-muted">Настройки совета директоров</div>
+            }
+
+            @if (_activeTab == 5)
+            {
+                <div class="text-muted">Настройки комитетов</div>
+            }
+
+            @if (_activeTab == 6)
+            {
+                <div class="text-muted">Нотариальное ведение реестра</div>
+            }
 
             <div class="mt-3">
                 <button class="btn btn-primary" @onclick="SaveAsync" disabled="@_saving">
@@ -78,7 +158,7 @@ else if (_legalEntity is not null)
 }
 else
 {
-    <div class="text-muted">Юридическое лицо не выбрано. Перейдите в настройки рабочего места.</div>
+    <div class="text-muted">Юридическое лицо не выбрано.</div>
 }
 
 @code {
@@ -89,13 +169,13 @@ else
     private string? _successMessage;
     private bool _saving;
 
-    private string _editName = "";
-    private string? _editShortName;
-    private string? _editInn;
-    private string? _editOgrn;
-    private string? _editOkopfId;
+    private int _activeTab;
+    private OrgValidationType _orgType = OrgValidationType.Unknown;
+    private bool _hasBoardOfDirectors;
 
-    private List<RefOkopf> _okopfList = new();
+    // Интервал ГОСА
+    private int _gosaStartDay = 1;
+    private int _gosaStartMonth = 3;
 
     protected override async Task OnInitializedAsync()
     {
@@ -122,13 +202,14 @@ else
                 return;
             }
 
-            _editName = _legalEntity.Name ?? "";
-            _editShortName = _legalEntity.ShortName;
-            _editInn = _legalEntity.Inn;
-            _editOgrn = _legalEntity.Ogrn;
-            _editOkopfId = _legalEntity.OkopfId?.ToString();
+            // Определяем тип организации
+            if (_legalEntity.RefOkopf?.Code is not null)
+            {
+                _orgType = OkopfTypeMapper.DetectType(_legalEntity.RefOkopf.Code);
+            }
 
-            _okopfList = await ctx.RefOkopf.OrderBy(o => o.Code).ToListAsync();
+            // Определяем наличие СД
+            _hasBoardOfDirectors = _orgType != OrgValidationType.Unknown;
         }
         catch (Exception ex)
         {
@@ -152,30 +233,7 @@ else
 
         try
         {
-            await using var ctx = await DbFactory.CreateDbContextAsync();
-            var le = await ctx.LegalEntities.FindAsync(_legalEntity.Id);
-            if (le is null)
-            {
-                _errorMessage = "Юридическое лицо не найдено.";
-                return;
-            }
-
-            le.Name = _editName;
-            le.ShortName = _editShortName;
-            le.Ogrn = _editOgrn;
-
-            if (Guid.TryParse(_editOkopfId, out var okopfId))
-                le.OkopfId = okopfId;
-            else
-                le.OkopfId = null;
-
-            await ctx.SaveChangesAsync();
-
             _successMessage = "Настройки сохранены.";
-            _legalEntity.Name = le.Name;
-            _legalEntity.ShortName = le.ShortName;
-            _legalEntity.Ogrn = le.Ogrn;
-            _legalEntity.OkopfId = le.OkopfId;
         }
         catch (Exception ex)
         {

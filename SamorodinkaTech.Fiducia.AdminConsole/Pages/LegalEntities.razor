@@ -1,13 +1,9 @@
 @page "/legal-entities"
-@using Microsoft.AspNetCore.Components.Forms
 @using Microsoft.EntityFrameworkCore
-@using SamorodinkaTech.Fiducia.Domain.Models
+@using SamorodinkaTech.Fiducia.Domain.Entities
+@using SamorodinkaTech.Fiducia.Domain.Enums
 @inject IDbContextFactory<SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext> DbFactory
-@inject SamorodinkaTech.Fiducia.Domain.Interfaces.ILegalEntityGosaIntervalService GosaSvc
 @inject ILogger<LegalEntities> Logger
-@inject SamorodinkaTech.Fiducia.Domain.Interfaces.IFileStorage FileStorage
-@inject IHttpContextAccessor HttpContextAccessor
-@inject HttpClient Http
 @attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "SYS_ADMIN")]
 
 <h3>Юридическое лицо</h3>
@@ -34,7 +30,6 @@
                             <th>Наименование</th>
                             <th>Краткое</th>
                             <th>ИНН</th>
-                            <th>ОГРН</th>
                             <th>ОКОПФ</th>
                         </tr>
                     </thead>
@@ -43,10 +38,9 @@
                     {
                         <tr class="table-row-hover" style="cursor:pointer" @onclick="async () => await SelectEntity(le)">
                             <td>@le.Name</td>
-                            <td>@le.ShortName</td>
+                            <td>@(le.ShortName ?? "—")</td>
                             <td>@le.Inn</td>
-                            <td>@le.Ogrn</td>
-                            <td>@(le.RefOkopf is null ? string.Empty : $"{le.RefOkopf.Code} · {le.RefOkopf.Name}")</td>
+                            <td>@(le.RefOkopf is null ? "" : $"{le.RefOkopf.Code} · {le.RefOkopf.Name}")</td>
                         </tr>
                     }
                     </tbody>
@@ -55,6 +49,40 @@
             </div>
         }
     </div>
+
+    <div class="mt-3">
+        <button class="btn btn-success" @onclick="ShowCreateForm">+ Создать ЮЛ</button>
+    </div>
+
+    @if (_showCreateForm)
+    {
+        <div class="card mt-3">
+            <div class="card-body">
+                <h5>Новое юридическое лицо</h5>
+                <div class="row g-3">
+                    <div class="col-md-8">
+                        <label class="form-label">Наименование *</label>
+                        <input type="text" class="form-control" @bind="_createName" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">ИНН *</label>
+                        <input type="text" class="form-control" @bind="_createInn" maxlength="12" />
+                    </div>
+                </div>
+                @if (!string.IsNullOrEmpty(_createError))
+                {
+                    <div class="text-danger mt-2">@_createError</div>
+                }
+                <div class="mt-3">
+                    <button class="btn btn-primary" @onclick="CreateLegalEntity" disabled="@(_createLoading || string.IsNullOrWhiteSpace(_createName) || string.IsNullOrWhiteSpace(_createInn))">
+                        @if (_createLoading) { <span class="spinner-border spinner-border-sm me-1"></span> }
+                        Создать
+                    </button>
+                    <button class="btn btn-secondary ms-2" @onclick="() => _showCreateForm = false">Отмена</button>
+                </div>
+            </div>
+        </div>
+    }
 }
 
 @if (selectedEntity is not null)
@@ -68,44 +96,13 @@
                 </div>
             </div>
 
-            <div class="mb-3">
-                <span class="badge bg-info fs-6">@EntityTypeLabel</span>
-            </div>
-
             <ul class="nav nav-tabs mb-3">
                 <li class="nav-item">
                     <button class="nav-link @(_activeTab == 0 ? "active" : "")" @onclick="() => _activeTab = 0">Карточка ЮЛ</button>
                 </li>
                 <li class="nav-item">
-                    <button class="nav-link @(_activeTab == 2 ? "active" : "")" @onclick="() => _activeTab = 2">Интервал @GosaLabel</button>
+                    <button class="nav-link @(_activeTab == 1 ? "active" : "")" @onclick="LoadEmployeesTab">Привязки учётных записей</button>
                 </li>
-                <li class="nav-item">
-                    <button class="nav-link @(_activeTab == 3 ? "active" : "")" @onclick="() => _activeTab = 3">Документооборот</button>
-                </li>
-                @if (_orgType == OrgType.LLC)
-                {
-                    <li class="nav-item">
-                        <button class="nav-link @(_activeTab == 4 ? "active" : "")" @onclick="() => _activeTab = 4">Устав</button>
-                    </li>
-                }
-                @if (editHasBoardOfDirectors)
-                {
-                    <li class="nav-item">
-                        <button class="nav-link @(_activeTab == 5 ? "active" : "")" @onclick="() => _activeTab = 5">Совет директоров</button>
-                    </li>
-                    <li class="nav-item">
-                        <button class="nav-link @(_activeTab == 6 ? "active" : "")" @onclick="() => _activeTab = 6">Комитеты</button>
-                    </li>
-                }
-                @if (_orgType == OrgType.LLC)
-                {
-                    <li class="nav-item">
-                        <button class="nav-link @(_activeTab == 7 ? "active" : "")" @onclick="() => _activeTab = 7">Нотариальное ведение</button>
-                    </li>
-                    <li class="nav-item">
-                        <button class="nav-link @(_activeTab == 8 ? "active" : "")" @onclick="OnDocumentAccessTabClick">Доступ к документам</button>
-                    </li>
-                }
             </ul>
 
             @if (_activeTab == 0)
@@ -130,755 +127,82 @@
                         </dl>
                     </div>
                 </div>
-            }  @* end of _activeTab == 0 *@
-
-            @if (_activeTab == 2)
-            {
-                <div class="mb-3">
-                    <div class="row g-3 align-items-end">
-                        <div class="col-auto">
-                            <label class="form-label">Начало @GosaLabel</label>
-                            <div class="d-flex gap-1">
-                                <select class="form-select" style="width:80px" @bind="gosaStartDay" disabled="@(!gosaIsPjsc)">
-                                    @for (int d = 1; d <= 31; d++)
-                                    {
-                                        <option value="@d">@d</option>
-                                    }
-                                </select>
-                                <select class="form-select" style="width:100px" @bind="gosaStartMonth" disabled="@(!gosaIsPjsc)">
-                                    <option value="3">Март</option>
-                                    <option value="4">Апрель</option>
-                                    <option value="5">Май</option>
-                                    <option value="6">Июнь</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="col-auto">
-                            <label class="form-label">Завершение @GosaLabel</label>
-                            <div class="d-flex gap-1">
-                                <select class="form-select" style="width:80px" @bind="gosaEndDay" disabled="@(!gosaIsPjsc)">
-                                    @for (int d = 1; d <= 31; d++)
-                                    {
-                                        <option value="@d">@d</option>
-                                    }
-                                </select>
-                                <select class="form-select" style="width:100px" @bind="gosaEndMonth" disabled="@(!gosaIsPjsc)">
-                                    <option value="3">Март</option>
-                                    <option value="4">Апрель</option>
-                                    <option value="5">Май</option>
-                                    <option value="6">Июнь</option>
-                                </select>
-                            </div>
-                        </div>
-                        @if (gosaIsPjsc)
-                        {
-                            <div class="col-auto align-self-center">
-                                <span class="text-muted small">Допустимый диапазон: 01.03 – 30.06 (<a href="/board-law/47">ст. 47 208-ФЗ</a>)</span>
-                            </div>
-                        }
-                        else if (_orgType == OrgType.LLC)
-                        {
-                            <div class="col-auto align-self-center">
-                                <span class="text-muted small">Для ООО интервал фиксирован: 01.03 – 30.04 (<a href="/board-law/article-14fz-34">ст. 34 14-ФЗ</a>)</span>
-                            </div>
-                        }
-                        else if (_orgType == OrgType.NJSC)
-                        {
-                            <div class="col-auto align-self-center">
-                                <span class="text-muted small">Для НАО интервал фиксирован: 01.03 – 30.06 (<a href="/board-law/47">п. 5 ст. 47 208-ФЗ</a>)</span>
-                            </div>
-                        }
-                        <div class="col-auto">
-                            @if (!string.IsNullOrEmpty(gosaError))
-                            {
-                                <span class="text-danger small">@gosaError</span>
-                            }
-                        </div>
-                    </div>
-                </div>
-            }  @* end of _activeTab == 2 *@
-
-            @if (_activeTab == 3)
-            {
-                <div class="mb-3">
-                    <div class="form-check" @onclick="() => _editDocumentFlow = SamorodinkaTech.Fiducia.Domain.Enums.DocumentFlowType.Paper">
-                        <input class="form-check-input" type="radio" name="docFlow"
-                               checked="@(_editDocumentFlow == SamorodinkaTech.Fiducia.Domain.Enums.DocumentFlowType.Paper)">
-                        <label class="form-check-label">Бумажный документооборот</label>
-                    </div>
-                    <div class="form-check" @onclick="() => _editDocumentFlow = SamorodinkaTech.Fiducia.Domain.Enums.DocumentFlowType.Mixed">
-                        <input class="form-check-input" type="radio" name="docFlow"
-                               checked="@(_editDocumentFlow == SamorodinkaTech.Fiducia.Domain.Enums.DocumentFlowType.Mixed)">
-                        <label class="form-check-label">Смешанный документооборот (бумажный и ЮЗЭДО)</label>
-                    </div>
-                    <div class="form-check">
-                        <input class="form-check-input" type="radio" name="docFlow" value="2"
-                               disabled>
-                        <label class="form-check-label text-muted">Юридически значимый электронный документооборот (ЮЗЭДО)</label>
-                    </div>
-                    <div class="text-muted small mt-2">
-                        В связи с особенностями текущего законодательства выбор только электронного документооборота
-                        (без бумажного) невозможен.
-                    </div>
-                </div>
-            }  @* end of _activeTab == 3 *@
-
-            @if (_activeTab == 5)
-            {
-                <fieldset class="border rounded p-3 mb-3">
-                    <legend class="float-none w-auto px-2 mb-0">Допустимые формы голосования</legend>
-                    <div class="d-flex gap-4 flex-wrap">
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="editInPersonAllowed" checked disabled>
-                            <label class="form-check-label" for="editInPersonAllowed">
-                                Очное голосование
-                            </label>
-                            <div class="text-muted small">Допускается на заседаниях</div>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="editAbsenteeAllowed" @bind="_editAbsenteeAllowed">
-                            <label class="form-check-label" for="editAbsenteeAllowed">
-                                Заочное голосование
-                            </label>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="editMixedAllowed" @bind="_editMixedAllowed">
-                            <label class="form-check-label" for="editMixedAllowed">
-                                Смешанное голосование
-                            </label>
-                        </div>
-                    </div>
-                </fieldset>
-
-                <fieldset class="border rounded p-3 mb-3">
-                    <legend class="float-none w-auto px-2 mb-0">Пороги голосования</legend>
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <label class="form-label">Кворум (%)</label>
-                            <input type="number" class="form-control" @bind="_editQuorumPercent" min="50" max="100">
-                            @if (_orgType != OrgType.LLC)
-                            {
-                            <small class="text-muted">Не менее 50% от числа избранных членов (<a href="/board-law/68">п. 2 ст. 68 208-ФЗ</a>)</small>
-                            }
-                        </div>
-                        @if (_orgType != OrgType.LLC)
-                        {
-                        <div class="col-md-6">
-                            <label class="form-label">Квалифицированное большинство (%)</label>
-                            <input type="number" class="form-control" @bind="_editQualifiedMajorityPercent" min="51" max="100">
-                            <small class="text-muted">Для приостановления полномочий ЕИО и иных особых решений (<a href="/board-law/69">п. 3 ст. 69 208-ФЗ</a>)</small>
-                        </div>
-                        }
-                    </div>
-                </fieldset>
-
-                <fieldset class="border rounded p-3 mb-3">
-                    <legend class="float-none w-auto px-2 mb-0">Особые правила</legend>
-                    <div class="form-check mb-2">
-                        <input class="form-check-input" type="checkbox" id="editChairTiebreaker" @bind="_editChairTiebreaker">
-                        <label class="form-check-label" for="editChairTiebreaker">
-                            Решающий голос председателя при равенстве голосов
-                        </label>
-                    </div>
-                    @if (_orgType != OrgType.LLC)
-                    {
-                    <div class="form-check mb-2">
-                        <input class="form-check-input" type="checkbox" id="editAbsenteeOpinions" @bind="_editAbsenteeOpinions">
-                        <label class="form-check-label" for="editAbsenteeOpinions">
-                            Учёт письменных мнений отсутствующих членов СД
-                        </label>
-                        <div class="text-muted small">Если предусмотрено уставом (<a href="/board-law/68">п. 1 ст. 68 208-ФЗ</a>)</div>
-                    </div>
-                    }
-                    @if (_orgType != OrgType.LLC)
-                    {
-                    <div class="form-check mb-2">
-                        <input class="form-check-input" type="checkbox" id="editSpotByElection" @bind="_editSpotByElection">
-                        <label class="form-check-label" for="editSpotByElection">
-                            Точечное доизбрание членов СД взамен выбывших
-                        </label>
-                        <div class="text-muted small">Если предусмотрено уставом (<a href="/board-law/66">п. 6 ст. 66 208-ФЗ</a>)</div>
-                    </div>
-                    }
-                    <div class="row g-2 align-items-center mb-2">
-                        <div class="col-auto">
-                            <label class="col-form-label">Предельный срок первого заседания СД (дней от ОСА)</label>
-                        </div>
-                        <div class="col-auto">
-                            <input type="number" class="form-control" @bind="_editFirstMeetingDeadlineDays" min="1" max="183" style="width:90px">
-                        </div>
-                        <div class="col-auto">
-                            <small class="text-muted">По умолчанию 30 дней</small>
-                        </div>
-                    </div>
-                </fieldset>
-
-                <div class="row g-3">
-                    <div class="col-md-6">
-                        <label class="form-label">Положение о Совете директоров (PDF)</label>
-                        <FileUpload Accept=".pdf"
-                                    MaxSizeBytes="52428800"
-                                    FileType="REGULATION"
-                                    Token="@_jwtToken"
-                                    OnFileUploaded="OnBoardRegulationFileUploaded"
-                                    OnUploadError="OnBoardRegulationUploadError" />
-                        @if (_customBoardRegulationDocName != null && _customBoardRegulationDocId.HasValue)
-                        {
-                            <a href="/api/files/@_customBoardRegulationDocId/download" target="_blank"
-                               class="text-success small">📄 @_customBoardRegulationDocName</a>
-                        }
-                    </div>
-                </div>
-            }  @* end of _activeTab == 5 *@
-
-            @if (_activeTab == 6)
-            {
-                var isPjsc = _orgType == OrgType.PJSC;
-                @if (_orgType != OrgType.LLC)
-                {
-                <div class="form-check mb-2">
-                    <input class="form-check-input" type="checkbox" id="editCommitteesMandatory"
-                           checked="@(isPjsc || _editCommitteesMandatory)"
-                           disabled="@isPjsc"
-                           @onchange="args => { if (!isPjsc) _editCommitteesMandatory = (bool)(args.Value ?? false); }">
-                    <label class="form-check-label" for="editCommitteesMandatory">
-                        Комитеты обязательны
-                    </label>
-                    <div class="text-muted small">Для ПАО обязателен комитет по аудиту (<a href="/board-law/64">п. 3 ст. 64 208-ФЗ</a>)</div>
-                </div>
-                }
-                <div class="form-check mb-2">
-                    <input class="form-check-input" type="checkbox" id="editCommitteesDefinedByDocuments" @bind="_editCommitteesDefinedByDocuments">
-                    <label class="form-check-label" for="editCommitteesDefinedByDocuments">
-                        Комитеты определены документами Общества
-                    </label>
-                </div>
-                @if (_editCommitteesDefinedByDocuments)
-                {
-                <div class="mt-2">
-                    @if (_customCommitteeRegulationDocName != null && _customCommitteeRegulationDocId.HasValue && !_showCommitteeRegulationUpload)
-                    {
-                        <div class="d-flex align-items-center gap-2">
-                            <a href="/api/files/@_customCommitteeRegulationDocId/download" target="_blank"
-                               class="btn btn-sm btn-outline-success">📄 @_customCommitteeRegulationDocName</a>
-                            <button class="btn btn-sm btn-outline-secondary" @onclick="() => _showCommitteeRegulationUpload = true">Заменить</button>
-                        </div>
-                    }
-                    else
-                    {
-                        <FileUpload Accept=".pdf"
-                                    MaxSizeBytes="52428800"
-                                    FileType="REGULATION"
-                                    Token="@_jwtToken"
-                                    OnFileUploadedInfo="OnCommitteeRegulationFileUploadedInfo"
-                                    OnUploadError="OnCommitteeRegulationUploadError" />
-                    }
-                </div>
-                <div class="d-flex align-items-center gap-4 mb-2">
-                    <div class="form-check mb-0 flex-shrink-0" style="width:540px">
-                        <input class="form-check-input" type="checkbox" id="editMaxCommitteesPerMemberDefined"
-                               @bind="_editMaxCommitteesPerMemberDefined"
-                               @bind:after="OnMaxPerMemberDefinedChanged">
-                        <label class="form-check-label" for="editMaxCommitteesPerMemberDefined">
-                            Определено максимальное число комитетов для одного члена СД
-                        </label>
-                    </div>
-                    @if (_editMaxCommitteesPerMemberDefined)
-                    {
-                        <div class="d-flex align-items-center gap-2">
-                            <label class="form-label mb-0 text-nowrap">Макс. число комитетов на одного члена СД</label>
-                            <input type="number" class="form-control form-control-sm" @bind="_editMaxCommitteesPerMember" min="1" style="width:80px">
-                        </div>
-                    }
-                </div>
-                <div class="d-flex align-items-center gap-4 mb-2">
-                    <div class="form-check mb-0 flex-shrink-0" style="width:540px">
-                        <input class="form-check-input" type="checkbox" id="editMaxCommitteesHeadedPerMemberDefined"
-                               @bind="_editMaxCommitteesHeadedPerMemberDefined"
-                               @bind:after="OnMaxHeadedDefinedChanged">
-                        <label class="form-check-label" for="editMaxCommitteesHeadedPerMemberDefined">
-                            Определено макс. число возглавляемых комитетов для одного члена СД
-                        </label>
-                    </div>
-                    @if (_editMaxCommitteesHeadedPerMemberDefined)
-                    {
-                        <div class="d-flex align-items-center gap-2">
-                            <label class="form-label mb-0 text-nowrap">Макс. число возглавляемых комитетов</label>
-                            <input type="number" class="form-control form-control-sm" @bind="_editMaxCommitteesHeadedPerMember" min="1" style="width:80px">
-                        </div>
-                    }
-                </div>
-                <div class="d-flex align-items-center gap-4 mb-2">
-                    <div class="form-check mb-0 flex-shrink-0" style="width:540px">
-                        <input class="form-check-input" type="checkbox" id="editMinCommitteeMembersDefined"
-                               @bind="_editMinCommitteeMembersDefined"
-                               @bind:after="OnMinMembersDefinedChanged">
-                        <label class="form-check-label" for="editMinCommitteeMembersDefined">
-                            Определено мин. количество членов в комитете
-                        </label>
-                    </div>
-                    @if (_editMinCommitteeMembersDefined)
-                    {
-                        <div class="d-flex align-items-center gap-2">
-                            <label class="form-label mb-0 text-nowrap">Мин. количество членов в комитете</label>
-                            <input type="number" class="form-control form-control-sm" @bind="_editMinCommitteeMembers" min="2" style="width:80px">
-                        </div>
-                    }
-                </div>
-                <div class="d-flex align-items-center gap-4 mb-2">
-                    <div class="form-check mb-0 flex-shrink-0" style="width:540px">
-                        <input class="form-check-input" type="checkbox" id="editCommitteeQuorumDefined"
-                               @bind="_editCommitteeQuorumDefined"
-                               @bind:after="OnQuorumDefinedChanged">
-                        <label class="form-check-label" for="editCommitteeQuorumDefined">
-                            Определен кворум заседания комитета
-                        </label>
-                    </div>
-                    @if (_editCommitteeQuorumDefined)
-                    {
-                        <div class="d-flex align-items-center gap-2">
-                            <label class="form-label mb-0 text-nowrap">Кворум заседания комитета</label>
-                            <div class="d-flex align-items-center gap-1">
-                                <input type="number" class="form-control form-control-sm" @bind="_editCommitteeQuorumPercent" min="1" max="100" style="width:80px">
-                                <span class="text-muted">%</span>
-                            </div>
-                        </div>
-                    }
-                </div>
-                <div class="d-flex align-items-center gap-4 mb-2">
-                    <div class="form-check mb-0 flex-shrink-0" style="width:540px">
-                        <input class="form-check-input" type="checkbox" id="editJointCommitteeQuorumDefined"
-                               @bind="_editJointCommitteeQuorumDefined"
-                               @bind:after="OnJointQuorumDefinedChanged">
-                        <label class="form-check-label" for="editJointCommitteeQuorumDefined">
-                            Определен кворум совместного заседания комитетов
-                        </label>
-                    </div>
-                    @if (_editJointCommitteeQuorumDefined)
-                    {
-                        <div class="d-flex align-items-center gap-2">
-                            <label class="form-label mb-0 text-nowrap">Кворум совместного заседания</label>
-                            <div class="d-flex align-items-center gap-1">
-                                <input type="number" class="form-control form-control-sm" @bind="_editJointCommitteeQuorumPercent" min="1" max="100" style="width:80px">
-                                <span class="text-muted">%</span>
-                            </div>
-                        </div>
-                    }
-                </div>
-                }
-            }  @* end of _activeTab == 6 *@
-
-            @if (_activeTab == 7)
-            {
-                <div class="row g-3">
-                    <div class="col-md-6">
-                        <div class="card">
-                            <div class="card-body">
-                                <h5 class="card-title">Ведение списка участников через нотариат</h5>
-                                @if (_extraSettings?.NotaryListApproved == true)
-                                {
-                                    <div class="alert alert-success py-2 mb-3">
-                                        <strong>Статус:</strong> утверждено
-                                        <br />
-                                        <strong>Дата решения:</strong> @_extraSettings.NotaryListDecisionDate
-                                    </div>
-                                }
-                                else
-                                {
-                                    <div class="alert alert-secondary py-2 mb-3">
-                                        <strong>Статус:</strong> не утверждено
-                                    </div>
-                                    <p class="text-muted small">
-                                        Утверждение ведения списка через нотариат осуществляется решением ОСУ
-                                        через повестку ОСУ в Board Portal.
-                                    </p>
-                                }
-                            </div>
-                        </div>
-                    </div>
-                </div>
             }
 
-            @if (_activeTab == 8)
+            @if (_activeTab == 1)
             {
+                <h6>Сотрудники и учётные записи</h6>
+
+                @if (_employees.Count > 0)
+                {
+                    <table class="table table-sm table-striped mb-3">
+                        <thead>
+                            <tr>
+                                <th>ФИО</th>
+                                <th>Должность</th>
+                                <th>Учётная запись</th>
+                                <th style="width:60px"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var e in _employees)
+                            {
+                                <tr>
+                                    <td>@e.PersonFullName</td>
+                                    <td>@(e.Position ?? "—")</td>
+                                    <td>@(e.UserLogin ?? "—")</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-danger" @onclick="() => RemoveEmployee(e.Id)" title="Удалить">✕</button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                }
+                else
+                {
+                    <div class="text-muted mb-3">Сотрудники не добавлены.</div>
+                }
+
                 <div class="card">
                     <div class="card-body">
-                        <h5 class="card-title">Настройки доступности документов</h5>
-                        <p class="text-muted mb-3">
-                            Укажите, какие типы документов могут предоставляться в электронном виде для данного ЮЛ.
-                        </p>
-
-                        @if (_documentAccessLoading)
-                        {
-                            <div class="text-center py-3">
-                                <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                        <h6>Добавить сотрудника</h6>
+                        <div class="row g-2">
+                            <div class="col-md-3">
+                                <input type="text" class="form-control form-control-sm" @bind="_newFirstName" placeholder="Фамилия" />
                             </div>
-                        }
-                        else
-                        {
-                            @if (_documentAccessGroups.Count > 0)
-                            {
-                                @foreach (var group in _documentAccessGroups)
-                                {
-                                    <div class="mb-3">
-                                        <h6 class="text-muted mb-2">@group.Name</h6>
-                                        @foreach (var doc in group.Documents)
-                                        {
-                                            <div class="form-check ms-3">
-                                                <input class="form-check-input" type="checkbox"
-                                                       checked="@(_documentAccessSettings.TryGetValue(doc.Code, out var available) && available)"
-                                                       @onchange="e => ToggleDocumentAccess(doc.Code, e.Value)" />
-                                                <label class="form-check-label">
-                                                    @doc.Name
-                                                    @if (doc.IsElectronicAvailable)
-                                                    {
-                                                        <span class="badge bg-success ms-1">доступно в электронном виде по умолчанию</span>
-                                                    }
-                                                </label>
-                                            </div>
-                                        }
-                                    </div>
-                                }
-                            }
-                            else
-                            {
-                                <div class="text-muted">Нет данных о типах документов</div>
-                            }
-
-                            <div class="mt-3">
-                                <button class="btn btn-primary" @onclick="SaveDocumentAccess" disabled="@_isSavingDocumentAccess">
-                                    @if (_isSavingDocumentAccess)
-                                    {
-                                        <span class="spinner-border spinner-border-sm me-1" role="status"></span>
-                                    }
-                                    Сохранить настройки
-                                </button>
+                            <div class="col-md-3">
+                                <input type="text" class="form-control form-control-sm" @bind="_newLastName" placeholder="Имя" />
                             </div>
-                        }
-                    </div>
-                </div>
-            }
-
-            @if (_activeTab == 4)
-            {
-                <div class="mb-3">
-                    @if (_orgType == OrgType.LLC)
-                    {
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <div class="d-flex align-items-center gap-2 flex-nowrap">
-                                <label class="form-label mb-0 fw-bold text-nowrap">Тип устава</label>
-                                <select class="form-select form-select-sm flex-grow-1" @bind:get="_editCharterNumber" @bind:set="OnCharterNumberSet">
-                                    <option value="">Нетиповой (индивидуальный) устав</option>
-                                    @for (int i = 1; i <= 36; i++)
+                            <div class="col-md-3">
+                                <input type="text" class="form-control form-control-sm" @bind="_newMiddleName" placeholder="Отчество" />
+                            </div>
+                            <div class="col-md-3">
+                                <input type="text" class="form-control form-control-sm" @bind="_newPosition" placeholder="Должность" />
+                            </div>
+                        </div>
+                        <div class="row g-2 mt-2">
+                            <div class="col-md-6">
+                                <select class="form-select form-select-sm" @bind="_newUserId">
+                                    <option value="">— выбрать учётную запись —</option>
+                                    @foreach (var u in _availableUsers)
                                     {
-                                        var num = i.ToString("D2");
-                                        <option value="@num">Типовой устав № @num</option>
+                                        <option value="@u.Id">@u.Login (@u.LastName @u.FirstName)</option>
                                     }
                                 </select>
                             </div>
-                        </div>
-                    </div>
-                    <div class="mt-2">
-                        @if (_showCharterUpload || _customCharterDocId is null)
-                        {
-                            <FileUpload Accept=".pdf"
-                                        MaxSizeBytes="52428800"
-                                        FileType="CHARTER"
-                                        Token="@_jwtToken"
-                                        OnFileUploadedInfo="OnCharterFileUploadedInfo"
-                                        OnUploadError="OnCharterUploadError" />
-                        }
-                    </div>
-                    }
-
-                    @if (!string.IsNullOrEmpty(_editCharterNumber) && _charterSettings is not null)
-                    {
-                        <div class="mt-3">
-                            <div class="d-flex align-items-center justify-content-between mb-2">
-                                <h6 class="mb-0">Настройки типового устава № @_editCharterNumber</h6>
-                                <a href="@($"/charters/{_editCharterNumber}.pdf")" target="_blank" class="btn btn-sm btn-outline-secondary">
-                                    📄 Открыть текст типового устава № @_editCharterNumber (PDF)
-                                </a>
-                            </div>
-                            <div class="alert alert-info small py-2">
-                                Настройки определены типовым уставом и не могут быть изменены. Чтобы изменить любое положение — перейдите на индивидуальный устав.
-                            </div>
-                            <dl class="row">
-                                <dt class="col-sm-5 text-muted fw-normal">1. Исполнительный орган</dt>
-                                <dd class="col-sm-7">@_charterSettings.ExecutiveBodyLabel</dd>
-
-                                <dt class="col-sm-5 text-muted fw-normal">2. Выход участника из общества</dt>
-                                <dd class="col-sm-7">@_charterSettings.ExitLabel</dd>
-
-                                <dt class="col-sm-5 text-muted fw-normal">3. Переход доли к участникам</dt>
-                                <dd class="col-sm-7">@_charterSettings.TransferToParticipantsLabel</dd>
-
-                                <dt class="col-sm-5 text-muted fw-normal">4. Переход доли к третьим лицам</dt>
-                                <dd class="col-sm-7">@_charterSettings.TransferToThirdPartiesLabel</dd>
-
-                                <dt class="col-sm-5 text-muted fw-normal">5. Преимущественное право</dt>
-                                <dd class="col-sm-7">@_charterSettings.PreemptiveRightLabel</dd>
-
-                                <dt class="col-sm-5 text-muted fw-normal">6. Переход доли наследникам</dt>
-                                <dd class="col-sm-7">@_charterSettings.InheritanceLabel</dd>
-
-                                <dt class="col-sm-5 text-muted fw-normal">7. Подтверждение решений</dt>
-                                <dd class="col-sm-7">@_charterSettings.ProtocolConfirmationLabel</dd>
-                            </dl>
-                        </div>
-                    }
-                    else if (string.IsNullOrEmpty(_editCharterNumber))
-                    {
-                        <div class="mt-3">
-                            <div class="d-flex align-items-center justify-content-between mb-2">
-                                <h6 class="mb-0">Параметры нетипового (индивидуального) устава</h6>
-                                <div class="d-flex align-items-center gap-2">
-                                    @if (_customCharterDocName != null && _customCharterDocId.HasValue)
-                                    {
-                                        <a href="/api/files/@_customCharterDocId/download" target="_blank"
-                                           class="btn btn-sm btn-outline-success">📄 @_customCharterDocName</a>
-                                        <button class="btn btn-sm btn-outline-secondary" @onclick="() => _showCharterUpload = true">Заменить</button>
-                                    }
-                                </div>
-                            </div>
-                            <div class="alert alert-info small py-2">
-                                <strong>Насыщенным шрифтом</strong> выделены заголовки параметров, влияющих на бизнес-процессы системы. Подробнее — в <a href="/docs/business-processes/standard-charter-impact.html" target="_blank">документации</a>.
-                            </div>
-                            <div class="accordion" id="charterAccordion">
-                                @* --- Секция 1: Общие --- *@
-                                <div class="accordion-item">
-                                    <h2 class="accordion-header">
-                                        <button class="accordion-button" type="button" data-bs-toggle="collapse"
-                                                data-bs-target="#charterGeneral" aria-expanded="true">
-                                            Общие
-                                        </button>
-                                    </h2>
-                                    <div id="charterGeneral" class="accordion-collapse collapse show"
-                                         data-bs-parent="#charterAccordion">
-                                        <div class="accordion-body">
-                                            <div class="row g-3">
-                                                <div class="col-md-4">
-                                                    <label class="form-label fw-bold">Исполнительный орган</label>
-                                                    <select class="form-select" @bind="_executiveBodyStr">
-                                                        <option value="A">A — Генеральный директор</option>
-                                                        <option value="B">B — Каждый участник — директор</option>
-                                                        <option value="C">C — Все участники совместно</option>
-                                                    </select>
-                                                    <div class="form-text">Тип исполнительного органа: A — гендиректор, B — каждый участник = директор, C — все совместно. Определяет процедуру избрания и подписания документов.</div>
-                                                </div>
-                                                @if (_customExecutiveBody == 'A')
-                                                {
-                                                    <div class="col-md-4">
-                                                        <label class="form-label fw-bold">Срок полномочий</label>
-                                                        <select class="form-select" @bind="_gdTermStr">
-                                                            @foreach (var term in _gdTerms)
-                                                            {
-                                                                <option value="@term.Id">@term.Name</option>
-                                                            }
-                                                        </select>
-                                                        <div class="form-text">Срок полномочий генерального директора ООО. Определяет период, на который избирается ГД.</div>
-                                                    </div>
-                                                }
-                                            </div>
-
-                                            <div class="row g-3 mt-2">
-                                                <div class="col-md-4">
-                                                    <label class="form-label">Выход участника из общества</label>
-                                                    <select class="form-select" @bind="_exitAllowedStr">
-                                                        <option value="False">Запрещён</option>
-                                                        <option value="True">Разрешён</option>
-                                                    </select>
-                                                </div>
-                                                @if (_customExitAllowed)
-                                                {
-                                                    <div class="col-md-3">
-                                                        <label class="form-label">Мин. доля для выхода, %</label>
-                                                        <input type="number" class="form-control" @bind="_customExitAllowedMinSharePercent"
-                                                               min="0" max="100" step="0.01" placeholder="Без ограничения" />
-                                                        <div class="form-text">Минимальная доля участника для права на выход. Пусто = без минимального порога.</div>
-                                                    </div>
-                                                    <div class="col-md-3">
-                                                        <label class="form-label">Макс. доля для выхода, %</label>
-                                                        <input type="number" class="form-control" @bind="_customExitAllowedMaxSharePercent"
-                                                               min="0" max="100" step="0.01" placeholder="Без ограничения" />
-                                                        <div class="form-text">Максимальная доля участника для права на выход. Пусто = без максимального порога.</div>
-                                                    </div>
-                                                    <div class="col-md-6">
-                                                        <label class="form-label">Условия выхода</label>
-                                                        <input type="text" class="form-control" @bind="_customExitConditionDescription"
-                                                               placeholder="Например: по истечении 2 лет с момента вступления" />
-                                                        <div class="form-text">Условия выхода из общества (свободный текст). Пусто = без дополнительных условий.</div>
-                                                    </div>
-                                                    <div class="col-md-4">
-                                                        <div class="form-check mt-2">
-                                                            <input class="form-check-input" type="checkbox" id="exitRequiresUnanimousOsu"
-                                                                   @bind="_customExitRequiresUnanimousOsu">
-                                                            <label class="form-check-label fw-bold" for="exitRequiresUnanimousOsu">
-                                                                Требуется единогласное решение ОСУ
-                                                            </label>
-                                                        </div>
-                                                        <div class="form-text">Выход требует единогласного решения общего собрания участников. Заявление направляется на повестку ОСУ, а не ГД напрямую.</div>
-                                                    </div>
-                                                }
-                                            </div>
-
-                                            <div class="row g-3 mt-2">
-                                                <div class="col-md-4">
-                                                    <label class="form-label fw-bold">Преимущественное право покупки</label>
-                                                    <select class="form-select" @bind="_preemptiveStr">
-                                                        <option value="True">Есть</option>
-                                                        <option value="False">Нет</option>
-                                                    </select>
-                                                    <div class="form-text">Приоритет участников перед третьими лицами при покупке доли. Запускает обязательную рассылку оферт с дедлайном 30 дней.</div>
-                                                </div>
-                                                <div class="col-md-4">
-                                                    <label class="form-label fw-bold">Подтверждение протокола ОСУ</label>
-                                                    <select class="form-select" @bind="_protocolConfirmationMethodId">
-                                                        @foreach (var m in _protocolConfirmationMethods)
-                                                        {
-                                                            <option value="@m.Id">@m.Name</option>
-                                                        }
-                                                    </select>
-                                                    <div class="form-text">Способ подтверждения протоколов ОСУ. Определяет процесс оформления собрания.</div>
-                                                </div>
-                                            </div>
-
-                                            <div class="row g-3 mt-2">
-                                                <div class="col-md-4">
-                                                    <label class="form-label fw-bold">Обязательный аудит</label>
-                                                    <select class="form-select" @bind="_mandatoryAuditStr">
-                                                        <option value="True">Да</option>
-                                                        <option value="False">Нет</option>
-                                                    </select>
-                                                    <div class="form-text">Обязательный аудит годовой отчётности — выручка &gt;800 млн или активы &gt;400 млн (ст. 5 307-ФЗ). Влияет на состав задач при подготовке к ООСУ/ВОСУ.</div>
-                                                </div>
-                                                <div class="col-md-4">
-                                                    <label class="form-label fw-bold">Ревизионная комиссия</label>
-                                                    <select class="form-select" @bind="_hasRevisionStr">
-                                                        <option value="True">Да</option>
-                                                        <option value="False">Нет</option>
-                                                    </select>
-                                                    <div class="form-text">Наличие ревизионной комиссии (ревизора) — &gt;15 участников ООО по ст. 32 14-ФЗ. Влияет на состав задач при подготовке к ООСУ/ВОСУ.</div>
-                                                </div>
-                                                <div class="col-md-4">
-                                                    <label class="form-label fw-bold">Совет директоров</label>
-                                                    <select class="form-select" @bind="_hasBoardOfDirectorsStr">
-                                                        <option value="False">Нет</option>
-                                                        <option value="True">Да</option>
-                                                    </select>
-                                                    <div class="form-text">Наличие Совета директоров. Для ООО — только по нетиповому уставу. Определяет доступность вкладки «Совет директоров».</div>
-                                                </div>
-                                            </div>
-
-                                            @if (_customHasBoardOfDirectors && _orgType == OrgType.LLC)
-                                            {
-                                                <div class="row g-3 mt-2">
-                                                    <div class="col-md-6">
-                                                        <label class="form-label fw-bold">СД принимает решение о созыве ОСУ</label>
-                                                        <div class="form-check">
-                                                            <input class="form-check-input" type="checkbox" id="boardDecidesConveningOsu"
-                                                                   @bind="_boardDecidesConveningOsu">
-                                                            <label class="form-check-label" for="boardDecidesConveningOsu">
-                                                                Требования участников рассматривает СД
-                                                            </label>
-                                                        </div>
-                                                        <div class="form-text">Если включено, требования участников о созыве/включении вопросов в повестку ОСУ рассматривает СД, а не ГД. ГД полностью исключается из процесса (ст. 35 14-ФЗ).</div>
-                                                    </div>
-                                                </div>
-                                            }
-
-                                            @if (_orgType == OrgType.LLC && string.IsNullOrEmpty(_editCharterNumber))
-                                            {
-                                                <div class="row g-3 mt-2">
-                                                    <div class="col-md-4">
-                                                        <label class="form-label fw-bold">Порог для требования ВОСУ, %</label>
-                                                        <input type="number" class="form-control" @bind="_customVosuThresholdPercent"
-                                                               min="0.01" max="10" step="0.01" placeholder="10 (по умолчанию)" />
-                                                        <div class="form-text">Порог доли участника для требования о созыве ВОСУ. По умолчанию 10% (одна десятая от общего числа голосов, ст. 35 14-ФЗ). Устав может установить пониженный порог (не более 10%).</div>
-                                                    </div>
-                                                </div>
-                                            }
-                                        </div>
-                                    </div>
-                                </div>
-
-                                @* --- Секция 2: Требуется согласие участников --- *@
-                                <div class="accordion-item">
-                                    <h2 class="accordion-header">
-                                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
-                                                data-bs-target="#charterConsent">
-                                            Требуется согласие участников
-                                        </button>
-                                    </h2>
-                                    <div id="charterConsent" class="accordion-collapse collapse"
-                                         data-bs-parent="#charterAccordion">
-                                        <div class="accordion-body">
-                                            <div class="row g-3">
-                                                <div class="col-md-4">
-                                                    <label class="form-label fw-bold">Переход доли к участникам</label>
-                                                    <select class="form-select" @bind="_transferParticipantsStr">
-                                                        <option value="False">С согласия участников</option>
-                                                        <option value="True">Без согласия участников</option>
-                                                    </select>
-                                                    <div class="form-text">Требуется ли согласие участников при переходе доли между участниками. Влияет на голосование ОСУ.</div>
-                                                </div>
-                                                <div class="col-md-4">
-                                                    <label class="form-label fw-bold">Переход доли к третьим лицам</label>
-                                                    <select class="form-select" @bind="_transferThirdStr">
-                                                        <option value="False">С согласия участников</option>
-                                                        <option value="True">Без согласия участников</option>
-                                                        <option value="FORBIDDEN">Запрещён</option>
-                                                    </select>
-                                                    <div class="form-text">Требуется ли согласие участников при продаже доли третьему лицу. Влияет на голосование ОСУ.</div>
-                                                </div>
-                                                <div class="col-md-4">
-                                                    <label class="form-label fw-bold">Переход доли наследникам</label>
-                                                    <select class="form-select" @bind="_inheritanceStr">
-                                                        <option value="False">С согласия участников</option>
-                                                        <option value="True">Без согласия участников</option>
-                                                    </select>
-                                                    <div class="form-text">Требуется ли согласие участников при переходе доли наследникам. Влияет на голосование ОСУ.</div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    }
-                </div>
-            }  @* end of _activeTab == 4 *@
-
-            <div class="d-flex gap-2">
-                <button class="btn btn-primary" @onclick="Save" disabled="@(!CanSave)">Сохранить</button>
-                <button class="btn btn-outline-danger" @onclick="ConfirmDelete">Очистить</button>
-            </div>
-
-            @if (_showDeleteConfirm)
-            {
-                <div class="modal d-block" tabindex="-1" style="background-color:rgba(0,0,0,0.5)">
-                    <div class="modal-dialog modal-dialog-centered">
-                        <div class="modal-content">
-                            <div class="modal-header">
-                                <h5 class="modal-title">Подтверждение очистки</h5>
-                                <button type="button" class="btn-close" @onclick="() => _showDeleteConfirm = false"></button>
-                            </div>
-                            <div class="modal-body">
-                                <p>Очистить конфигурацию юридического лица <strong>@selectedEntity?.Name</strong> (@selectedEntity?.Inn)?</p>
-                                <p class="text-muted mb-0">Будут сброшены: устав, email-настройки, правила голосования в СД. ОСА, Совет директоров и организационные мероприятия не затрагиваются.</p>
-                            </div>
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-secondary" @onclick="() => _showDeleteConfirm = false">Отмена</button>
-                                <button type="button" class="btn btn-danger" @onclick="Delete" disabled="@_deleteLoading">
-                                    @if (_deleteLoading)
-                                    {
-                                        <span class="spinner-border spinner-border-sm me-1" role="status"></span>
-                                    }
-                                    Очистить
+                            <div class="col-md-6">
+                                <button class="btn btn-sm btn-primary" @onclick="AddEmployee"
+                                        disabled="@(_addLoading || string.IsNullOrWhiteSpace(_newFirstName) || string.IsNullOrWhiteSpace(_newLastName))">
+                                    @if (_addLoading) { <span class="spinner-border spinner-border-sm me-1"></span> }
+                                    Добавить
                                 </button>
                             </div>
                         </div>
+                        @if (!string.IsNullOrEmpty(_addError))
+                        {
+                            <div class="text-danger mt-2 small">@_addError</div>
+                        }
                     </div>
                 </div>
             }
@@ -886,265 +210,33 @@
     </div>
 }
 
-@if (!string.IsNullOrEmpty(saveError))
-{
-    <div class="alert alert-danger mt-3">@saveError</div>
-}
-@if (!string.IsNullOrEmpty(saveSuccess))
-{
-    <div class="alert alert-success mt-3">@saveSuccess</div>
-}
-
 @code {
+    // ── Поиск ──────────────────────────────────────────────────────
     private string _searchInput = string.Empty;
-    private int limit = 15;
     private List<LegalEntityVm>? searchResults;
-
-    // Запрещённые расширения файлов (BDR-011)
-    private static readonly HashSet<string> _blockedExtensions = new(StringComparer.OrdinalIgnoreCase)
-    {
-        "exe", "dll", "com", "msi", "bat", "cmd", "scr", "pif",
-        "vbs", "vbe", "js", "jse", "ws", "wsh", "wsf",
-        "ps1", "psm1", "psd1", "psc1",
-        "sh", "bash", "csh", "ksh", "zsh",
-        "app", "bin", "command", "cpl", "hta", "inf", "ins", "isp",
-        "job", "lnk", "mdb", "msc", "msp",
-        "reg", "rgs", "scf", "snap",
-        "application", "gadget", "paf",
-        "xbap", "xll", "xnk",
-        "zip", "rar", "7z", "tar", "gz", "bz2", "xz", "zst",
-        "iso", "img", "vhd", "vhdx", "vmdk", "ova", "ovf",
-        "cab", "dmg", "pak", "war", "ear",
-        "sys", "drv", "diagnostics", "msix", "appx",
-        "widget", "webpnp"
-    };
-
     private LegalEntityVm? selectedEntity;
-    private string editPosition = "Генеральный директор";
-    private string editFullName = string.Empty;
-    private bool editHasBoardOfDirectors;
-    private bool _editCommitteesMandatory;
-    private bool _editCommitteesDefinedByDocuments;
-    private bool _editMaxCommitteesPerMemberDefined;
-    private int? _editMaxCommitteesPerMember;
-    private bool _editMaxCommitteesHeadedPerMemberDefined;
-    private int? _editMaxCommitteesHeadedPerMember;
-    private bool _editMinCommitteeMembersDefined;
-    private int? _editMinCommitteeMembers;
-    private bool _editCommitteeQuorumDefined;
-    private int? _editCommitteeQuorumPercent;
-    private bool _editJointCommitteeQuorumDefined;
-    private int? _editJointCommitteeQuorumPercent;
-    private OrgType _orgType = OrgType.Unknown;
+    private const int limit = 50;
 
-    private int gosaStartMonth = 3;
-    private int gosaStartDay = 1;
-    private int gosaEndMonth = 6;
-    private int gosaEndDay = 30;
-    private bool gosaIsPjsc;
-
-    private DateOnly GosaStart
-    {
-        get
-        {
-            var maxDay = DateTime.DaysInMonth(DateTime.UtcNow.Year, gosaStartMonth);
-            return new DateOnly(DateTime.UtcNow.Year, gosaStartMonth, Math.Min(gosaStartDay, maxDay));
-        }
-    }
-
-    private DateOnly GosaEnd
-    {
-        get
-        {
-            var maxDay = DateTime.DaysInMonth(DateTime.UtcNow.Year, gosaEndMonth);
-            return new DateOnly(DateTime.UtcNow.Year, gosaEndMonth, Math.Min(gosaEndDay, maxDay));
-        }
-    }
-    private string? gosaError;
-    private string? saveError;
-    private string? saveSuccess;
-
-    // Удаление ЮЛ
-    private bool _showDeleteConfirm;
-    private bool _deleteLoading;
-
-    // Устав
-    private string? _editCharterNumber;
-    private bool _isLoadingCharter;
-    private StandardCharterInfo? _charterSettings;
-
-    // Нетиповой устав
-    private bool _customExitAllowed;
-    private decimal? _customExitAllowedMinSharePercent;
-    private decimal? _customExitAllowedMaxSharePercent;
-    private string? _customExitConditionDescription;
-    private bool _customExitRequiresUnanimousOsu;
-    private bool _customTransferToParticipants = true;
-    private string _customTransferToThirdParties = "CONSENT";
-    private bool _customPreemptiveRight = true;
-    private bool _customInheritance = true;
-    private char _customExecutiveBody = 'A';
-    private Guid? _customProtocolConfirmationMethodId;
-    private List<SamorodinkaTech.Fiducia.Domain.Entities.RefProtocolConfirmationMethod> _protocolConfirmationMethods = new();
-    private string? _customCharterDocName;
-    private Guid? _customCharterDocId;
-    private IBrowserFile? _charterFile;
-    private bool _showCharterUpload;
-    private string? _customBoardRegulationDocName;
-    private Guid? _customBoardRegulationDocId;
-    private IBrowserFile? _boardRegulationFile;
-    private string? _customCommitteeRegulationDocName;
-    private Guid? _customCommitteeRegulationDocId;
-    private IBrowserFile? _committeeRegulationFile;
-    private bool _showCommitteeRegulationUpload;
-    private bool? _customMandatoryAudit;
-    private bool? _customHasRevisionCommission;
-
-    private bool _customHasBoardOfDirectors;
-    private bool _boardDecidesConveningOsu;
-
-    private Guid? _customGdTermId;
-    private decimal? _customVosuThresholdPercent;
-    private List<SamorodinkaTech.Fiducia.Domain.Entities.RefGdTerm> _gdTerms = new();
-
-    private string _gdTermStr
-    {
-        get => _customGdTermId?.ToString() ?? "";
-        set => _customGdTermId = string.IsNullOrEmpty(value) ? null : Guid.Parse(value);
-    }
-
-    private string _mandatoryAuditStr
-    {
-        get => (_customMandatoryAudit ?? false).ToString();
-        set => _customMandatoryAudit = string.IsNullOrEmpty(value) ? false : bool.Parse(value);
-    }
-    private string _hasRevisionStr
-    {
-        get => (_customHasRevisionCommission ?? false).ToString();
-        set => _customHasRevisionCommission = string.IsNullOrEmpty(value) ? false : bool.Parse(value);
-    }
-    private string _hasBoardOfDirectorsStr
-    {
-        get => _customHasBoardOfDirectors.ToString();
-        set => _customHasBoardOfDirectors = bool.Parse(value);
-    }
-
-    private string _executiveBodyStr
-    {
-        get => _customExecutiveBody.ToString();
-        set
-        {
-            if (!string.IsNullOrEmpty(value))
-            {
-                _customExecutiveBody = value[0];
-                if (_customExecutiveBody == 'A')
-                {
-                    if (_customGdTermId is null)
-                        _customGdTermId = _gdTerms.FirstOrDefault(t => t.Code == "5_YEARS")?.Id
-                                          ?? _gdTerms.FirstOrDefault()?.Id;
-                }
-                else
-                    _customGdTermId = null;
-            }
-        }
-    }
-
-    private string _exitAllowedStr
-    {
-        get => _customExitAllowed.ToString();
-        set => _customExitAllowed = bool.Parse(value);
-    }
-    private string _transferParticipantsStr
-    {
-        get => _customTransferToParticipants.ToString();
-        set => _customTransferToParticipants = bool.Parse(value);
-    }
-    private string _transferThirdStr
-    {
-        get => _customTransferToThirdParties;
-        set => _customTransferToThirdParties = value;
-    }
-    private string _preemptiveStr
-    {
-        get => _customPreemptiveRight.ToString();
-        set => _customPreemptiveRight = bool.Parse(value);
-    }
-    private string _inheritanceStr
-    {
-        get => _customInheritance.ToString();
-        set => _customInheritance = bool.Parse(value);
-    }
-    private string _protocolConfirmationMethodId
-    {
-        get => _customProtocolConfirmationMethodId?.ToString() ?? "";
-        set => _customProtocolConfirmationMethodId = string.IsNullOrEmpty(value) ? null : Guid.Parse(value);
-    }
-
-    private Guid? _influentialPersonId;
+    // ── Табы ───────────────────────────────────────────────────────
     private int _activeTab;
 
-    // Настройки доступности документов
-    private bool _documentAccessLoading;
-    private bool _isSavingDocumentAccess;
-    private List<DocumentAccessGroupDto> _documentAccessGroups = new();
-    private Dictionary<string, bool> _documentAccessSettings = new();
+    // ── Создание ЮЛ ───────────────────────────────────────────────
+    private bool _showCreateForm;
+    private string _createName = "";
+    private string _createInn = "";
+    private bool _createLoading;
+    private string? _createError;
 
-    // Правила голосования в СД
-    private int _editQuorumPercent = 50;
-    private int _editQualifiedMajorityPercent = 75;
-    private bool _editChairTiebreaker;
-    private bool _editAbsenteeOpinions;
-    private bool _editAbsenteeAllowed;
-    private bool _editMixedAllowed;
-    private bool _editSpotByElection;
-    private int _editFirstMeetingDeadlineDays = 30;
-    private SamorodinkaTech.Fiducia.Domain.Enums.DocumentFlowType _editDocumentFlow = SamorodinkaTech.Fiducia.Domain.Enums.DocumentFlowType.Paper;
-    private Guid? _votingRulesId;
-    private string? _jwtToken;
-
-    protected override async Task OnInitializedAsync()
-    {
-        // Получаем JWT из cookie для loopback-запросов FileUpload
-        _jwtToken = HttpContextAccessor.HttpContext?.Request.Cookies["SessionToken"];
-
-        // Авто-загрузка последнего выбранного ЮЛ при открытии страницы
-        await using var ctx = await DbFactory.CreateDbContextAsync();
-        _gdTerms = await ctx.RefGdTerms.OrderBy(t => t.SortOrder).ToListAsync();
-        _protocolConfirmationMethods = await ctx.RefProtocolConfirmationMethods.OrderBy(t => t.SortOrder).ToListAsync();
-        var workplace = await ctx.CurrentWorkplaces.FirstOrDefaultAsync();
-        Guid? targetId = workplace?.LastSelectedLegalEntityId;
-
-        if (targetId is null || targetId == Guid.Empty)
-            targetId = await ctx.LegalEntities.OrderBy(x => x.Name).Select(x => x.Id).FirstOrDefaultAsync();
-
-        if (targetId is not null && targetId != Guid.Empty)
-        {
-            var le = await ctx.LegalEntities
-                .Where(x => x.Id == targetId.Value)
-                .Select(x => new LegalEntityVm
-                {
-                    Id = x.Id,
-                    Name = x.Name,
-                    ShortName = x.ShortName,
-                    Inn = x.Inn,
-                    Ogrn = x.Ogrn,
-                    RefOkopf = x.RefOkopf != null ? new OkopfVm { Code = x.RefOkopf.Code, Name = x.RefOkopf.Name } : null
-                })
-                .FirstOrDefaultAsync();
-
-            if (le != null)
-                await SelectEntity(le);
-        }
-    }
-
-    private void ShowSearch()
-    {
-        selectedEntity = null;
-        _searchInput = string.Empty;
-        searchResults = null;
-        saveError = null;
-        saveSuccess = null;
-    }
+    // ── Сотрудники ─────────────────────────────────────────────────
+    private List<EmployeeDto> _employees = new();
+    private List<UserVm> _availableUsers = new();
+    private string _newFirstName = "";
+    private string _newLastName = "";
+    private string? _newMiddleName;
+    private string? _newPosition;
+    private string? _newUserId;
+    private bool _addLoading;
+    private string? _addError;
 
     private void OnSearchKeyDown(KeyboardEventArgs e)
     {
@@ -1164,28 +256,29 @@
         {
             await using var ctx = await DbFactory.CreateDbContextAsync();
             var q = _searchInput.Trim();
-            searchResults = await ctx.ExtSparkCompanies
+            searchResults = await ctx.LegalEntities
+                .Include(le => le.RefOkopf)
                 .Where(le =>
-                    (le.FullName != null && EF.Functions.ILike(le.FullName, $"%{q}%")) ||
+                    (le.Name != null && EF.Functions.ILike(le.Name, $"%{q}%")) ||
                     (le.ShortName != null && EF.Functions.ILike(le.ShortName, $"%{q}%")) ||
                     (le.Inn != null && EF.Functions.ILike(le.Inn, $"%{q}%")) ||
                     (le.Ogrn != null && EF.Functions.ILike(le.Ogrn, $"%{q}%")))
-                .OrderBy(le => le.FullName)
+                .OrderBy(le => le.Name)
                 .Take(limit)
                 .Select(le => new LegalEntityVm
                 {
                     Id = le.Id,
-                    Name = le.FullName,
+                    Name = le.Name,
                     ShortName = le.ShortName,
                     Inn = le.Inn,
                     Ogrn = le.Ogrn,
-                    RefOkopf = le.OkopfCode != null ? new OkopfVm { Code = le.OkopfCode, Name = le.OkopfName } : null
+                    RefOkopf = le.RefOkopf != null ? new OkopfVm { Code = le.RefOkopf.Code, Name = le.RefOkopf.Name } : null
                 })
                 .ToListAsync();
         }
         catch (Exception ex)
         {
-            Logger.LogWarning(ex, "Ошибка поиска ЮЛ по запросу '{Query}'", _searchInput);
+            Logger.LogWarning(ex, "Ошибка поиска ЮЛ");
             searchResults = null;
         }
     }
@@ -1194,991 +287,238 @@
     {
         selectedEntity = le;
         searchResults = null;
-
-        await using var ctx = await DbFactory.CreateDbContextAsync();
-
-        // Если ЮЛ найдено через СПАРК — находим или создаём запись в legal_entities
-        if (!string.IsNullOrEmpty(le.Inn))
-        {
-            var existingLe = await ctx.LegalEntities.FirstOrDefaultAsync(x => x.Inn == le.Inn);
-            if (existingLe is null)
-            {
-                // Ищем ОКОПФ по коду
-                Guid? okopfId = null;
-                if (!string.IsNullOrEmpty(le.RefOkopf?.Code))
-                {
-                    var okopf = await ctx.RefOkopf.FirstOrDefaultAsync(o => o.Code == le.RefOkopf.Code);
-                    okopfId = okopf?.Id;
-                }
-
-                existingLe = new SamorodinkaTech.Fiducia.Domain.Entities.LegalEntity
-                {
-                    Id = Guid.NewGuid(),
-                    Name = le.Name ?? le.Inn,
-                    ShortName = le.ShortName,
-                    Inn = le.Inn,
-                    Ogrn = le.Ogrn,
-                    OkopfId = okopfId
-                };
-                ctx.LegalEntities.Add(existingLe);
-                await ctx.SaveChangesAsync();
-
-                // Обновляем ID в selectedEntity для дальнейшей работы
-                le.Id = existingLe.Id;
-            }
-            else
-            {
-                // Используем существующую запись
-                le.Id = existingLe.Id;
-            }
-        }
-
-        // Загружаем руководителя (CurrentWorkplace) для выбранного ЮЛ
-        var ip = await ctx.CurrentWorkplaces.FirstOrDefaultAsync();
-        if (ip != null)
-        {
-            _influentialPersonId = ip.Id;
-            editPosition = ip.Position ?? "Генеральный директор";
-            editFullName = ip.FullName ?? string.Empty;
-        }
-        else
-        {
-            _influentialPersonId = null;
-            editPosition = "Генеральный директор";
-            editFullName = string.Empty;
-        }
-
-        // Определяем тип организации
-        await ResolveOrgTypeAsync(le.Id);
-        editHasBoardOfDirectors = _orgType != OrgType.Unknown;
-
-        // Загружаем ГОСА
-        await LoadGosaWindowAsync(le.Id);
-
-        // Загружаем правила голосования в СД (индивидуальные для ЮЛ)
-        await LoadVotingRulesAsync(le.Id);
-
-        // Загружаем настройки комитетов
-        await LoadCommitteesSettingsAsync();
-
-        // Загружаем настройки устава
-        await LoadCharterSettings(le.Id);
-
-        // Загружаем доп. настройки (нотариальное ведение реестра)
-        await LoadExtraSettingsAsync(le.Id);
-
-        // Для ООО — наличие СД определяется уставом
-        if (_orgType == OrgType.LLC)
-            editHasBoardOfDirectors = string.IsNullOrEmpty(_editCharterNumber) && _customHasBoardOfDirectors;
-
-        saveError = null;
-        saveSuccess = null;
-
-        StateHasChanged();
+        _activeTab = 0;
+        await LoadEmployeesAsync();
     }
 
-    private bool CanSave
-        => selectedEntity is not null
-           && string.IsNullOrEmpty(gosaError);
-
-    private string OrgTypeLabel => _orgType switch
+    private void ShowSearch()
     {
-        OrgType.LLC => "ООО",
-        OrgType.NJSC => "непубличного АО",
-        OrgType.PJSC => "ПАО",
-        _ => "данного типа общества"
-    };
+        selectedEntity = null;
+        _searchInput = string.Empty;
+        searchResults = null;
+    }
 
-    private string GosaLabel => _orgType switch
+    private void ShowCreateForm()
     {
-        OrgType.LLC => "ООСУ",
-        _ => "ГОСА"
-    };
+        _showCreateForm = true;
+        _createError = null;
+    }
 
-    private string EntityTypeLabel => selectedEntity?.RefOkopf is null
-        ? "ОКОПФ не указан"
-        : $"{selectedEntity.RefOkopf.Code} — {selectedEntity.RefOkopf.Name}";
-
-    private async Task Save()
+    private async Task CreateLegalEntity()
     {
-        if (selectedEntity is null) return;
-        saveError = null;
-        saveSuccess = null;
-
-        // Запоминаем предыдущее значение для обработки изменения крыжика
-        bool wasBoardDecidesConveningOsu = false;
-        await using (var ctxCheck = await DbFactory.CreateDbContextAsync())
-        {
-            var existingCharter = await ctxCheck.LegalEntityCharters
-                .FirstOrDefaultAsync(x => x.LegalEntityId == selectedEntity.Id);
-            wasBoardDecidesConveningOsu = existingCharter?.BoardDecidesConveningOsu ?? false;
-        }
-
-        Logger.LogDebug("[Save] TransferToThird={Transfer}, PreemptiveRight={Preemptive}, CanSave={CanSave}, gosaError={GosaError}",
-            _customTransferToThirdParties, _customPreemptiveRight, CanSave, gosaError);
-
-        // Серверная валидация (BDR‑008) — вызывается первой, до любых операций с БД
-        Logger.LogDebug("Серверная валидация ЮЛ {LegalEntityId} ({LegalEntityName})",
-            selectedEntity.Id, selectedEntity.Name);
-
-        var validationModel = new SamorodinkaTech.Fiducia.Domain.Validation.LegalEntitySaveValidationModel
-        {
-            OkopfCode = selectedEntity.RefOkopf?.Code,
-            HasBoardOfDirectors = editHasBoardOfDirectors,
-            GosaWindowStart = GosaStart,
-            GosaWindowEnd = GosaEnd,
-            Position = editPosition,
-            FullName = editFullName,
-            StandardCharterNumber = _editCharterNumber
-        };
-        var validation = SamorodinkaTech.Fiducia.Domain.Validation.LegalEntityValidator.Validate(validationModel);
-        if (!validation.IsValid)
-        {
-            Logger.LogWarning("Валидация не пройдена для ЮЛ {LegalEntityId} ({LegalEntityName}): {Errors}",
-                selectedEntity.Id, selectedEntity.Name, string.Join("; ", validation.Errors));
-            saveError = string.Join(" ", validation.Errors);
-            return;
-        }
+        _createLoading = true;
+        _createError = null;
 
         try
         {
             await using var ctx = await DbFactory.CreateDbContextAsync();
 
-            // Сохраняем руководителя
-            if (_influentialPersonId.HasValue)
+            // Проверка уникальности ИНН
+            if (await ctx.LegalEntities.AnyAsync(le => le.Inn == _createInn))
             {
-                var ip = await ctx.CurrentWorkplaces.FirstOrDefaultAsync(x => x.Id == _influentialPersonId.Value);
-                if (ip != null)
-                {
-                    ip.FullName = string.IsNullOrWhiteSpace(editFullName) ? string.Empty : editFullName.Trim();
-                    ip.Position = string.IsNullOrWhiteSpace(editPosition) ? null : editPosition.Trim();
-                    ip.LastSelectedLegalEntityId = selectedEntity.Id;
-                }
-            }
-            else
-            {
-                // Создаём запись руководителя, если её ещё нет
-                var ip = new SamorodinkaTech.Fiducia.Domain.Entities.CurrentWorkplace
-                {
-                    Id = Guid.NewGuid(),
-                    FullName = string.IsNullOrWhiteSpace(editFullName) ? string.Empty : editFullName.Trim(),
-                    Position = string.IsNullOrWhiteSpace(editPosition) ? null : editPosition.Trim(),
-                    LastSelectedLegalEntityId = selectedEntity.Id
-                };
-                ctx.CurrentWorkplaces.Add(ip);
-                _influentialPersonId = ip.Id;
-            }
-
-            // Сохраняем настройки СД
-            if (editHasBoardOfDirectors)
-            {
-                var settings = await ctx.LegalEntityBoardSettings.FirstOrDefaultAsync();
-                if (settings is null)
-                {
-                    settings = new SamorodinkaTech.Fiducia.Domain.Entities.LegalEntityBoardSettings { Id = Guid.NewGuid() };
-                    ctx.LegalEntityBoardSettings.Add(settings);
-                }
-
-                // ГОСА
-                var leForGosa = await ctx.LegalEntities.Include(x => x.RefOkopf).FirstOrDefaultAsync(x => x.Id == selectedEntity.Id);
-                if (leForGosa != null)
-                {
-                    var isPao = GosaSvc.IsPjsc(leForGosa.RefOkopf?.Code);
-                    if (isPao)
-                    {
-                        if (!GosaSvc.ValidateForOkopf(leForGosa.RefOkopf?.Code, GosaStart, GosaEnd))
-                        {
-                            saveError = "Недопустимый интервал ГОСА для данной ОПФ";
-                            return;
-                        }
-                        settings.GosaWindowStart = GosaStart;
-                        settings.GosaWindowEnd = GosaEnd;
-                    }
-                    else
-                    {
-                        var (defStart, defEnd) = GosaSvc.GetWindowForOkopf(leForGosa.RefOkopf?.Code);
-                        settings.GosaWindowStart = defStart;
-                        settings.GosaWindowEnd = defEnd;
-                    }
-                }
-
-                settings.CommitteesMandatory = _orgType == OrgType.PJSC || _editCommitteesMandatory;
-                settings.CommitteesDefinedByDocuments = _editCommitteesDefinedByDocuments;
-                settings.MaxCommitteesPerMemberDefined = _editMaxCommitteesPerMemberDefined;
-                settings.MaxCommitteesPerMember = _editMaxCommitteesPerMemberDefined ? _editMaxCommitteesPerMember : null;
-                settings.MaxCommitteesHeadedPerMemberDefined = _editMaxCommitteesHeadedPerMemberDefined;
-                settings.MaxCommitteesHeadedPerMember = _editMaxCommitteesHeadedPerMemberDefined ? _editMaxCommitteesHeadedPerMember : null;
-                settings.MinCommitteeMembersDefined = _editMinCommitteeMembersDefined;
-                settings.MinCommitteeMembers = _editMinCommitteeMembersDefined ? _editMinCommitteeMembers : null;
-                settings.CommitteeQuorumDefined = _editCommitteeQuorumDefined;
-                settings.CommitteeQuorumPercent = _editCommitteeQuorumDefined ? _editCommitteeQuorumPercent : null;
-                settings.JointCommitteeQuorumDefined = _editJointCommitteeQuorumDefined;
-                settings.JointCommitteeQuorumPercent = _editJointCommitteeQuorumDefined ? _editJointCommitteeQuorumPercent : null;
-
-                // Валидация настроек комитетов
-                if (_editMaxCommitteesPerMemberDefined && _editMaxCommitteesPerMember is not > 0)
-                { saveError = "Укажите максимальное число комитетов для одного члена СД"; return; }
-                if (_editMaxCommitteesHeadedPerMemberDefined && _editMaxCommitteesHeadedPerMember is not > 0)
-                { saveError = "Укажите максимальное число возглавляемых комитетов для одного члена СД"; return; }
-                if (_editMinCommitteeMembersDefined && _editMinCommitteeMembers is not >= 2)
-                { saveError = "Минимальное количество членов в комитете должно быть не менее 2"; return; }
-                if (_editCommitteeQuorumDefined && (_editCommitteeQuorumPercent is not > 0 || _editCommitteeQuorumPercent > 100))
-                { saveError = "Кворум комитета должен быть от 1 до 100%"; return; }
-                if (_editJointCommitteeQuorumDefined && (_editJointCommitteeQuorumPercent is not > 0 || _editJointCommitteeQuorumPercent > 100))
-                { saveError = "Кворум совместного заседания должен быть от 1 до 100%"; return; }
-
-            }
-
-            // Сохраняем правила голосования в СД (вне зависимости от editHasBoardOfDirectors)
-            if (_editQuorumPercent < 50)
-            {
-                saveError = "Кворум не может быть менее 50% (п. 2 ст. 68 208-ФЗ)";
+                _createError = $"ЮЛ с ИНН {_createInn} уже существует.";
                 return;
             }
-            var votingRules = await ctx.LegalEntityVotingRules
-                .FirstOrDefaultAsync(x => x.LegalEntityId == selectedEntity.Id);
-            if (votingRules is null)
+
+            var le = new LegalEntity
             {
-                votingRules = new SamorodinkaTech.Fiducia.Domain.Entities.LegalEntityVotingRules
+                Id = Guid.NewGuid(),
+                Name = _createName,
+                Inn = _createInn
+            };
+
+            ctx.LegalEntities.Add(le);
+            await ctx.SaveChangesAsync();
+
+            selectedEntity = new LegalEntityVm
+            {
+                Id = le.Id,
+                Name = le.Name,
+                Inn = le.Inn
+            };
+
+            _showCreateForm = false;
+            _activeTab = 0;
+            await LoadEmployeesAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Ошибка создания ЮЛ");
+            _createError = "Не удалось создать ЮЛ.";
+        }
+        finally
+        {
+            _createLoading = false;
+        }
+    }
+
+    private async Task LoadEmployeesTab()
+    {
+        _activeTab = 1;
+        await LoadEmployeesAsync();
+    }
+
+    private async Task LoadEmployeesAsync()
+    {
+        if (selectedEntity is null) return;
+
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+
+            // Загружаем сотрудников ЮЛ
+            _employees = await ctx.Employees
+                .Include(e => e.Person)
+                .Include(e => e.LegalEntity)
+                .Where(e => e.LegalEntityId == selectedEntity.Id)
+                .Select(e => new EmployeeDto
                 {
-                    Id = Guid.NewGuid(),
-                    LegalEntityId = selectedEntity.Id,
-                    QuorumPercent = _editQuorumPercent,
-                    ChairTiebreaker = _editChairTiebreaker,
-                    AbsenteeOpinions = _editAbsenteeOpinions,
-                    AbsenteeAllowed = _editAbsenteeAllowed,
-                    MixedAllowed = _editMixedAllowed,
-                    DocumentFlow = _editDocumentFlow,
-                    QualifiedMajorityPercent = _editQualifiedMajorityPercent,
-                    SpotByElection = _editSpotByElection,
-                    FirstMeetingDeadlineDays = _editFirstMeetingDeadlineDays
-                };
-                ctx.LegalEntityVotingRules.Add(votingRules);
-            }
-            else
-            {
-                votingRules.QuorumPercent = _editQuorumPercent;
-                votingRules.ChairTiebreaker = _editChairTiebreaker;
-                votingRules.AbsenteeOpinions = _editAbsenteeOpinions;
-                votingRules.QualifiedMajorityPercent = _editQualifiedMajorityPercent;
-                votingRules.AbsenteeAllowed = _editAbsenteeAllowed;
-                votingRules.MixedAllowed = _editMixedAllowed;
-                votingRules.DocumentFlow = _editDocumentFlow;
-                votingRules.SpotByElection = _editSpotByElection;
-                votingRules.FirstMeetingDeadlineDays = _editFirstMeetingDeadlineDays;
-            }
+                    Id = e.Id,
+                    PersonFullName = e.Person != null
+                        ? string.Join(" ", new[] { e.Person.LastName, e.Person.FirstName, e.Person.MiddleName }.Where(p => !string.IsNullOrWhiteSpace(p)))
+                        : "—",
+                    Position = e.Position,
+                    UserId = null,
+                    UserLogin = null
+                })
+                .ToListAsync();
 
-            // Сохраняем параметры устава (для ООО — типовой/нетиповой, для АО — всегда нетиповой)
-            if (_orgType == OrgType.LLC || _orgType == OrgType.PJSC || _orgType == OrgType.NJSC)
-            {
-                var leForCharter = await ctx.LegalEntities.FirstOrDefaultAsync(x => x.Id == selectedEntity.Id);
-                if (leForCharter != null)
+            // Загружаем доступные учётные записи
+            _availableUsers = await ctx.Users
+                .Select(u => new UserVm
                 {
-                    // Типовой устав — только для ООО
-                    if (_orgType == OrgType.LLC)
-                    {
-                        if (!string.IsNullOrEmpty(_editCharterNumber))
-                        {
-                            var charter = await ctx.RefStandardCharters
-                                .FirstOrDefaultAsync(x => x.Number == _editCharterNumber);
-                            leForCharter.StandardCharterId = charter?.Id;
-                        }
-                        else
-                        {
-                            leForCharter.StandardCharterId = null;
-                        }
-                    }
+                    Id = u.Id,
+                    Login = u.Login,
+                    LastName = u.LastName,
+                    FirstName = u.FirstName
+                })
+                .OrderBy(u => u.Login)
+                .ToListAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Ошибка загрузки сотрудников для ЮЛ {LegalEntityId}", selectedEntity.Id);
+        }
+    }
 
-                    // Всегда сохраняем параметры устава (для типового — из справочника, для нетипового — из формы)
+    private async Task AddEmployee()
+    {
+        if (selectedEntity is null) return;
 
-                    // Сохраняем загруженные файлы
-                    if (_charterFile != null)
-                        _customCharterDocId = await SaveUploadedFileAsync(ctx, _charterFile);
-                    if (_boardRegulationFile != null)
-                        _customBoardRegulationDocId = await SaveUploadedFileAsync(ctx, _boardRegulationFile);
-                    if (_committeeRegulationFile != null)
-                        _customCommitteeRegulationDocId = await SaveUploadedFileAsync(ctx, _committeeRegulationFile);
+        _addLoading = true;
+        _addError = null;
 
-                    // Сбрасываем ссылки на файлы после сохранения
-                    _charterFile = null;
-                    _boardRegulationFile = null;
-                    _committeeRegulationFile = null;
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
 
-                    var charterParams = await ctx.LegalEntityCharters
-                        .FirstOrDefaultAsync(x => x.LegalEntityId == leForCharter.Id);
-                    if (charterParams == null)
-                    {
-                        charterParams = new SamorodinkaTech.Fiducia.Domain.Entities.LegalEntityCharter
-                        {
-                            LegalEntityId = leForCharter.Id
-                        };
-                        ctx.LegalEntityCharters.Add(charterParams);
-                    }
-                    charterParams.ExitAllowed = _customExitAllowed;
-                    charterParams.ExitAllowedMinSharePercent = _customExitAllowed
-                        ? _customExitAllowedMinSharePercent
-                        : null;
-                    charterParams.ExitAllowedMaxSharePercent = _customExitAllowed
-                        ? _customExitAllowedMaxSharePercent
-                        : null;
-                    charterParams.ExitConditionDescription = _customExitAllowed
-                        ? _customExitConditionDescription
-                        : null;
-                    charterParams.ExitRequiresUnanimousOsu = _customExitAllowed
-                        && _customExitRequiresUnanimousOsu;
-                    charterParams.TransferToParticipantsWithoutConsent = _customTransferToParticipants;
-                    charterParams.TransferToThirdParties = _customTransferToThirdParties;
-                    charterParams.PreemptiveRight = _customPreemptiveRight;
-                    charterParams.InheritanceWithoutConsent = _customInheritance;
-                    charterParams.ExecutiveBody = _customExecutiveBody;
-                    charterParams.ProtocolConfirmationMethodId = _customProtocolConfirmationMethodId;
-                    charterParams.CharterDocumentId = _customCharterDocId ?? charterParams.CharterDocumentId;
-                    charterParams.BoardRegulationDocumentId = _customBoardRegulationDocId ?? charterParams.BoardRegulationDocumentId;
-                    charterParams.CommitteeRegulationDocumentId = _customCommitteeRegulationDocId ?? charterParams.CommitteeRegulationDocumentId;
-                    charterParams.MandatoryAudit = _customMandatoryAudit;
-                    charterParams.HasRevisionCommission = _customHasRevisionCommission;
-                    charterParams.HasBoardOfDirectors = _customHasBoardOfDirectors;
-                    charterParams.GdTermId = _customGdTermId;
-                    charterParams.VosuThresholdPercent = _customVosuThresholdPercent;
-                    charterParams.BoardDecidesConveningOsu = _boardDecidesConveningOsu;
+            // Создаём ФЛ
+            var person = new Person
+            {
+                Id = Guid.NewGuid(),
+                LastName = _newFirstName,
+                FirstName = _newLastName,
+                MiddleName = _newMiddleName,
+                CreatedAt = DateTime.UtcNow
+            };
+            ctx.Persons.Add(person);
+
+            // Создаём сотрудника
+            var employee = new Employee
+            {
+                Id = Guid.NewGuid(),
+                PersonId = person.Id,
+                LegalEntityId = selectedEntity.Id,
+                Position = _newPosition ?? "",
+                CreatedAt = DateTime.UtcNow,
+                CreatedBy = Guid.Empty
+            };
+            ctx.Employees.Add(employee);
+
+            // Привязываем к учётной записи (если выбрана)
+            if (Guid.TryParse(_newUserId, out var userId))
+            {
+                var user = await ctx.Users.FindAsync(userId);
+                if (user is not null)
+                {
+                    user.PersonId = person.Id;
                 }
             }
 
             await ctx.SaveChangesAsync();
-            saveSuccess = "Изменения сохранены.";
-            Logger.LogDebug("[Save] SaveChangesAsync completed successfully");
 
-            // Обновляем видимость вкладки «Совет директоров» для ООО после сохранения устава
-            if (_orgType == OrgType.LLC)
-                editHasBoardOfDirectors = string.IsNullOrEmpty(_editCharterNumber) && _customHasBoardOfDirectors;
+            // Сбрасываем форму
+            _newFirstName = "";
+            _newLastName = "";
+            _newMiddleName = null;
+            _newPosition = null;
+            _newUserId = null;
 
-            // При снятии крыжика «СД созывает ОСУ» — переводим нерассмотренные требования к ГД
-            if (wasBoardDecidesConveningOsu && !_boardDecidesConveningOsu)
-            {
-                var pendingBoardReview = await ctx.ShareRequests
-                    .Where(r => r.LegalEntityId == selectedEntity.Id && r.CollectiveStatus == "BOARD_REVIEW")
-                    .ToListAsync();
-                foreach (var req in pendingBoardReview)
-                {
-                    req.CollectiveStatus = "SUBMITTED_TO_CEO";
-                    req.SubmittedToCeoAt ??= DateTime.UtcNow;
-                }
-                if (pendingBoardReview.Count > 0)
-                    await ctx.SaveChangesAsync();
-            }
+            await LoadEmployeesAsync();
         }
         catch (Exception ex)
         {
-            Logger.LogWarning(ex, "Ошибка сохранения ЮЛ");
-            saveError = ExceptionFlattener.Unwrap(ex);
-            Logger.LogDebug("[Save] saveError set to: {Error}", saveError);
-        }
-    }
-
-    private void ConfirmDelete()
-    {
-        if (selectedEntity is null) return;
-        saveError = null;
-        saveSuccess = null;
-        _showDeleteConfirm = true;
-    }
-
-    private async Task Delete()
-    {
-        if (selectedEntity is null) return;
-        _deleteLoading = true;
-        StateHasChanged();
-
-        try
-        {
-            await using var ctx = await DbFactory.CreateDbContextAsync();
-            var id = selectedEntity.Id;
-            var name = selectedEntity.Name;
-
-            // Очистка конфигурации ЮЛ (без удаления ОСА, СД и организационных мероприятий)
-            await ctx.LegalEntityCharters
-                .Where(x => x.LegalEntityId == id)
-                .ExecuteDeleteAsync();
-
-            await ctx.LegalEntityEmailSettings
-                .Where(x => x.LegalEntityId == id)
-                .ExecuteDeleteAsync();
-
-            await ctx.LegalEntityVotingRules
-                .Where(x => x.LegalEntityId == id)
-                .ExecuteDeleteAsync();
-
-            // Сброс ссылки в current_workplace
-            await ctx.CurrentWorkplaces
-                .Where(x => x.LastSelectedLegalEntityId == id)
-                .ExecuteUpdateAsync(s => s.SetProperty(x => x.LastSelectedLegalEntityId, (Guid?)null));
-
-            Logger.LogInformation("Конфигурация ЮЛ {LegalEntityId} ({LegalEntityName}) очищена", id, name);
-            saveSuccess = $"Конфигурация «{name}» очищена.";
-
-            // Сброс UI-состояния
-            _showDeleteConfirm = false;
-            selectedEntity = null;
-            _activeTab = 0;
-            _editCharterNumber = null;
-            _charterSettings = null;
-        }
-        catch (Exception ex)
-        {
-            Logger.LogWarning(ex, "Ошибка очистки конфигурации ЮЛ {LegalEntityId}", selectedEntity.Id);
-            saveError = ExceptionFlattener.Unwrap(ex);
+            Logger.LogWarning(ex, "Ошибка добавления сотрудника");
+            _addError = "Не удалось добавить сотрудника.";
         }
         finally
         {
-            _deleteLoading = false;
-            StateHasChanged();
+            _addLoading = false;
         }
     }
 
-    private static OrgType ResolveOrgTypeFromCode(string? code)
-    {
-        var normalized = new string((code ?? string.Empty).Where(char.IsDigit).ToArray());
-        return normalized switch
-        {
-            OkopfTypeMapper.PjscCode => OrgType.PJSC,
-            OkopfTypeMapper.NjscCode => OrgType.NJSC,
-            OkopfTypeMapper.LlcCode => OrgType.LLC,
-            _ => OrgType.Unknown
-        };
-    }
-
-    private async Task ResolveOrgTypeAsync(Guid legalEntityId)
+    private async Task RemoveEmployee(Guid employeeId)
     {
         try
         {
             await using var ctx = await DbFactory.CreateDbContextAsync();
-            var le = await ctx.LegalEntities.Include(x => x.RefOkopf).FirstOrDefaultAsync(x => x.Id == legalEntityId);
-            var codeRaw = le?.RefOkopf?.Code ?? string.Empty;
-            var normalized = new string(codeRaw.Where(char.IsDigit).ToArray());
-            _orgType = normalized switch
+            var employee = await ctx.Employees.FindAsync(employeeId);
+            if (employee is not null)
             {
-                OkopfTypeMapper.PjscCode => OrgType.PJSC,
-                OkopfTypeMapper.NjscCode => OrgType.NJSC,
-                OkopfTypeMapper.LlcCode => OrgType.LLC,
-                _ => OrgType.Unknown
-            };
-        }
-        catch (Exception ex)
-        {
-            Logger.LogWarning(ex, "Ошибка определения типа ЮЛ {LegalEntityId}", legalEntityId);
-        }
-    }
-
-    private async Task LoadGosaWindowAsync(Guid legalEntityId)
-    {
-        try
-        {
-            gosaError = null;
-            await using var ctx = await DbFactory.CreateDbContextAsync();
-            var le = await ctx.LegalEntities.Include(x => x.RefOkopf).FirstOrDefaultAsync(x => x.Id == legalEntityId);
-            if (le is null) { gosaError = "ЮЛ не найдено"; return; }
-            var settings = await ctx.LegalEntityBoardSettings.FirstOrDefaultAsync();
-            var (defStart, defEnd) = GosaSvc.GetWindowForOkopf(le.RefOkopf?.Code);
-            var s = settings?.GosaWindowStart ?? defStart;
-            var e = settings?.GosaWindowEnd ?? defEnd;
-            gosaStartMonth = s.Month;
-            gosaStartDay = s.Day;
-            gosaEndMonth = e.Month;
-            gosaEndDay = e.Day;
-            gosaIsPjsc = GosaSvc.IsPjsc(le.RefOkopf?.Code);
-        }
-        catch (Exception ex)
-        {
-            Logger.LogWarning(ex, "Ошибка загрузки интервала ГОСА");
-            gosaError = ExceptionFlattener.Unwrap(ex);
-        }
-    }
-
-    private void OnGosaDateChanged()
-    {
-        var isPao = gosaIsPjsc;
-        if (!isPao) { gosaError = null; return; }
-        gosaError = GosaSvc.ValidateForOkopf(null, GosaStart, GosaEnd)
-            ? null
-            : "Недопустимый интервал ГОСА для данной ОПФ";
-    }
-
-    private async Task LoadVotingRulesAsync(Guid legalEntityId)
-    {
-        try
-        {
-            await using var ctx = await DbFactory.CreateDbContextAsync();
-            var rules = await ctx.LegalEntityVotingRules
-                .FirstOrDefaultAsync(x => x.LegalEntityId == legalEntityId);
-            if (rules is not null)
-            {
-                _votingRulesId = rules.Id;
-                _editQuorumPercent = rules.QuorumPercent;
-                _editQualifiedMajorityPercent = rules.QualifiedMajorityPercent;
-                _editChairTiebreaker = rules.ChairTiebreaker;
-                _editAbsenteeOpinions = rules.AbsenteeOpinions;
-                _editAbsenteeAllowed = rules.AbsenteeAllowed;
-                _editMixedAllowed = rules.MixedAllowed;
-                _editDocumentFlow = rules.DocumentFlow;
-                _editSpotByElection = rules.SpotByElection;
-                _editFirstMeetingDeadlineDays = rules.FirstMeetingDeadlineDays;
-            }
-            else
-            {
-                _votingRulesId = null;
-                _editQuorumPercent = 50;
-                _editQualifiedMajorityPercent = 75;
-                _editChairTiebreaker = false;
-                _editAbsenteeOpinions = false;
-                _editAbsenteeAllowed = false;
-                _editMixedAllowed = false;
-                _editDocumentFlow = SamorodinkaTech.Fiducia.Domain.Enums.DocumentFlowType.Paper;
-                _editSpotByElection = false;
-                _editFirstMeetingDeadlineDays = 30;
+                ctx.Employees.Remove(employee);
+                await ctx.SaveChangesAsync();
+                await LoadEmployeesAsync();
             }
         }
         catch (Exception ex)
         {
-            Logger.LogWarning(ex, "Ошибка загрузки правил голосования для ЮЛ {LegalEntityId}", legalEntityId);
+            Logger.LogWarning(ex, "Ошибка удаления сотрудника {EmployeeId}", employeeId);
         }
     }
 
-    private async Task LoadCommitteesSettingsAsync()
+    // ── DTO ────────────────────────────────────────────────────────
+
+    private record LegalEntityVm
     {
-        try
-        {
-            await using var ctx = await DbFactory.CreateDbContextAsync();
-            var settings = await ctx.LegalEntityBoardSettings.FirstOrDefaultAsync();
-            _editCommitteesMandatory = settings?.CommitteesMandatory ?? false;
-            _editCommitteesDefinedByDocuments = settings?.CommitteesDefinedByDocuments ?? false;
-            _editMaxCommitteesPerMemberDefined = settings?.MaxCommitteesPerMemberDefined ?? false;
-            _editMaxCommitteesPerMember = settings?.MaxCommitteesPerMember;
-            _editMaxCommitteesHeadedPerMemberDefined = settings?.MaxCommitteesHeadedPerMemberDefined ?? false;
-            _editMaxCommitteesHeadedPerMember = settings?.MaxCommitteesHeadedPerMember;
-            _editMinCommitteeMembersDefined = settings?.MinCommitteeMembersDefined ?? false;
-            _editMinCommitteeMembers = settings?.MinCommitteeMembers;
-            _editCommitteeQuorumDefined = settings?.CommitteeQuorumDefined ?? false;
-            _editCommitteeQuorumPercent = settings?.CommitteeQuorumPercent;
-            _editJointCommitteeQuorumDefined = settings?.JointCommitteeQuorumDefined ?? false;
-            _editJointCommitteeQuorumPercent = settings?.JointCommitteeQuorumPercent;
-        }
-        catch (Exception ex)
-        {
-            Logger.LogWarning(ex, "Ошибка загрузки настроек комитетов");
-        }
+        public Guid Id { get; init; }
+        public string Name { get; init; } = "";
+        public string? ShortName { get; init; }
+        public string? Inn { get; init; }
+        public string? Ogrn { get; init; }
+        public OkopfVm? RefOkopf { get; init; }
     }
 
-    private async Task LoadCharterSettings(Guid legalEntityId)
+    private record OkopfVm
     {
-        try
-        {
-            _isLoadingCharter = true;
-            await using var ctx = await DbFactory.CreateDbContextAsync();
-            var le = await ctx.LegalEntities
-                .Include(x => x.StandardCharter)
-                .FirstOrDefaultAsync(x => x.Id == legalEntityId);
-            _editCharterNumber = le?.StandardCharter?.Number;
-            _lastCharterNumber = _editCharterNumber;
-            _charterSettings = le?.StandardCharter is not null
-                ? StandardCharterInfo.FromEntity(le.StandardCharter)
-                : null;
-
-            if (le is not null)
-                await LoadCharterAsync(ctx, le.Id);
-        }
-        catch (Exception ex)
-        {
-            Logger.LogWarning(ex, "Ошибка загрузки настроек устава для ЮЛ {LegalEntityId}", legalEntityId);
-        }
-        finally
-        {
-            _isLoadingCharter = false;
-        }
+        public Guid Id { get; init; }
+        public string? Code { get; init; }
+        public string? Name { get; init; }
     }
 
-    private ExtraSettingsDto? _extraSettings;
-
-    private async Task LoadExtraSettingsAsync(Guid legalEntityId)
+    private record EmployeeDto
     {
-        try
-        {
-            await using var ctx = await DbFactory.CreateDbContextAsync();
-            var extra = await ctx.LegalEntityExtraSettings
-                .FirstOrDefaultAsync(x => x.LegalEntityId == legalEntityId);
-            _extraSettings = extra is not null
-                ? new ExtraSettingsDto(extra.NotaryListApproved, extra.NotaryListDecisionDate?.ToString("dd.MM.yyyy"))
-                : new ExtraSettingsDto(false, null);
-        }
-        catch (Exception ex)
-        {
-            Logger.LogWarning(ex, "Ошибка загрузки доп. настроек для ЮЛ {LegalEntityId}", legalEntityId);
-            _extraSettings = new ExtraSettingsDto(false, null);
-        }
+        public Guid Id { get; init; }
+        public string PersonFullName { get; init; } = "";
+        public string? Position { get; init; }
+        public Guid? UserId { get; init; }
+        public string? UserLogin { get; init; }
     }
 
-    private record ExtraSettingsDto(bool NotaryListApproved, string? NotaryListDecisionDate);
-    private record DocumentAccessDto(string DocumentTypeCode, bool IsElectronicAvailable);
-    private record DocumentTypeRefDto(Guid Id, string Code, string Name, string GroupCode, string GroupName, bool IsElectronicAvailable, int StorageYears);
-    private record DocumentAccessGroupDto(string Code, string Name, List<DocumentTypeRefDto> Documents);
-
-    private async Task LoadDocumentAccessAsync()
+    private record UserVm
     {
-        try
-        {
-            _documentAccessLoading = true;
-            StateHasChanged();
-
-            // Загружаем справочник типов документов
-            var refData = await Http.GetFromJsonAsync<RefDataDto>("/api/share-requests/ref-data");
-            if (refData?.DocumentGroups is not null)
-                _documentAccessGroups = refData.DocumentGroups;
-
-            // Загружаем текущие настройки для ЮЛ
-            var accesses = await Http.GetFromJsonAsync<List<DocumentAccessDto>>("/api/legal-entity/document-access");
-            _documentAccessSettings = new();
-            if (accesses is not null)
-            {
-                foreach (var a in accesses)
-                    _documentAccessSettings[a.DocumentTypeCode] = a.IsElectronicAvailable;
-            }
-        }
-        catch (Exception ex)
-        {
-            Logger.LogWarning(ex, "Ошибка загрузки настроек доступности документов");
-        }
-        finally
-        {
-            _documentAccessLoading = false;
-            StateHasChanged();
-        }
+        public Guid Id { get; init; }
+        public string Login { get; init; } = "";
+        public string? LastName { get; init; }
+        public string? FirstName { get; init; }
     }
-
-    private void ToggleDocumentAccess(string code, object? isChecked)
-    {
-        if (isChecked is bool checkedVal)
-            _documentAccessSettings[code] = checkedVal;
-    }
-
-    private async Task SaveDocumentAccess()
-    {
-        try
-        {
-            _isSavingDocumentAccess = true;
-            StateHasChanged();
-
-            var accesses = _documentAccessSettings
-                .Select(kvp => new DocumentAccessDto(kvp.Key, kvp.Value))
-                .ToList();
-
-            var response = await Http.PostAsJsonAsync("/api/legal-entity/document-access", accesses);
-            response.EnsureSuccessStatusCode();
-        }
-        catch (Exception ex)
-        {
-            Logger.LogWarning(ex, "Ошибка сохранения настроек доступности документов");
-        }
-        finally
-        {
-            _isSavingDocumentAccess = false;
-            StateHasChanged();
-        }
-    }
-
-    private async Task OnDocumentAccessTabClick()
-    {
-        _activeTab = 8;
-        await LoadDocumentAccessAsync();
-    }
-
-    private record RefDataDto(List<DocumentAccessGroupDto>? DocumentGroups, object? AccessMethods);
-
-    private async Task LoadCharterAsync(SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext? ctx, Guid legalEntityId)
-    {
-        try
-        {
-            var dispose = ctx == null;
-            if (ctx == null) ctx = await DbFactory.CreateDbContextAsync();
-
-            var custom = await ctx.LegalEntityCharters
-                .FirstOrDefaultAsync(x => x.LegalEntityId == legalEntityId);
-
-            if (custom != null)
-            {
-                _customExitAllowed = custom.ExitAllowed;
-                _customExitAllowedMinSharePercent = custom.ExitAllowedMinSharePercent;
-                _customExitAllowedMaxSharePercent = custom.ExitAllowedMaxSharePercent;
-                _customExitConditionDescription = custom.ExitConditionDescription;
-                _customExitRequiresUnanimousOsu = custom.ExitRequiresUnanimousOsu;
-                _customTransferToParticipants = custom.TransferToParticipantsWithoutConsent;
-                _customTransferToThirdParties = custom.TransferToThirdParties;
-                _customPreemptiveRight = custom.PreemptiveRight;
-                _customInheritance = custom.InheritanceWithoutConsent;
-                _customExecutiveBody = custom.ExecutiveBody;
-                _customProtocolConfirmationMethodId = custom.ProtocolConfirmationMethodId;
-                _customCharterDocId = custom.CharterDocumentId;
-                _customBoardRegulationDocId = custom.BoardRegulationDocumentId;
-                _customCommitteeRegulationDocId = custom.CommitteeRegulationDocumentId;
-                _customMandatoryAudit = custom.MandatoryAudit ?? false;
-                _customHasRevisionCommission = custom.HasRevisionCommission ?? false;
-                _customHasBoardOfDirectors = custom.HasBoardOfDirectors;
-                _boardDecidesConveningOsu = custom.BoardDecidesConveningOsu;
-                _customGdTermId = custom.GdTermId;
-                _customVosuThresholdPercent = custom.VosuThresholdPercent;
-
-                if (_customExecutiveBody == 'A' && _customGdTermId is null && _gdTerms.Count > 0)
-                    _customGdTermId = _gdTerms.FirstOrDefault(t => t.Code == "5_YEARS")?.Id
-                                      ?? _gdTerms.FirstOrDefault()?.Id;
-
-                if (custom.CharterDocumentId.HasValue)
-                {
-                    var file = await ctx.Files.FirstOrDefaultAsync(x => x.Id == custom.CharterDocumentId.Value);
-                    _customCharterDocName = file?.OriginalName;
-                }
-                else _customCharterDocName = null;
-
-                if (custom.BoardRegulationDocumentId.HasValue)
-                {
-                    var file = await ctx.Files.FirstOrDefaultAsync(x => x.Id == custom.BoardRegulationDocumentId.Value);
-                    _customBoardRegulationDocName = file?.OriginalName;
-                }
-                else _customBoardRegulationDocName = null;
-
-                if (custom.CommitteeRegulationDocumentId.HasValue)
-                {
-                    var file = await ctx.Files.FirstOrDefaultAsync(x => x.Id == custom.CommitteeRegulationDocumentId.Value);
-                    _customCommitteeRegulationDocName = file?.OriginalName;
-                }
-                else _customCommitteeRegulationDocName = null;
-            }
-            else if (_charterSettings != null)
-            {
-                // Если записи в БД ещё нет, но выбран типовой устав — заполняем из справочника
-                _customExitAllowed = _charterSettings.ExitAllowed;
-                _customExitAllowedMinSharePercent = null;
-                _customExitAllowedMaxSharePercent = null;
-                _customExitConditionDescription = null;
-                _customExitRequiresUnanimousOsu = false;
-                _customTransferToParticipants = _charterSettings.TransferToParticipantsWithoutConsent;
-                _customTransferToThirdParties = _charterSettings.TransferToThirdPartiesWithoutConsent ? "WITHOUT_CONSENT" : "CONSENT";
-                _customPreemptiveRight = _charterSettings.PreemptiveRight;
-                _customInheritance = _charterSettings.InheritanceWithoutConsent;
-                _customExecutiveBody = _charterSettings.ExecutiveBody;
-                _customProtocolConfirmationMethodId = _charterSettings.ProtocolConfirmationMethodId;
-                _customMandatoryAudit = false;
-                _customHasRevisionCommission = false;
-                _customHasBoardOfDirectors = false;
-                _boardDecidesConveningOsu = false;
-                _customGdTermId = null;
-                if (_customExecutiveBody == 'A' && _gdTerms.Count > 0)
-                    _customGdTermId = _gdTerms.FirstOrDefault(t => t.Code == "5_YEARS")?.Id
-                                      ?? _gdTerms.FirstOrDefault()?.Id;
-            }
-            else
-            {
-                _customExitAllowed = false;
-                _customExitAllowedMinSharePercent = null;
-                _customExitAllowedMaxSharePercent = null;
-                _customExitConditionDescription = null;
-                _customExitRequiresUnanimousOsu = false;
-                _customTransferToParticipants = true;
-                _customTransferToThirdParties = "CONSENT";
-                _customPreemptiveRight = true;
-                _customInheritance = true;
-                _customExecutiveBody = 'A';
-                _customProtocolConfirmationMethodId = null;
-                _customMandatoryAudit = false;
-                _customHasRevisionCommission = false;
-                _customHasBoardOfDirectors = false;
-                _boardDecidesConveningOsu = false;
-                _customGdTermId = null;
-                if (_customExecutiveBody == 'A' && _gdTerms.Count > 0)
-                    _customGdTermId = _gdTerms.FirstOrDefault(t => t.Code == "5_YEARS")?.Id
-                                      ?? _gdTerms.FirstOrDefault()?.Id;
-            }
-
-            if (dispose) ctx.Dispose();
-        }
-        catch (Exception ex)
-        {
-            Logger.LogWarning(ex, "Ошибка загрузки параметров устава для ЮЛ {Id}", legalEntityId);
-        }
-    }
-
-    private async Task OnCharterDocumentSelected(InputFileChangeEventArgs e)
-    {
-        _charterFile = e.File;
-        _customCharterDocName = e.File?.Name;
-    }
-
-    private async Task OnBoardRegulationSelected(InputFileChangeEventArgs e)
-    {
-        _boardRegulationFile = e.File;
-        _customBoardRegulationDocName = e.File?.Name;
-    }
-
-    // Callbacks для FileUpload компоненты (BDR-011)
-    private void OnCharterFileUploaded(Guid fileId)
-    {
-        _customCharterDocId = fileId;
-        _customCharterDocName = "Устав";
-        _showCharterUpload = false;
-        StateHasChanged();
-    }
-
-    private void OnCharterFileUploadedInfo((Guid FileId, string OriginalName) info)
-    {
-        _customCharterDocId = info.FileId;
-        _customCharterDocName = info.OriginalName;
-        _showCharterUpload = false;
-        StateHasChanged();
-    }
-
-    private void OnCharterUploadError(string error)
-    {
-        saveError = error;
-        StateHasChanged();
-    }
-
-    private void OnBoardRegulationFileUploaded(Guid fileId)
-    {
-        _customBoardRegulationDocId = fileId;
-        _customBoardRegulationDocName = "Файл загружен";
-        StateHasChanged();
-    }
-
-    private void OnBoardRegulationUploadError(string error)
-    {
-        saveError = error;
-        StateHasChanged();
-    }
-
-    private void OnCommitteeRegulationFileUploadedInfo((Guid FileId, string OriginalName) info)
-    {
-        _customCommitteeRegulationDocId = info.FileId;
-        _customCommitteeRegulationDocName = info.OriginalName;
-        _showCommitteeRegulationUpload = false;
-        StateHasChanged();
-    }
-
-    private void OnCommitteeRegulationUploadError(string error)
-    {
-        saveError = error;
-        StateHasChanged();
-    }
-
-    private string? _lastCharterNumber;
-
-    private async Task OnCharterNumberSet(string? value)
-    {
-        if (_isLoadingCharter) return;
-        if (value == _editCharterNumber) return;
-        _editCharterNumber = value;
-        await OnCharterNumberChanged();
-    }
-
-    private async Task OnCharterNumberChanged()
-    {
-        if (string.IsNullOrEmpty(_editCharterNumber))
-        {
-            _charterSettings = null;
-            if (selectedEntity is not null)
-                await LoadCharterAsync(null, selectedEntity.Id);
-            return;
-        }
-
-        try
-        {
-            await using var ctx = await DbFactory.CreateDbContextAsync();
-            var charter = await ctx.RefStandardCharters
-                .FirstOrDefaultAsync(x => x.Number == _editCharterNumber);
-            _charterSettings = charter is not null
-                ? StandardCharterInfo.FromEntity(charter)
-                : null;
-
-            // Авто-заполняем параметры из типового устава
-            if (charter is not null)
-            {
-                _customExitAllowed = charter.ExitAllowed;
-                _customTransferToParticipants = charter.TransferToParticipantsWithoutConsent;
-                _customTransferToThirdParties = charter.TransferToThirdPartiesWithoutConsent ? "WITHOUT_CONSENT" : "CONSENT";
-                _customPreemptiveRight = charter.PreemptiveRight;
-                _customInheritance = charter.InheritanceWithoutConsent;
-                _customExecutiveBody = charter.ExecutiveBody;
-                _customProtocolConfirmationMethodId = charter.ProtocolConfirmationMethodId;
-            }
-        }
-        catch (Exception ex)
-        {
-            Logger.LogWarning(ex, "Ошибка загрузки данных типового устава №{Number}", _editCharterNumber);
-            _charterSettings = null;
-        }
-    }
-
-    private void OnMaxPerMemberDefinedChanged()
-    {
-        if (_editMaxCommitteesPerMemberDefined && _editMaxCommitteesPerMember is null)
-            _editMaxCommitteesPerMember = 1;
-    }
-
-    private void OnMaxHeadedDefinedChanged()
-    {
-        if (_editMaxCommitteesHeadedPerMemberDefined && _editMaxCommitteesHeadedPerMember is null)
-            _editMaxCommitteesHeadedPerMember = 1;
-    }
-
-    private void OnMinMembersDefinedChanged()
-    {
-        if (_editMinCommitteeMembersDefined && _editMinCommitteeMembers is null)
-            _editMinCommitteeMembers = 2;
-    }
-
-    private void OnQuorumDefinedChanged()
-    {
-        if (_editCommitteeQuorumDefined && _editCommitteeQuorumPercent is null)
-            _editCommitteeQuorumPercent = 50;
-    }
-
-    private void OnJointQuorumDefinedChanged()
-    {
-        if (_editJointCommitteeQuorumDefined && _editJointCommitteeQuorumPercent is null)
-            _editJointCommitteeQuorumPercent = 50;
-    }
-
-    private async Task<Guid> SaveUploadedFileAsync(
-        SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext ctx,
-        IBrowserFile file)
-    {
-        // Проверка запрещённых расширений
-        var ext = System.IO.Path.GetExtension(file.Name)?.TrimStart('.').ToLowerInvariant();
-        if (!string.IsNullOrEmpty(ext) && _blockedExtensions.Contains(ext))
-            throw new InvalidOperationException($"Загрузка файлов с расширением .{ext} запрещена.");
-
-        await using var stream = file.OpenReadStream(maxAllowedSize: 50_000_000);
-        var storageKey = await FileStorage.SaveAsync(stream, file.Name, file.ContentType, CancellationToken.None);
-        var entry = new FileEntry
-        {
-            Id = Guid.NewGuid(),
-            OriginalName = file.Name,
-            ContentType = file.ContentType,
-            SizeBytes = file.Size,
-            StorageProvider = "LOCAL",
-            StorageKeyOrPath = storageKey,
-            Extension = System.IO.Path.GetExtension(file.Name)?.TrimStart('.')
-        };
-        ctx.Files.Add(entry);
-        return entry.Id;
-    }
-
-    private class LegalEntityVm
-    {
-        public Guid Id { get; set; }
-        public string? Name { get; set; }
-        public string? ShortName { get; set; }
-        public string? Inn { get; set; }
-        public string? Ogrn { get; set; }
-        public OkopfVm? RefOkopf { get; set; }
-    }
-    private class OkopfVm { public string? Code { get; set; } public string? Name { get; set; } }
-
-    private enum OrgType { Unknown, LLC, PJSC, NJSC }
 }
