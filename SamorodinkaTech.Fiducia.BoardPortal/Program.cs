@@ -173,27 +173,27 @@ if (builder.Configuration.GetValue<bool>("MtsLink:Enabled"))
     });
 }
 
-// SPARK (Интерфакс) — поиск компаний по ИНН
+// SPARK (Интерфакс) — ВРЕМЕННО ОТКЛЮЧЁН (нет доступа к API)
 // Все настройки — в appsettings.json, секция Spark (ADR-022)
-builder.Services.Configure<SparkOptions>(builder.Configuration.GetSection("Spark"));
-builder.Services.AddScoped<ISparkApiClient>(sp =>
-{
-    var options = sp.GetRequiredService<IOptions<SparkOptions>>().Value;
-    var logger = sp.GetRequiredService<ILogger<SparkApiClient>>();
-    var handler = new HttpClientHandler();
-    if (builder.Environment.IsDevelopment())
-    {
-        handler.ServerCertificateCustomValidationCallback = (_, _, _, _) => true;
-    }
-    var httpClient = new HttpClient(handler);
-    var inner = new SparkApiClient(httpClient, logger, options.BaseUrl, options.Login, options.Password);
-    var auditService = sp.GetRequiredService<ISecurityAuditService>();
-    var ipProvider = sp.GetRequiredService<IClientIpProvider>();
-    var auditLogger = sp.GetRequiredService<ILogger<AuditSparkDecorator>>();
-    return new AuditSparkDecorator(inner, auditService, ipProvider, auditLogger);
-});
-
-builder.Services.AddScoped<ISparkDataService, SparkDataService>();
+// TODO: Вернуть при восстановлении доступа к СПАРК API
+// builder.Services.Configure<SparkOptions>(builder.Configuration.GetSection("Spark"));
+// builder.Services.AddScoped<ISparkApiClient>(sp =>
+// {
+//     var options = sp.GetRequiredService<IOptions<SparkOptions>>().Value;
+//     var logger = sp.GetRequiredService<ILogger<SparkApiClient>>();
+//     var handler = new HttpClientHandler();
+//     if (builder.Environment.IsDevelopment())
+//     {
+//         handler.ServerCertificateCustomValidationCallback = (_, _, _, _) => true;
+//     }
+//     var httpClient = new HttpClient(handler);
+//     var inner = new SparkApiClient(httpClient, logger, options.BaseUrl, options.Login, options.Password);
+//     var auditService = sp.GetRequiredService<ISecurityAuditService>();
+//     var ipProvider = sp.GetRequiredService<IClientIpProvider>();
+//     var auditLogger = sp.GetRequiredService<ILogger<AuditSparkDecorator>>();
+//     return new AuditSparkDecorator(inner, auditService, ipProvider, auditLogger);
+// });
+// builder.Services.AddScoped<ISparkDataService, SparkDataService>();
 
 // CBR FinOrg API — справочник участников финансового рынка (опционально)
 // Все настройки — в appsettings.json, секция CbrFinOrg (ADR-022)

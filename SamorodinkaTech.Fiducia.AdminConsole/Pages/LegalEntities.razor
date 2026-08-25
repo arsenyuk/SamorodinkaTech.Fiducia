@@ -1,11 +1,9 @@
 @page "/legal-entities"
 @using Microsoft.AspNetCore.Components.Forms
 @using Microsoft.EntityFrameworkCore
-@using SamorodinkaTech.Fiducia.Domain.Models.Spark
 @using SamorodinkaTech.Fiducia.Domain.Models
 @inject IDbContextFactory<SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext> DbFactory
 @inject SamorodinkaTech.Fiducia.Domain.Interfaces.ILegalEntityGosaIntervalService GosaSvc
-@inject SamorodinkaTech.Fiducia.Domain.Interfaces.ISparkDataService SparkDataSvc
 @inject ILogger<LegalEntities> Logger
 @inject SamorodinkaTech.Fiducia.Domain.Interfaces.IFileStorage FileStorage
 @inject IHttpContextAccessor HttpContextAccessor
@@ -66,23 +64,6 @@
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <h5 class="mb-0">@selectedEntity.Name (@selectedEntity.Inn)</h5>
                 <div class="d-flex gap-2">
-                    @if (!string.IsNullOrEmpty(selectedEntity?.Inn))
-                    {
-                        <button class="btn btn-sm btn-outline-secondary"
-                                @onclick="LoadSparkData"
-                                disabled="@sparkLoading"
-                                title="Загрузить данные из СПАРК">
-                            @if (sparkLoading)
-                            {
-                                <span class="spinner-border spinner-border-sm me-1" role="status"></span>
-                                @:СПАРК...
-                            }
-                            else
-                            {
-                                @:СПАРК
-                            }
-                        </button>
-                    }
                     <button class="btn btn-sm btn-outline-primary" @onclick="ShowSearch">Поиск</button>
                 </div>
             </div>
@@ -94,9 +75,6 @@
             <ul class="nav nav-tabs mb-3">
                 <li class="nav-item">
                     <button class="nav-link @(_activeTab == 0 ? "active" : "")" @onclick="() => _activeTab = 0">Карточка ЮЛ</button>
-                </li>
-                <li class="nav-item">
-                    <button class="nav-link @(_activeTab == 1 ? "active" : "")" @onclick="() => _activeTab = 1">Руководитель</button>
                 </li>
                 <li class="nav-item">
                     <button class="nav-link @(_activeTab == 2 ? "active" : "")" @onclick="() => _activeTab = 2">Интервал @GosaLabel</button>
@@ -136,105 +114,23 @@
                     <div class="col-md-6">
                         <dl class="row mb-0">
                             <dt class="col-sm-4 text-muted fw-normal">Полное наименование</dt>
-                            <dd class="col-sm-8">@(_sparkCompanyFullName ?? selectedEntity.Name)</dd>
+                            <dd class="col-sm-8">@selectedEntity.Name</dd>
 
                             <dt class="col-sm-4 text-muted fw-normal">Краткое наименование</dt>
-                            <dd class="col-sm-8">@(_sparkCompanyShortName ?? selectedEntity.ShortName ?? "—")</dd>
+                            <dd class="col-sm-8">@(selectedEntity.ShortName ?? "—")</dd>
 
                             <dt class="col-sm-4 text-muted fw-normal">ИНН</dt>
                             <dd class="col-sm-8">@selectedEntity.Inn</dd>
 
                             <dt class="col-sm-4 text-muted fw-normal">ОГРН</dt>
-                            <dd class="col-sm-8">@(_sparkCompanyOgrn ?? selectedEntity.Ogrn ?? "—")</dd>
+                            <dd class="col-sm-8">@(selectedEntity.Ogrn ?? "—")</dd>
 
                             <dt class="col-sm-4 text-muted fw-normal">ОКОПФ</dt>
-                            <dd class="col-sm-8">@(_sparkCompanyOkopfName ?? selectedEntity.RefOkopf?.Name ?? "—")</dd>
-                        </dl>
-                    </div>
-                    <div class="col-md-6">
-                        <dl class="row mb-0">
-                            <dt class="col-sm-4 text-muted fw-normal">Юридический адрес</dt>
-                            <dd class="col-sm-8">@(_sparkCompanyAddress ?? "—")</dd>
-
-                            <dt class="col-sm-4 text-muted fw-normal">Статус</dt>
-                            <dd class="col-sm-8">@(_sparkCompanyStatus ?? "—")</dd>
-
-                            <dt class="col-sm-4 text-muted fw-normal">Дата регистрации</dt>
-                            <dd class="col-sm-8">@(_sparkCompanyRegDate?.ToString("dd.MM.yyyy") ?? "—")</dd>
+                            <dd class="col-sm-8">@(selectedEntity.RefOkopf?.Name ?? "—")</dd>
                         </dl>
                     </div>
                 </div>
             }  @* end of _activeTab == 0 *@
-
-            @if (_activeTab == 1)
-            {
-                <div class="row g-3">
-                    <div class="col-md-6">
-                        @if (!string.IsNullOrEmpty(_sparkManagerName))
-                        {
-                            <dl class="row mb-0">
-                                <dt class="col-sm-4 text-muted fw-normal">ФИО</dt>
-                                <dd class="col-sm-8">@_sparkManagerName</dd>
-
-                                <dt class="col-sm-4 text-muted fw-normal">Должность</dt>
-                                <dd class="col-sm-8">@(_sparkManagerPosition ?? "—")</dd>
-
-                                <dt class="col-sm-4 text-muted fw-normal">ИНН</dt>
-                                <dd class="col-sm-8">@(_sparkManagerInn ?? "—")</dd>
-
-                                <dt class="col-sm-4 text-muted fw-normal">Назначен</dt>
-                                <dd class="col-sm-8">@(_sparkManagerStartDate?.ToString("dd.MM.yyyy") ?? "—")</dd>
-                            </dl>
-                        }
-                        else if (!string.IsNullOrEmpty(selectedEntity?.Inn))
-                        {
-                            <div class="text-muted">Нажмите «СПАРК» для загрузки данных</div>
-                        }
-                        else
-                        {
-                            <div class="text-muted">Нет данных</div>
-                        }
-                        @if (!string.IsNullOrEmpty(sparkError))
-                        {
-                            <div class="text-danger small mt-2">@sparkError</div>
-                        }
-                        @if (!string.IsNullOrEmpty(sparkWarning))
-                        {
-                            <div class="text-warning small mt-1">@sparkWarning</div>
-                        }
-                    </div>
-                    @if (_orgType == OrgType.LLC && _sparkFounders.Count > 0)
-                    {
-                        <div class="col-md-6">
-                            <h6 class="text-muted mb-2">Учредители (участники)</h6>
-                            @foreach (var f in _sparkFounders)
-                            {
-                                var displayName = f.FullName ?? f.Name ?? "—";
-                                var displayInn = f.PersonInn ?? f.Inn;
-                                <div class="card mb-2">
-                                    <div class="card-body py-2 px-3">
-                                        <div class="fw-semibold">@displayName</div>
-                                        @if (!string.IsNullOrEmpty(displayInn))
-                                        {
-                                            <div class="small text-muted">ИНН: @displayInn</div>
-                                        }
-                                        <div class="small">
-                                            @if (f.SharePercent.HasValue)
-                                            {
-                                                <span>@f.SharePercent.Value.ToString("0.##")%</span>
-                                            }
-                                            @if (f.ShareAmount.HasValue)
-                                            {
-                                                <span class="text-muted">(@f.ShareAmount.Value.ToString("N2") ₽)</span>
-                                            }
-                                        </div>
-                                    </div>
-                                </div>
-                            }
-                        </div>
-                    }
-                </div>
-            }  @* end of _activeTab == 1 *@
 
             @if (_activeTab == 2)
             {
@@ -1067,31 +963,10 @@
     private string? gosaError;
     private string? saveError;
     private string? saveSuccess;
-    private bool sparkLoading;
-    private string? sparkError;
-    private string? sparkWarning; // не-критичные предупреждения (например, ограничение лицензии)
 
     // Удаление ЮЛ
     private bool _showDeleteConfirm;
     private bool _deleteLoading;
-
-    // Данные СПАРК для отображения в карточке «Руководитель»
-    private string? _sparkManagerName;
-    private string? _sparkManagerPosition;
-    private string? _sparkManagerInn;
-    private DateTime? _sparkManagerStartDate;
-
-    // Данные СПАРК для карточки ЮЛ
-    private string? _sparkCompanyFullName;
-    private string? _sparkCompanyShortName;
-    private string? _sparkCompanyOgrn;
-    private string? _sparkCompanyOkopfName;
-    private string? _sparkCompanyAddress;
-    private string? _sparkCompanyStatus;
-    private DateTime? _sparkCompanyRegDate;
-
-    // Учредители из СПАРК
-    private List<SparkFounder> _sparkFounders = new();
 
     // Устав
     private string? _editCharterNumber;
@@ -1385,9 +1260,6 @@
 
         // Загружаем настройки комитетов
         await LoadCommitteesSettingsAsync();
-
-        // Загружаем кэшированные данные СПАРК
-        await LoadCachedSparkAsync();
 
         // Загружаем настройки устава
         await LoadCharterSettings(le.Id);
@@ -1748,16 +1620,6 @@
             _showDeleteConfirm = false;
             selectedEntity = null;
             _activeTab = 0;
-            _sparkManagerName = null;
-            _sparkManagerPosition = null;
-            _sparkCompanyFullName = null;
-            _sparkCompanyShortName = null;
-            _sparkCompanyOgrn = null;
-            _sparkCompanyOkopfName = null;
-            _sparkCompanyAddress = null;
-            _sparkCompanyStatus = null;
-            _sparkCompanyRegDate = null;
-            _sparkFounders.Clear();
             _editCharterNumber = null;
             _charterSettings = null;
         }
@@ -1769,114 +1631,6 @@
         finally
         {
             _deleteLoading = false;
-            StateHasChanged();
-        }
-    }
-
-    private async Task LoadCachedSparkAsync()
-    {
-        if (string.IsNullOrEmpty(selectedEntity?.Inn)) return;
-        try
-        {
-            var view = await SparkDataSvc.LoadCachedAsync(selectedEntity.Inn.Trim(), _orgType == OrgType.LLC);
-
-            _sparkManagerName = view.ManagerName;
-            _sparkManagerPosition = view.ManagerPosition;
-            _sparkManagerInn = view.ManagerInn;
-            _sparkManagerStartDate = view.ManagerStartDate;
-            _sparkCompanyFullName = view.CompanyFullName;
-            _sparkCompanyShortName = view.CompanyShortName;
-            _sparkCompanyOgrn = view.CompanyOgrn;
-            _sparkCompanyOkopfName = view.CompanyOkopfName;
-            _sparkCompanyAddress = view.CompanyAddress;
-            _sparkCompanyStatus = view.CompanyStatus;
-            _sparkCompanyRegDate = view.CompanyRegDate;
-            _sparkFounders = view.Founders;
-
-            // Автозаполнение ФИО/должности руководителя из кэша СПАРК,
-            // если CurrentWorkplace не содержит данных (новое ЮЛ)
-            if (string.IsNullOrWhiteSpace(editFullName) && !string.IsNullOrEmpty(view.ManagerName))
-                editFullName = view.ManagerName;
-            if (string.IsNullOrWhiteSpace(editPosition) && view.ManagerPosition is not null)
-                editPosition = view.ManagerPosition;
-        }
-        catch (Exception ex)
-        {
-            Logger.LogWarning(ex, "Ошибка загрузки кэша СПАРК для ИНН={Inn}", selectedEntity.Inn);
-        }
-    }
-
-    private async Task LoadSparkData()
-    {
-        if (string.IsNullOrEmpty(selectedEntity?.Inn)) return;
-        sparkLoading = true;
-        sparkError = null;
-        sparkWarning = null;
-        StateHasChanged();
-
-        try
-        {
-            var inn = selectedEntity.Inn.Trim();
-            var result = await SparkDataSvc.FetchAndSaveAsync(inn, _orgType == OrgType.LLC, selectedEntity.Id);
-
-            // ОКОПФ — обновляем локальное состояние, если найден в СПАРК
-            if (result.OkopfCode is not null)
-            {
-                await using var ctx = await DbFactory.CreateDbContextAsync();
-                var okopf = await ctx.RefOkopf.FirstOrDefaultAsync(o => o.Code == result.OkopfCode);
-                if (okopf is not null)
-                {
-                    selectedEntity.RefOkopf = new OkopfVm { Code = okopf.Code, Name = okopf.Name };
-                    _orgType = ResolveOrgTypeFromCode(okopf.Code);
-                    editHasBoardOfDirectors = _orgType != OrgType.Unknown;
-                }
-            }
-
-            // Карточка компании
-            if (result.Company is not null)
-            {
-                var c = result.Company;
-                _sparkCompanyFullName = c.FullName;
-                _sparkCompanyShortName = c.ShortName;
-                _sparkCompanyOgrn = c.Ogrn;
-                _sparkCompanyOkopfName = c.OkopfName;
-                _sparkCompanyAddress = c.LegalAddress;
-                _sparkCompanyStatus = c.Status;
-                _sparkCompanyRegDate = c.RegistrationDate;
-            }
-
-            // Руководитель
-            if (result.Manager is not null)
-            {
-                var m = result.Manager;
-                editFullName = m.FullName;
-                editPosition = m.Position ?? "Генеральный директор";
-                _sparkManagerName = m.FullName;
-                _sparkManagerPosition = m.Position;
-                _sparkManagerInn = m.Inn;
-                _sparkManagerStartDate = m.ActualDate;
-            }
-            else
-            {
-                sparkError = "Руководитель не найден в СПАРК";
-            }
-
-            // Учредители
-            if (result.Founders.Count > 0)
-                _sparkFounders = result.Founders;
-            else if (result.Company is not null || result.Manager is not null)
-                sparkWarning = "Данные об учредителях не загружены — возможно, требуется расширенный тариф СПАРК";
-
-            sparkWarning ??= result.Warning;
-        }
-        catch (Exception ex)
-        {
-            Logger.LogWarning(ex, "Ошибка загрузки данных из СПАРК для ИНН={Inn}", selectedEntity.Inn);
-            sparkError = "Ошибка соединения со СПАРК";
-        }
-        finally
-        {
-            sparkLoading = false;
             StateHasChanged();
         }
     }
