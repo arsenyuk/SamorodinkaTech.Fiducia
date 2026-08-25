@@ -1,0 +1,198 @@
+@page "/notification-templates/{Code}"
+@using Microsoft.EntityFrameworkCore
+@using SamorodinkaTech.Fiducia.Domain.Entities
+@using SamorodinkaTech.Fiducia.Domain.Interfaces
+@using SamorodinkaTech.Fiducia.Infrastructure.Common.Exceptions
+@inject IApplicationDbContext DbContext
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+
+<PageTitle>Fiducia — Редактирование шаблона</PageTitle>
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <button class="btn btn-sm btn-outline-secondary me-2" @onclick="GoBack">← Назад</button>
+            <h3 class="d-inline">Редактирование шаблона</h3>
+        </div>
+    </div>
+
+    @if (_loading)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary"></div>
+        </div>
+    }
+    else if (_template is null)
+    {
+        <div class="alert alert-danger">Шаблон не найден.</div>
+    }
+    else
+    {
+        <div class="card">
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Код типа уведомления</label>
+                    <input type="text" class="form-control" value="@_template.NotificationTypeCode" disabled />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Заголовок шаблона</label>
+                    <input type="text" class="form-control font-monospace"
+                           @bind="_editTitleTemplate" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Тело шаблона</label>
+                    <textarea class="form-control font-monospace" rows="12"
+                              @bind="_editBodyTemplate"></textarea>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Описание</label>
+                    <input type="text" class="form-control"
+                           @bind="_editDescription" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Статус</label>
+                    <div>
+                        <input type="checkbox" class="form-check-input me-2"
+                               @bind="_editIsEnabled" />
+                        <label class="form-check-label">Шаблон включён</label>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Доступные плейсхолдеры</label>
+                    <div class="bg-light p-2 rounded font-monospace small">
+                        @foreach (var placeholder in GetPlaceholders(Code))
+                        {
+                            <code class="me-3">@placeholder</code>
+                        }
+                    </div>
+                </div>
+
+                <div class="d-flex gap-2">
+                    <button class="btn btn-primary" @onclick="SaveTemplate" disabled="@_saving">
+                        @if (_saving)
+                        {
+                            <span class="spinner-border spinner-border-sm me-1"></span>
+                        }
+                        Сохранить
+                    </button>
+                    <button class="btn btn-outline-secondary" @onclick="GoBack">Отмена</button>
+                </div>
+
+                @if (!string.IsNullOrEmpty(_errorMessage))
+                {
+                    <div class="alert alert-danger mt-3">@_errorMessage</div>
+                }
+
+                @if (!string.IsNullOrEmpty(_successMessage))
+                {
+                    <div class="alert alert-success mt-3">@_successMessage</div>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public string Code { get; set; } = "";
+
+    private NotificationTemplate? _template;
+    private bool _loading = true;
+    private bool _saving;
+    private string? _errorMessage;
+    private string? _successMessage;
+
+    private string _editTitleTemplate = "";
+    private string _editBodyTemplate = "";
+    private string _editDescription = "";
+    private bool _editIsEnabled;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadTemplate();
+    }
+
+    private async Task LoadTemplate()
+    {
+        _loading = true;
+        try
+        {
+            _template = await DbContext.NotificationTemplates
+                .FirstOrDefaultAsync(t => t.NotificationTypeCode == Code);
+
+            if (_template is not null)
+            {
+                _editTitleTemplate = _template.TitleTemplate;
+                _editBodyTemplate = _template.BodyTemplate;
+                _editDescription = _template.Description ?? "";
+                _editIsEnabled = _template.IsEnabled;
+            }
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = ExceptionFlattener.Unwrap(ex);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task SaveTemplate()
+    {
+        if (_template is null) return;
+
+        _saving = true;
+        _errorMessage = null;
+        _successMessage = null;
+
+        try
+        {
+            _template.TitleTemplate = _editTitleTemplate;
+            _template.BodyTemplate = _editBodyTemplate;
+            _template.Description = _editDescription;
+            _template.IsEnabled = _editIsEnabled;
+            _template.UpdatedAt = DateTime.UtcNow;
+
+            await DbContext.SaveChangesAsync();
+            _successMessage = "Шаблон сохранён.";
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = ExceptionFlattener.Unwrap(ex);
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private void GoBack()
+    {
+        Nav.NavigateTo("/notification-templates");
+    }
+
+    private static List<string> GetPlaceholders(string typeCode) => typeCode switch
+    {
+        "MEETING_SUMMONS" => new() { "{meetingNumber}", "{formText}", "{votingLine}", "{date}", "{time}", "{legalEntityName}" },
+        "VOTE_REMINDER" => new() { "{meetingNumber}", "{deadline}" },
+        "PROTOCOL_SIGNED" => new() { "{meetingNumber}" },
+        "COMMITTEE_PROTOCOL_SIGNED" => new() { "{committeeName}", "{committeeDisplayName}", "{protocolNumber}" },
+        "VOTE_DEADLINE" => new() { "{meetingNumber}" },
+        "CHAIRMAN_NOMINATION" => new() { "{legalEntityName}" },
+        "DEPUTY_CHAIRMAN_NOMINATION" => new() { "{legalEntityName}" },
+        "CHAIRMAN_CONSENT" => new() { "{legalEntityName}", "{candidateName}" },
+        "DEPUTY_CHAIRMAN_CONSENT" => new() { "{legalEntityName}", "{candidateName}" },
+        "GENERAL" => new() { "{title}", "{body}" },
+        "COLLECTIVE_DEMAND_THRESHOLD" => new(),
+        "COLLECTIVE_DEMAND_DECISION" => new(),
+        "SHARE_REQUEST_ACCEPTED" => new() { "{creatorName}", "{requestType}", "{legalEntityName}", "{ceoComment}", "{url}" },
+        "SHARE_REQUEST_VISIBLE_TO_ALL" => new() { "{participantName}", "{sharePercent}", "{shareText}", "{requestType}", "{legalEntityName}", "{url}" },
+        _ => new()
+    };
+}

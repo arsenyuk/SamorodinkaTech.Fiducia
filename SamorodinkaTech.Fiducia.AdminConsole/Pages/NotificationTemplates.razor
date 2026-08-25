@@ -2,9 +2,8 @@
 @using Microsoft.EntityFrameworkCore
 @using SamorodinkaTech.Fiducia.Domain.Entities
 @using SamorodinkaTech.Fiducia.Domain.Interfaces
-@using SamorodinkaTech.Fiducia.Infrastructure.Common.Exceptions
 @inject IApplicationDbContext DbContext
-@inject IJSRuntime JS
+@inject NavigationManager Nav
 
 <PageTitle>Fiducia — Шаблоны уведомлений</PageTitle>
 
@@ -13,7 +12,52 @@
         <h3>Шаблоны уведомлений</h3>
     </div>
 
-    @if (_templates.Count == 0)
+    @* ── Фильтры ──────────────────────────────────────────────── *@
+    <div class="card mb-3">
+        <div class="card-body py-2">
+            <div class="d-flex flex-wrap gap-2 align-items-center">
+                <span class="text-muted small me-2">Фильтр:</span>
+                <div class="form-check form-check-inline mb-0">
+                    <input class="form-check-input" type="checkbox" id="filterAll"
+                           checked="@_filterAll" @onchange="ToggleFilterAll">
+                    <label class="form-check-label small" for="filterAll">Все</label>
+                </div>
+                <div class="form-check form-check-inline mb-0">
+                    <input class="form-check-input" type="checkbox" id="filterOSA"
+                           checked="@_filterOsa" @onchange="ToggleFilterOsa">
+                    <label class="form-check-label small" for="filterOSA">ОСА</label>
+                </div>
+                <div class="form-check form-check-inline mb-0">
+                    <input class="form-check-input" type="checkbox" id="filterOSU"
+                           checked="@_filterOsu" @onchange="ToggleFilterOsu">
+                    <label class="form-check-label small" for="filterOSU">ОСУ</label>
+                </div>
+                <div class="form-check form-check-inline mb-0">
+                    <input class="form-check-input" type="checkbox" id="filterUCHASTNIK"
+                           checked="@_filterUchastnik" @onchange="ToggleFilterUchastnik">
+                    <label class="form-check-label small" for="filterUCHASTNIK">Участник</label>
+                </div>
+                <div class="form-check form-check-inline mb-0">
+                    <input class="form-check-input" type="checkbox" id="filterSD"
+                           checked="@_filterSD" @onchange="ToggleFilterSd">
+                    <label class="form-check-label small" for="filterSD">СД</label>
+                </div>
+                <div class="form-check form-check-inline mb-0">
+                    <input class="form-check-input" type="checkbox" id="filterGD"
+                           checked="@_filterGd" @onchange="ToggleFilterGd">
+                    <label class="form-check-label small" for="filterGD">ГД</label>
+                </div>
+                <div class="form-check form-check-inline mb-0">
+                    <input class="form-check-input" type="checkbox" id="filterSystem"
+                           checked="@_filterSystem" @onchange="ToggleFilterSystem">
+                    <label class="form-check-label small" for="filterSystem">Системные</label>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @* ── Список шаблонов ──────────────────────────────────────── *@
+    @if (_filteredTemplates.Count == 0)
     {
         <div class="text-center text-muted py-5">
             <p class="mb-0">Шаблоны не найдены</p>
@@ -21,16 +65,17 @@
     }
     else
     {
-        @foreach (var template in _templates)
-        {
-            var isEditing = _editingCode == template.NotificationTypeCode;
-
-            <div class="card mb-3 @(isEditing ? "border-primary" : "")">
-                <div class="card-header d-flex justify-content-between align-items-center"
-                     style="cursor: pointer;" @onclick="() => ToggleEdit(template.NotificationTypeCode)">
+        <div class="list-group">
+            @foreach (var template in _filteredTemplates)
+            {
+                <button class="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
+                        @onclick="() => EditTemplate(template.NotificationTypeCode)">
                     <div>
-                        <strong>@template.NotificationTypeCode</strong>
-                        <span class="text-muted ms-2">@template.Description</span>
+                        <span class="fw-semibold">@(template.Description ?? template.NotificationTypeCode)</span>
+                        @if (!string.IsNullOrEmpty(template.NotificationTypeCode))
+                        {
+                            <span class="text-muted small ms-2">(@template.NotificationTypeCode)</span>
+                        }
                     </div>
                     <div>
                         @if (template.IsEnabled)
@@ -42,72 +87,47 @@
                             <span class="badge bg-secondary">Выключен</span>
                         }
                     </div>
-                </div>
-
-                @if (isEditing)
-                {
-                    <div class="card-body">
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">Заголовок шаблона</label>
-                            <input type="text" class="form-control font-monospace"
-                                   @bind="_editTitleTemplate" />
-                        </div>
-
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">Тело шаблона</label>
-                            <textarea class="form-control font-monospace" rows="10"
-                                      @bind="_editBodyTemplate"></textarea>
-                        </div>
-
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">Описание</label>
-                            <input type="text" class="form-control"
-                                   @bind="_editDescription" />
-                        </div>
-
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">Статус</label>
-                            <div>
-                                <input type="checkbox" class="form-check-input me-2"
-                                       @bind="_editIsEnabled" />
-                                <label class="form-check-label">Шаблон включён</label>
-                            </div>
-                        </div>
-
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">Доступные плейсхолдеры</label>
-                            <div class="bg-light p-2 rounded font-monospace small">
-                                @foreach (var placeholder in GetPlaceholders(template.NotificationTypeCode))
-                                {
-                                    <code class="me-3">@placeholder</code>
-                                }
-                            </div>
-                        </div>
-
-                        <div class="d-flex gap-2">
-                            <button class="btn btn-primary btn-sm" @onclick="SaveTemplate">Сохранить</button>
-                            <button class="btn btn-outline-secondary btn-sm" @onclick="CancelEdit">Отмена</button>
-                        </div>
-
-                        @if (!string.IsNullOrEmpty(_errorMessage))
-                        {
-                            <div class="alert alert-danger mt-3">@_errorMessage</div>
-                        }
-                    </div>
-                }
-            </div>
-        }
+                </button>
+            }
+        </div>
     }
 </div>
 
 @code {
-    private List<NotificationTemplate> _templates = new();
-    private string? _editingCode;
-    private string _editTitleTemplate = "";
-    private string _editBodyTemplate = "";
-    private string _editDescription = "";
-    private bool _editIsEnabled;
-    private string? _errorMessage;
+    private List<NotificationTemplate> _allTemplates = new();
+    private List<NotificationTemplate> _filteredTemplates = new();
+
+    // Фильтры
+    private bool _filterAll = true;
+    private bool _filterOsa;
+    private bool _filterOsu;
+    private bool _filterSD;
+    private bool _filterUchastnik;
+    private bool _filterGd;
+    private bool _filterSystem;
+
+    // Маппинг категорий
+    private static readonly Dictionary<string, string> CategoryMap = new()
+    {
+        ["MEETING_SUMMONS"] = "SD",
+        ["VOTE_REMINDER"] = "OSA",
+        ["VOTE_DEADLINE"] = "OSA",
+        ["PROTOCOL_SIGNED"] = "OSA",
+        ["COMMITTEE_PROTOCOL_SIGNED"] = "SD",
+        ["CHAIRMAN_NOMINATION"] = "SD",
+        ["DEPUTY_CHAIRMAN_NOMINATION"] = "SD",
+        ["CHAIRMAN_CONSENT"] = "SD",
+        ["DEPUTY_CHAIRMAN_CONSENT"] = "SD",
+        ["GENERAL"] = "SYSTEM",
+        ["COLLECTIVE_DEMAND_THRESHOLD"] = "UCHASTNIK",
+        ["COLLECTIVE_DEMAND_DECISION"] = "GD",
+        ["SHARE_REQUEST_ACCEPTED"] = "GD",
+        ["SHARE_REQUEST_VISIBLE_TO_ALL"] = "UCHASTNIK",
+        ["OSU_MEETING_SUMMONS"] = "OSU",
+        ["OSU_PROTOCOL_SIGNED"] = "OSU",
+        ["OSA_MEETING_SUMMONS"] = "OSA",
+        ["OSA_PROTOCOL_SIGNED"] = "OSA"
+    };
 
     protected override async Task OnInitializedAsync()
     {
@@ -116,77 +136,63 @@
 
     private async Task LoadTemplates()
     {
-        _templates = await DbContext.NotificationTemplates
+        _allTemplates = await DbContext.NotificationTemplates
             .OrderBy(t => t.NotificationTypeCode)
             .ToListAsync();
+
+        ApplyFilter();
     }
 
-    private void ToggleEdit(string code)
+    private void ApplyFilter()
     {
-        if (_editingCode == code)
+        if (_filterAll)
         {
-            _editingCode = null;
+            _filteredTemplates = _allTemplates.ToList();
             return;
         }
 
-        var template = _templates.FirstOrDefault(t => t.NotificationTypeCode == code);
-        if (template is null) return;
+        var activeCategories = new HashSet<string>();
+        if (_filterOsa) activeCategories.Add("OSA");
+        if (_filterOsu) activeCategories.Add("OSU");
+        if (_filterSD) activeCategories.Add("SD");
+        if (_filterUchastnik) activeCategories.Add("UCHASTNIK");
+        if (_filterGd) activeCategories.Add("GD");
+        if (_filterSystem) activeCategories.Add("System");
 
-        _editingCode = code;
-        _editTitleTemplate = template.TitleTemplate;
-        _editBodyTemplate = template.BodyTemplate;
-        _editDescription = template.Description ?? "";
-        _editIsEnabled = template.IsEnabled;
-        _errorMessage = null;
+        _filteredTemplates = _allTemplates
+            .Where(t => CategoryMap.TryGetValue(t.NotificationTypeCode, out var cat) && activeCategories.Contains(cat))
+            .ToList();
     }
 
-    private void CancelEdit()
+    private void ToggleFilterAll()
     {
-        _editingCode = null;
-        _errorMessage = null;
-    }
-
-    private async Task SaveTemplate()
-    {
-        if (_editingCode is null) return;
-
-        var template = _templates.FirstOrDefault(t => t.NotificationTypeCode == _editingCode);
-        if (template is null) return;
-
-        try
+        _filterAll = !_filterAll;
+        if (_filterAll)
         {
-            template.TitleTemplate = _editTitleTemplate;
-            template.BodyTemplate = _editBodyTemplate;
-            template.Description = _editDescription;
-            template.IsEnabled = _editIsEnabled;
-            template.UpdatedAt = DateTime.UtcNow;
-
-            await DbContext.SaveChangesAsync();
-            _editingCode = null;
-            _errorMessage = null;
+            _filterOsa = false;
+            _filterOsu = false;
+            _filterSD = false;
+            _filterUchastnik = false;
+            _filterGd = false;
+            _filterSystem = false;
         }
-        catch (Exception ex)
-        {
-            _errorMessage = ExceptionFlattener.Unwrap(ex);
-        }
+        ApplyFilter();
     }
 
-    private static List<string> GetPlaceholders(string typeCode) => typeCode switch
+    private void ToggleFilterOsa() { _filterOsa = !_filterOsa; UpdateFilterAll(); ApplyFilter(); }
+    private void ToggleFilterOsu() { _filterOsu = !_filterOsu; UpdateFilterAll(); ApplyFilter(); }
+    private void ToggleFilterSd() { _filterSD = !_filterSD; UpdateFilterAll(); ApplyFilter(); }
+    private void ToggleFilterUchastnik() { _filterUchastnik = !_filterUchastnik; UpdateFilterAll(); ApplyFilter(); }
+    private void ToggleFilterGd() { _filterGd = !_filterGd; UpdateFilterAll(); ApplyFilter(); }
+    private void ToggleFilterSystem() { _filterSystem = !_filterSystem; UpdateFilterAll(); ApplyFilter(); }
+
+    private void UpdateFilterAll()
     {
-        "MEETING_SUMMONS" => new() { "{meetingNumber}", "{formText}", "{votingLine}", "{date}", "{time}", "{legalEntityName}" },
-        "VOTE_REMINDER" => new() { "{meetingNumber}", "{deadline}" },
-        "PROTOCOL_SIGNED" => new() { "{meetingNumber}" },
-        "COMMITTEE_PROTOCOL_SIGNED" => new() { "{committeeName}", "{committeeDisplayName}", "{protocolNumber}" },
-        "VOTE_DEADLINE" => new() { "{meetingNumber}" },
-        "CHAIRMAN_NOMINATION" => new() { "{legalEntityName}" },
-        "DEPUTY_CHAIRMAN_NOMINATION" => new() { "{legalEntityName}" },
-        "CHAIRMAN_CONSENT" => new() { "{legalEntityName}", "{candidateName}" },
-        "DEPUTY_CHAIRMAN_CONSENT" => new() { "{legalEntityName}", "{candidateName}" },
-        "GENERAL" => new() { "{title}", "{body}" },
-        "COLLECTIVE_DEMAND_THRESHOLD" => new(),
-        "COLLECTIVE_DEMAND_DECISION" => new(),
-        "SHARE_REQUEST_ACCEPTED" => new() { "{creatorName}", "{requestType}", "{legalEntityName}", "{ceoComment}", "{url}" },
-        "SHARE_REQUEST_VISIBLE_TO_ALL" => new() { "{participantName}", "{sharePercent}", "{shareText}", "{requestType}", "{legalEntityName}", "{url}" },
-        _ => new()
-    };
+        _filterAll = !_filterOsa && !_filterOsu && !_filterSD && !_filterUchastnik && !_filterGd && !_filterSystem;
+    }
+
+    private void EditTemplate(string code)
+    {
+        Nav.NavigateTo($"/notification-templates/{code}");
+    }
 }

@@ -15,6 +15,9 @@ public class RefNotificationType
     /// <summary>Наименование типа уведомления (name).</summary>
     public string Name { get; set; } = string.Empty;
 
+    /// <summary>Категория уведомления (category): SD, UCHASTNIK, GD, SYSTEM.</summary>
+    public string? Category { get; set; }
+
     /// <summary>Дата и время создания записи (created_at).</summary>
     public DateTime CreatedAt { get; set; }
 

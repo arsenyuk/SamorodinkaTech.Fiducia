@@ -118,6 +118,7 @@ CREATE TABLE IF NOT EXISTS ref_notification_type (
     id uuid PRIMARY KEY,
     code varchar(50) UNIQUE NOT NULL,
     name varchar(100) NOT NULL,
+    category varchar(50),
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     created_by uuid NOT NULL REFERENCES users(id)
 );

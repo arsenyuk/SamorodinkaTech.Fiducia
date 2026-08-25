@@ -23,7 +23,7 @@ public static class LlcManagementContractEndpoints
         // GET: поиск ИП в СПАРК по ИНН/ОГРНИП
         contracts.MapGet("/search-spark", async (
             string query,
-            ISparkApiClient? sparkApi,
+            [Microsoft.AspNetCore.Mvc.FromServices] ISparkApiClient? sparkApi,
             IDbContextFactory<FiduciaDbContext> dbFactory,
             ILoggerFactory loggerFactory) =>
         {
