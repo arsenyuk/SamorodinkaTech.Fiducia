@@ -808,3 +808,27 @@ INSERT INTO system_settings (id, key, value, description, validation_type, creat
 ON CONFLICT (key) DO NOTHING;
 
 -- ============================================================================
+-- Справочник: ref_dul_type (виды документов, удостоверяющих личность)
+-- Источник: Приложение №2 к Приказу ФНС от 31.08.2020 № ЕД-7-14/617@
+-- ============================================================================
+INSERT INTO ref_dul_type (id, code, name, has_series, has_department_code, sort_order, created_at, created_by) VALUES
+    ('ffffffff-ffff-ffff-ffff-ffffffffff01', '03', 'Свидетельство о рождении', true, false, 1, CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000'),
+    ('ffffffff-ffff-ffff-ffff-ffffffffff02', '07', 'Военный билет', true, false, 2, CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000'),
+    ('ffffffff-ffff-ffff-ffff-ffffffffff03', '08', 'Временное удостоверение, выданное взамен военного билета', true, false, 3, CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000'),
+    ('ffffffff-ffff-ffff-ffff-ffffffffff04', '10', 'Паспорт иностранного гражданина', false, false, 4, CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000'),
+    ('ffffffff-ffff-ffff-ffff-ffffffffff05', '11', 'Свидетельство о рассмотрении ходатайства о признании лица беженцем на территории Российской Федерации по существу', false, false, 5, CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000'),
+    ('ffffffff-ffff-ffff-ffff-ffffffffff06', '12', 'Вид на жительство в Российской Федерации', false, false, 6, CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000'),
+    ('ffffffff-ffff-ffff-ffff-ffffffffff07', '13', 'Удостоверение беженца', false, false, 7, CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000'),
+    ('ffffffff-ffff-ffff-ffff-ffffffffff08', '15', 'Разрешение на временное проживание в Российской Федерации', false, false, 8, CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000'),
+    ('ffffffff-ffff-ffff-ffff-ffffffffff09', '18', 'Свидетельство о предоставлении временного убежища на территории Российской Федерации', false, false, 9, CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000'),
+    ('ffffffff-ffff-ffff-ffff-ffffffffff10', '21', 'Паспорт гражданина Российской Федерации', true, true, 10, CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000'),
+    ('ffffffff-ffff-ffff-ffff-ffffffffff11', '23', 'Свидетельство о рождении, выданное уполномоченным органом иностранного государства', false, false, 11, CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000'),
+    ('ffffffff-ffff-ffff-ffff-ffffffffff12', '24', 'Удостоверение личности военнослужащего Российской Федерации', true, false, 12, CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000'),
+    ('ffffffff-ffff-ffff-ffff-ffffffffff13', '91', 'Иные документы', false, false, 13, CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000')
+ON CONFLICT (code) DO NOTHING;
+
+-- Установка типа документа по умолчанию ('21' — Паспорт гражданина РФ) для существующих записей
+UPDATE board_participant SET dul_type_id = 'ffffffff-ffff-ffff-ffff-ffffffffff10' WHERE dul_type_id IS NULL AND participant_type = 'FL';
+UPDATE board_participant_change SET dul_type_id = 'ffffffff-ffff-ffff-ffff-ffffffffff10' WHERE dul_type_id IS NULL AND participant_type = 'FL';
+
+-- ============================================================================

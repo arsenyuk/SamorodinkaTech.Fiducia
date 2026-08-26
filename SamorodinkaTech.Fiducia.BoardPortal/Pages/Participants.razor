@@ -626,13 +626,36 @@ else
                                 <label class="form-label">ФИО</label>
                                 <input class="form-control" @bind="_formFullName" />
                             </div>
-                            <div class="col-md-3">
-                                <label class="form-label">Серия паспорта</label>
+                            <div class="col-md-6">
+                                <label class="form-label">Вид документа</label>
+                                <select class="form-select" @bind="_formDulTypeId">
+                                    @if (_dulTypes is not null)
+                                    {
+                                        @foreach (var dt in _dulTypes)
+                                        {
+                                            <option value="@dt.Id">@dt.Name</option>
+                                        }
+                                    }
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-3 @(_selectedDulType?.HasSeries != true ? "invisible" : "")">
+                                <label class="form-label">Серия</label>
                                 <input class="form-control" @bind="_formPassportSeries" />
                             </div>
                             <div class="col-md-3">
-                                <label class="form-label">Номер паспорта</label>
+                                <label class="form-label">Номер</label>
                                 <input class="form-control" @bind="_formPassportNumber" />
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Дата выдачи</label>
+                                <input type="date" class="form-control" value="@_formPassportIssueDateStr"
+                                       @onchange="e => _formPassportIssueDateStr = e.Value?.ToString()" />
+                            </div>
+                            <div class="col-md-3 @(_selectedDulType?.HasDepartmentCode != true ? "invisible" : "")">
+                                <label class="form-label">Код подразделения</label>
+                                <input class="form-control" @bind="_formPassportDepartmentCode" />
                             </div>
                         </div>
                         <div class="row mb-3">
@@ -640,19 +663,10 @@ else
                                 <label class="form-label">Кем выдан</label>
                                 <input class="form-control" @bind="_formPassportIssuedBy" />
                             </div>
-                            <div class="col-md-3">
-                                <label class="form-label">Дата выдачи</label>
-                                <input type="date" class="form-control" value="@_formPassportIssueDateStr"
-                                       @onchange="e => _formPassportIssueDateStr = e.Value?.ToString()" />
+                            <div class="col-md-6">
+                                <label class="form-label">Адрес регистрации</label>
+                                <input class="form-control" @bind="_formPassportRegistrationAddress" />
                             </div>
-                            <div class="col-md-3">
-                                <label class="form-label">Код подразделения</label>
-                                <input class="form-control" @bind="_formPassportDepartmentCode" />
-                            </div>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Адрес регистрации</label>
-                            <input class="form-control" @bind="_formPassportRegistrationAddress" />
                         </div>
                         <div class="row mb-3">
                             <div class="col-md-4">
@@ -840,6 +854,8 @@ else
 
     private string _formParticipantType = "FL";
     private string? _formFullName;
+    private Guid? _formDulTypeId;
+    private List<RefDulType>? _dulTypes;
     private string? _formPassportSeries;
     private string? _formPassportNumber;
     private string? _formPassportIssuedBy;
@@ -938,6 +954,9 @@ else
             await LoadData();
             await LoadRegistryUploads();
             await LoadParticipantChanges();
+
+            await using var dulCtx = await DbFactory.CreateDbContextAsync();
+            _dulTypes = await dulCtx.RefDulTypes.OrderBy(t => t.SortOrder).ToListAsync();
         }
         catch (Exception ex)
         {
@@ -1187,6 +1206,7 @@ else
         _editingParticipant = p;
         _formParticipantType = p.ParticipantType ?? "FL";
         _formFullName = p.FullName;
+        _formDulTypeId = p.DulTypeId;
         _formPassportSeries = p.PassportSeries;
         _formPassportNumber = p.PassportNumber;
         _formPassportIssuedBy = p.PassportIssuedBy;
@@ -1220,6 +1240,7 @@ else
     {
         _formParticipantType = "FL";
         _formFullName = null;
+        _formDulTypeId = null;
         _formPassportSeries = null;
         _formPassportNumber = null;
         _formPassportIssuedBy = null;
@@ -1254,6 +1275,7 @@ else
             {
                 participantType = _formParticipantType,
                 fullName = _formFullName,
+                dulTypeId = _formDulTypeId,
                 passportSeries = _formPassportSeries,
                 passportNumber = _formPassportNumber,
                 passportIssuedBy = _formPassportIssuedBy,
@@ -1444,6 +1466,7 @@ else
         public Guid Id { get; set; }
         public string? ParticipantType { get; set; }
         public string? FullName { get; set; }
+        public Guid? DulTypeId { get; set; }
         public string? PassportSeries { get; set; }
         public string? PassportNumber { get; set; }
         public string? PassportIssuedBy { get; set; }
@@ -1503,6 +1526,8 @@ else
         public string? PaperDocNumber { get; set; }
         public string? Comment { get; set; }
     }
+
+    private RefDulType? _selectedDulType => _dulTypes?.FirstOrDefault(t => t.Id == _formDulTypeId);
 
     /// <summary>Конвертирует дату из формата dd.MM.yyyy в yyyy-MM-dd для HTML date input.</summary>
     private static string? ToHtmlDate(string? dateStr)

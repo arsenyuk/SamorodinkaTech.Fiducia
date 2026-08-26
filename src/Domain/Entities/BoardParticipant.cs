@@ -26,6 +26,9 @@ public class BoardParticipant
     /// <summary>ФИО участника-ФЛ (full_name).</summary>
     public string? FullName { get; set; }
 
+    /// <summary>Идентификатор вида документа, удостоверяющего личность (dul_type_id).</summary>
+    public Guid? DulTypeId { get; set; }
+
     /// <summary>Серия паспорта (passport_series).</summary>
     public string? PassportSeries { get; set; }
 

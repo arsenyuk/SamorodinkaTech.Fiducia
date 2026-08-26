@@ -744,6 +744,7 @@ CREATE TABLE IF NOT EXISTS board_participant (
     legal_entity_id uuid NOT NULL REFERENCES legal_entities(id) ON DELETE RESTRICT,
     participant_type varchar(20) NOT NULL DEFAULT 'FL',
     full_name varchar(300),
+    dul_type_id uuid REFERENCES ref_dul_type(id) ON DELETE SET NULL,
     passport_series varchar(10),
     passport_number varchar(10),
     passport_issued_by varchar(500),
@@ -1537,6 +1538,7 @@ CREATE TABLE IF NOT EXISTS board_participant_change (
     participant_type varchar(20) NOT NULL,
     -- ФЛ
     full_name varchar(300),
+    dul_type_id uuid REFERENCES ref_dul_type(id) ON DELETE SET NULL,
     passport_series varchar(10),
     passport_number varchar(10),
     passport_issued_by varchar(500),
@@ -1629,3 +1631,16 @@ CREATE TABLE IF NOT EXISTS ref_document_refusal_reason (
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS ux_ref_refusal_reason_code ON ref_document_refusal_reason(code);
+
+-- Справочник: ref_dul_type (виды документов, удостоверяющих личность)
+-- Источник: Приложение №2 к Приказу ФНС от 31.08.2020 № ЕД-7-14/617@
+CREATE TABLE IF NOT EXISTS ref_dul_type (
+    id uuid PRIMARY KEY,
+    code varchar(10) UNIQUE NOT NULL,
+    name varchar(500) NOT NULL,
+    has_series boolean NOT NULL DEFAULT true,
+    has_department_code boolean NOT NULL DEFAULT false,
+    sort_order int NOT NULL DEFAULT 0,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    created_by uuid NOT NULL REFERENCES users(id)
+);

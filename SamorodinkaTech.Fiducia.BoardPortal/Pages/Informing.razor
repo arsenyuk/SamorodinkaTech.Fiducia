@@ -67,15 +67,29 @@
                     </div>
                 </div>
                 <div class="row mb-3">
-                    <div class="col-md-3">
-                        <label class="form-label">Серия паспорта</label>
+                    <div class="col-md-6">
+                        <label class="form-label">Вид документа</label>
+                        <select class="form-select" @bind="_currentParticipant.DulTypeId">
+                            @if (_dulTypes is not null)
+                            {
+                                @foreach (var dt in _dulTypes)
+                                {
+                                    <option value="@dt.Id">@dt.Name</option>
+                                }
+                            }
+                        </select>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-3 @(_dulTypes?.FirstOrDefault(t => t.Id == _currentParticipant.DulTypeId)?.HasSeries != true ? "invisible" : "")">
+                        <label class="form-label">Серия</label>
                         <input class="form-control" @bind="_formPassportSeries" />
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label">Номер паспорта</label>
+                        <label class="form-label">Номер</label>
                         <input class="form-control" @bind="_formPassportNumber" />
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-3 @(_dulTypes?.FirstOrDefault(t => t.Id == _currentParticipant.DulTypeId)?.HasDepartmentCode != true ? "invisible" : "")">
                         <label class="form-label">Код подразделения</label>
                         <input class="form-control" @bind="_formPassportDepartmentCode" />
                     </div>
@@ -305,6 +319,9 @@ else
             var participants = await Http.GetFromJsonAsync<List<ParticipantRow>>("/api/participants") ?? new();
             _currentParticipant = participants.FirstOrDefault();
 
+            await using var dulCtx = await DbFactory.CreateDbContextAsync();
+            _dulTypes = await dulCtx.RefDulTypes.OrderBy(t => t.SortOrder).ToListAsync();
+
             if (_currentParticipant is not null)
             {
                 // Предзаполнение формы текущими данными
@@ -390,6 +407,7 @@ else
                 participantId = _currentParticipant.Id,
                 participantType = _currentParticipant.ParticipantType ?? "FL",
                 fullName = _formFullName ?? _currentParticipant.FullName,
+                dulTypeId = _currentParticipant.DulTypeId,
                 passportSeries = _formPassportSeries ?? _currentParticipant.PassportSeries,
                 passportNumber = _formPassportNumber ?? _currentParticipant.PassportNumber,
                 passportIssuedBy = _formPassportIssuedBy ?? _currentParticipant.PassportIssuedBy,
@@ -446,6 +464,7 @@ else
         public Guid Id { get; set; }
         public string? ParticipantType { get; set; }
         public string? FullName { get; set; }
+        public Guid? DulTypeId { get; set; }
         public string? CompanyName { get; set; }
         public string? PersonInn { get; set; }
         public string? Citizenship { get; set; }
@@ -479,4 +498,6 @@ else
         public Guid FileId { get; set; }
         public string OriginalName { get; set; } = null!;
     }
+
+    private List<RefDulType>? _dulTypes;
 }

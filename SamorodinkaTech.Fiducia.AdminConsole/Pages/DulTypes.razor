@@ -1,0 +1,64 @@
+@page "/dul-types"
+@using Microsoft.EntityFrameworkCore
+@inject IDbContextFactory<SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext> DbFactory
+@inject ILogger<DulTypes> Logger
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "SYS_ADMIN")]
+
+<h3>Виды документов, удостоверяющих личность (ДУЛ)</h3>
+
+<p class="text-muted">Справочник кодов видов документов (Приложение №2 к Приказу ФНС от 31.08.2020 № ЕД-7-14/617@@)</p>
+
+@if (_types is null)
+{
+    <p><em>Загрузка...</em></p>
+}
+else if (_types.Count == 0)
+{
+    <p class="text-muted">Нет записей.</p>
+}
+else
+{
+    <table class="table table-sm">
+        <thead>
+            <tr>
+                <th>Код</th>
+                <th>Наименование документа</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var t in _types)
+            {
+                <tr>
+                    <td><code>@t.Code</code></td>
+                    <td>@t.Name</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<DulTypeVm>? _types;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+            _types = await ctx.RefDulTypes
+                .OrderBy(t => t.SortOrder)
+                .Select(t => new DulTypeVm { Code = t.Code, Name = t.Name })
+                .ToListAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Ошибка загрузки справочника видов ДУЛ");
+        }
+    }
+
+    private class DulTypeVm
+    {
+        public string Code { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+    }
+}

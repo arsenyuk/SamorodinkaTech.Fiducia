@@ -98,6 +98,7 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
     public DbSet<RefDocumentType> DocumentTypes => Set<RefDocumentType>();
     public DbSet<RefDocumentAccessMethod> DocumentAccessMethods => Set<RefDocumentAccessMethod>();
     public DbSet<RefDocumentRefusalReason> DocumentRefusalReasons => Set<RefDocumentRefusalReason>();
+    public DbSet<RefDulType> RefDulTypes => Set<RefDulType>();
     public DbSet<Notarization> Notarizations => Set<Notarization>();
     public DbSet<ShareRequestSupport> ShareRequestSupports => Set<ShareRequestSupport>();
     public DbSet<ShareRequestFile> ShareRequestFiles => Set<ShareRequestFile>();
@@ -607,6 +608,7 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.Property(x => x.EcosystemParticipantId).HasColumnName("ecosystem_participant_id");
             b.Property(x => x.ParticipantType).HasColumnName("participant_type").HasMaxLength(20).IsRequired().HasDefaultValue("FL");
             b.Property(x => x.FullName).HasColumnName("full_name").HasMaxLength(300);
+            b.Property(x => x.DulTypeId).HasColumnName("dul_type_id");
             b.Property(x => x.PassportSeries).HasColumnName("passport_series").HasMaxLength(10);
             b.Property(x => x.PassportNumber).HasColumnName("passport_number").HasMaxLength(10);
             b.Property(x => x.PassportIssuedBy).HasColumnName("passport_issued_by").HasMaxLength(500);
@@ -680,6 +682,7 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.Property(x => x.ParticipantId).HasColumnName("participant_id").IsRequired();
             b.Property(x => x.ParticipantType).HasColumnName("participant_type").HasMaxLength(20).IsRequired();
             b.Property(x => x.FullName).HasColumnName("full_name").HasMaxLength(300);
+            b.Property(x => x.DulTypeId).HasColumnName("dul_type_id");
             b.Property(x => x.PassportSeries).HasColumnName("passport_series").HasMaxLength(10);
             b.Property(x => x.PassportNumber).HasColumnName("passport_number").HasMaxLength(10);
             b.Property(x => x.PassportIssuedBy).HasColumnName("passport_issued_by").HasMaxLength(500);

@@ -92,6 +92,7 @@ public interface IApplicationDbContext
     DbSet<RefDocumentType> DocumentTypes { get; }
     DbSet<RefDocumentAccessMethod> DocumentAccessMethods { get; }
     DbSet<RefDocumentRefusalReason> DocumentRefusalReasons { get; }
+    DbSet<RefDulType> RefDulTypes { get; }
 
     DbSet<ShareRequest> ShareRequests { get; }
 
