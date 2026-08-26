@@ -123,19 +123,26 @@ public static class AdminConsoleHelper
         }
 
         // Wait for employee form to be visible (depends on _selectedLegalEntityId)
-        await page.WaitForSelectorAsync(".card-body .form-control-sm", new PageWaitForSelectorOptions { Timeout = DefaultTimeout });
+        await page.WaitForSelectorAsync(".card-body input.form-control-sm, .card-body .input-group .form-control", new PageWaitForSelectorOptions { Timeout = DefaultTimeout });
 
-        // Fill fields using Playwright FillAsync + DispatchEventAsync("change") for Blazor @bind
-        var inputs = await page.QuerySelectorAllAsync(".card-body .form-control-sm");
-        // Inputs: LastName, FirstName, MiddleName, Position, Login
-        var values = new[] { lastName, firstName, middleName, position, login };
-        for (int i = 0; i < Math.Min(inputs.Count, values.Length); i++)
+        // Fill fields — LastName, FirstName, MiddleName, Position have form-control-sm; Login has form-control inside input-group
+        var nameInputs = await page.QuerySelectorAllAsync(".card-body input.form-control-sm");
+        var nameValues = new[] { lastName, firstName, middleName, position };
+        for (int i = 0; i < Math.Min(nameInputs.Count, nameValues.Length); i++)
         {
-            if (inputs[i] is not null)
+            if (nameInputs[i] is not null)
             {
-                await inputs[i].FillAsync(values[i]);
-                await inputs[i].DispatchEventAsync("change");
+                await nameInputs[i].FillAsync(nameValues[i]);
+                await nameInputs[i].DispatchEventAsync("change");
             }
+        }
+
+        // Login is in .input-group with class "form-control" (not form-control-sm)
+        var loginInput = await page.QuerySelectorAsync(".card-body .input-group .form-control");
+        if (loginInput is not null)
+        {
+            await loginInput.FillAsync(login);
+            await loginInput.DispatchEventAsync("change");
         }
 
         // Select role — last .form-select-sm on the page
