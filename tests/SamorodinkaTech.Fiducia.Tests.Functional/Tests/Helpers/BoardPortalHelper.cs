@@ -325,5 +325,115 @@ public static class BoardPortalHelper
             "Совет директоров должен быть доступен при нетиповом уставе");
     }
 
+    // ══════════════════════════════════════════════════════════════════════
+    // Участники общества
+    // ══════════════════════════════════════════════════════════════════════
+
+    /// <summary>
+    /// Добавить участника общества через API (POST /api/participants).
+    /// Использует fetch() в page.EvaluateAsync для прямого вызова API.
+    /// Требует авторизованную сессию Board Portal.
+    /// </summary>
+    public static async Task<Guid> AddParticipantAsync(
+        IPage page,
+        string fullName,
+        decimal? sharePercent = null,
+        decimal? shareAmount = null)
+    {
+        var sharePercentJson = sharePercent?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "null";
+        var shareAmountJson = shareAmount?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "null";
+
+        var result = await page.EvaluateAsync<AddParticipantResponse>(
+            $@"async () => {{
+                const response = await fetch('/api/participants', {{
+                    method: 'POST',
+                    headers: {{ 'Content-Type': 'application/json' }},
+                    credentials: 'same-origin',
+                    body: JSON.stringify({{
+                        participantType: 'FL',
+                        fullName: '{EscapeJs(fullName)}',
+                        sharePercent: {sharePercentJson},
+                        shareAmount: {shareAmountJson}
+                    }})
+                }});
+                if (!response.ok) {{
+                    const body = await response.text();
+                    throw new Error(`POST /api/participants failed: ${{response.status}} ${{body}}`);
+                }}
+                return await response.json();
+            }}");
+
+        return result.Id;
+    }
+
+    /// <summary>
+    /// Добавить N участников для указанного номера устава.
+    /// Каждый участник получает уникальное ФИО и долю.
+    /// </summary>
+    public static async Task AddParticipantsForCharterAsync(
+        IPage page,
+        int charterNumber,
+        int count)
+    {
+        var percents = CharterTestData.GetSharePercents(count);
+
+        for (var i = 0; i < count; i++)
+        {
+            var fullName = CharterTestData.GetParticipantFullName(charterNumber, i + 1);
+            var sharePercent = percents[i];
+
+            await AddParticipantAsync(page, fullName, sharePercent: sharePercent);
+            await page.WaitForTimeoutAsync(300);
+        }
+    }
+
+    /// <summary>
+    /// Добавить N участников для нетипового устава.
+    /// </summary>
+    public static async Task AddParticipantsForNonStandardCharterAsync(
+        IPage page,
+        int testIndex,
+        int count)
+    {
+        var percents = CharterTestData.GetSharePercents(count);
+
+        for (var i = 0; i < count; i++)
+        {
+            var fullName = NonStandardCharterTestData.GetParticipantFullName(testIndex, i + 1);
+            var sharePercent = percents[i];
+
+            await AddParticipantAsync(page, fullName, sharePercent: sharePercent);
+            await page.WaitForTimeoutAsync(300);
+        }
+    }
+
+    /// <summary>
+    /// Проверить, что участники успешно добавлены (через GET /api/participants).
+    /// </summary>
+    public static async Task AssertParticipantCountAsync(IPage page, int expectedCount)
+    {
+        var result = await page.EvaluateAsync<ParticipantListResponse>(
+            @"async () => {
+                const response = await fetch('/api/participants', {
+                    method: 'GET',
+                    credentials: 'same-origin'
+                });
+                if (!response.ok) {
+                    throw new Error(`GET /api/participants failed: ${response.status}`);
+                }
+                const data = await response.json();
+                return { count: Array.isArray(data) ? data.length : 0 };
+            }");
+
+        result.Count.Should().Be(expectedCount,
+            $"Ожидалось {expectedCount} участников, получено {result.Count}");
+    }
+
+    /// <summary>DTO-ответ при добавлении участника.</summary>
+    private record AddParticipantResponse(Guid Id);
+
+    /// <summary>DTO-ответ при получении списка участников.</summary>
+    private record ParticipantListResponse(int Count);
+
     private static string EscapeJs(string value) => value.Replace("'", "\\'").Replace("\\", "\\\\");
 }

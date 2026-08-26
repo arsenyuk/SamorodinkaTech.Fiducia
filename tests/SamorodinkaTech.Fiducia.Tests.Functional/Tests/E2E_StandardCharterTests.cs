@@ -6,17 +6,18 @@ namespace SamorodinkaTech.Fiducia.Tests.Functional;
 
 /// <summary>
 /// Сквозные E2E-тесты для 36 типовых уставов ООО.
-/// Каждый тест проходит полный цикл:
-/// 1. Сброс БД (без демо-данных)
-/// 2. Создание пользователя в LDAP
-/// 3. Логин SYS_ADMIN в Admin Console
-/// 4. Создание ООО ЮЛ
-/// 5. Добавление сотрудника с ролями LE_ADMIN + CEO
-/// 6. Выход из Admin Console
-/// 7. Логин GD в Board Portal
-/// 8. Заполнение полей ЮЛ + выбор типового устава
-/// 9. Сохранение и проверка отсутствия ошибок
+/// БД сбрасывается ОДИН раз перед прогоном всех тестов.
+/// Каждый тест работает со своим фиксированным ЮЛ и набором лиц.
+/// Запрещено параллельное исполнение (Collection "CharterTests").
+/// Тестовый сценарий:
+/// 1. Логин ГД в Board Portal (пользователь уже создан при сидировании)
+/// 2. Заполнение полей ЮЛ + выбор типового устава
+/// 3. Сохранение и проверка отсутствия ошибок
+/// 4. Добавление участников (для ExecutiveBody A)
+/// 5. Проверка записей аудита (вход, чтение/запись, участники)
+/// 6. Проверка отсутствия ошибок в логе приложения за период работы теста
 /// </summary>
+[Collection("CharterTests")]
 public class E2E_StandardCharterTests : BrowserFixture
 {
     [Theory]
@@ -58,119 +59,97 @@ public class E2E_StandardCharterTests : BrowserFixture
     [InlineData(36)]
     public async Task StandardCharter_CompleteFlow(int charterNumber)
     {
-        // Создаём свежие страницы для каждого теста
+        var testStartTime = DateTimeOffset.UtcNow;
+        var testName = $"StandardCharter_CompleteFlow={charterNumber}";
+
         var adminPage = await CreateAdminConsolePageAsync();
         var boardPage = await CreateBoardPortalPageAsync();
         var ldapPage = await CreatePageAsync();
 
         try
         {
-        // ═══════════════════════════════════════════════════════════════════
-        // Шаг 0: Удаление всех тестовых пользователей из LDAP
-        // ═══════════════════════════════════════════════════════════════════
-        await LdapHelper.DeleteAllTestUsersAsync();
+            // ═══════════════════════════════════════════════════════════════════
+            // Идемпотентное сидирование: БД + LDAP + ЮЛ + роли (один раз)
+            // ═══════════════════════════════════════════════════════════════════
+            await CharterTestSeeder.EnsureSeededAsync(adminPage, ldapPage);
 
-        // ═══════════════════════════════════════════════════════════════════
-        // Шаг 1: Сброс БД без демо-данных
-        // ═══════════════════════════════════════════════════════════════════
-        await DbResetHelper.ResetAsync(includeDemo: false, timeout: TimeSpan.FromMinutes(3));
+            // ═══════════════════════════════════════════════════════════════════
+            // Получение фиксированных данных для данного устава
+            // ═══════════════════════════════════════════════════════════════════
+            var entity = CharterTestDataFixed.LegalEntities[charterNumber - 1];
+            var persons = CharterTestDataFixed.PersonsByEntity[charterNumber];
 
-        // ═══════════════════════════════════════════════════════════════════
-        // Шаг 2: Создание пользователя в OpenLDAP через phpLDAPadmin
-        // ═══════════════════════════════════════════════════════════════════
-        await LdapHelper.CreateUserAsync(
-            ldapPage,
-            CharterTestData.LdapUid,
-            CharterTestData.LdapCn,
-            CharterTestData.LdapSn,
-            CharterTestData.LdapGivenName,
-            CharterTestData.LdapPassword,
-            addToBoardGroup: true);
+            // ═══════════════════════════════════════════════════════════════════
+            // Шаг 1: Логин ГД в Board Portal
+            // ═══════════════════════════════════════════════════════════════════
+            var gdDisplayName = persons.Gd?.FullName ?? persons.Participants[0].FullName;
+            await AuthHelper.LoginAsBoardUserAsync(boardPage, gdDisplayName);
+            boardPage.Url.Should().Contain("/main");
 
-        // ═══════════════════════════════════════════════════════════════════
-        // Шаг 3: SYS_ADMIN логинится в Admin Console
-        // ═══════════════════════════════════════════════════════════════════
-        await AuthHelper.LoginAsAdminAsync(adminPage, CharterTestData.SysAdminDisplayName);
+            // ═══════════════════════════════════════════════════════════════════
+            // Шаг 2: Заполнение полей ЮЛ + выбор типового устава + сохранение
+            // ═══════════════════════════════════════════════════════════════════
+            await BoardPortalHelper.CompleteLegalEntitySetupAsync(
+                boardPage,
+                charterNumber,
+                shortName: entity.ShortName,
+                ogrn: entity.Ogrn);
 
-        // Verify we're on the main page
-        adminPage.Url.Should().Contain("/main");
+            // ═══════════════════════════════════════════════════════════════════
+            // Шаг 3: Проверка отсутствия ошибок
+            // ═══════════════════════════════════════════════════════════════════
+            var hasErrors = await boardPage.EvaluateAsync<bool>(
+                "() => document.querySelectorAll('.alert-danger').length > 0");
+            hasErrors.Should().BeFalse(
+                $"Для типового устава №{charterNumber} не должно быть ошибок при сохранении");
 
-        // ═══════════════════════════════════════════════════════════════════
-        // Шаг 4: Переход в режим Пользователи (access-management)
-        // ═══════════════════════════════════════════════════════════════════
-        await adminPage.GotoAsync(PortalUrls.GetUrl(Portal.AdminConsole, "/access-management"));
-        await AuthHelper.WaitForBlazorReady(adminPage);
-        await adminPage.WaitForTimeoutAsync(1000);
+            // ═══════════════════════════════════════════════════════════════════
+            // Шаг 4: Добавление участников (только для ExecutiveBody A)
+            // ═══════════════════════════════════════════════════════════════════
+            if (entity.ExecutiveBodyType == CharterTestDataFixed.ExecutiveBodyA)
+            {
+                for (var i = 0; i < persons.Participants.Count; i++)
+                {
+                    var p = persons.Participants[i];
+                    await BoardPortalHelper.AddParticipantAsync(
+                        boardPage,
+                        p.FullName,
+                        sharePercent: p.SharePercent);
+                }
 
-        // Verify page loaded
-        var pageContent = await adminPage.ContentAsync();
-        pageContent.Should().Contain("Сотрудники и доступ");
+                await BoardPortalHelper.AssertParticipantCountAsync(
+                    boardPage,
+                    persons.Participants.Count);
+            }
 
-        // ═══════════════════════════════════════════════════════════════════
-        // Шаг 5: Создание ЮЛ типа ООО
-        // ═══════════════════════════════════════════════════════════════════
-        var leName = CharterTestData.GetLegalEntityName(charterNumber);
-        var leInn = CharterTestData.GetLegalEntityInn(charterNumber);
+            // ═══════════════════════════════════════════════════════════════════
+            // Шаг 5: Проверка записей аудита
+            // ═══════════════════════════════════════════════════════════════════
+            var login = persons.Gd?.FullName ?? persons.Participants[0].FullName;
 
-        await AdminConsoleHelper.CreateLegalEntityAsync(adminPage, leName, leInn);
+            // Вход в систему должен быть залогирован
+            await AuditLogHelper.AssertLoginLoggedAsync(login);
 
-        // ═══════════════════════════════════════════════════════════════════
-        // Шаг 6-7: Добавление сотрудника + назначение ролей LE_ADMIN и CEO
-        // ═══════════════════════════════════════════════════════════════════
-        await AdminConsoleHelper.AssignRolesAsync(
-            adminPage,
-            CharterTestData.EmployeeLastName,
-            CharterTestData.EmployeeFirstName,
-            CharterTestData.EmployeeMiddleName,
-            CharterTestData.EmployeePosition,
-            CharterTestData.EmployeeLogin,
-            new[] { CharterTestData.RoleLeAdmin, CharterTestData.RoleCeo });
+            // Изменение данных ЮЛ (save) должно быть залогировано
+            await AuditLogHelper.AssertDataUpdateLoggedAsync("legal-entities");
 
-        // Verify employee appears in the list
-        var employeeRow = adminPage.Locator($"td:has-text('{CharterTestData.LdapCn}')");
-        (await employeeRow.CountAsync()).Should().BeGreaterThan(0,
-            "Сотрудник должен появиться в списке после добавления");
+            // Добавление участников должно быть залогировано (только для типа A)
+            if (entity.ExecutiveBodyType == CharterTestDataFixed.ExecutiveBodyA)
+            {
+                await AuditLogHelper.AssertDataCreateLoggedAsync("participants");
+            }
 
-        // ═══════════════════════════════════════════════════════════════════
-        // Шаг 8: Администратор системы выходит из Admin Console
-        // ═══════════════════════════════════════════════════════════════════
-        await AuthHelper.LogoutAsync(adminPage);
-
-        // ═══════════════════════════════════════════════════════════════════
-        // Шаг 9: Генеральный директор заходит в Board Portal
-        // ═══════════════════════════════════════════════════════════════════
-        await AuthHelper.LoginAsBoardUserAsync(
-            boardPage,
-            CharterTestData.GetBoardPortalDisplayName());
-
-        // Verify we're on the main page
-        boardPage.Url.Should().Contain("/main");
-
-        // ═══════════════════════════════════════════════════════════════════
-        // Шаг 10: ГД заходит в режим ЮЛ и заполняет все остальные поля
-        //         + устанавливает стандартный тип устава №XX
-        // ═══════════════════════════════════════════════════════════════════
-        var shortName = $"ООО «Тест {charterNumber:D2}»";
-        var ogrn = $"1{charterNumber:D2}345678901";
-
-        await BoardPortalHelper.CompleteLegalEntitySetupAsync(
-            boardPage,
-            charterNumber,
-            shortName: shortName,
-            ogrn: ogrn);
-
-        // ═══════════════════════════════════════════════════════════════════
-        // Шаг 11: Сохранение и проверка отсутствия ошибок
-        // ═══════════════════════════════════════════════════════════════════
-        // SaveAndVerifyAsync в BoardPortalHelper уже проверяет отсутствие ошибок
-        // Дополнительная проверка:
-        var hasErrors = await boardPage.EvaluateAsync<bool>(
-            "() => document.querySelectorAll('.alert-danger').length > 0");
-        hasErrors.Should().BeFalse(
-            $"Для типового устава №{charterNumber} не должно быть ошибок при сохранении");
+            // Не должно быть ошибок доступа
+            await AuditLogHelper.AssertNoAccessDeniedAsync();
         }
         finally
         {
+            // ═══════════════════════════════════════════════════════════════════
+            // Шаг 6: Проверка ошибок в логе приложения за период работы теста
+            // ═══════════════════════════════════════════════════════════════════
+            var testEndTime = DateTimeOffset.UtcNow;
+            await AppLogHelper.AssertNoErrorsInAppLogSafeAsync(testStartTime, testEndTime, testName);
+
             await ldapPage.CloseAsync();
             await boardPage.CloseAsync();
             await adminPage.CloseAsync();

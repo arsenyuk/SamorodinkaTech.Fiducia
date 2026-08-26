@@ -53,4 +53,71 @@ public static class CharterTestData
             throw new InvalidOperationException(
                 $"Ожидалось отсутствие ошибок, но получено: '{errorMessage}'");
     }
+
+    // ══════════════════════════════════════════════════════════════════════
+    // Тестовые данные участников
+    // ══════════════════════════════════════════════════════════════════════
+
+    private static readonly Random SharedRandom = new();
+
+    /// <summary>Минимальное количество участников.</summary>
+    public const int MinParticipantCount = 1;
+
+    /// <summary>Максимальное количество участников.</summary>
+    public const int MaxParticipantCount = 3;
+
+    /// <summary>
+    /// Сгенерировать случайное количество участников от 1 до 3.
+    /// </summary>
+    public static int GetRandomParticipantCount() =>
+        SharedRandom.Next(MinParticipantCount, MaxParticipantCount + 1);
+
+    /// <summary>
+    /// Сгенерировать ФИО участника для указанного номера устава и индекса.
+    /// </summary>
+    public static string GetParticipantFullName(int charterNumber, int participantIndex) =>
+        $"Участник {participantIndex} Тестовый{charterNumber:D2}";
+
+    /// <summary>
+    /// Уставы с ExecutiveBody = B (каждый участник — директор): 07–12, 25–30.
+    /// </summary>
+    public static bool IsExecutiveBodyB(int charterNumber) =>
+        (charterNumber is >= 7 and <= 12) ||
+        (charterNumber is >= 25 and <= 30);
+
+    /// <summary>
+    /// Уставы с ExecutiveBody = C (все участники совместно): 13–18, 31–36.
+    /// </summary>
+    public static bool IsExecutiveBodyC(int charterNumber) =>
+        (charterNumber is >= 13 and <= 18) ||
+        (charterNumber is >= 31 and <= 36);
+
+    /// <summary>
+    /// Нужно ли добавлять участников для данного номера устава.
+    /// Не добавлять для ExecutiveBody B и C.
+    /// </summary>
+    public static bool ShouldAddParticipants(int charterNumber) =>
+        !IsExecutiveBodyB(charterNumber) && !IsExecutiveBodyC(charterNumber);
+
+    /// <summary>
+    /// Равномерно распределить 100% между N участниками.
+    /// Последний участник получает остаток.
+    /// </summary>
+    public static decimal[] GetSharePercents(int participantCount)
+    {
+        if (participantCount <= 0) return [];
+
+        var baseShare = Math.Floor(100m / participantCount);
+        var percents = new decimal[participantCount];
+        var remaining = 100m;
+
+        for (var i = 0; i < participantCount - 1; i++)
+        {
+            percents[i] = baseShare;
+            remaining -= baseShare;
+        }
+
+        percents[^1] = remaining;
+        return percents;
+    }
 }

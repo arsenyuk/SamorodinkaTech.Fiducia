@@ -6,346 +6,450 @@ namespace SamorodinkaTech.Fiducia.Tests.Functional;
 
 /// <summary>
 /// Сквозные E2E-тесты для нетипового (индивидуального) устава ООО.
-/// Каждый тест проходит полный цикл:
-/// 1. Сброс БД (без демо-данных)
-/// 2. Создание пользователя в LDAP
-/// 3. Логин SYS_ADMIN в Admin Console
-/// 4. Создание ООО ЮЛ
-/// 5. Добавление сотрудника с ролями LE_ADMIN + CEO
-/// 6. Выход из Admin Console
-/// 7. Логин GD в Board Portal
-/// 8. Заполнение полей ЮЛ + выбор нетипового устава
-/// 9. Настройка конкретного параметра устава
-/// 10. Сохранение и проверка отсутствия ошибок
+/// БД сбрасывается ОДИН раз перед прогоном всех тестов.
+/// Каждый тест работает со своим фиксированным ЮЛ и набором лиц.
+/// Запрещено параллельное исполнение (Collection "CharterTests").
+/// Тестовый сценарий:
+/// 1. Логин ГД в Board Portal (пользователь уже создан при сидировании)
+/// 2. Заполнение полей ЮЛ + выбор нетипового устава
+/// 3. Настройка конкретного параметра устава
+/// 4. Добавление участников
+/// 5. Сохранение и проверка отсутствия ошибок
+/// 6. Проверка записей аудита (вход, чтение/запись, участники)
+/// 7. Проверка отсутствия ошибок в логе приложения за период работы теста
 /// </summary>
+[Collection("CharterTests")]
 public class E2E_NonStandardCharterTests : BrowserFixture
 {
     // ══════════════════════════════════════════════════════════════════════
-    // Полный цикл: каждый параметр нетипового устава — отдельный тест
+    // Параметры нетипового устава ( фиксированные значения )
+    // ══════════════════════════════════════════════════════════════════════
+
+    private const string ExitAllowed = "true";
+    private const string ExitMinSharePercent = "5";
+    private const string ExitMaxSharePercent = "40";
+    private const string ExitConditionDescription = "по истечении 2 лет с момента вступления";
+    private const string ExitRequiresUnanimousOsu = "true";
+    private const string TransferToParticipants = "true";
+    private const string TransferToThirdParties = "CONSENT";
+    private const string PreemptiveRight = "true";
+    private const string InheritanceWithoutConsent = "true";
+    private const string ExecutiveBody = "A";
+    private const string HasBoardOfDirectors = "true";
+    private const string BoardDecidesConveningOsu = "true";
+    private const string VosuThresholdPercent = "15";
+
+    // ══════════════════════════════════════════════════════════════════════
+    // Тесты
     // ══════════════════════════════════════════════════════════════════════
 
     [Fact]
     public async Task NonStandardCharter_ExitAllowed_ShouldSaveWithoutErrors()
     {
-        var (adminPage, boardPage, ldapPage) = await SetupFullCycleAsync(1);
+        var testStartTime = DateTimeOffset.UtcNow;
+        var testName = "NonStandardCharter_ExitAllowed";
+
+        var (adminPage, boardPage, ldapPage, login) = await SetupFullCycleAsync(37);
         try
         {
             await BoardPortalHelper.SelectNonStandardCharterAsync(boardPage);
             await BoardPortalHelper.AssertNonStandardCharterFieldsVisibleAsync(boardPage);
-
             await BoardPortalHelper.ConfigureCharterParameterAsync(
-                boardPage, NonStandardCharterTestData.ParameterNames.ExitAllowed,
-                NonStandardCharterTestData.ExitAllowed);
-
+                boardPage, "exit-allowed", ExitAllowed);
+            await AddParticipantsAsync(boardPage, 37);
             await BoardPortalHelper.SaveAndVerifyAsync(boardPage);
+
+            await AssertAuditForNonStandardCharterAsync(login, participantsAdded: true);
         }
-        finally { await CleanupAsync(adminPage, boardPage, ldapPage); }
+        finally
+        {
+            var testEndTime = DateTimeOffset.UtcNow;
+            await AppLogHelper.AssertNoErrorsInAppLogSafeAsync(testStartTime, testEndTime, testName);
+            await CleanupAsync(adminPage, boardPage, ldapPage);
+        }
     }
 
     [Fact]
     public async Task NonStandardCharter_ExitMinSharePercent_ShouldSaveWithoutErrors()
     {
-        var (adminPage, boardPage, ldapPage) = await SetupFullCycleAsync(2);
+        var testStartTime = DateTimeOffset.UtcNow;
+        var testName = "NonStandardCharter_ExitMinSharePercent";
+
+        var (adminPage, boardPage, ldapPage, login) = await SetupFullCycleAsync(38);
         try
         {
             await BoardPortalHelper.SelectNonStandardCharterAsync(boardPage);
-            await BoardPortalHelper.ConfigureCharterParameterAsync(
-                boardPage, NonStandardCharterTestData.ParameterNames.ExitAllowed,
-                NonStandardCharterTestData.ExitAllowed);
-            await BoardPortalHelper.ConfigureCharterParameterAsync(
-                boardPage, NonStandardCharterTestData.ParameterNames.ExitMinSharePercent,
-                NonStandardCharterTestData.ExitMinSharePercent);
-
+            await BoardPortalHelper.ConfigureCharterParameterAsync(boardPage, "exit-allowed", ExitAllowed);
+            await BoardPortalHelper.ConfigureCharterParameterAsync(boardPage, "exit-min-share", ExitMinSharePercent);
+            await AddParticipantsAsync(boardPage, 38);
             await BoardPortalHelper.SaveAndVerifyAsync(boardPage);
+
+            await AssertAuditForNonStandardCharterAsync(login, participantsAdded: true);
         }
-        finally { await CleanupAsync(adminPage, boardPage, ldapPage); }
+        finally
+        {
+            var testEndTime = DateTimeOffset.UtcNow;
+            await AppLogHelper.AssertNoErrorsInAppLogSafeAsync(testStartTime, testEndTime, testName);
+            await CleanupAsync(adminPage, boardPage, ldapPage);
+        }
     }
 
     [Fact]
     public async Task NonStandardCharter_ExitMaxSharePercent_ShouldSaveWithoutErrors()
     {
-        var (adminPage, boardPage, ldapPage) = await SetupFullCycleAsync(3);
+        var testStartTime = DateTimeOffset.UtcNow;
+        var testName = "NonStandardCharter_ExitMaxSharePercent";
+
+        var (adminPage, boardPage, ldapPage, login) = await SetupFullCycleAsync(39);
         try
         {
             await BoardPortalHelper.SelectNonStandardCharterAsync(boardPage);
-            await BoardPortalHelper.ConfigureCharterParameterAsync(
-                boardPage, NonStandardCharterTestData.ParameterNames.ExitAllowed,
-                NonStandardCharterTestData.ExitAllowed);
-            await BoardPortalHelper.ConfigureCharterParameterAsync(
-                boardPage, NonStandardCharterTestData.ParameterNames.ExitMaxSharePercent,
-                NonStandardCharterTestData.ExitMaxSharePercent);
-
+            await BoardPortalHelper.ConfigureCharterParameterAsync(boardPage, "exit-allowed", ExitAllowed);
+            await BoardPortalHelper.ConfigureCharterParameterAsync(boardPage, "exit-max-share", ExitMaxSharePercent);
+            await AddParticipantsAsync(boardPage, 39);
             await BoardPortalHelper.SaveAndVerifyAsync(boardPage);
+
+            await AssertAuditForNonStandardCharterAsync(login, participantsAdded: true);
         }
-        finally { await CleanupAsync(adminPage, boardPage, ldapPage); }
+        finally
+        {
+            var testEndTime = DateTimeOffset.UtcNow;
+            await AppLogHelper.AssertNoErrorsInAppLogSafeAsync(testStartTime, testEndTime, testName);
+            await CleanupAsync(adminPage, boardPage, ldapPage);
+        }
     }
 
     [Fact]
     public async Task NonStandardCharter_ExitConditionDescription_ShouldSaveWithoutErrors()
     {
-        var (adminPage, boardPage, ldapPage) = await SetupFullCycleAsync(4);
+        var testStartTime = DateTimeOffset.UtcNow;
+        var testName = "NonStandardCharter_ExitConditionDescription";
+
+        var (adminPage, boardPage, ldapPage, login) = await SetupFullCycleAsync(40);
         try
         {
             await BoardPortalHelper.SelectNonStandardCharterAsync(boardPage);
-            await BoardPortalHelper.ConfigureCharterParameterAsync(
-                boardPage, NonStandardCharterTestData.ParameterNames.ExitAllowed,
-                NonStandardCharterTestData.ExitAllowed);
-            await BoardPortalHelper.ConfigureCharterParameterAsync(
-                boardPage, NonStandardCharterTestData.ParameterNames.ExitConditionDescription,
-                NonStandardCharterTestData.ExitConditionDescription);
-
+            await BoardPortalHelper.ConfigureCharterParameterAsync(boardPage, "exit-allowed", ExitAllowed);
+            await BoardPortalHelper.ConfigureCharterParameterAsync(boardPage, "exit-condition", ExitConditionDescription);
+            await AddParticipantsAsync(boardPage, 40);
             await BoardPortalHelper.SaveAndVerifyAsync(boardPage);
+
+            await AssertAuditForNonStandardCharterAsync(login, participantsAdded: true);
         }
-        finally { await CleanupAsync(adminPage, boardPage, ldapPage); }
+        finally
+        {
+            var testEndTime = DateTimeOffset.UtcNow;
+            await AppLogHelper.AssertNoErrorsInAppLogSafeAsync(testStartTime, testEndTime, testName);
+            await CleanupAsync(adminPage, boardPage, ldapPage);
+        }
     }
 
     [Fact]
     public async Task NonStandardCharter_ExitRequiresUnanimousOsu_ShouldSaveWithoutErrors()
     {
-        var (adminPage, boardPage, ldapPage) = await SetupFullCycleAsync(5);
+        var testStartTime = DateTimeOffset.UtcNow;
+        var testName = "NonStandardCharter_ExitRequiresUnanimousOsu";
+
+        var (adminPage, boardPage, ldapPage, login) = await SetupFullCycleAsync(41);
         try
         {
             await BoardPortalHelper.SelectNonStandardCharterAsync(boardPage);
-            await BoardPortalHelper.ConfigureCharterParameterAsync(
-                boardPage, NonStandardCharterTestData.ParameterNames.ExitAllowed,
-                NonStandardCharterTestData.ExitAllowed);
-            await BoardPortalHelper.ConfigureCharterParameterAsync(
-                boardPage, NonStandardCharterTestData.ParameterNames.ExitRequiresUnanimousOsu,
-                NonStandardCharterTestData.ExitRequiresUnanimousOsu);
-
+            await BoardPortalHelper.ConfigureCharterParameterAsync(boardPage, "exit-allowed", ExitAllowed);
+            await BoardPortalHelper.ConfigureCharterParameterAsync(boardPage, "exit-unanimous", ExitRequiresUnanimousOsu);
+            await AddParticipantsAsync(boardPage, 41);
             await BoardPortalHelper.SaveAndVerifyAsync(boardPage);
+
+            await AssertAuditForNonStandardCharterAsync(login, participantsAdded: true);
         }
-        finally { await CleanupAsync(adminPage, boardPage, ldapPage); }
+        finally
+        {
+            var testEndTime = DateTimeOffset.UtcNow;
+            await AppLogHelper.AssertNoErrorsInAppLogSafeAsync(testStartTime, testEndTime, testName);
+            await CleanupAsync(adminPage, boardPage, ldapPage);
+        }
     }
 
     [Fact]
     public async Task NonStandardCharter_TransferToParticipants_ShouldSaveWithoutErrors()
     {
-        var (adminPage, boardPage, ldapPage) = await SetupFullCycleAsync(6);
+        var testStartTime = DateTimeOffset.UtcNow;
+        var testName = "NonStandardCharter_TransferToParticipants";
+
+        var (adminPage, boardPage, ldapPage, login) = await SetupFullCycleAsync(42);
         try
         {
             await BoardPortalHelper.SelectNonStandardCharterAsync(boardPage);
-            await BoardPortalHelper.ConfigureCharterParameterAsync(
-                boardPage, NonStandardCharterTestData.ParameterNames.TransferToParticipants,
-                NonStandardCharterTestData.TransferToParticipantsWithoutConsent);
-
+            await BoardPortalHelper.ConfigureCharterParameterAsync(boardPage, "transfer-participants", TransferToParticipants);
+            await AddParticipantsAsync(boardPage, 42);
             await BoardPortalHelper.SaveAndVerifyAsync(boardPage);
+
+            await AssertAuditForNonStandardCharterAsync(login, participantsAdded: true);
         }
-        finally { await CleanupAsync(adminPage, boardPage, ldapPage); }
+        finally
+        {
+            var testEndTime = DateTimeOffset.UtcNow;
+            await AppLogHelper.AssertNoErrorsInAppLogSafeAsync(testStartTime, testEndTime, testName);
+            await CleanupAsync(adminPage, boardPage, ldapPage);
+        }
     }
 
     [Fact]
     public async Task NonStandardCharter_TransferToThirdParties_ShouldSaveWithoutErrors()
     {
-        var (adminPage, boardPage, ldapPage) = await SetupFullCycleAsync(7);
+        var testStartTime = DateTimeOffset.UtcNow;
+        var testName = "NonStandardCharter_TransferToThirdParties";
+
+        var (adminPage, boardPage, ldapPage, login) = await SetupFullCycleAsync(43);
         try
         {
             await BoardPortalHelper.SelectNonStandardCharterAsync(boardPage);
-            await BoardPortalHelper.ConfigureCharterParameterAsync(
-                boardPage, NonStandardCharterTestData.ParameterNames.TransferToThirdParties,
-                NonStandardCharterTestData.TransferToThirdParties);
-
+            await BoardPortalHelper.ConfigureCharterParameterAsync(boardPage, "transfer-third-parties", TransferToThirdParties);
+            await AddParticipantsAsync(boardPage, 43);
             await BoardPortalHelper.SaveAndVerifyAsync(boardPage);
+
+            await AssertAuditForNonStandardCharterAsync(login, participantsAdded: true);
         }
-        finally { await CleanupAsync(adminPage, boardPage, ldapPage); }
+        finally
+        {
+            var testEndTime = DateTimeOffset.UtcNow;
+            await AppLogHelper.AssertNoErrorsInAppLogSafeAsync(testStartTime, testEndTime, testName);
+            await CleanupAsync(adminPage, boardPage, ldapPage);
+        }
     }
 
     [Fact]
     public async Task NonStandardCharter_PreemptiveRight_ShouldSaveWithoutErrors()
     {
-        var (adminPage, boardPage, ldapPage) = await SetupFullCycleAsync(8);
+        var testStartTime = DateTimeOffset.UtcNow;
+        var testName = "NonStandardCharter_PreemptiveRight";
+
+        var (adminPage, boardPage, ldapPage, login) = await SetupFullCycleAsync(44);
         try
         {
             await BoardPortalHelper.SelectNonStandardCharterAsync(boardPage);
-            await BoardPortalHelper.ConfigureCharterParameterAsync(
-                boardPage, NonStandardCharterTestData.ParameterNames.PreemptiveRight,
-                NonStandardCharterTestData.PreemptiveRight);
-
+            await BoardPortalHelper.ConfigureCharterParameterAsync(boardPage, "preemptive-right", PreemptiveRight);
+            await AddParticipantsAsync(boardPage, 44);
             await BoardPortalHelper.SaveAndVerifyAsync(boardPage);
+
+            await AssertAuditForNonStandardCharterAsync(login, participantsAdded: true);
         }
-        finally { await CleanupAsync(adminPage, boardPage, ldapPage); }
+        finally
+        {
+            var testEndTime = DateTimeOffset.UtcNow;
+            await AppLogHelper.AssertNoErrorsInAppLogSafeAsync(testStartTime, testEndTime, testName);
+            await CleanupAsync(adminPage, boardPage, ldapPage);
+        }
     }
 
     [Fact]
     public async Task NonStandardCharter_InheritanceWithoutConsent_ShouldSaveWithoutErrors()
     {
-        var (adminPage, boardPage, ldapPage) = await SetupFullCycleAsync(9);
+        var testStartTime = DateTimeOffset.UtcNow;
+        var testName = "NonStandardCharter_InheritanceWithoutConsent";
+
+        var (adminPage, boardPage, ldapPage, login) = await SetupFullCycleAsync(45);
         try
         {
             await BoardPortalHelper.SelectNonStandardCharterAsync(boardPage);
-            await BoardPortalHelper.ConfigureCharterParameterAsync(
-                boardPage, NonStandardCharterTestData.ParameterNames.InheritanceWithoutConsent,
-                NonStandardCharterTestData.InheritanceWithoutConsent);
-
+            await BoardPortalHelper.ConfigureCharterParameterAsync(boardPage, "inheritance", InheritanceWithoutConsent);
+            await AddParticipantsAsync(boardPage, 45);
             await BoardPortalHelper.SaveAndVerifyAsync(boardPage);
+
+            await AssertAuditForNonStandardCharterAsync(login, participantsAdded: true);
         }
-        finally { await CleanupAsync(adminPage, boardPage, ldapPage); }
+        finally
+        {
+            var testEndTime = DateTimeOffset.UtcNow;
+            await AppLogHelper.AssertNoErrorsInAppLogSafeAsync(testStartTime, testEndTime, testName);
+            await CleanupAsync(adminPage, boardPage, ldapPage);
+        }
     }
 
     [Fact]
     public async Task NonStandardCharter_ExecutiveBody_ShouldSaveWithoutErrors()
     {
-        var (adminPage, boardPage, ldapPage) = await SetupFullCycleAsync(10);
+        var testStartTime = DateTimeOffset.UtcNow;
+        var testName = "NonStandardCharter_ExecutiveBody";
+
+        var (adminPage, boardPage, ldapPage, login) = await SetupFullCycleAsync(46);
         try
         {
             await BoardPortalHelper.SelectNonStandardCharterAsync(boardPage);
-            await BoardPortalHelper.ConfigureCharterParameterAsync(
-                boardPage, NonStandardCharterTestData.ParameterNames.ExecutiveBody,
-                NonStandardCharterTestData.ExecutiveBody);
-
+            await BoardPortalHelper.ConfigureCharterParameterAsync(boardPage, "executive-body", ExecutiveBody);
+            await AddParticipantsAsync(boardPage, 46);
             await BoardPortalHelper.SaveAndVerifyAsync(boardPage);
+
+            await AssertAuditForNonStandardCharterAsync(login, participantsAdded: true);
         }
-        finally { await CleanupAsync(adminPage, boardPage, ldapPage); }
+        finally
+        {
+            var testEndTime = DateTimeOffset.UtcNow;
+            await AppLogHelper.AssertNoErrorsInAppLogSafeAsync(testStartTime, testEndTime, testName);
+            await CleanupAsync(adminPage, boardPage, ldapPage);
+        }
     }
 
     [Fact]
     public async Task NonStandardCharter_HasBoardOfDirectors_ShouldSaveAndShowBoardTab()
     {
-        var (adminPage, boardPage, ldapPage) = await SetupFullCycleAsync(11);
+        var testStartTime = DateTimeOffset.UtcNow;
+        var testName = "NonStandardCharter_HasBoardOfDirectors";
+
+        var (adminPage, boardPage, ldapPage, login) = await SetupFullCycleAsync(47);
         try
         {
             await BoardPortalHelper.SelectNonStandardCharterAsync(boardPage);
-            await BoardPortalHelper.ConfigureCharterParameterAsync(
-                boardPage, NonStandardCharterTestData.ParameterNames.HasBoardOfDirectors,
-                NonStandardCharterTestData.HasBoardOfDirectors);
-
+            await BoardPortalHelper.ConfigureCharterParameterAsync(boardPage, "has-board", HasBoardOfDirectors);
             await BoardPortalHelper.AssertBoardOfDirectorsAvailableAsync(boardPage);
+            await AddParticipantsAsync(boardPage, 47);
             await BoardPortalHelper.SaveAndVerifyAsync(boardPage);
+
+            await AssertAuditForNonStandardCharterAsync(login, participantsAdded: true);
         }
-        finally { await CleanupAsync(adminPage, boardPage, ldapPage); }
+        finally
+        {
+            var testEndTime = DateTimeOffset.UtcNow;
+            await AppLogHelper.AssertNoErrorsInAppLogSafeAsync(testStartTime, testEndTime, testName);
+            await CleanupAsync(adminPage, boardPage, ldapPage);
+        }
     }
 
     [Fact]
     public async Task NonStandardCharter_BoardDecidesConveningOsu_ShouldSaveWithoutErrors()
     {
-        var (adminPage, boardPage, ldapPage) = await SetupFullCycleAsync(12);
+        var testStartTime = DateTimeOffset.UtcNow;
+        var testName = "NonStandardCharter_BoardDecidesConveningOsu";
+
+        var (adminPage, boardPage, ldapPage, login) = await SetupFullCycleAsync(48);
         try
         {
             await BoardPortalHelper.SelectNonStandardCharterAsync(boardPage);
-            await BoardPortalHelper.ConfigureCharterParameterAsync(
-                boardPage, NonStandardCharterTestData.ParameterNames.HasBoardOfDirectors,
-                NonStandardCharterTestData.HasBoardOfDirectors);
-            await BoardPortalHelper.ConfigureCharterParameterAsync(
-                boardPage, NonStandardCharterTestData.ParameterNames.BoardDecidesConveningOsu,
-                NonStandardCharterTestData.BoardDecidesConveningOsu);
-
+            await BoardPortalHelper.ConfigureCharterParameterAsync(boardPage, "has-board", HasBoardOfDirectors);
+            await BoardPortalHelper.ConfigureCharterParameterAsync(boardPage, "board-convenes-osu", BoardDecidesConveningOsu);
+            await AddParticipantsAsync(boardPage, 48);
             await BoardPortalHelper.SaveAndVerifyAsync(boardPage);
+
+            await AssertAuditForNonStandardCharterAsync(login, participantsAdded: true);
         }
-        finally { await CleanupAsync(adminPage, boardPage, ldapPage); }
+        finally
+        {
+            var testEndTime = DateTimeOffset.UtcNow;
+            await AppLogHelper.AssertNoErrorsInAppLogSafeAsync(testStartTime, testEndTime, testName);
+            await CleanupAsync(adminPage, boardPage, ldapPage);
+        }
     }
 
     [Fact]
     public async Task NonStandardCharter_VosuThresholdPercent_ShouldSaveWithoutErrors()
     {
-        var (adminPage, boardPage, ldapPage) = await SetupFullCycleAsync(13);
+        var testStartTime = DateTimeOffset.UtcNow;
+        var testName = "NonStandardCharter_VosuThresholdPercent";
+
+        var (adminPage, boardPage, ldapPage, login) = await SetupFullCycleAsync(49);
         try
         {
             await BoardPortalHelper.SelectNonStandardCharterAsync(boardPage);
-            await BoardPortalHelper.ConfigureCharterParameterAsync(
-                boardPage, NonStandardCharterTestData.ParameterNames.HasBoardOfDirectors,
-                NonStandardCharterTestData.HasBoardOfDirectors);
-            await BoardPortalHelper.ConfigureCharterParameterAsync(
-                boardPage, NonStandardCharterTestData.ParameterNames.VosuThresholdPercent,
-                NonStandardCharterTestData.VosuThresholdPercent);
-
+            await BoardPortalHelper.ConfigureCharterParameterAsync(boardPage, "has-board", HasBoardOfDirectors);
+            await BoardPortalHelper.ConfigureCharterParameterAsync(boardPage, "vosu-threshold", VosuThresholdPercent);
+            await AddParticipantsAsync(boardPage, 49);
             await BoardPortalHelper.SaveAndVerifyAsync(boardPage);
+
+            await AssertAuditForNonStandardCharterAsync(login, participantsAdded: true);
         }
-        finally { await CleanupAsync(adminPage, boardPage, ldapPage); }
+        finally
+        {
+            var testEndTime = DateTimeOffset.UtcNow;
+            await AppLogHelper.AssertNoErrorsInAppLogSafeAsync(testStartTime, testEndTime, testName);
+            await CleanupAsync(adminPage, boardPage, ldapPage);
+        }
     }
 
     [Fact]
     public async Task NonStandardCharter_AllParameters_ShouldSaveWithoutErrors()
     {
-        var (adminPage, boardPage, ldapPage) = await SetupFullCycleAsync(14);
+        var testStartTime = DateTimeOffset.UtcNow;
+        var testName = "NonStandardCharter_AllParameters";
+
+        var (adminPage, boardPage, ldapPage, login) = await SetupFullCycleAsync(50);
         try
         {
             await BoardPortalHelper.SelectNonStandardCharterAsync(boardPage);
             await BoardPortalHelper.AssertNonStandardCharterFieldsVisibleAsync(boardPage);
 
-            // Настраиваем все параметры нетипового устава
-            await BoardPortalHelper.ConfigureCharterParameterAsync(boardPage, NonStandardCharterTestData.ParameterNames.ExitAllowed, NonStandardCharterTestData.ExitAllowed);
-            await BoardPortalHelper.ConfigureCharterParameterAsync(boardPage, NonStandardCharterTestData.ParameterNames.ExitMinSharePercent, NonStandardCharterTestData.ExitMinSharePercent);
-            await BoardPortalHelper.ConfigureCharterParameterAsync(boardPage, NonStandardCharterTestData.ParameterNames.ExitMaxSharePercent, NonStandardCharterTestData.ExitMaxSharePercent);
-            await BoardPortalHelper.ConfigureCharterParameterAsync(boardPage, NonStandardCharterTestData.ParameterNames.ExitConditionDescription, NonStandardCharterTestData.ExitConditionDescription);
-            await BoardPortalHelper.ConfigureCharterParameterAsync(boardPage, NonStandardCharterTestData.ParameterNames.ExitRequiresUnanimousOsu, NonStandardCharterTestData.ExitRequiresUnanimousOsu);
-            await BoardPortalHelper.ConfigureCharterParameterAsync(boardPage, NonStandardCharterTestData.ParameterNames.TransferToParticipants, NonStandardCharterTestData.TransferToParticipantsWithoutConsent);
-            await BoardPortalHelper.ConfigureCharterParameterAsync(boardPage, NonStandardCharterTestData.ParameterNames.TransferToThirdParties, NonStandardCharterTestData.TransferToThirdParties);
-            await BoardPortalHelper.ConfigureCharterParameterAsync(boardPage, NonStandardCharterTestData.ParameterNames.PreemptiveRight, NonStandardCharterTestData.PreemptiveRight);
-            await BoardPortalHelper.ConfigureCharterParameterAsync(boardPage, NonStandardCharterTestData.ParameterNames.InheritanceWithoutConsent, NonStandardCharterTestData.InheritanceWithoutConsent);
-            await BoardPortalHelper.ConfigureCharterParameterAsync(boardPage, NonStandardCharterTestData.ParameterNames.ExecutiveBody, NonStandardCharterTestData.ExecutiveBody);
-            await BoardPortalHelper.ConfigureCharterParameterAsync(boardPage, NonStandardCharterTestData.ParameterNames.HasBoardOfDirectors, NonStandardCharterTestData.HasBoardOfDirectors);
-            await BoardPortalHelper.ConfigureCharterParameterAsync(boardPage, NonStandardCharterTestData.ParameterNames.BoardDecidesConveningOsu, NonStandardCharterTestData.BoardDecidesConveningOsu);
-            await BoardPortalHelper.ConfigureCharterParameterAsync(boardPage, NonStandardCharterTestData.ParameterNames.VosuThresholdPercent, NonStandardCharterTestData.VosuThresholdPercent);
+            await BoardPortalHelper.ConfigureCharterParameterAsync(boardPage, "exit-allowed", ExitAllowed);
+            await BoardPortalHelper.ConfigureCharterParameterAsync(boardPage, "exit-min-share", ExitMinSharePercent);
+            await BoardPortalHelper.ConfigureCharterParameterAsync(boardPage, "exit-max-share", ExitMaxSharePercent);
+            await BoardPortalHelper.ConfigureCharterParameterAsync(boardPage, "exit-condition", ExitConditionDescription);
+            await BoardPortalHelper.ConfigureCharterParameterAsync(boardPage, "exit-unanimous", ExitRequiresUnanimousOsu);
+            await BoardPortalHelper.ConfigureCharterParameterAsync(boardPage, "transfer-participants", TransferToParticipants);
+            await BoardPortalHelper.ConfigureCharterParameterAsync(boardPage, "transfer-third-parties", TransferToThirdParties);
+            await BoardPortalHelper.ConfigureCharterParameterAsync(boardPage, "preemptive-right", PreemptiveRight);
+            await BoardPortalHelper.ConfigureCharterParameterAsync(boardPage, "inheritance", InheritanceWithoutConsent);
+            await BoardPortalHelper.ConfigureCharterParameterAsync(boardPage, "executive-body", ExecutiveBody);
+            await BoardPortalHelper.ConfigureCharterParameterAsync(boardPage, "has-board", HasBoardOfDirectors);
+            await BoardPortalHelper.ConfigureCharterParameterAsync(boardPage, "board-convenes-osu", BoardDecidesConveningOsu);
+            await BoardPortalHelper.ConfigureCharterParameterAsync(boardPage, "vosu-threshold", VosuThresholdPercent);
 
             await BoardPortalHelper.AssertBoardOfDirectorsAvailableAsync(boardPage);
+            await AddParticipantsAsync(boardPage, 50);
             await BoardPortalHelper.SaveAndVerifyAsync(boardPage);
+
+            await AssertAuditForNonStandardCharterAsync(login, participantsAdded: true);
         }
-        finally { await CleanupAsync(adminPage, boardPage, ldapPage); }
+        finally
+        {
+            var testEndTime = DateTimeOffset.UtcNow;
+            await AppLogHelper.AssertNoErrorsInAppLogSafeAsync(testStartTime, testEndTime, testName);
+            await CleanupAsync(adminPage, boardPage, ldapPage);
+        }
     }
 
     // ══════════════════════════════════════════════════════════════════════
-    // Общие методы полного цикла
+    // Вспомогательные методы
     // ══════════════════════════════════════════════════════════════════════
 
-    private async Task<(IPage adminPage, IPage boardPage, IPage ldapPage)> SetupFullCycleAsync(int testIndex)
+    private async Task<(IPage adminPage, IPage boardPage, IPage ldapPage, string login)> SetupFullCycleAsync(int entityIndex)
     {
         var adminPage = await CreateAdminConsolePageAsync();
         var boardPage = await CreateBoardPortalPageAsync();
         var ldapPage = await CreatePageAsync();
 
-        // Шаг 0: Удаление тестовых пользователей LDAP
-        await LdapHelper.DeleteAllTestUsersAsync();
+        // Идемпотентное сидирование: БД + LDAP + ЮЛ + роли (один раз)
+        await CharterTestSeeder.EnsureSeededAsync(adminPage, ldapPage);
 
-        // Шаг 1: Сброс БД
-        await DbResetHelper.ResetAsync(includeDemo: false, timeout: TimeSpan.FromMinutes(3));
+        // Получение фиксированных данных
+        var entity = CharterTestDataFixed.LegalEntities[entityIndex - 1];
+        var persons = CharterTestDataFixed.PersonsByEntity[entityIndex];
 
-        // Шаг 2: Создание пользователя в LDAP
-        await LdapHelper.CreateUserAsync(
-            ldapPage,
-            NonStandardCharterTestData.LdapUid,
-            NonStandardCharterTestData.LdapCn,
-            NonStandardCharterTestData.LdapSn,
-            NonStandardCharterTestData.LdapGivenName,
-            NonStandardCharterTestData.LdapPassword,
-            addToBoardGroup: true);
-
-        // Шаг 3: SYS_ADMIN логинится в Admin Console
-        await AuthHelper.LoginAsAdminAsync(adminPage, NonStandardCharterTestData.SysAdminDisplayName);
-        adminPage.Url.Should().Contain("/main");
-
-        // Шаг 4: Переход в режим Пользователи
-        await adminPage.GotoAsync(PortalUrls.GetUrl(Portal.AdminConsole, "/access-management"));
-        await AuthHelper.WaitForBlazorReady(adminPage);
-        await adminPage.WaitForTimeoutAsync(1000);
-
-        // Шаг 5: Создание ООО ЮЛ
-        var leName = NonStandardCharterTestData.GetLegalEntityName(testIndex);
-        var leInn = NonStandardCharterTestData.GetLegalEntityInn(testIndex);
-        await AdminConsoleHelper.CreateLegalEntityAsync(adminPage, leName, leInn);
-
-        // Шаг 6-7: Добавление сотрудника + роли
-        await AdminConsoleHelper.AssignRolesAsync(
-            adminPage,
-            NonStandardCharterTestData.EmployeeLastName,
-            NonStandardCharterTestData.EmployeeFirstName,
-            NonStandardCharterTestData.EmployeeMiddleName,
-            NonStandardCharterTestData.EmployeePosition,
-            NonStandardCharterTestData.EmployeeLogin,
-            new[] { NonStandardCharterTestData.RoleLeAdmin, NonStandardCharterTestData.RoleCeo });
-
-        // Шаг 8: Администратор выходит
-        await AuthHelper.LogoutAsync(adminPage);
-
-        // Шаг 9: ГД заходит в Board Portal
-        await AuthHelper.LoginAsBoardUserAsync(boardPage, NonStandardCharterTestData.LdapCn);
+        // Логин ГД в Board Portal
+        var gdDisplayName = persons.Gd?.FullName ?? persons.Participants[0].FullName;
+        await AuthHelper.LoginAsBoardUserAsync(boardPage, gdDisplayName);
         boardPage.Url.Should().Contain("/main");
 
-        // Шаг 10: Заполнение полей ЮЛ
-        var shortName = NonStandardCharterTestData.GetShortName(testIndex);
-        var ogrn = NonStandardCharterTestData.GetOgrn(testIndex);
-        await BoardPortalHelper.FillLegalEntityFieldsAsync(boardPage, shortName, ogrn);
+        // Заполнение полей ЮЛ
+        await BoardPortalHelper.FillLegalEntityFieldsAsync(
+            boardPage,
+            shortName: entity.ShortName,
+            ogrn: entity.Ogrn);
 
-        return (adminPage, boardPage, ldapPage);
+        return (adminPage, boardPage, ldapPage, gdDisplayName);
+    }
+
+    private static async Task AddParticipantsAsync(IPage boardPage, int entityIndex)
+    {
+        var persons = CharterTestDataFixed.PersonsByEntity[entityIndex];
+
+        foreach (var p in persons.Participants)
+        {
+            await BoardPortalHelper.AddParticipantAsync(
+                boardPage,
+                p.FullName,
+                sharePercent: p.SharePercent);
+        }
+
+        await BoardPortalHelper.AssertParticipantCountAsync(
+            boardPage,
+            persons.Participants.Count);
     }
 
     private static async Task CleanupAsync(IPage adminPage, IPage boardPage, IPage ldapPage)
@@ -353,5 +457,26 @@ public class E2E_NonStandardCharterTests : BrowserFixture
         await ldapPage.CloseAsync();
         await boardPage.CloseAsync();
         await adminPage.CloseAsync();
+    }
+
+    /// <summary>
+    /// Проверить записи аудита для нетипового устава: вход, сохранение, участники.
+    /// </summary>
+    private static async Task AssertAuditForNonStandardCharterAsync(string login, bool participantsAdded)
+    {
+        // Вход в систему должен быть залогирован
+        await AuditLogHelper.AssertLoginLoggedAsync(login);
+
+        // Сохранение данных ЮЛ должно быть залогировано
+        await AuditLogHelper.AssertDataUpdateLoggedAsync("legal-entities");
+
+        // Добавление участников должно быть залогировано
+        if (participantsAdded)
+        {
+            await AuditLogHelper.AssertDataCreateLoggedAsync("participants");
+        }
+
+        // Не должно быть ошибок доступа
+        await AuditLogHelper.AssertNoAccessDeniedAsync();
     }
 }

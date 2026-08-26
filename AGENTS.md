@@ -1891,6 +1891,40 @@ public class US0XX_FeatureTests : BrowserFixture
 - [ ] `docs/e2e-tests.md` обновлён (маппинг бизнес-процесс → тест)
 - [ ] Существующие E2E-тесты не сломаны (ревизия)
 
+### Сквозные тесты = E2E-тесты (КРИТИЧНО)
+
+Термин **«сквозные тесты»** в проекте означает **E2E-тесты** (end-to-end, сквозные). Это синонимы.
+
+При изменении или исправлении сквозных тестов **обязательно** обновлять:
+1. **Код тестов** (`tests/SamorodinkaTech.Fiducia.Tests.Functional/Tests/`)
+2. **Документацию** (`docs/e2e-tests.md`, `docs/e2e/*.md`)
+
+Запрещено изменять код тестов без обновления документации и наоборот. Тесты и документация должны всегда соответствовать друг другу.
+
+### Правило: проверка аудита в E2E-тестах (КРИТИЧНО)
+
+Каждый E2E-тест, выполняющий операции чтения/записи данных, **обязан** проверять записи в логе аудита:
+
+1. **Вход в систему** — после `AuthHelper.LoginAs*Async()` проверять `AuditLogHelper.AssertLoginLoggedAsync(login)`
+2. **Сохранение данных** — после `SaveAndVerifyAsync()` проверять `AuditLogHelper.AssertDataUpdateLoggedAsync(path)`
+3. **Создание данных** — после создания записи проверять `AuditLogHelper.AssertDataCreateLoggedAsync(path)`
+4. **Отсутствие ошибок доступа** — в конце теста проверять `AuditLogHelper.AssertNoAccessDeniedAsync()`
+
+Хелпер: `tests/.../Helpers/AuditLogHelper.cs` — читает файл `audit-{yyyyMMddHH}.log` и ищет записи по actionCode, логину или тексту.
+
+### Правило: проверка лога приложения в E2E-тестах (КРИТИЧНО)
+
+Каждый E2E-тест **обязан** проверять отсутствие ошибок (ERROR/FATAL) в логе приложения за период своей работы:
+
+1. **Фиксация времени** — в начале теста: `var testStartTime = DateTimeOffset.UtcNow;`
+2. **Фиксация окончания** — в блоке `finally`: `var testEndTime = DateTimeOffset.UtcNow;`
+3. **Проверка** — `AppLogHelper.AssertNoErrorsInAppLogSafeAsync(testStartTime, testEndTime, testName)`
+4. **Запрет параллельного исполнения** — тесты, проверяющие лог, должны иметь атрибут `[Collection("Name")]` для последовательного выполнения
+
+Хелпер: `tests/.../Helpers/AppLogHelper.cs` — читает файл `app-{yyyyMMddHH}.log`, фильтрует по времени, ищет записи ERR/FTL.
+
+**Привязка ошибки к тесту:** Имя теста (`testName`) передаётся в сообщение об ошибке, временной диапазон `[testStartTime, testEndTime]` garantирует попадание только записей данного теста.
+
 ### Справочники нормативных форм (КРИТИЧНО)
 
 В проекте ведётся справочник нормативных форм (документов), используемых в корпоративном управлении ООО и АО. Справочник расположен в `docs/regulatory-forms-reference.md`.

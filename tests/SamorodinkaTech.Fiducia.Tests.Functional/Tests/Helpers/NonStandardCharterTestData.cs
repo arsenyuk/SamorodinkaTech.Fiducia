@@ -98,4 +98,14 @@ public static class NonStandardCharterTestData
 
     public static string GetOgrn(int testIndex) =>
         $"2{testIndex:D2}987654321";
+
+    // ══════════════════════════════════════════════════════════════════════
+    // Тестовые данные участников (нетиповой устав = ExecutiveBody A)
+    // ══════════════════════════════════════════════════════════════════════
+
+    /// <summary>
+    /// Сгенерировать ФИО участника для нетипового устава.
+    /// </summary>
+    public static string GetParticipantFullName(int testIndex, int participantIndex) =>
+        $"Участник {participantIndex} Нетиповой{testIndex:D2}";
 }
