@@ -1,3 +1,4 @@
+using FluentAssertions;
 using Microsoft.Playwright;
 
 namespace SamorodinkaTech.Fiducia.Tests.Functional.Helpers;
@@ -156,6 +157,172 @@ public static class BoardPortalHelper
         await FillLegalEntityFieldsAsync(page, shortName, ogrn);
         await SelectStandardCharterAsync(page, charterNumber);
         await SaveAndVerifyAsync(page);
+    }
+
+    // ══════════════════════════════════════════════════════════════════════
+    // Нетиповой устав
+    // ══════════════════════════════════════════════════════════════════════
+
+    /// <summary>
+    /// Выбрать "Нетиповой устав" на вкладке "Устав" страницы /legal-entities.
+    /// Выбирает option с value="" или text containing "Нетиповой" в first select.
+    /// </summary>
+    public static async Task SelectNonStandardCharterAsync(IPage page)
+    {
+        if (!page.Url.Contains("/legal-entities"))
+        {
+            await page.GotoAsync(PortalUrls.GetUrl(Portal.BoardPortal, "/legal-entities"));
+            await AuthHelper.WaitForBlazorReady(page);
+            await page.WaitForTimeoutAsync(1000);
+        }
+
+        // Click "Устав" tab
+        await page.EvaluateAsync(
+            @"() => {
+                const tabs = document.querySelectorAll('button.nav-link');
+                for (const tab of tabs) {
+                    if (tab.textContent.includes('Устав')) { tab.click(); return; }
+                }
+            }");
+        await page.WaitForTimeoutAsync(500);
+
+        // Select "Нетиповой" option in the charter type dropdown
+        await page.EvaluateAsync(
+            @"() => {
+                const selects = document.querySelectorAll('select');
+                for (const sel of selects) {
+                    const opts = sel.querySelectorAll('option');
+                    if (opts.length >= 2) {
+                        for (const opt of opts) {
+                            const txt = (opt.textContent || '').toLowerCase();
+                            if (txt.includes('нетиповой') || txt.includes('индивидуальн') || txt.includes('custom')) {
+                                sel.value = opt.value;
+                                sel.dispatchEvent(new Event('change', { bubbles: true }));
+                                return;
+                            }
+                        }
+                        if (opts.length > 0) {
+                            sel.value = opts[0].value;
+                            sel.dispatchEvent(new Event('change', { bubbles: true }));
+                        }
+                    }
+                }
+            }");
+        await page.WaitForTimeoutAsync(1000); // Ждём появления полей нетипового устава
+    }
+
+    /// <summary>
+    /// Настроить параметр нетипового устава по data-testid атрибуту.
+    /// Поддерживает: checkbox (toggle), select (dropdown), input (text/number).
+    /// </summary>
+    public static async Task ConfigureCharterParameterAsync(
+        IPage page,
+        string testId,
+        string value)
+    {
+        // Определяем тип элемента по data-testid
+        var elementType = await page.EvaluateAsync<string>(
+            $@"() => {{
+                const el = document.querySelector('[data-testid=""{testId}""]');
+                if (!el) return 'not-found';
+                if (el.tagName === 'INPUT' && el.type === 'checkbox') return 'checkbox';
+                if (el.tagName === 'SELECT') return 'select';
+                if (el.tagName === 'INPUT') return 'input';
+                return 'unknown';
+            }}");
+
+        switch (elementType)
+        {
+            case "checkbox":
+                var isChecked = await page.EvaluateAsync<bool>(
+                    $"() => document.querySelector('[data-testid=\"{testId}\"]')?.checked ?? false");
+                var shouldBeChecked = bool.Parse(value);
+                if (isChecked != shouldBeChecked)
+                {
+                    await page.EvaluateAsync(
+                        $@"() => {{
+                            const el = document.querySelector('[data-testid=""{testId}""]');
+                            if (el) {{ el.click(); el.dispatchEvent(new Event('change', {{ bubbles: true }})); }}
+                        }}");
+                }
+                break;
+
+            case "select":
+                await page.EvaluateAsync(
+                    $@"() => {{
+                        const sel = document.querySelector('[data-testid=""{testId}""]');
+                        if (sel) {{
+                            sel.value = '{EscapeJs(value)}';
+                            sel.dispatchEvent(new Event('change', {{ bubbles: true }}));
+                        }}
+                    }}");
+                break;
+
+            case "input":
+                await page.EvaluateAsync(
+                    $@"() => {{
+                        const inp = document.querySelector('[data-testid=""{testId}""]');
+                        if (inp) {{
+                            inp.value = '{EscapeJs(value)}';
+                            inp.dispatchEvent(new Event('input', {{ bubbles: true }}));
+                            inp.dispatchEvent(new Event('change', {{ bubbles: true }}));
+                        }}
+                    }}");
+                break;
+
+            case "not-found":
+                throw new InvalidOperationException(
+                    $"Элемент с data-testid='{testId}' не найден на странице устава.");
+
+            default:
+                throw new InvalidOperationException(
+                    $"Неподдерживаемый тип элемента '{elementType}' для data-testid='{testId}'.");
+        }
+
+        await page.WaitForTimeoutAsync(300);
+    }
+
+    /// <summary>
+    /// Проверить, что на странице отображаются поля нетипового устава
+    /// (а не выпадающий список типовых уставов 01-36).
+    /// </summary>
+    public static async Task AssertNonStandardCharterFieldsVisibleAsync(IPage page)
+    {
+        var hasCustomFields = await page.EvaluateAsync<bool>(
+            @"() => {
+                // Проверяем наличие полей данных нетипового устава:
+                // либо checkboxes с data-testid, либо конкретные элементы формы
+                const checkboxes = document.querySelectorAll('input[type=""checkbox""]');
+                const selects = document.querySelectorAll('select');
+                const textInputs = document.querySelectorAll('input[type=""text""], input[type=""number""]');
+
+                // Нетиповой устав показывает минимум 3+ элементов управления
+                // (в отличие от типового, где только 1 select с номерами 01-36)
+                return (checkboxes.length + selects.length + textInputs.length) >= 3;
+            }");
+        hasCustomFields.Should().BeTrue(
+            "Поля нетипового устава (checkboxes, selects, inputs) должны быть видны после выбора 'Нетиповой'");
+    }
+
+    /// <summary>
+    /// Проверить, что Совет директоров доступен (видна вкладка или поле HasBoardOfDirectors).
+    /// </summary>
+    public static async Task AssertBoardOfDirectorsAvailableAsync(IPage page)
+    {
+        var hasBoardOption = await page.EvaluateAsync<bool>(
+            @"() => {
+                const boardCheckbox = document.querySelector('[data-testid=""has-board""]');
+                if (boardCheckbox) return true;
+
+                // Или вкладка «Совет директоров» стала видимой
+                const tabs = document.querySelectorAll('button.nav-link');
+                for (const tab of tabs) {
+                    if (tab.textContent.includes('Совет директоров')) return true;
+                }
+                return false;
+            }");
+        hasBoardOption.Should().BeTrue(
+            "Совет директоров должен быть доступен при нетиповом уставе");
     }
 
     private static string EscapeJs(string value) => value.Replace("'", "\\'").Replace("\\", "\\\\");

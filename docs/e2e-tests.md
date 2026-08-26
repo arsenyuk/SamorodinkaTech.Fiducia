@@ -74,8 +74,8 @@
 | Повестка ОСУ | US-022 | `US022_OsuMeetingTests` (agenda-osu) | ✅ Реализован |
 | Участники ООО | US-023 | `US023_ParticipantTests` | ✅ Реализован |
 | Договоры (включая управляющих ИП) | US-024 | `US024_ContractTests` | ✅ Реализован |
-| Типовой устав (выбор, просмотр) | — | — | ❌ Нет теста |
-| Нетиповой устав (редактирование) | — | — | ❌ Нет теста |
+| Типовой устав (выбор, просмотр) | — | `E2E_StandardCharterTests` (36 variants) | ✅ Реализован |
+| Нетиповой устав (параметризованный) | — | `E2E_NonStandardCharterTests` (14 tests) | ✅ Реализован |
 | Коллективное требование (ВОСУ) | — | — | ❌ Нет теста |
 
 ---
@@ -134,6 +134,8 @@ public class US0XX_FeatureTests : BrowserFixture
 | US-022 | `US022_OsuMeetingTests` | `Tests/US022_OsuMeetingTests.cs` |
 | US-023 | `US023_ParticipantTests` | `Tests/US023_ParticipantTests.cs` |
 | US-024 | `US024_ContractTests` | `Tests/US024_ContractTests.cs` |
+| — | `E2E_StandardCharterTests` | `Tests/E2E_StandardCharterTests.cs` |
+| — | `E2E_NonStandardCharterTests` | `Tests/E2E_NonStandardCharterTests.cs` |
 
 ---
 
