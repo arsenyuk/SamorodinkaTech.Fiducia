@@ -31,7 +31,7 @@ public static class AdminConsoleHelper
         // Wait for modal to appear
         await page.WaitForSelectorAsync(".modal.show", new PageWaitForSelectorOptions { Timeout = DefaultTimeout });
 
-        // Fill name
+        // Fill name — @bind uses 'change' event, 'input' only triggers @oninput
         await page.EvaluateAsync(
             $@"() => {{
                 const inputs = document.querySelectorAll('.modal input.form-control');
@@ -39,10 +39,11 @@ public static class AdminConsoleHelper
                     const nameInput = inputs[0];
                     nameInput.value = '{name.Replace("'", "\\'")}';
                     nameInput.dispatchEvent(new Event('input', {{ bubbles: true }}));
+                    nameInput.dispatchEvent(new Event('change', {{ bubbles: true }}));
                 }}
             }}");
 
-        // Fill INN
+        // Fill INN — same: must dispatch 'change' for @bind to pick up the value
         await page.EvaluateAsync(
             $@"() => {{
                 const inputs = document.querySelectorAll('.modal input.form-control');
@@ -50,10 +51,20 @@ public static class AdminConsoleHelper
                     if (input.maxLength === 12 || input.getAttribute('maxlength') === '12') {{
                         input.value = '{inn}';
                         input.dispatchEvent(new Event('input', {{ bubbles: true }}));
+                        input.dispatchEvent(new Event('change', {{ bubbles: true }}));
                         return;
                     }}
                 }}
             }}");
+
+        // Wait for Blazor to process change events and enable the button
+        await page.WaitForFunctionAsync(
+            @"() => {
+                const btn = document.querySelector('.modal-footer button.btn-primary');
+                return btn && !btn.disabled;
+            }",
+            null,
+            new PageWaitForFunctionOptions { Timeout = DefaultTimeout });
 
         // Click "Создать" in modal
         await page.EvaluateAsync(
@@ -69,6 +80,26 @@ public static class AdminConsoleHelper
             "() => document.querySelector('.modal.show') === null",
             null,
             new PageWaitForFunctionOptions { Timeout = DefaultTimeout });
+
+        // Reload page to refresh entity list, then select the newly created entity
+        await page.ReloadAsync();
+        await AuthHelper.WaitForBlazorReady(page);
+        await page.WaitForTimeoutAsync(1000);
+
+        await page.EvaluateAsync(
+            $@"() => {{
+                const sel = document.querySelector('.card-body select.form-select');
+                if (!sel) return;
+                for (const opt of sel.options) {{
+                    if (opt.text.includes('{inn}')) {{
+                        sel.value = opt.value;
+                        sel.dispatchEvent(new Event('change', {{ bubbles: true }}));
+                        return;
+                    }}
+                }}
+            }}");
+
+        await page.WaitForTimeoutAsync(500);
     }
 
     /// <summary>
@@ -92,6 +123,7 @@ public static class AdminConsoleHelper
         }
 
         // Fill all form fields using JS (compact layout with form-control-sm)
+        // @bind uses 'change' event — must dispatch it for C# backing fields to update
         await page.EvaluateAsync(
             $@"() => {{
                 const inputs = document.querySelectorAll('.card-body .form-control-sm');
@@ -101,6 +133,7 @@ public static class AdminConsoleHelper
                     if (inputs[i].tagName === 'INPUT') {{
                         inputs[i].value = values[i];
                         inputs[i].dispatchEvent(new Event('input', {{ bubbles: true }}));
+                        inputs[i].dispatchEvent(new Event('change', {{ bubbles: true }}));
                     }}
                 }}
             }}");
@@ -115,6 +148,15 @@ public static class AdminConsoleHelper
                     roleSelect.dispatchEvent(new Event('change', {{ bubbles: true }}));
                 }}
             }}");
+
+        // Wait for Blazor to process change events and enable the button
+        await page.WaitForFunctionAsync(
+            @"() => {
+                const btn = document.querySelector('button.btn-primary.btn-sm');
+                return btn && !btn.disabled;
+            }",
+            null,
+            new PageWaitForFunctionOptions { Timeout = DefaultTimeout });
 
         // Click "Добавить" button
         await page.EvaluateAsync(
