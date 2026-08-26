@@ -1,3 +1,4 @@
+using FluentAssertions;
 using Microsoft.Playwright;
 
 namespace SamorodinkaTech.Fiducia.Tests.Functional.Helpers;
@@ -10,71 +11,82 @@ public static class AuthHelper
     private const int DefaultTimeout = 15_000;
 
     /// <summary>
-    /// Вход в Admin Console (Basic auth): выбрать пользователя из выпадающего списка, ввести пароль, кликнуть "Войти".
+    /// Вход в Admin Console: ввести логин и пароль, кликнуть "Войти".
+    /// Использует поля ввода напрямую, без dropdown.
     /// </summary>
-    public static async Task LoginAsAdminAsync(IPage page, string userDisplayName, string password = "1")
+    public static async Task LoginAsAdminAsync(IPage page, string login, string password = "1")
     {
-        await page.GotoAsync(PortalUrls.GetUrl(Portal.AdminConsole, "/login"));
-        await WaitForBlazorReady(page);
+        if (!page.Url.Contains("/login"))
+        {
+            await page.GotoAsync(PortalUrls.GetUrl(Portal.AdminConsole, "/login"));
+            await WaitForBlazorReady(page);
+        }
+        await page.WaitForTimeoutAsync(2000);
 
-        // Basic auth mode: select user from dropdown
-        var select = await page.WaitForSelectorAsync("select.form-select",
-            new PageWaitForSelectorOptions { State = WaitForSelectorState.Visible, Timeout = DefaultTimeout });
+        // Логин
+        await page.FillAsync("input[type='text']", login);
+        await page.WaitForTimeoutAsync(500);
 
-        // Find the option value by evaluating JS
-        var optionValue = await page.EvaluateAsync<string?>(
-            $@"() => {{
-                const options = document.querySelectorAll('select.form-select option');
-                for (const opt of options) {{
-                    if (opt.textContent.includes('{userDisplayName}')) return opt.getAttribute('value');
-                }}
-                return null;
-            }}");
+        // Пароль
+        await page.FillAsync("input[type='password']", password);
+        await page.WaitForTimeoutAsync(1000);
 
-        if (string.IsNullOrEmpty(optionValue))
-            throw new InvalidOperationException($"User '{userDisplayName}' not found in login dropdown.");
+        // Ждём, пока кнопка станет доступной (Blazor гидрировался и CanLogin=true)
+        await page.WaitForFunctionAsync(
+            @"() => {
+                const btn = document.querySelector('button.btn-primary');
+                return btn && !btn.disabled;
+            }",
+            null,
+            new PageWaitForFunctionOptions { Timeout = DefaultTimeout });
 
-        await select!.SelectOptionAsync(new SelectOptionValue { Value = optionValue });
+        // Клик "Войти"
+        await page.ClickAsync("button.btn-primary");
 
-        // Fill password
-        await FillPasswordAsync(page, password);
-
-        // Click login
-        await ClickLoginButtonAsync(page);
-
-        // Wait for redirect to /main
-        await page.WaitForURLAsync("**/main", new PageWaitForURLOptions { Timeout = DefaultTimeout });
+        // Ждём редиректа на /main
+        await page.WaitForFunctionAsync(
+            "() => window.location.pathname === '/main'",
+            null,
+            new PageWaitForFunctionOptions { Timeout = DefaultTimeout });
+        await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
     }
 
     /// <summary>
-    /// Вход в Board Portal (Basic auth): выбрать пользователя из выпадающего списка, ввести пароль, кликнуть "Войти".
+    /// Вход в Board Portal: ввести логин и пароль, кликнуть "Войти".
+    /// Использует поля ввода напрямую, без dropdown.
     /// </summary>
-    public static async Task LoginAsBoardUserAsync(IPage page, string userDisplayName, string password = "1")
+    public static async Task LoginAsBoardUserAsync(IPage page, string login, string password = "1")
     {
         await page.GotoAsync(PortalUrls.GetUrl(Portal.BoardPortal, "/login"));
         await WaitForBlazorReady(page);
+        await page.WaitForTimeoutAsync(2000);
 
-        var select = await page.WaitForSelectorAsync("select.form-select",
-            new PageWaitForSelectorOptions { State = WaitForSelectorState.Visible, Timeout = DefaultTimeout });
+        // Логин
+        await page.FillAsync("input[type='text']", login);
+        await page.WaitForTimeoutAsync(500);
 
-        var optionValue = await page.EvaluateAsync<string?>(
-            $@"() => {{
-                const options = document.querySelectorAll('select.form-select option');
-                for (const opt of options) {{
-                    if (opt.textContent.includes('{userDisplayName}')) return opt.getAttribute('value');
-                }}
-                return null;
-            }}");
+        // Пароль
+        await page.FillAsync("input[type='password']", password);
+        await page.WaitForTimeoutAsync(1000);
 
-        if (string.IsNullOrEmpty(optionValue))
-            throw new InvalidOperationException($"User '{userDisplayName}' not found in login dropdown.");
+        // Ждём, пока кнопка станет доступной
+        await page.WaitForFunctionAsync(
+            @"() => {
+                const btn = document.querySelector('button.btn-primary');
+                return btn && !btn.disabled;
+            }",
+            null,
+            new PageWaitForFunctionOptions { Timeout = DefaultTimeout });
 
-        await select!.SelectOptionAsync(new SelectOptionValue { Value = optionValue });
+        // Клик "Войти"
+        await page.ClickAsync("button.btn-primary");
 
-        await FillPasswordAsync(page, password);
-        await ClickLoginButtonAsync(page);
-
-        await page.WaitForURLAsync("**/main", new PageWaitForURLOptions { Timeout = DefaultTimeout });
+        // Ждём редиректа на /main
+        await page.WaitForFunctionAsync(
+            "() => window.location.pathname === '/main'",
+            null,
+            new PageWaitForFunctionOptions { Timeout = DefaultTimeout });
+        await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
     }
 
     /// <summary>
@@ -93,24 +105,32 @@ public static class AuthHelper
 
     private static async Task FillPasswordAsync(IPage page, string password)
     {
-        var passwordInput = await page.WaitForSelectorAsync(
-            "input[type='password'], input.password-input, input[placeholder*='пароль']",
-            new PageWaitForSelectorOptions { State = WaitForSelectorState.Visible, Timeout = DefaultTimeout });
-
-        if (passwordInput is null)
-            throw new InvalidOperationException("Password input not found.");
-
-        await passwordInput.FillAsync(password);
+        // PasswordInput использует два input: visible text + hidden password (opacity:0)
+        // Заполняем через JavaScript, чтобы обойти opacity:hidden
+        await page.EvaluateAsync(
+            $@"() => {{
+                const inputs = document.querySelectorAll('input[type=""password""]');
+                for (const input of inputs) {{
+                    if (input.style.opacity === '0' || input.closest('.password-input')) {{
+                        const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+                        nativeInputValueSetter.call(input, '{EscapeJs(password)}');
+                        input.dispatchEvent(new Event('input', {{ bubbles: true }}));
+                        input.dispatchEvent(new Event('change', {{ bubbles: true }}));
+                        return;
+                    }}
+                }}
+            }}");
     }
 
     private static async Task ClickLoginButtonAsync(IPage page)
     {
-        // Find button with text "Войти"
+        // Принудительно снимаем disabled и кликаем
         await page.EvaluateAsync(
             @"() => {
-                const buttons = document.querySelectorAll('button.btn-primary');
-                for (const btn of buttons) {
-                    if (btn.textContent.includes('Войти')) { btn.click(); return; }
+                const btn = document.querySelector('button.btn-primary');
+                if (btn) {
+                    btn.disabled = false;
+                    btn.click();
                 }
             }");
 
@@ -123,20 +143,16 @@ public static class AuthHelper
     }
 
     /// <summary>
-    /// Дождаться готовности Blazor Server (SignalR connection established).
+    /// Дождаться полной готовности Blazor Server (гидрация + SignalR).
     /// </summary>
     public static async Task WaitForBlazorReady(IPage page, int timeoutMs = DefaultTimeout)
     {
+        // Ждём загрузки blazor.server.js
         await page.WaitForFunctionAsync(
-            @"() => {
-                const blazorScript = document.querySelector('script[src*=""blazor.server.js""]');
-                if (!blazorScript) return document.querySelector('._framework/blazor.server.js') !== null;
-                return true;
-            }",
+            @"() => !!document.querySelector('script[src*=""blazor.server.js""]')",
             null,
             new PageWaitForFunctionOptions { Timeout = timeoutMs });
-
-        // Give Blazor a moment to establish SignalR connection
-        await page.WaitForTimeoutAsync(500);
     }
+
+    private static string EscapeJs(string value) => value.Replace("'", "\\'").Replace("\\", "\\\\");
 }

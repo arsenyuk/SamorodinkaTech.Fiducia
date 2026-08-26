@@ -18,6 +18,22 @@ VALUES (
     TRUE
 ) ON CONFLICT (id) DO NOTHING;
 
+-- Системный администратор (Васильева Вера Васильевна) — для E2E-тестов
+INSERT INTO users (id, login, last_name, first_name, middle_name, email, phone, is_external, created_at, created_by, is_system)
+VALUES (
+    'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaad1',
+    'v.vasilyeva',
+    'Васильева',
+    'Вера',
+    'Васильевна',
+    'v.vasilyeva@fiducia.local',
+    '+70000000001',
+    FALSE,
+    CURRENT_TIMESTAMP,
+    '00000000-0000-0000-0000-000000000000',
+    FALSE
+) ON CONFLICT (id) DO NOTHING;
+
 INSERT INTO ref_roles (id, code, name, created_at, created_by, is_assignable) VALUES
     ('11111111-1111-1111-1111-111111111111','SYS_ADMIN','Системный администратор',CURRENT_TIMESTAMP,'00000000-0000-0000-0000-000000000000',FALSE),
     ('22222222-2222-2222-2222-222222222222','SECRETARY','Секретарь',CURRENT_TIMESTAMP,'00000000-0000-0000-0000-000000000000',TRUE),
@@ -33,6 +49,14 @@ INSERT INTO ref_roles (id, code, name, created_at, created_by, is_assignable) VA
     ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaad4','CEO','Генеральный директор',CURRENT_TIMESTAMP,'00000000-0000-0000-0000-000000000000',TRUE),
     ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaad5','LE_ADMIN','Администратор ЮЛ',CURRENT_TIMESTAMP,'00000000-0000-0000-0000-000000000000',TRUE)
 ON CONFLICT (code) DO NOTHING;
+
+-- Роль SYS_ADMIN для Васильевой
+INSERT INTO user_roles (id, user_id, role_id)
+VALUES (
+    'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaad6',
+    'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaad1',
+    '11111111-1111-1111-1111-111111111111'
+) ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO ref_notification_type (id, code, name, category, created_at, created_by) VALUES
     ('aa000001-0000-0000-0000-000000000001','MEETING_SUMMONS','Созыв заседания СД','SD',CURRENT_TIMESTAMP,'00000000-0000-0000-0000-000000000000'),

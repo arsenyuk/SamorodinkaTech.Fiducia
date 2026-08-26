@@ -38,41 +38,6 @@ CREATE INDEX IF NOT EXISTS ix_users_is_system ON users(is_system);
 -- ============================================================================
 
 -- ============================================================================
--- ПЭП: соглашение о Politically Exposed Person (привязано к участнику экосистемы)
--- ============================================================================
-
--- Таблица: pep_agreements (соглашения о ПЭП)
-CREATE TABLE IF NOT EXISTS pep_agreements (
-    id uuid PRIMARY KEY,
-    ecosystem_participant_id uuid NOT NULL REFERENCES ecosystem_participants(id) ON DELETE RESTRICT,
-    agreement_signed boolean DEFAULT FALSE NOT NULL,
-    signed_at timestamp with time zone,
-    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
-);
-
-CREATE INDEX IF NOT EXISTS ix_pep_agreements_participant_id ON pep_agreements(ecosystem_participant_id);
-
--- ============================================================================
--- Анкета соответствия критериям независимости (привязана к участнику экосистемы)
--- ============================================================================
-
--- Таблица: independence_declarations (анкеты независимости)
-CREATE TABLE IF NOT EXISTS independence_declarations (
-    id uuid PRIMARY KEY,
-    ecosystem_participant_id uuid NOT NULL REFERENCES ecosystem_participants(id) ON DELETE RESTRICT,
-    hidden_shares text,
-    family_connections text,
-    other_boards text,
-    no_criminal_record boolean DEFAULT FALSE NOT NULL,
-    no_bankruptcy boolean DEFAULT FALSE NOT NULL,
-    completed boolean DEFAULT FALSE NOT NULL,
-    completed_at timestamp with time zone,
-    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
-);
-
-CREATE INDEX IF NOT EXISTS ix_independence_declarations_ecosystem_participant_id ON independence_declarations(ecosystem_participant_id);
-
--- ============================================================================
 -- Справочники (ref_*): не зависят от других таблиц
 -- ============================================================================
 
@@ -432,6 +397,67 @@ CREATE TABLE IF NOT EXISTS legal_entities (
 CREATE INDEX IF NOT EXISTS ix_legal_entities_name ON legal_entities(name);
 CREATE INDEX IF NOT EXISTS ix_legal_entities_inn ON legal_entities(inn);
 CREATE INDEX IF NOT EXISTS ix_legal_entities_ogrn ON legal_entities(ogrn);
+
+-- ============================================================================
+-- Участники экосистемы (ecosystem_participants)
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS ecosystem_participants (
+    id uuid PRIMARY KEY,
+    legal_entity_id uuid NOT NULL REFERENCES legal_entities(id) ON DELETE RESTRICT,
+    last_name varchar(150) NOT NULL,
+    first_name varchar(150) NOT NULL,
+    middle_name varchar(150),
+    email varchar(255),
+    phone varchar(20),
+    inn varchar(12),
+    login varchar(100) NOT NULL,
+    user_id uuid REFERENCES users(id) ON DELETE SET NULL,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    created_by uuid REFERENCES users(id)
+);
+
+CREATE UNIQUE INDEX ux_ecosystem_participant_le_login
+    ON ecosystem_participants(legal_entity_id, login);
+
+CREATE INDEX ix_ecosystem_participant_le ON ecosystem_participants(legal_entity_id);
+
+CREATE INDEX ix_ecosystem_participant_user_id ON ecosystem_participants(user_id);
+
+-- ============================================================================
+-- ПЭП: соглашение о Politically Exposed Person (привязано к участнику экосистемы)
+-- ============================================================================
+
+-- Таблица: pep_agreements (соглашения о ПЭП)
+CREATE TABLE IF NOT EXISTS pep_agreements (
+    id uuid PRIMARY KEY,
+    ecosystem_participant_id uuid NOT NULL REFERENCES ecosystem_participants(id) ON DELETE RESTRICT,
+    agreement_signed boolean DEFAULT FALSE NOT NULL,
+    signed_at timestamp with time zone,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS ix_pep_agreements_participant_id ON pep_agreements(ecosystem_participant_id);
+
+-- ============================================================================
+-- Анкета соответствия критериям независимости (привязана к участнику экосистемы)
+-- ============================================================================
+
+-- Таблица: independence_declarations (анкеты независимости)
+CREATE TABLE IF NOT EXISTS independence_declarations (
+    id uuid PRIMARY KEY,
+    ecosystem_participant_id uuid NOT NULL REFERENCES ecosystem_participants(id) ON DELETE RESTRICT,
+    hidden_shares text,
+    family_connections text,
+    other_boards text,
+    no_criminal_record boolean DEFAULT FALSE NOT NULL,
+    no_bankruptcy boolean DEFAULT FALSE NOT NULL,
+    completed boolean DEFAULT FALSE NOT NULL,
+    completed_at timestamp with time zone,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS ix_independence_declarations_ecosystem_participant_id ON independence_declarations(ecosystem_participant_id);
 
 -- ============================================================================
 -- Согласия на обработку ПДн (привязаны к ФЛ, а не к пользователю)
@@ -1414,32 +1440,6 @@ CREATE TABLE IF NOT EXISTS trueconf_test_answer (
 );
 
 CREATE INDEX IF NOT EXISTS ix_ttanswer_question_id ON trueconf_test_answer(question_id);
-
--- ============================================================================
--- Участники экосистемы (ecosystem_participants)
--- ============================================================================
-
-CREATE TABLE IF NOT EXISTS ecosystem_participants (
-    id uuid PRIMARY KEY,
-    legal_entity_id uuid NOT NULL REFERENCES legal_entities(id) ON DELETE RESTRICT,
-    last_name varchar(150) NOT NULL,
-    first_name varchar(150) NOT NULL,
-    middle_name varchar(150),
-    email varchar(255),
-    phone varchar(20),
-    inn varchar(12),
-    login varchar(100) NOT NULL,
-    user_id uuid REFERENCES users(id) ON DELETE SET NULL,
-    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    created_by uuid REFERENCES users(id)
-);
-
-CREATE UNIQUE INDEX ux_ecosystem_participant_le_login
-    ON ecosystem_participants(legal_entity_id, login);
-
-CREATE INDEX ix_ecosystem_participant_le ON ecosystem_participants(legal_entity_id);
-
-CREATE INDEX ix_ecosystem_participant_user_id ON ecosystem_participants(user_id);
 
 -- Сотрудник (employee) — связывает участника экосистемы с ЮЛ и должностью
 CREATE TABLE IF NOT EXISTS employee (

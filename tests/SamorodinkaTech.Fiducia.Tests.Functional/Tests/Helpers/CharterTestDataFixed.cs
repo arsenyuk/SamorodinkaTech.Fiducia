@@ -11,6 +11,7 @@ public static class CharterTestDataFixed
     // ══════════════════════════════════════════════════════════════════════
 
     public const string SysAdminDisplayName = "Васильева Вера Васильевна";
+    public const string SysAdminLogin = "v.vasilyeva";
 
     // ══════════════════════════════════════════════════════════════════════
     // Типы исполнительного органа

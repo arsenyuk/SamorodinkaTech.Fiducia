@@ -410,11 +410,17 @@ public class E2E_NonStandardCharterTests : BrowserFixture
 
     private async Task<(IPage adminPage, IPage boardPage, IPage ldapPage, string login)> SetupFullCycleAsync(int entityIndex)
     {
+        // Инфраструктура (порталы, LDAP) должна быть запущена ДО создания страниц
+        await InfrastructureHelper.EnsureInfrastructureReadyAsync();
+
         var adminPage = await CreateAdminConsolePageAsync();
         var boardPage = await CreateBoardPortalPageAsync();
         var ldapPage = await CreatePageAsync();
 
-        // Идемпотентное сидирование: БД + LDAP + ЮЛ + роли (один раз)
+        // Глобальная инициализация: инфраструктура + БД + LDAP (один раз)
+        await CharterTestGlobalInit.InitializeAsync(adminPage, ldapPage);
+
+        // Сидирование: логин + создание ЮЛ + роли (один раз)
         await CharterTestSeeder.EnsureSeededAsync(adminPage, ldapPage);
 
         // Получение фиксированных данных
@@ -422,8 +428,8 @@ public class E2E_NonStandardCharterTests : BrowserFixture
         var persons = CharterTestDataFixed.PersonsByEntity[entityIndex];
 
         // Логин ГД в Board Portal
-        var gdDisplayName = persons.Gd?.FullName ?? persons.Participants[0].FullName;
-        await AuthHelper.LoginAsBoardUserAsync(boardPage, gdDisplayName);
+        var gdLogin = persons.Gd?.Uid ?? persons.Participants[0].Uid;
+        await AuthHelper.LoginAsBoardUserAsync(boardPage, gdLogin);
         boardPage.Url.Should().Contain("/main");
 
         // Заполнение полей ЮЛ
@@ -432,7 +438,7 @@ public class E2E_NonStandardCharterTests : BrowserFixture
             shortName: entity.ShortName,
             ogrn: entity.Ogrn);
 
-        return (adminPage, boardPage, ldapPage, gdDisplayName);
+        return (adminPage, boardPage, ldapPage, gdLogin);
     }
 
     private static async Task AddParticipantsAsync(IPage boardPage, int entityIndex)

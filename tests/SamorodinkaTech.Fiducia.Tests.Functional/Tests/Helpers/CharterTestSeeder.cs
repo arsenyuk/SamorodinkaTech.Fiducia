@@ -17,17 +17,18 @@ public static class CharterTestSeeder
     /// Убедиться, что БД засеяна данными для всех уставов.
     /// Вызывать в начале каждого E2E-теста — повторные вызовы ничего не делают.
     /// </summary>
-    public static async Task EnsureSeededAsync(IPage adminPage, IPage ldapPage)
+    public static async Task<IPage?> EnsureSeededAsync(IPage adminPage, IPage ldapPage, Func<Task<IPage>>? createAdminPage = null)
     {
-        if (_seeded) return;
+        if (_seeded) return adminPage;
 
         await Semaphore.WaitAsync();
         try
         {
-            if (_seeded) return;
+            if (_seeded) return adminPage;
 
-            await SeedAsync(adminPage, ldapPage);
+            var result = await SeedAsync(adminPage, ldapPage, createAdminPage);
             _seeded = true;
+            return result;
         }
         finally
         {
@@ -36,64 +37,39 @@ public static class CharterTestSeeder
     }
 
     /// <summary>
-    /// Полная процедура сидирования: сброс БД → LDAP → Admin Console → создание ЮЛ → роли → участники.
+    /// Полная процедура сидирования: инфраструктура → сброс БД → LDAP → Admin Console → создание ЮЛ → роли → участники.
+    /// Возвращает залогиненную страницу Admin Console.
     /// </summary>
-    private static async Task SeedAsync(IPage adminPage, IPage ldapPage)
+    private static async Task<IPage> SeedAsync(IPage adminPage, IPage ldapPage, Func<Task<IPage>>? createAdminPage = null)
     {
-        // ═══════════════════════════════════════════════════════════════════
-        // Шаг 1: Сброс БД
-        // ═══════════════════════════════════════════════════════════════════
-        await DbResetHelper.ResetAsync(includeDemo: false, timeout: TimeSpan.FromMinutes(3));
+        Console.WriteLine("[Seeder] Начало сидирования...");
 
         // ═══════════════════════════════════════════════════════════════════
-        // Шаг 2: Удаление старых LDAP-пользователей
+        // Шаг 1: Логин SYS_ADMIN в Admin Console
         // ═══════════════════════════════════════════════════════════════════
-        await LdapHelper.DeleteAllTestUsersAsync();
-
-        // ═══════════════════════════════════════════════════════════════════
-        // Шаг 3: Создание LDAP-пользователей для всех ЮЛ
-        // ═══════════════════════════════════════════════════════════════════
-        var allPersons = GetAllUniquePersons();
-
-        foreach (var person in allPersons.Where(p => !string.IsNullOrEmpty(p.Uid)))
-        {
-            await LdapHelper.CreateUserAsync(
-                ldapPage,
-                person.Uid,
-                person.FullName,
-                person.LastName,
-                person.FirstName,
-                "test1234",
-                addToBoardGroup: true);
-        }
-
-        // ═══════════════════════════════════════════════════════════════════
-        // Шаг 4: Логин SYS_ADMIN в Admin Console
-        // ═══════════════════════════════════════════════════════════════════
-        await AuthHelper.LoginAsAdminAsync(adminPage, CharterTestDataFixed.SysAdminDisplayName);
+        Console.WriteLine("[Seeder] Шаг 1: Логин SYS_ADMIN...");
+        await AuthHelper.LoginAsAdminAsync(adminPage, CharterTestDataFixed.SysAdminLogin);
         adminPage.Url.Should().Contain("/main");
+        Console.WriteLine("[Seeder] Шаг 1: Логин выполнен.");
 
         // ═══════════════════════════════════════════════════════════════════
-        // Шаг 5: Переход в режим Пользователи
+        // Шаг 2: Переход в режим Пользователи
         // ═══════════════════════════════════════════════════════════════════
         await adminPage.GotoAsync(PortalUrls.GetUrl(Portal.AdminConsole, "/access-management"));
         await AuthHelper.WaitForBlazorReady(adminPage);
         await adminPage.WaitForTimeoutAsync(1000);
 
         // ═══════════════════════════════════════════════════════════════════
-        // Шаг 6: Создание всех ЮЛ + назначение ролей
+        // Шаг 3: Создание всех ЮЛ + назначение ролей
         // ═══════════════════════════════════════════════════════════════════
         foreach (var entity in CharterTestDataFixed.LegalEntities)
         {
-            // Создание ЮЛ
             await AdminConsoleHelper.CreateLegalEntityAsync(adminPage, entity.Name, entity.Inn);
 
-            // Назначение ролей ГД (для ExecutiveBody A) или первого участника (для B/C)
             var persons = CharterTestDataFixed.PersonsByEntity[entity.Number];
 
             if (persons.Gd is not null)
             {
-                // ExecutiveBody A: ГД отдельно
                 await AdminConsoleHelper.AssignRolesAsync(
                     adminPage,
                     persons.Gd.LastName,
@@ -105,50 +81,23 @@ public static class CharterTestSeeder
             }
             else if (persons.Participants.Count > 0)
             {
-                // ExecutiveBody B/C: первый участник = ГД (ЕИО)
                 var firstParticipant = persons.Participants[0];
                 var nameParts = firstParticipant.FullName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
                 if (nameParts.Length >= 3)
                 {
                     await AdminConsoleHelper.AssignRolesAsync(
                         adminPage,
-                        nameParts[0], // Фамилия
-                        nameParts[1], // Имя
-                        nameParts[2], // Отчество
+                        nameParts[0],
+                        nameParts[1],
+                        nameParts[2],
                         "Директор",
                         firstParticipant.FullName.ToLower().Replace(" ", "."),
                         [CharterTestDataFixed.RoleLeAdmin, CharterTestDataFixed.RoleCeo]);
                 }
             }
         }
-    }
 
-    /// <summary>
-    /// Получить уникальный список всех лиц из фиксированных данных.
-    /// </summary>
-    private static IEnumerable<CharterTestDataFixed.PersonData> GetAllUniquePersons()
-    {
-        var seen = new HashSet<string>(StringComparer.Ordinal);
-
-        foreach (var entity in CharterTestDataFixed.LegalEntities)
-        {
-            if (!CharterTestDataFixed.PersonsByEntity.TryGetValue(entity.Number, out var persons))
-                continue;
-
-            // ГД (для ExecutiveBody A)
-            if (persons.Gd is not null && seen.Add(persons.Gd.Uid))
-            {
-                yield return persons.Gd;
-            }
-
-            // Участники (с UID — только для B/C, где участники = ЕИО)
-            foreach (var p in persons.Participants)
-            {
-                if (!string.IsNullOrEmpty(p.Uid) && seen.Add(p.Uid))
-                {
-                    yield return p;
-                }
-            }
-        }
+        Console.WriteLine("[Seeder] Сидирование завершено.");
+        return adminPage;
     }
 }

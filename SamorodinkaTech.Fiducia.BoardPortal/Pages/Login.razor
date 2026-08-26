@@ -59,11 +59,11 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Пароль</label>
-                        <PasswordInput @bind-Value="_password" DisplayLimit="@_passwordDisplayLimit" />
+                        <input type="password" class="form-control" @bind="_password" placeholder="Пароль">
                     </div>
 
                     <button class="btn btn-primary w-100" @onclick="HandleLogin"
-                            disabled="@(_isLoading || !CanLogin)">
+                            disabled="@(_isLoading)">
                         @if (_isLoading)
                         {
                             <span class="spinner-border spinner-border-sm me-1"></span>
@@ -86,7 +86,7 @@
     private int _passwordDisplayLimit = 5;
 
     private bool CanLogin => AuthProvider.ProviderName == "Basic"
-        ? !string.IsNullOrEmpty(_selectedUserId) && !string.IsNullOrEmpty(_password)
+        ? !string.IsNullOrEmpty(_username) && !string.IsNullOrEmpty(_password)
         : !string.IsNullOrEmpty(_username) && !string.IsNullOrEmpty(_password);
 
     protected override async Task OnInitializedAsync()
@@ -145,10 +145,10 @@
 
             if (AuthProvider.ProviderName == "Basic")
             {
-                if (string.IsNullOrEmpty(_selectedUserId))
+                if (string.IsNullOrEmpty(_username))
                 {
-                    _errorMessage = "Выберите пользователя";
-                    Logger.LogDebug("[LOGIN] Выход: пользователь не выбран");
+                    _errorMessage = "Введите логин или выберите пользователя";
+                    Logger.LogDebug("[LOGIN] Выход: логин не заполнен");
                     return;
                 }
                 Logger.LogDebug("[LOGIN] Basic-аутентификация для Username={Username}", _username);

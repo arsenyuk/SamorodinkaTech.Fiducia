@@ -62,6 +62,9 @@ public class E2E_StandardCharterTests : BrowserFixture
         var testStartTime = DateTimeOffset.UtcNow;
         var testName = $"StandardCharter_CompleteFlow={charterNumber}";
 
+        // Инфраструктура (порталы, LDAP) должна быть запущена ДО создания страниц
+        await InfrastructureHelper.EnsureInfrastructureReadyAsync();
+
         var adminPage = await CreateAdminConsolePageAsync();
         var boardPage = await CreateBoardPortalPageAsync();
         var ldapPage = await CreatePageAsync();
@@ -69,7 +72,12 @@ public class E2E_StandardCharterTests : BrowserFixture
         try
         {
             // ═══════════════════════════════════════════════════════════════════
-            // Идемпотентное сидирование: БД + LDAP + ЮЛ + роли (один раз)
+            // Глобальная инициализация: инфраструктура + БД + LDAP (один раз)
+            // ═══════════════════════════════════════════════════════════════════
+            await CharterTestGlobalInit.InitializeAsync(adminPage, ldapPage);
+
+            // ═══════════════════════════════════════════════════════════════════
+            // Сидирование: логин + создание ЮЛ + роли (один раз)
             // ═══════════════════════════════════════════════════════════════════
             await CharterTestSeeder.EnsureSeededAsync(adminPage, ldapPage);
 
@@ -82,8 +90,8 @@ public class E2E_StandardCharterTests : BrowserFixture
             // ═══════════════════════════════════════════════════════════════════
             // Шаг 1: Логин ГД в Board Portal
             // ═══════════════════════════════════════════════════════════════════
-            var gdDisplayName = persons.Gd?.FullName ?? persons.Participants[0].FullName;
-            await AuthHelper.LoginAsBoardUserAsync(boardPage, gdDisplayName);
+            var gdLogin = persons.Gd?.Uid ?? persons.Participants[0].Uid;
+            await AuthHelper.LoginAsBoardUserAsync(boardPage, gdLogin);
             boardPage.Url.Should().Contain("/main");
 
             // ═══════════════════════════════════════════════════════════════════

@@ -11,31 +11,26 @@ public static class LdapHelper
     private const string PhpLdapAdminUrl = "http://localhost:8082";
     private const string LdapBaseDn = "dc=bryansk-arsenal,dc=local";
     private const string LdapAdminDn = "cn=admin,dc=bryansk-arsenal,dc=local";
-    private const string LdapAdminPassword = "ldappassword";
+    private const string LdapAdminPassword = "admin";
     private const string UsersOu = "ou=users";
     private const string GroupsOu = "ou=groups";
     private const int DefaultTimeout = 15_000;
 
     /// <summary>
-    /// Удалить ВСЕ тестовые учётные записи из LDAP (ou=users) и очистить группы.
-    /// Вызывается самым первым шагом каждого сценария для обеспечения чистоты теста.
+    /// Удалить ВСЕ тестовые учётные записи из LDAP (ou=users).
+    /// Группы не трогаем — удаление пользователя автоматически исключает его из groupOfNames.
     /// </summary>
     public static async Task DeleteAllTestUsersAsync()
     {
-        // 1. Получить список всех DN в ou=users
         var userDns = await LdapSearchAsync($"{UsersOu},{LdapBaseDn}", "(objectClass=inetOrgPerson)");
+        Console.WriteLine($"[LDAP] Найдено {userDns.Count} пользователей для удаления.");
 
-        // 2. Удалить пользователя из всех групп (чтобы не нарушить ссылочную целостность)
         foreach (var userDn in userDns)
         {
-            await LdapRemoveMemberFromAllGroupsAsync(userDn);
-        }
-
-        // 3. Удалить каждого пользователя
-        foreach (var userDn in userDns)
-        {
+            Console.WriteLine($"[LDAP] Удаление: {userDn}");
             await LdapDeleteAsync(userDn);
         }
+        Console.WriteLine("[LDAP] Все тестовые пользователи удалены.");
     }
 
     /// <summary>
@@ -90,7 +85,7 @@ public static class LdapHelper
     }
 
     /// <summary>
-    /// Создать пользователя в OpenLDAP через phpLDAPadmin.
+    /// Создать пользователя в OpenLDAP через ldapadd CLI.
     /// </summary>
     public static async Task CreateUserAsync(
         IPage page,
@@ -101,58 +96,109 @@ public static class LdapHelper
         string password,
         bool addToBoardGroup = true)
     {
-        await LoginToPhpLdapAdminAsync(page);
+        var userDn = $"uid={uid},{UsersOu},{LdapBaseDn}";
 
-        // Navigate to user creation form
-        var createUserLink = page.Locator("a:has-text('Создать'), a:has-text('Create'), a:has-text('Add')").First;
-        await createUserLink.ClickAsync();
-        await page.WaitForTimeoutAsync(1000);
+        var ldif = $@"dn: {userDn}
+objectClass: inetOrgPerson
+objectClass: organizationalPerson
+objectClass: person
+objectClass: top
+uid: {uid}
+cn: {cn}
+sn: {sn}
+givenName: {givenName}
+userPassword: {password}
+";
 
-        // Select inetOrgPerson object class
-        var inetOrgPersonOption = page.Locator("option:has-text('inetOrgPerson'), input[value*='inetOrgPerson']");
-        if (await inetOrgPersonOption.CountAsync() > 0)
-        {
-            await inetOrgPersonOption.First.ClickAsync();
-            var nextButton = page.Locator("input[type='submit'], button[type='submit']").First;
-            await nextButton.ClickAsync();
-            await page.WaitForTimeoutAsync(1000);
-        }
-
-        // Fill in the user attributes
-        await FillLdapFieldAsync(page, "uid", uid);
-        await FillLdapFieldAsync(page, "cn", cn);
-        await FillLdapFieldAsync(page, "sn", sn);
-        await FillLdapFieldAsync(page, "givenName", givenName);
-        await FillLdapFieldAsync(page, "userPassword", password);
-
-        // Submit the form
-        var submitButton = page.Locator("input[type='submit'][value*='Create'], input[type='submit'][value*='Создать'], button:has-text('Create'), button:has-text('Создать')").First;
-        await submitButton.ClickAsync();
-        await page.WaitForTimeoutAsync(2000);
+        await LdapAddAsync(ldif);
 
         if (addToBoardGroup)
         {
-            await AddUserToGroupAsync(page, uid, "BoardOfDirectors");
+            await AddUserToGroupAsync(uid, "BoardOfDirectors");
         }
     }
 
     /// <summary>
-    /// Добавить пользователя в LDAP-группу.
+    /// Добавить пользователя в LDAP-группу через ldapmodify CLI.
     /// </summary>
-    public static async Task AddUserToGroupAsync(IPage page, string userUid, string groupName)
+    public static async Task AddUserToGroupAsync(string userUid, string groupName)
     {
-        await page.GotoAsync($"{PhpLdapAdminUrl}/?cn={groupName},{GroupsOu},{LdapBaseDn}&submit=Найти");
-        await page.WaitForTimeoutAsync(1000);
+        var groupDn = $"cn={groupName},{GroupsOu},{LdapBaseDn}";
+        var userDn = $"uid={userUid},{UsersOu},{LdapBaseDn}";
 
-        var memberInput = page.Locator("input[name*='member'], textarea[name*='member']");
-        if (await memberInput.CountAsync() > 0)
+        var ldif = $"""
+            dn: {groupDn}
+            changetype: modify
+            add: member
+            member: {userDn}
+            """;
+
+        var ldifWithNewline = ldif + "\n";
+
+        using var process = new Process
         {
-            var dn = $"uid={userUid},{UsersOu},{LdapBaseDn}";
-            await memberInput.First.FillAsync(dn);
-        }
+            StartInfo = new ProcessStartInfo
+            {
+                FileName = "ldapmodify",
+                Arguments = $"-x -H ldap://localhost -D \"{LdapAdminDn}\" -w \"{LdapAdminPassword}\"",
+                RedirectStandardInput = true,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+            }
+        };
+
+        process.Start();
+        await process.StandardInput.WriteAsync(ldifWithNewline);
+        await process.StandardInput.FlushAsync();
+        await process.StandardInput.DisposeAsync();
+        await process.WaitForExitAsync();
     }
 
     // ── LDAP CLI operations ──────────────────────────────────────────────
+
+    /// <summary>
+    /// Добавить LDAP-запись через ldapadd CLI.
+    /// </summary>
+    private static async Task LdapAddAsync(string ldif)
+    {
+        using var process = new Process
+        {
+            StartInfo = new ProcessStartInfo
+            {
+                FileName = "ldapadd",
+                Arguments = $"-x -H ldap://localhost -D \"{LdapAdminDn}\" -w \"{LdapAdminPassword}\"",
+                RedirectStandardInput = true,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+            }
+        };
+
+        process.Start();
+        await process.StandardInput.WriteAsync(ldif);
+        await process.StandardInput.FlushAsync();
+        await process.StandardInput.DisposeAsync(); // Закрываем stdin — это сигнал EOF для ldapadd
+
+        // Используем таймаут для ожидания завершения процесса
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        try
+        {
+            await process.WaitForExitAsync(cts.Token);
+        }
+        catch (OperationCanceledException)
+        {
+            process.Kill();
+            process.WaitForExit();
+            throw new TimeoutException("ldapadd timed out after 10 seconds");
+        }
+
+        if (process.ExitCode != 0)
+        {
+            var stderr = await process.StandardError.ReadToEndAsync();
+            throw new InvalidOperationException($"ldapadd failed (exit {process.ExitCode}): {stderr}");
+        }
+    }
 
     /// <summary>
     /// Выполнить LDAP search через ldapsearch CLI и вернуть список DN.
@@ -180,11 +226,31 @@ public static class LdapHelper
         foreach (var line in stdout.Split('\n'))
         {
             var trimmed = line.Trim();
+
+            // Обычный DN: dn: cn=user01,ou=users,dc=bryansk-arsenal,dc=local
             if (trimmed.StartsWith("dn:", StringComparison.OrdinalIgnoreCase))
             {
                 var dn = trimmed[3..].Trim();
                 if (!string.IsNullOrEmpty(dn))
                     dns.Add(dn);
+            }
+            // Base64-encoded DN: dn:: Y2490JjQstCw0L3QvtCyINCY0LLQsNC9...
+            else if (trimmed.StartsWith("dn::", StringComparison.OrdinalIgnoreCase))
+            {
+                var base64Value = trimmed[4..].Trim();
+                if (!string.IsNullOrEmpty(base64Value))
+                {
+                    try
+                    {
+                        var bytes = Convert.FromBase64String(base64Value);
+                        var dn = System.Text.Encoding.UTF8.GetString(bytes);
+                        dns.Add(dn);
+                    }
+                    catch
+                    {
+                        // Если не удалось декодировать, пропускаем
+                    }
+                }
             }
         }
 
@@ -214,6 +280,7 @@ public static class LdapHelper
 
     /// <summary>
     /// Удалить пользователя из всех групп, в которых он состоит.
+    /// groupOfNames требует хотя бы один member — если удаляем последнего, пропускаем.
     /// </summary>
     private static async Task LdapRemoveMemberFromAllGroupsAsync(string userDn)
     {
@@ -222,7 +289,13 @@ public static class LdapHelper
 
         foreach (var groupDn in groupDns)
         {
-            var ldif = $"dn: {groupDn}\nchangetype: modify\ndel: member\nmember: {userDn}\n";
+            var ldif = $"""
+                dn: {groupDn}
+                changetype: modify
+                delete: member
+                member: {userDn}
+
+                """;
 
             using var process = new Process
             {
@@ -240,7 +313,29 @@ public static class LdapHelper
             process.Start();
             await process.StandardInput.WriteAsync(ldif);
             await process.StandardInput.FlushAsync();
-            await process.WaitForExitAsync();
+            await process.StandardInput.DisposeAsync();
+
+            // Используем таймаут для ожидания завершения процесса
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+            try
+            {
+                await process.WaitForExitAsync(cts.Token);
+            }
+            catch (OperationCanceledException)
+            {
+                process.Kill();
+                process.WaitForExit(); // Ждём завершения после Kill
+            }
+
+            // groupOfNames требует хотя бы один member — ошибка при удалении последнего ожидаема
+            if (process.ExitCode != 0)
+            {
+                var stderr = await process.StandardError.ReadToEndAsync();
+                if (!stderr.Contains("requires attribute 'member'"))
+                {
+                    Console.WriteLine($"[LDAP] Warning: ldapmodify failed for {groupDn}: {stderr}");
+                }
+            }
         }
     }
 
@@ -248,13 +343,15 @@ public static class LdapHelper
 
     private static async Task LoginToPhpLdapAdminAsync(IPage page)
     {
-        await page.GotoAsync(PhpLdapAdminUrl);
+        // Переходим на страницу входа напрямую (phpLDAPadmin использует AJAX)
+        await page.GotoAsync($"{PhpLdapAdminUrl}/cmd.php?cmd=login_form&server_id=1");
         await page.WaitForTimeoutAsync(2000);
 
-        var loginInput = page.Locator("input[name='login'], input[name='dn'], input#login");
-        if (await loginInput.CountAsync() > 0 && await loginInput.First.IsVisibleAsync())
+        // Ищем поле DN для входа
+        var dnInput = page.Locator("input[name='login'], input[name='dn'], input#login, input[name='ldap_login_id']");
+        if (await dnInput.CountAsync() > 0 && await dnInput.First.IsVisibleAsync())
         {
-            await loginInput.First.FillAsync(LdapAdminDn);
+            await dnInput.First.FillAsync(LdapAdminDn);
 
             var passwordInput = page.Locator("input[name='password'], input[type='password']");
             if (await passwordInput.CountAsync() > 0)
@@ -264,7 +361,7 @@ public static class LdapHelper
 
             var submitButton = page.Locator("input[type='submit'], button[type='submit']").First;
             await submitButton.ClickAsync();
-            await page.WaitForTimeoutAsync(2000);
+            await page.WaitForTimeoutAsync(3000);
         }
     }
 
