@@ -84,20 +84,31 @@ public static class AdminConsoleHelper
         // Reload page to refresh entity list, then select the newly created entity
         await page.ReloadAsync();
         await AuthHelper.WaitForBlazorReady(page);
-        await page.WaitForTimeoutAsync(1000);
 
-        await page.EvaluateAsync(
+        // Wait for entity list to load (select must have >1 option)
+        await page.WaitForFunctionAsync(
+            @"() => {
+                const sel = document.querySelector('.card-body select.form-select');
+                return sel && sel.options.length > 1;
+            }",
+            null,
+            new PageWaitForFunctionOptions { Timeout = DefaultTimeout });
+
+        // Get option value by matching INN in label text, then use Playwright SelectOption
+        var optionValue = await page.EvaluateAsync<string?>(
             $@"() => {{
                 const sel = document.querySelector('.card-body select.form-select');
-                if (!sel) return;
+                if (!sel) return null;
                 for (const opt of sel.options) {{
-                    if (opt.text.includes('{inn}')) {{
-                        sel.value = opt.value;
-                        sel.dispatchEvent(new Event('change', {{ bubbles: true }}));
-                        return;
-                    }}
+                    if (opt.text.includes('{inn}')) return opt.value;
                 }}
+                return null;
             }}");
+
+        if (optionValue is not null)
+        {
+            await page.SelectOptionAsync(".card-body select.form-select", optionValue);
+        }
 
         await page.WaitForTimeoutAsync(500);
     }
@@ -138,16 +149,17 @@ public static class AdminConsoleHelper
                 }}
             }}");
 
-        // Select role from the last form-select-sm
-        await page.EvaluateAsync(
-            $@"() => {{
+        // Select role — use Playwright SelectOption for reliable @bind update
+        var roleSelectSelector = ".form-select-sm";
+        await page.WaitForFunctionAsync(
+            @"() => {
                 const selects = document.querySelectorAll('.form-select-sm');
-                const roleSelect = selects[selects.length - 1];
-                if (roleSelect) {{
-                    roleSelect.value = '{roleCode}';
-                    roleSelect.dispatchEvent(new Event('change', {{ bubbles: true }}));
-                }}
-            }}");
+                return selects.length > 0;
+            }",
+            null,
+            new PageWaitForFunctionOptions { Timeout = DefaultTimeout });
+
+        await page.SelectOptionAsync(roleSelectSelector, roleCode);
 
         // Wait for Blazor to process change events and enable the button
         await page.WaitForFunctionAsync(
