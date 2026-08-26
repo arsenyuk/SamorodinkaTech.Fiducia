@@ -31,31 +31,26 @@ public static class AdminConsoleHelper
         // Wait for modal to appear
         await page.WaitForSelectorAsync(".modal.show", new PageWaitForSelectorOptions { Timeout = DefaultTimeout });
 
-        // Fill name — @bind uses 'change' event, 'input' only triggers @oninput
-        await page.EvaluateAsync(
-            $@"() => {{
-                const inputs = document.querySelectorAll('.modal input.form-control');
-                if (inputs.length > 0) {{
-                    const nameInput = inputs[0];
-                    nameInput.value = '{name.Replace("'", "\\'")}';
-                    nameInput.dispatchEvent(new Event('input', {{ bubbles: true }}));
-                    nameInput.dispatchEvent(new Event('change', {{ bubbles: true }}));
-                }}
-            }}");
+        // Fill name — FillAsync dispatches 'input' but Blazor @bind needs 'change'
+        var nameInput = await page.QuerySelectorAsync(".modal input.form-control");
+        if (nameInput is not null)
+        {
+            await nameInput.FillAsync(name);
+            await nameInput.DispatchEventAsync("change");
+        }
 
-        // Fill INN — same: must dispatch 'change' for @bind to pick up the value
-        await page.EvaluateAsync(
-            $@"() => {{
-                const inputs = document.querySelectorAll('.modal input.form-control');
-                for (const input of inputs) {{
-                    if (input.maxLength === 12 || input.getAttribute('maxlength') === '12') {{
-                        input.value = '{inn}';
-                        input.dispatchEvent(new Event('input', {{ bubbles: true }}));
-                        input.dispatchEvent(new Event('change', {{ bubbles: true }}));
-                        return;
-                    }}
-                }}
-            }}");
+        // Fill INN — find input with maxlength=12
+        var allModalInputs = await page.QuerySelectorAllAsync(".modal input.form-control");
+        foreach (var input in allModalInputs)
+        {
+            var maxLength = await input.GetAttributeAsync("maxlength");
+            if (maxLength == "12")
+            {
+                await input.FillAsync(inn);
+                await input.DispatchEventAsync("change");
+                break;
+            }
+        }
 
         // Wait for Blazor to process change events and enable the button
         await page.WaitForFunctionAsync(
@@ -67,13 +62,7 @@ public static class AdminConsoleHelper
             new PageWaitForFunctionOptions { Timeout = DefaultTimeout });
 
         // Click "Создать" in modal
-        await page.EvaluateAsync(
-            @"() => {
-                const buttons = document.querySelectorAll('.modal-footer button');
-                for (const btn of buttons) {
-                    if (btn.textContent.includes('Создать')) { btn.click(); return; }
-                }
-            }");
+        await page.ClickAsync(".modal-footer button.btn-primary");
 
         // Wait for modal to close
         await page.WaitForFunctionAsync(
@@ -133,35 +122,27 @@ public static class AdminConsoleHelper
             await page.WaitForTimeoutAsync(1000);
         }
 
-        // Fill all form fields using JS (compact layout with form-control-sm)
-        // @bind uses 'change' event — must dispatch it for C# backing fields to update
-        await page.EvaluateAsync(
-            $@"() => {{
-                const inputs = document.querySelectorAll('.card-body .form-control-sm');
-                // Fields order: LastName, FirstName, MiddleName, Position, Login
-                const values = ['{EscapeJs(lastName)}', '{EscapeJs(firstName)}', '{EscapeJs(middleName)}', '{EscapeJs(position)}', '{EscapeJs(login)}'];
-                for (let i = 0; i < Math.min(inputs.length, values.length); i++) {{
-                    if (inputs[i].tagName === 'INPUT') {{
-                        inputs[i].value = values[i];
-                        inputs[i].dispatchEvent(new Event('input', {{ bubbles: true }}));
-                        inputs[i].dispatchEvent(new Event('change', {{ bubbles: true }}));
-                    }}
-                }}
-            }}");
+        // Wait for employee form to be visible (depends on _selectedLegalEntityId)
+        await page.WaitForSelectorAsync(".card-body .form-control-sm", new PageWaitForSelectorOptions { Timeout = DefaultTimeout });
 
-        // Select role — use Playwright SelectOption for reliable @bind update
-        var roleSelectSelector = ".form-select-sm";
-        await page.WaitForFunctionAsync(
-            @"() => {
-                const selects = document.querySelectorAll('.form-select-sm');
-                return selects.length > 0;
-            }",
-            null,
-            new PageWaitForFunctionOptions { Timeout = DefaultTimeout });
+        // Fill fields using Playwright FillAsync + DispatchEventAsync("change") for Blazor @bind
+        var inputs = await page.QuerySelectorAllAsync(".card-body .form-control-sm");
+        // Inputs: LastName, FirstName, MiddleName, Position, Login
+        var values = new[] { lastName, firstName, middleName, position, login };
+        for (int i = 0; i < Math.Min(inputs.Count, values.Length); i++)
+        {
+            if (inputs[i] is not null)
+            {
+                await inputs[i].FillAsync(values[i]);
+                await inputs[i].DispatchEventAsync("change");
+            }
+        }
 
-        await page.SelectOptionAsync(roleSelectSelector, roleCode);
+        // Select role — last .form-select-sm on the page
+        await page.SelectOptionAsync(".card-body .form-select-sm", roleCode);
+        await page.WaitForTimeoutAsync(500);
 
-        // Wait for Blazor to process change events and enable the button
+        // Wait for Blazor to process all change events and enable the button
         await page.WaitForFunctionAsync(
             @"() => {
                 const btn = document.querySelector('button.btn-primary.btn-sm');
@@ -171,15 +152,7 @@ public static class AdminConsoleHelper
             new PageWaitForFunctionOptions { Timeout = DefaultTimeout });
 
         // Click "Добавить" button
-        await page.EvaluateAsync(
-            @"() => {
-                const buttons = document.querySelectorAll('button');
-                for (const btn of buttons) {
-                    if (btn.textContent.includes('Добавить') && btn.classList.contains('btn-primary')) {
-                        btn.click(); return;
-                    }
-                }
-            }");
+        await page.ClickAsync("button.btn-primary.btn-sm");
 
         // Wait for processing
         await page.WaitForTimeoutAsync(1000);

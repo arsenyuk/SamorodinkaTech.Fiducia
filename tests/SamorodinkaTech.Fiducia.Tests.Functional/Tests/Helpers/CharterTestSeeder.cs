@@ -7,28 +7,50 @@ namespace SamorodinkaTech.Fiducia.Tests.Functional.Helpers;
 /// Сидер базы данных для E2E-тестов уставов.
 /// Выполняет сброс БД и создание всех ЮЛ + LDAP-пользователей ОДИН раз перед прогоном тестов.
 /// Использует идемпотентную инициализацию: повторный вызов ничего не делает.
+/// При ошибке сидирования — все последующие тесты немедленно падают с сохранённым исключением.
 /// </summary>
 public static class CharterTestSeeder
 {
     private static bool _seeded;
+    private static Exception? _seedingException;
     private static readonly SemaphoreSlim Semaphore = new(1, 1);
 
     /// <summary>
     /// Убедиться, что БД засеяна данными для всех уставов.
     /// Вызывать в начале каждого E2E-теста — повторные вызовы ничего не делают.
+    /// При ошибке сидирования — немедленно бросает сохранённое исключение.
     /// </summary>
     public static async Task<IPage?> EnsureSeededAsync(IPage adminPage, IPage ldapPage, Func<Task<IPage>>? createAdminPage = null)
     {
+        if (_seedingException is not null)
+        {
+            throw new InvalidOperationException(
+                $"[Seeder] Сидирование уже завершилось ошибкой. Все тесты пропускаются. " +
+                $"Ошибка: {_seedingException.Message}", _seedingException);
+        }
+
         if (_seeded) return adminPage;
 
         await Semaphore.WaitAsync();
         try
         {
+            if (_seedingException is not null)
+            {
+                throw new InvalidOperationException(
+                    $"[Seeder] Сидирование уже завершилось ошибкой. Все тесты пропускаются. " +
+                    $"Ошибка: {_seedingException.Message}", _seedingException);
+            }
+
             if (_seeded) return adminPage;
 
             var result = await SeedAsync(adminPage, ldapPage, createAdminPage);
             _seeded = true;
             return result;
+        }
+        catch (Exception ex)
+        {
+            _seedingException = ex;
+            throw;
         }
         finally
         {
@@ -64,20 +86,40 @@ public static class CharterTestSeeder
         // ═══════════════════════════════════════════════════════════════════
         foreach (var entity in CharterTestDataFixed.LegalEntities)
         {
-            await AdminConsoleHelper.CreateLegalEntityAsync(adminPage, entity.Name, entity.Inn);
+            Console.WriteLine($"[Seeder] Создание ЮЛ: {entity.Name} (ИНН {entity.Inn})...");
+            try
+            {
+                await AdminConsoleHelper.CreateLegalEntityAsync(adminPage, entity.Name, entity.Inn);
+                Console.WriteLine($"[Seeder] ЮЛ создано: {entity.Name}");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[Seeder] ОШИБКА создания ЮЛ {entity.Name} (ИНН {entity.Inn}): {ex.Message}");
+                throw;
+            }
 
             var persons = CharterTestDataFixed.PersonsByEntity[entity.Number];
 
             if (persons.Gd is not null)
             {
-                await AdminConsoleHelper.AssignRolesAsync(
-                    adminPage,
-                    persons.Gd.LastName,
-                    persons.Gd.FirstName,
-                    persons.Gd.MiddleName,
-                    persons.Gd.Position,
-                    persons.Gd.Uid,
-                    [CharterTestDataFixed.RoleLeAdmin, CharterTestDataFixed.RoleCeo]);
+                Console.WriteLine($"[Seeder] Назначение ролей ГД: {persons.Gd.LastName} {persons.Gd.FirstName}...");
+                try
+                {
+                    await AdminConsoleHelper.AssignRolesAsync(
+                        adminPage,
+                        persons.Gd.LastName,
+                        persons.Gd.FirstName,
+                        persons.Gd.MiddleName,
+                        persons.Gd.Position,
+                        persons.Gd.Uid,
+                        [CharterTestDataFixed.RoleLeAdmin, CharterTestDataFixed.RoleCeo]);
+                    Console.WriteLine($"[Seeder] Роли назначены: {persons.Gd.LastName}");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[Seeder] ОШИБКА назначения ролей для {persons.Gd.LastName}: {ex.Message}");
+                    throw;
+                }
             }
             else if (persons.Participants.Count > 0)
             {
@@ -85,14 +127,24 @@ public static class CharterTestSeeder
                 var nameParts = firstParticipant.FullName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
                 if (nameParts.Length >= 3)
                 {
-                    await AdminConsoleHelper.AssignRolesAsync(
-                        adminPage,
-                        nameParts[0],
-                        nameParts[1],
-                        nameParts[2],
-                        "Директор",
-                        firstParticipant.FullName.ToLower().Replace(" ", "."),
-                        [CharterTestDataFixed.RoleLeAdmin, CharterTestDataFixed.RoleCeo]);
+                    Console.WriteLine($"[Seeder] Назначение ролей участника: {firstParticipant.FullName}...");
+                    try
+                    {
+                        await AdminConsoleHelper.AssignRolesAsync(
+                            adminPage,
+                            nameParts[0],
+                            nameParts[1],
+                            nameParts[2],
+                            "Директор",
+                            firstParticipant.FullName.ToLower().Replace(" ", "."),
+                            [CharterTestDataFixed.RoleLeAdmin, CharterTestDataFixed.RoleCeo]);
+                        Console.WriteLine($"[Seeder] Роли назначены: {firstParticipant.FullName}");
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"[Seeder] ОШИБКА назначения ролей для {firstParticipant.FullName}: {ex.Message}");
+                        throw;
+                    }
                 }
             }
         }
