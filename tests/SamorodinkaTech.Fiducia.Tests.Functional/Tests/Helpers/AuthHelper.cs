@@ -12,7 +12,6 @@ public static class AuthHelper
 
     /// <summary>
     /// Вход в Admin Console: ввести логин и пароль, кликнуть "Войти".
-    /// Использует поля ввода напрямую, без dropdown.
     /// </summary>
     public static async Task LoginAsAdminAsync(IPage page, string login, string password = "1")
     {
@@ -53,7 +52,6 @@ public static class AuthHelper
 
     /// <summary>
     /// Вход в Board Portal: ввести логин и пароль, кликнуть "Войти".
-    /// Использует поля ввода напрямую, без dropdown.
     /// </summary>
     public static async Task LoginAsBoardUserAsync(IPage page, string login, string password = "1")
     {
@@ -103,56 +101,15 @@ public static class AuthHelper
         await page.EvaluateAsync("() => { localStorage.clear(); }");
     }
 
-    private static async Task FillPasswordAsync(IPage page, string password)
-    {
-        // PasswordInput использует два input: visible text + hidden password (opacity:0)
-        // Заполняем через JavaScript, чтобы обойти opacity:hidden
-        await page.EvaluateAsync(
-            $@"() => {{
-                const inputs = document.querySelectorAll('input[type=""password""]');
-                for (const input of inputs) {{
-                    if (input.style.opacity === '0' || input.closest('.password-input')) {{
-                        const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
-                        nativeInputValueSetter.call(input, '{EscapeJs(password)}');
-                        input.dispatchEvent(new Event('input', {{ bubbles: true }}));
-                        input.dispatchEvent(new Event('change', {{ bubbles: true }}));
-                        return;
-                    }}
-                }}
-            }}");
-    }
-
-    private static async Task ClickLoginButtonAsync(IPage page)
-    {
-        // Принудительно снимаем disabled и кликаем
-        await page.EvaluateAsync(
-            @"() => {
-                const btn = document.querySelector('button.btn-primary');
-                if (btn) {
-                    btn.disabled = false;
-                    btn.click();
-                }
-            }");
-
-        // Wait for loading spinner to disappear (if any)
-        await page.WaitForFunctionAsync(
-            @"() => document.querySelector('.spinner-border') === null ||
-                     document.querySelector('.spinner-border')?.offsetParent === null",
-            null,
-            new PageWaitForFunctionOptions { Timeout = DefaultTimeout });
-    }
-
     /// <summary>
     /// Дождаться полной готовности Blazor Server (гидрация + SignalR).
+    /// Проверяет наличие и видимость script blazor.server.js.
     /// </summary>
     public static async Task WaitForBlazorReady(IPage page, int timeoutMs = DefaultTimeout)
     {
-        // Ждём загрузки blazor.server.js
         await page.WaitForFunctionAsync(
             @"() => !!document.querySelector('script[src*=""blazor.server.js""]')",
             null,
             new PageWaitForFunctionOptions { Timeout = timeoutMs });
     }
-
-    private static string EscapeJs(string value) => value.Replace("'", "\\'").Replace("\\", "\\\\");
 }

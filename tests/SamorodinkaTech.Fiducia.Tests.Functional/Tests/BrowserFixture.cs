@@ -1,4 +1,3 @@
-using FluentAssertions;
 using Microsoft.Playwright;
 
 namespace SamorodinkaTech.Fiducia.Tests.Functional;
