@@ -19,7 +19,7 @@
         <div class="d-flex gap-2">
             @if (_isLlc && (_isLawyer || _isCeo))
             {
-                <button class="btn btn-outline-primary" @onclick='() => Navigation.NavigateTo("/management-contracts/add")'>+ Договор с управляющим</button>
+                <button class="btn btn-outline-primary" @onclick='() => Navigation.NavigateTo("/contracts/add?contractType=MANAGEMENT_IP")'>+ Договор с управляющим</button>
             }
             @if (_isLawyer)
             {
@@ -33,10 +33,6 @@
         <div class="alert alert-danger">@_globalError</div>
     }
 
-    @* ═══════════════════════════════════════════════════════════════════ *@
-    @* Список договоров                                                   *@
-    @* ═══════════════════════════════════════════════════════════════════ *@
-
     @if (_loading)
     {
         <div class="text-center py-5">
@@ -47,8 +43,8 @@
     }
     else
     {
-        @* Блок-предупреждения для отсутствующих обязательных договоров *@
-        @if (!_hasRegistrar)
+        @* Блок-предупреждения *@
+        @if (!_hasRegistrar && !_isLlc)
         {
             <div class="alert alert-warning d-flex align-items-center" role="alert">
                 <span class="me-2">⚠</span>
@@ -69,32 +65,28 @@
             </div>
         }
 
-        @if (_contractors.Count == 0)
+        @if (_allContracts.Count == 0)
         {
             <div class="card">
                 <div class="card-body text-center py-5">
                     <h5 class="text-muted">Договоры не заключены</h5>
-                    <p class="text-muted">Добавьте договор с регистратором и (при необходимости) информационным агентством</p>
+                    <p class="text-muted">Добавьте договор с регистратором, информационным агентством или управляющим</p>
                 </div>
             </div>
         }
         else
         {
-            @foreach (var c in _contractors)
+            @foreach (var c in _allContracts)
             {
                 <div class="card mb-3 @(c.IsActive ? "" : "border-secondary opacity-75")">
                     <div class="card-header d-flex justify-content-between align-items-center">
                         <div>
-                            <strong>@c.ContractorName</strong>
-                            <span class="badge bg-secondary ms-2">ИНН @c.ContractorInn</span>
-                            <span class="badge @(c.ContractorType == "REGISTRAR" ? "bg-primary" : "bg-info") ms-1">
-                                @(c.ContractorType == "REGISTRAR" ? "Регистратор" : "Информ. агентство")
-                            </span>
-                            @if (_legalEntityName is not null)
+                            <strong>@c.CounterpartyName</strong>
+                            <span class="badge bg-secondary ms-2">ИНН @c.CounterpartyInn</span>
+                            <span class="badge @GetTypeBadgeClass(c.ContractType) ms-1">@GetTypeLabel(c.ContractType)</span>
+                            @if (c.ContractType == ContractType.REGISTRAR && _legalEntityName is not null)
                             {
-                                <span class="text-muted ms-2">
-                                    @(c.ContractorType == "REGISTRAR" ? "Эмитент" : "Заказчик"): @_legalEntityName
-                                </span>
+                                <span class="text-muted ms-2">Эмитент: @_legalEntityName</span>
                             }
                             @if (!c.IsActive)
                             {
@@ -102,28 +94,34 @@
                             }
                         </div>
                         <div>
-                            @if (c.CbrStatus == "Active")
+                            @if ((c.ContractType == ContractType.REGISTRAR || c.ContractType == ContractType.INFO_AGENCY) && c.CbrStatus == "Active")
                             {
                                 <span class="badge bg-success">Действующая</span>
                             }
-                            else if (!string.IsNullOrEmpty(c.CbrStatus))
+                            else if ((c.ContractType == ContractType.REGISTRAR || c.ContractType == ContractType.INFO_AGENCY) && !string.IsNullOrEmpty(c.CbrStatus))
                             {
                                 <span class="badge bg-danger">@c.CbrStatus</span>
                             }
-                            @if (_isLawyer)
+                            @if (c.ContractType == ContractType.REGISTRAR || c.ContractType == ContractType.INFO_AGENCY)
                             {
-                                <button class="btn btn-sm btn-outline-info ms-2"
-                                        @onclick="() => CheckCbrStatus(c)"
-                                        disabled="@(_checkingCbrId == c.Id)">
-                                    @if (_checkingCbrId == c.Id)
-                                    {
-                                        <span class="spinner-border spinner-border-sm"></span>
-                                    }
-                                    else
-                                    {
-                                        <span>ЦБР</span>
-                                    }
-                                </button>
+                                @if (_isLawyer)
+                                {
+                                    <button class="btn btn-sm btn-outline-info ms-2"
+                                            @onclick="() => CheckCbrStatus(c)"
+                                            disabled="@(_checkingCbrId == c.Id)">
+                                        @if (_checkingCbrId == c.Id)
+                                        {
+                                            <span class="spinner-border spinner-border-sm"></span>
+                                        }
+                                        else
+                                        {
+                                            <span>ЦБР</span>
+                                        }
+                                    </button>
+                                }
+                            }
+                            @if (_isLawyer || (c.ContractType == ContractType.MANAGEMENT_IP && _isCeo) || (c.ContractType == ContractType.MANAGEMENT_UL && _isCeo))
+                            {
                                 <button class="btn btn-sm btn-outline-primary ms-2"
                                         @onclick="@(() => Navigation.NavigateTo($"/contracts/{c.Id}"))">Редактировать</button>
                             }
@@ -147,7 +145,6 @@
                                             else
                                             {
                                                 <span>@(c.ContractValidFrom ?? "—") — @(c.ContractValidTo ?? "—")</span>
-                                                <span class="badge bg-secondary ms-1">пролонгация</span>
                                             }
                                         </td>
                                     </tr>
@@ -158,14 +155,14 @@
                                             <td>
                                                 <a href="/api/files/@c.ContractDocumentId/download" target="_blank"
                                                    class="btn btn-sm btn-outline-secondary">
-                                                    📄 @(c.ContractDocumentName ?? "Скачать")
+                                                    📄 Скачать
                                                 </a>
                                             </td>
                                         </tr>
                                     }
                                 </table>
                             </div>
-                            @if (c.ContractorType == "REGISTRAR")
+                            @if (c.ContractType == ContractType.REGISTRAR)
                             {
                                 <div class="col-md-6">
                                     <h6>Сроки подготовки реестров</h6>
@@ -186,7 +183,7 @@
                                         {
                                             <a href="/api/files/@c.RegistryRulesDocumentId/download" target="_blank"
                                                class="btn btn-sm btn-outline-secondary me-2">
-                                                📄 @(c.RegistryRulesDocumentName ?? "Скачать файл")
+                                                📄 Скачать файл
                                             </a>
                                         }
                                         @if (!string.IsNullOrEmpty(c.RegistryRulesUrl))
@@ -197,6 +194,25 @@
                                             </a>
                                         }
                                     }
+                                </div>
+                            }
+                            @if (c.ContractType == ContractType.MANAGEMENT_IP && !string.IsNullOrEmpty(c.ManagerOgrnip))
+                            {
+                                <div class="col-md-6">
+                                    <h6>Данные управляющего ИП</h6>
+                                    <table class="table table-sm table-borderless mb-0">
+                                        <tr><td class="text-muted" style="width:200px">ОГРНИП:</td><td>@c.ManagerOgrnip</td></tr>
+                                    </table>
+                                </div>
+                            }
+                            @if (c.ContractType == ContractType.MANAGEMENT_UL && !string.IsNullOrEmpty(c.ManagerFullName))
+                            {
+                                <div class="col-md-6">
+                                    <h6>Данные управляющей организации</h6>
+                                    <table class="table table-sm table-borderless mb-0">
+                                        <tr><td class="text-muted" style="width:200px">Наименование:</td><td>@c.ManagerFullName</td></tr>
+                                        <tr><td class="text-muted">ИНН:</td><td>@(c.ManagerInn ?? "—")</td></tr>
+                                    </table>
                                 </div>
                             }
                         </div>
@@ -241,94 +257,21 @@
                 </div>
             }
         }
-
-        @* ═══════════════════════════════════════════════════════════════════ *@
-        @* Договоры с управляющими (ООО)                                        *@
-        @* ═══════════════════════════════════════════════════════════════════ *@
-        @if (_isLlc && _managementContracts.Count > 0)
-        {
-            <h4 class="mt-4 mb-3">Договоры с управляющими</h4>
-            @foreach (var c in _managementContracts)
-            {
-                <div class="card mb-3 @(c.IsActive ? "" : "border-secondary opacity-75")">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <div>
-                            <strong>@c.ManagerFullName</strong>
-                            <span class="badge bg-secondary ms-2">ИНН @c.ManagerInn</span>
-                            @if (!string.IsNullOrEmpty(c.ManagerOgrnip))
-                            {
-                                <span class="badge bg-secondary ms-1">ОГРНИП @c.ManagerOgrnip</span>
-                            }
-                            <span class="badge bg-success ms-1">Договор с управляющим</span>
-                            @if (!c.IsActive)
-                            {
-                                <span class="badge bg-warning ms-2">Не действует</span>
-                            }
-                        </div>
-                        <div>
-                            @if (_isLawyer || _isCeo)
-                            {
-                                <button class="btn btn-sm btn-outline-primary ms-2"
-                                        @onclick="@(() => Navigation.NavigateTo($"/management-contracts/{c.Id}"))">Редактировать</button>
-                            }
-                        </div>
-                    </div>
-                    <div class="card-body">
-                        <table class="table table-sm table-borderless mb-0">
-                            <tr><td class="text-muted" style="width:200px">Номер:</td><td>@(c.ContractNumber ?? "—")</td></tr>
-                            <tr><td class="text-muted">Дата:</td><td>@(c.ContractDate?.ToString("dd.MM.yyyy") ?? "—")</td></tr>
-                            <tr><td class="text-muted">Начало:</td><td>@c.ContractValidFrom.ToString("dd.MM.yyyy")</td></tr>
-                            <tr>
-                                <td class="text-muted">Срок:</td>
-                                <td>
-                                    @if (c.IsIndefinite)
-                                    {
-                                        <span>Бессрочный</span>
-                                    }
-                                    else
-                                    {
-                                        <span>@c.ContractValidFrom.ToString("dd.MM.yyyy") — @(c.ContractValidTo?.ToString("dd.MM.yyyy") ?? "—")</span>
-                                    }
-                                </td>
-                            </tr>
-                            @if (c.ContractDocumentId.HasValue)
-                            {
-                                <tr>
-                                    <td class="text-muted">Файл:</td>
-                                    <td>
-                                        <a href="/api/files/@c.ContractDocumentId/download" target="_blank"
-                                           class="btn btn-sm btn-outline-secondary">
-                                            📄 Скачать
-                                        </a>
-                                    </td>
-                                </tr>
-                            }
-                        </table>
-                    </div>
-                </div>
-            }
-        }
     }
 </div>
 
 @code {
-    /// <summary>Максимальное количество результатов поиска.</summary>
-    private const int MaxSearchResults = 10;
-
     private bool _loading = true;
     private bool _isLawyer;
     private bool _isCeo;
     private bool _isParticipant;
     private bool _isLlc;
     private bool _isPjsc;
-    private List<ContractorView> _contractors = new();
-    private List<ManagementContractView> _managementContracts = new();
+    private List<ContractView> _allContracts = new();
     private string? _globalError;
     private string? _legalEntityName;
     private bool _hasRegistrar;
     private bool _hasInfoAgency;
-
-    /// <summary>Проверка ЦБР — ID контрагента, для которого идёт запрос.</summary>
     private Guid? _checkingCbrId;
     private Dictionary<string, string> _measurementUnitShortNames = new();
 
@@ -339,7 +282,6 @@
         _isCeo = role?.Contains("CEO", StringComparison.OrdinalIgnoreCase) == true;
         _isParticipant = role?.Contains("PARTICIPANT", StringComparison.OrdinalIgnoreCase) == true;
 
-        // Определяем ОКОПФ текущего ЮЛ и загружаем единицы измерения
         try
         {
             await using var ctx = await DbFactory.CreateDbContextAsync();
@@ -366,7 +308,6 @@
         await LoadData();
     }
 
-    /// <summary>Загрузка списка договоров из БД с привязкой к текущему ЮЛ.</summary>
     private async Task LoadData()
     {
         _loading = true;
@@ -377,87 +318,88 @@
             var leId = workplace?.LastSelectedLegalEntityId;
             if (leId is null || leId == Guid.Empty) return;
 
-            // Загружаем договоры АО (если не ООО или если пользователь не только PARTICIPANT)
-            if (!_isLlc || !_isParticipant || _isLawyer || _isCeo)
+            var items = await ctx.Contracts
+                .Where(c => c.LegalEntityId == leId.Value)
+                .OrderByDescending(c => c.IsActive)
+                .ThenBy(c => c.CounterpartyName)
+                .ToListAsync();
+
+            // Данные ЦБ для REGISTRAR/INFO_AGENCY
+            var aoInns = items
+                .Where(c => c.ContractType == ContractType.REGISTRAR || c.ContractType == ContractType.INFO_AGENCY)
+                .Select(c => c.CounterpartyInn)
+                .Distinct()
+                .ToList();
+            var cbrOrgs = await ctx.ExtCbrFinOrgOrganizations
+                .Where(o => aoInns.Contains(o.Inn))
+                .ToDictionaryAsync(o => o.Inn);
+            var cbrLicenses = await ctx.ExtCbrFinOrgLicenses
+                .Where(l => aoInns.Contains(l.OrganizationInn))
+                .ToListAsync();
+
+            // Данные ЮЛ-управляющих для MANAGEMENT_UL
+            var ulLeIds = items
+                .Where(c => c.ContractType == ContractType.MANAGEMENT_UL && c.ManagerLegalEntityId.HasValue)
+                .Select(c => c.ManagerLegalEntityId!.Value)
+                .Distinct()
+                .ToList();
+            var ulEntities = await ctx.LegalEntities
+                .Where(le => ulLeIds.Contains(le.Id))
+                .ToDictionaryAsync(le => le.Id);
+
+            _allContracts = items.Select(c =>
             {
-                var contractors = await ctx.AoContractors
-                    .Where(c => c.LegalEntityId == leId.Value)
-                    .OrderByDescending(c => c.IsActive)
-                    .ThenBy(c => c.ContractorName)
-                    .ToListAsync();
+                cbrOrgs.TryGetValue(c.CounterpartyInn, out var cbrOrg);
+                var licenses = cbrLicenses.Where(l => l.OrganizationInn == c.CounterpartyInn).ToList();
 
-                var inns = contractors.Select(c => c.ContractorInn).Distinct().ToList();
-                var cbrOrgs = await ctx.ExtCbrFinOrgOrganizations
-                    .Where(o => inns.Contains(o.Inn))
-                    .ToDictionaryAsync(o => o.Inn);
-                var cbrLicenses = await ctx.ExtCbrFinOrgLicenses
-                    .Where(l => inns.Contains(l.OrganizationInn))
-                    .ToListAsync();
-
-                _contractors = contractors.Select(c =>
+                string? managerFullName = null;
+                string? managerInn = null;
+                if (c.ContractType == ContractType.MANAGEMENT_UL && c.ManagerLegalEntityId.HasValue &&
+                    ulEntities.TryGetValue(c.ManagerLegalEntityId.Value, out var ul))
                 {
-                    cbrOrgs.TryGetValue(c.ContractorInn, out var org);
-                    var licenses = cbrLicenses.Where(l => l.OrganizationInn == c.ContractorInn).ToList();
-                    return new ContractorView
-                    {
-                        Id = c.Id,
-                        ContractorInn = c.ContractorInn,
-                        ContractorName = c.ContractorName,
-                        ContractorType = c.ContractorType.ToString(),
-                        ContractNumber = c.ContractNumber,
-                        ContractDate = c.ContractDate?.ToString("dd.MM.yyyy"),
-                        ContractValidFrom = c.ContractValidFrom?.ToString("dd.MM.yyyy"),
-                        ContractValidTo = c.ContractValidTo?.ToString("dd.MM.yyyy"),
-                        IsIndefinite = c.IsIndefinite,
-                        ContractDocumentId = c.ContractDocumentId,
-                        RegistryPreparationDays = c.RegistryPreparationDays,
-                        RegistryPreparationUnit = c.RegistryPreparationUnit?.ToString(),
-                        DividendRegistryPreparationDays = c.DividendRegistryPreparationDays,
-                        DividendRegistryPreparationUnit = c.DividendRegistryPreparationUnit?.ToString(),
-                        RegistryRulesUrl = c.RegistryRulesUrl,
-                        RegistryRulesDocumentId = c.RegistryRulesDocumentId,
-                        IsActive = c.IsActive,
-                        CbrStatus = org?.Status,
-                        CbrFetchedAt = org?.FetchedAt,
-                        Licenses = licenses.Select(l => new LicenseView
-                        {
-                            VidId = l.VidId,
-                            ActivityName = l.ActivityName,
-                            Number = l.Number,
-                            Name = l.Name,
-                            StartDate = l.StartDate?.ToString("dd.MM.yyyy"),
-                            EndDate = l.EndDate?.ToString("dd.MM.yyyy")
-                        }).ToList()
-                    };
-                }).ToList();
+                    managerFullName = ul.ShortName ?? ul.Name;
+                    managerInn = ul.Inn;
+                }
 
-                _hasRegistrar = _contractors.Any(c => c.ContractorType == "REGISTRAR" && c.IsActive);
-                _hasInfoAgency = _contractors.Any(c => c.ContractorType == "INFO_AGENCY" && c.IsActive);
-            }
-
-            // Загружаем договоры с управляющими для ООО
-            if (_isLlc)
-            {
-                _managementContracts = await ctx.LlcManagementContracts
-                    .Where(c => c.LegalEntityId == leId.Value)
-                    .OrderByDescending(c => c.IsActive)
-                    .ThenBy(c => c.ManagerFullName)
-                    .Select(c => new ManagementContractView
+                return new ContractView
+                {
+                    Id = c.Id,
+                    ContractType = c.ContractType,
+                    CounterpartyName = c.CounterpartyName,
+                    CounterpartyInn = c.CounterpartyInn,
+                    ContractNumber = c.ContractNumber,
+                    ContractDate = c.ContractDate?.ToString("dd.MM.yyyy"),
+                    ContractValidFrom = c.ContractValidFrom?.ToString("dd.MM.yyyy"),
+                    ContractValidTo = c.ContractValidTo?.ToString("dd.MM.yyyy"),
+                    IsIndefinite = c.IsIndefinite,
+                    ContractDocumentId = c.ContractDocumentId,
+                    RegistryPreparationDays = c.RegistryPreparationDays,
+                    RegistryPreparationUnit = c.RegistryPreparationUnit?.Code,
+                    DividendRegistryPreparationDays = c.DividendRegistryPreparationDays,
+                    DividendRegistryPreparationUnit = c.DividendRegistryPreparationUnit?.Code,
+                    RegistryRulesUrl = c.RegistryRulesUrl,
+                    RegistryRulesDocumentId = c.RegistryRulesDocumentId,
+                    ManagerOgrnip = c.ManagerOgrnip,
+                    ManagerLegalEntityId = c.ManagerLegalEntityId,
+                    ManagerFullName = managerFullName,
+                    ManagerInn = managerInn,
+                    IsActive = c.IsActive,
+                    CbrStatus = cbrOrg?.Status,
+                    CbrFetchedAt = cbrOrg?.FetchedAt,
+                    Licenses = licenses.Select(l => new LicenseView
                     {
-                        Id = c.Id,
-                        ManagerFullName = c.ManagerFullName,
-                        ManagerInn = c.ManagerInn,
-                        ManagerOgrnip = c.ManagerOgrnip,
-                        ContractNumber = c.ContractNumber,
-                        ContractDate = c.ContractDate,
-                        ContractValidFrom = c.ContractValidFrom,
-                        ContractValidTo = c.ContractValidTo,
-                        IsIndefinite = c.IsIndefinite,
-                        ContractDocumentId = c.ContractDocumentId,
-                        IsActive = c.IsActive
-                    })
-                    .ToListAsync();
-            }
+                        VidId = l.VidId,
+                        ActivityName = l.ActivityName,
+                        Number = l.Number,
+                        Name = l.Name,
+                        StartDate = l.StartDate?.ToString("dd.MM.yyyy"),
+                        EndDate = l.EndDate?.ToString("dd.MM.yyyy")
+                    }).ToList()
+                };
+            }).ToList();
+
+            _hasRegistrar = _allContracts.Any(c => c.ContractType == ContractType.REGISTRAR && c.IsActive);
+            _hasInfoAgency = _allContracts.Any(c => c.ContractType == ContractType.INFO_AGENCY && c.IsActive);
         }
         catch (Exception ex)
         {
@@ -469,13 +411,12 @@
         }
     }
 
-    /// <summary>Проверка статуса контрагента в ЦБР по ИНН.</summary>
-    private async Task CheckCbrStatus(ContractorView contractor)
+    private async Task CheckCbrStatus(ContractView contractor)
     {
         _checkingCbrId = contractor.Id;
         StateHasChanged();
 
-        var requestUrl = $"/api/ao-contractors/check-cbr?inn={contractor.ContractorInn}";
+        var requestUrl = $"/api/contracts/check-cbr?inn={contractor.CounterpartyInn}";
 
         try
         {
@@ -485,11 +426,11 @@
                 var result = await response.Content.ReadFromJsonAsync<CbrCheckResult>();
                 if (result is not null && result.Warning is null)
                 {
-                    var idx = _contractors.FindIndex(c => c.Id == contractor.Id);
+                    var idx = _allContracts.FindIndex(c => c.Id == contractor.Id);
                     if (idx >= 0)
                     {
-                        _contractors[idx].CbrStatus = result.Status;
-                        _contractors[idx].Licenses = result.Licenses?.ToList() ?? new();
+                        _allContracts[idx].CbrStatus = result.Status;
+                        _allContracts[idx].Licenses = result.Licenses?.ToList() ?? new();
                     }
                 }
             }
@@ -510,37 +451,56 @@
         }
     }
 
-    /// <summary>Форматирование единицы измерения срока (календ. / раб. дн.).</summary>
     private string FormatUnit(string? unit)
     {
         if (string.IsNullOrEmpty(unit)) return "";
         return _measurementUnitShortNames.TryGetValue(unit, out var shortName) ? shortName : unit;
     }
 
+    private static string GetTypeBadgeClass(ContractType type) => type switch
+    {
+        ContractType.REGISTRAR => "bg-primary",
+        ContractType.INFO_AGENCY => "bg-info",
+        ContractType.MANAGEMENT_IP => "bg-success",
+        ContractType.MANAGEMENT_UL => "bg-success",
+        _ => "bg-secondary"
+    };
+
+    private static string GetTypeLabel(ContractType type) => type switch
+    {
+        ContractType.REGISTRAR => "Регистратор",
+        ContractType.INFO_AGENCY => "Информ. агентство",
+        ContractType.MANAGEMENT_IP => "Управляющий ИП",
+        ContractType.MANAGEMENT_UL => "Управляющая организация",
+        _ => "Неизвестный"
+    };
+
     // ═════════════════════════════════════════════════════════════════════
     // View models
     // ═════════════════════════════════════════════════════════════════════
 
-    private class ContractorView
+    private class ContractView
     {
         public Guid Id { get; set; }
-        public string ContractorInn { get; set; } = "";
-        public string ContractorName { get; set; } = "";
-        public string ContractorType { get; set; } = "";
+        public ContractType ContractType { get; set; }
+        public string CounterpartyName { get; set; } = "";
+        public string CounterpartyInn { get; set; } = "";
         public string? ContractNumber { get; set; }
         public string? ContractDate { get; set; }
         public string? ContractValidFrom { get; set; }
         public string? ContractValidTo { get; set; }
         public bool IsIndefinite { get; set; }
         public Guid? ContractDocumentId { get; set; }
-        public string? ContractDocumentName { get; set; }
         public int? RegistryPreparationDays { get; set; }
         public string? RegistryPreparationUnit { get; set; }
         public int? DividendRegistryPreparationDays { get; set; }
         public string? DividendRegistryPreparationUnit { get; set; }
         public string? RegistryRulesUrl { get; set; }
         public Guid? RegistryRulesDocumentId { get; set; }
-        public string? RegistryRulesDocumentName { get; set; }
+        public string? ManagerOgrnip { get; set; }
+        public Guid? ManagerLegalEntityId { get; set; }
+        public string? ManagerFullName { get; set; }
+        public string? ManagerInn { get; set; }
         public bool IsActive { get; set; }
         public string? CbrStatus { get; set; }
         public DateTime? CbrFetchedAt { get; set; }
@@ -566,20 +526,5 @@
         public string? FoTypes { get; set; }
         [System.Text.Json.Serialization.JsonPropertyName("licenses")]
         public List<LicenseView>? Licenses { get; set; }
-    }
-
-    private class ManagementContractView
-    {
-        public Guid Id { get; set; }
-        public string ManagerFullName { get; set; } = "";
-        public string ManagerInn { get; set; } = "";
-        public string? ManagerOgrnip { get; set; }
-        public string? ContractNumber { get; set; }
-        public DateOnly? ContractDate { get; set; }
-        public DateOnly ContractValidFrom { get; set; }
-        public DateOnly? ContractValidTo { get; set; }
-        public bool IsIndefinite { get; set; }
-        public Guid? ContractDocumentId { get; set; }
-        public bool IsActive { get; set; }
     }
 }

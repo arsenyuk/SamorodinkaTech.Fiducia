@@ -1106,59 +1106,52 @@ CREATE INDEX IF NOT EXISTS ix_ext_cbr_finorg_license_organization_inn ON ext_cbr
 CREATE INDEX IF NOT EXISTS ix_ext_cbr_finorg_license_fetched_at ON ext_cbr_finorg_license(fetched_at);
 
 -- ============================================================================
--- Договоры АО с регистраторами и информационными агентствами
+-- Договоры (единая таблица для всех типов договоров)
+-- Типы: REGISTRAR, INFO_AGENCY, MANAGEMENT_IP, MANAGEMENT_UL
 -- ============================================================================
 
--- ao_contractors: договоры АО с регистраторами и информационными агентствами
-CREATE TABLE IF NOT EXISTS ao_contractors (
-    id                                uuid PRIMARY KEY,
-    legal_entity_id                   uuid NOT NULL REFERENCES legal_entities(id) ON DELETE RESTRICT,
-    contractor_inn                    varchar(12) NOT NULL,
-    contractor_name                   varchar(500) NOT NULL,
-    contractor_type                   varchar(20) NOT NULL,
-    contract_number                   varchar(100),
-    contract_date                     date,
-    contract_valid_from               date,
-    contract_valid_to                 date,
-    is_indefinite                     boolean NOT NULL DEFAULT true,
-    contract_document_id              uuid REFERENCES files(id) ON DELETE SET NULL,
-    registry_preparation_days         integer,
-    registry_preparation_unit         uuid REFERENCES ref_measurement_unit(id),
-    dividend_registry_preparation_days integer,
-    dividend_registry_preparation_unit uuid REFERENCES ref_measurement_unit(id),
-    registry_rules_url                varchar(1000),
-    is_active                         boolean NOT NULL DEFAULT true,
-    created_at                        timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    created_by                        uuid
+CREATE TABLE IF NOT EXISTS contracts (
+    id                                      uuid PRIMARY KEY,
+    legal_entity_id                         uuid NOT NULL REFERENCES legal_entities(id) ON DELETE RESTRICT,
+    contract_type                           varchar(30) NOT NULL,
+
+    -- Данные контрагента (общие)
+    counterparty_name                       varchar(500) NOT NULL,
+    counterparty_inn                        varchar(12) NOT NULL,
+
+    -- Реквизиты договора (общие)
+    contract_number                         varchar(100),
+    contract_date                           date,
+    contract_valid_from                     date,
+    contract_valid_to                       date,
+    is_indefinite                           boolean NOT NULL DEFAULT true,
+    contract_document_id                    uuid REFERENCES files(id) ON DELETE SET NULL,
+
+    -- REGISTRAR: сроки подготовки реестров
+    registry_preparation_days               integer,
+    registry_preparation_unit               uuid REFERENCES ref_measurement_unit(id) ON DELETE RESTRICT,
+    dividend_registry_preparation_days      integer,
+    dividend_registry_preparation_unit      uuid REFERENCES ref_measurement_unit(id) ON DELETE RESTRICT,
+    registry_rules_url                      varchar(1000),
+    registry_rules_document_id              uuid REFERENCES files(id) ON DELETE SET NULL,
+
+    -- MANAGEMENT_IP: ОГРНИП (для ИП-управляющего)
+    manager_ogrnip                          varchar(15),
+
+    -- MANAGEMENT_UL: ссылка на ЮЛ-управляющего
+    manager_legal_entity_id                 uuid REFERENCES legal_entities(id) ON DELETE SET NULL,
+
+    -- Статус
+    is_active                               boolean NOT NULL DEFAULT true,
+    created_at                              timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_by                              uuid
 );
 
-CREATE INDEX IF NOT EXISTS ix_ao_contractors_legal_entity_id ON ao_contractors(legal_entity_id);
-CREATE UNIQUE INDEX IF NOT EXISTS ux_ao_contractors_le_type_active
-    ON ao_contractors(legal_entity_id, contractor_type)
-    WHERE is_active = true;
-
--- ============================================================================
--- Договоры ООО с управляющими (ст. 42 14-ФЗ)
--- ============================================================================
-
-CREATE TABLE IF NOT EXISTS llc_management_contracts (
-    id                  uuid PRIMARY KEY,
-    legal_entity_id     uuid NOT NULL REFERENCES legal_entities(id) ON DELETE RESTRICT,
-    manager_full_name   varchar(500) NOT NULL,
-    manager_inn         varchar(12) NOT NULL,
-    manager_ogrnip      varchar(15),
-    contract_number     varchar(100),
-    contract_date       date,
-    contract_valid_from date NOT NULL,
-    contract_valid_to   date,
-    is_indefinite       boolean NOT NULL DEFAULT true,
-    contract_document_id uuid REFERENCES files(id) ON DELETE SET NULL,
-    is_active           boolean NOT NULL DEFAULT true,
-    created_at          timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    created_by          uuid
-);
-
-CREATE INDEX IF NOT EXISTS ix_llc_mgmt_contracts_le_id ON llc_management_contracts(legal_entity_id);
+CREATE INDEX IF NOT EXISTS ix_contracts_le_id ON contracts(legal_entity_id);
+CREATE UNIQUE INDEX IF NOT EXISTS ux_contracts_le_type_active
+    ON contracts(legal_entity_id, contract_type)
+    WHERE is_active = true
+    AND contract_type IN ('REGISTRAR', 'INFO_AGENCY');
 
 -- ============================================================================
 -- Шаблоны организационных мероприятий (Org Templates)

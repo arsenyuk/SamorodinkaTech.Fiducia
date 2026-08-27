@@ -76,9 +76,7 @@ public interface IApplicationDbContext
     DbSet<TrueConfTestQuestion> TrueConfTestQuestions { get; }
     DbSet<TrueConfTestAnswer> TrueConfTestAnswers { get; }
 
-    DbSet<AoContractor> AoContractors { get; }
-
-    DbSet<LlcManagementContract> LlcManagementContracts { get; }
+    DbSet<Contract> Contracts { get; }
 
     DbSet<SystemSetting> SystemSettings { get; }
 

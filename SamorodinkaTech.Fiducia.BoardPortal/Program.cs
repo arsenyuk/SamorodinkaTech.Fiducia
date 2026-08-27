@@ -557,11 +557,8 @@ fileGroup.MapDelete("/{id}", async (Guid id, IApplicationDbContext db, IFileStor
     return Results.Ok();
 });
 
-// ── AO Contractors API (Регистратор / Информационное агентство) ──────────
-app.MapAoContractorEndpoints();
-
-// ── LLC Management Contracts API (Договоры с управляющими ИП) ──────────
-app.MapLlcManagementContractEndpoints();
+// ── Contracts API (единая таблица договоров) ──────────────────────────
+app.MapContractEndpoints();
 
 // ── Participants API (Реестр участников общества) ──────────────────────
 app.MapParticipantEndpoints();

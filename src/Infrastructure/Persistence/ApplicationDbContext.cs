@@ -84,8 +84,7 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
     public DbSet<TrueConfTestQuestion> TrueConfTestQuestions => Set<TrueConfTestQuestion>();
     public DbSet<TrueConfTestAnswer> TrueConfTestAnswers => Set<TrueConfTestAnswer>();
 
-    public DbSet<AoContractor> AoContractors => Set<AoContractor>();
-    public DbSet<LlcManagementContract> LlcManagementContracts => Set<LlcManagementContract>();
+    public DbSet<Contract> Contracts => Set<Contract>();
 
     public DbSet<SystemSetting> SystemSettings => Set<SystemSetting>();
 
