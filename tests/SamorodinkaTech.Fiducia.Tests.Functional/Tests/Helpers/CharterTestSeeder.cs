@@ -101,7 +101,7 @@ public static class CharterTestSeeder
         Console.WriteLine($"[Seeder] ЮЛ {charterNumber}: {entity.Name} (ИНН {entity.Inn})...");
         await AdminConsoleHelper.CreateLegalEntityAsync(adminPage, entity.Name, entity.Inn);
 
-        // Роли администратору
+        // Роли администратору (EcosystemParticipant + Employee + UserRole через UI)
         await AdminConsoleHelper.AssignRolesAsync(
             adminPage,
             entity.AdminUser.LastName, entity.AdminUser.FirstName, entity.AdminUser.MiddleName,

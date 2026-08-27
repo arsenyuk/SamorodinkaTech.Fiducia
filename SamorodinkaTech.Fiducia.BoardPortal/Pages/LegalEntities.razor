@@ -4,6 +4,7 @@
 @using SamorodinkaTech.Fiducia.Domain.Validation
 @inject IDbContextFactory<SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext> DbFactory
 @inject ILogger<LegalEntities> Logger
+@inject IJSRuntime JS
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 
 <PageTitle>Fiducia — Юридическое лицо</PageTitle>
@@ -183,24 +184,42 @@ else
         {
             await using var ctx = await DbFactory.CreateDbContextAsync();
 
-            var workplace = await ctx.CurrentWorkplaces.FirstOrDefaultAsync();
-            if (workplace?.LastSelectedLegalEntityId is null)
+            // Определяем ЮЛ через EcosystemParticipant по login из localStorage
+            var login = await JS.InvokeAsync<string?>("localStorage.getItem", "currentUserName");
+            if (string.IsNullOrEmpty(login))
             {
-                _error = "Юридическое лицо не выбрано.";
+                Logger.LogWarning("LegalEntities: login не найден в localStorage");
+                _error = "Не удалось определить пользователя.";
+                _loading = false;
+                return;
+            }
+
+            Logger.LogDebug("LegalEntities: поиск EcosystemParticipant для login={Login}", login);
+
+            var participant = await ctx.EcosystemParticipants
+                .FirstOrDefaultAsync(ep => ep.Login == login);
+
+            if (participant is null)
+            {
+                Logger.LogWarning("LegalEntities: EcosystemParticipant не найден для login={Login}", login);
+                _error = "Пользователь не привязан к юридическому лицу. Обратитесь к администратору.";
                 _loading = false;
                 return;
             }
 
             _legalEntity = await ctx.LegalEntities
                 .Include(le => le.RefOkopf)
-                .FirstOrDefaultAsync(le => le.Id == workplace.LastSelectedLegalEntityId.Value);
+                .FirstOrDefaultAsync(le => le.Id == participant.LegalEntityId);
 
             if (_legalEntity is null)
             {
+                Logger.LogWarning("LegalEntities: LegalEntity не найден для LegalEntityId={LegalEntityId}", participant.LegalEntityId);
                 _error = "Юридическое лицо не найдено.";
                 _loading = false;
                 return;
             }
+
+            Logger.LogDebug("LegalEntities: загружено ЮЛ {LegalEntityName} (ИНН {Inn})", _legalEntity.Name, _legalEntity.Inn);
 
             // Определяем тип организации
             if (_legalEntity.RefOkopf?.Code is not null)
