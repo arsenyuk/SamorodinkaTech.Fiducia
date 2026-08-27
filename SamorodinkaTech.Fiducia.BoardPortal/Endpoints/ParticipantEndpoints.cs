@@ -28,14 +28,21 @@ public static class ParticipantEndpoints
         // GET: список участников текущего ЮЛ
         participants.MapGet("/", async (
             Guid? legalEntityId,
+            HttpContext http,
             IDbContextFactory<FiduciaDbContext> dbFactory) =>
         {
             await using var ctx = await dbFactory.CreateDbContextAsync();
             var leId = legalEntityId;
             if (leId is null || leId == Guid.Empty)
             {
-                var workplace = await ctx.CurrentWorkplaces.FirstOrDefaultAsync();
-                leId = workplace?.LastSelectedLegalEntityId;
+                var (login, _) = await GetUserInfoAsync(ctx, http);
+                if (!string.IsNullOrEmpty(login))
+                {
+                    var participant = await ctx.EcosystemParticipants
+                        .FirstOrDefaultAsync(ep => ep.Login == login);
+                    if (participant != null)
+                        leId = participant.LegalEntityId;
+                }
             }
             if (leId is null || leId == Guid.Empty)
                 return Results.Ok(Array.Empty<object>());
@@ -104,8 +111,10 @@ public static class ParticipantEndpoints
                 var llcCheck = await ValidateAccessAsync(ctx, http, audit, logger);
                 if (llcCheck is not null) return llcCheck;
 
-                var workplace = await ctx.CurrentWorkplaces.FirstOrDefaultAsync();
-                var leId = workplace!.LastSelectedLegalEntityId!.Value;
+                var (login, _) = await GetUserInfoAsync(ctx, http);
+                var participant = await ctx.EcosystemParticipants
+                    .FirstOrDefaultAsync(ep => ep.Login == login);
+                var leId = participant?.LegalEntityId ?? Guid.Empty;
 
                 var maxSort = await ctx.BoardParticipants
                     .Where(p => p.LegalEntityId == leId)
@@ -237,8 +246,10 @@ public static class ParticipantEndpoints
                 var llcCheck = await ValidateAccessAsync(ctx, http, audit, logger);
                 if (llcCheck is not null) return llcCheck;
 
-                var workplace = await ctx.CurrentWorkplaces.FirstOrDefaultAsync();
-                var leId = workplace!.LastSelectedLegalEntityId!.Value;
+                var (login, _) = await GetUserInfoAsync(ctx, http);
+                var participant = await ctx.EcosystemParticipants
+                    .FirstOrDefaultAsync(ep => ep.Login == login);
+                var leId = participant?.LegalEntityId ?? Guid.Empty;
 
                 var le = await ctx.LegalEntities.FirstOrDefaultAsync(x => x.Id == leId);
                 if (le is null)
@@ -349,8 +360,10 @@ public static class ParticipantEndpoints
                 var llcCheck = await ValidateAccessAsync(ctx, http, audit, logger);
                 if (llcCheck is not null) return llcCheck;
 
-                var workplace = await ctx.CurrentWorkplaces.FirstOrDefaultAsync();
-                var leId = workplace!.LastSelectedLegalEntityId!.Value;
+                var (login, _) = await GetUserInfoAsync(ctx, http);
+                var participant = await ctx.EcosystemParticipants
+                    .FirstOrDefaultAsync(ep => ep.Login == login);
+                var leId = participant?.LegalEntityId ?? Guid.Empty;
 
                 var maxSort = await ctx.BoardTreasuryShares
                     .Where(t => t.LegalEntityId == leId)
@@ -897,17 +910,27 @@ public static class ParticipantEndpoints
         ISecurityAuditService audit,
         ILogger logger)
     {
-        var workplace = await ctx.CurrentWorkplaces.FirstOrDefaultAsync();
-        var leId = workplace?.LastSelectedLegalEntityId;
-        if (leId is null || leId == Guid.Empty)
+        var (login, _) = await GetUserInfoAsync(ctx, http);
+        if (string.IsNullOrEmpty(login))
         {
-            logger.LogWarning("Юридическое лицо не выбрано");
-            return Results.BadRequest(new { error = "Юридическое лицо не выбрано" });
+            logger.LogWarning("Не удалось определить пользователя");
+            return Results.BadRequest(new { error = "Не удалось определить пользователя" });
         }
+
+        var participant = await ctx.EcosystemParticipants
+            .FirstOrDefaultAsync(ep => ep.Login == login);
+
+        if (participant is null)
+        {
+            logger.LogWarning("Пользователь {Login} не привязан к ЮЛ", login);
+            return Results.BadRequest(new { error = "Пользователь не привязан к юридическому лицу" });
+        }
+
+        var leId = participant.LegalEntityId;
 
         var le = await ctx.LegalEntities
             .Include(x => x.RefOkopf)
-            .FirstOrDefaultAsync(x => x.Id == leId.Value);
+            .FirstOrDefaultAsync(x => x.Id == leId);
 
         if (le is null)
         {
@@ -916,7 +939,7 @@ public static class ParticipantEndpoints
         }
 
         var clientIp = ClientIpHelper.GetClientIp(http);
-        var (login, fullName) = await GetUserInfoAsync(ctx, http);
+        var (_, fullName) = await GetUserInfoAsync(ctx, http);
 
         if (le.RefOkopf?.Code != LlcOkopfCode)
         {
@@ -1014,7 +1037,7 @@ public static class ParticipantEndpoints
         if (user is null)
             return ("unknown", "Пользователь не найден");
 
-        var login = user.Email;
+        var login = user.Login;
         var fullName = string.IsNullOrWhiteSpace(user.MiddleName)
             ? $"{user.LastName} {user.FirstName}"
             : $"{user.LastName} {user.FirstName} {user.MiddleName}";

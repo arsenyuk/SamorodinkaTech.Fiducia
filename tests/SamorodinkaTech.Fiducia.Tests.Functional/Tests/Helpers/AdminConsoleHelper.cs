@@ -161,6 +161,7 @@ public static class AdminConsoleHelper
 
     /// <summary>
     /// Добавить сотрудника в ЮЛ на странице /access-management.
+    /// Гарантирует, что ЮЛ выбрано в dropdown перед добавлением.
     /// </summary>
     public static async Task AddEmployeeAsync(
         IPage page,
@@ -178,6 +179,9 @@ public static class AdminConsoleHelper
             await AuthHelper.WaitForBlazorReady(page);
             await page.WaitForTimeoutAsync(3000);
         }
+
+        // Гарантируем, что ЮЛ выбрано (после LoadEmployeesAsync выбор может сброситься)
+        await EnsureEntitySelectedAsync(page);
 
         // Wait for employee form to be visible (depends on _selectedLegalEntityId)
         try
@@ -248,6 +252,33 @@ public static class AdminConsoleHelper
         foreach (var roleCode in roleCodes)
         {
             await AddEmployeeAsync(page, lastName, firstName, middleName, position, login, roleCode);
+        }
+    }
+
+    /// <summary>
+    /// Гарантировать, что ЮЛ выбрано в dropdown на странице /access-management.
+    /// Если уже выбрано — no-op. Если нет — выбрать первое доступное.
+    /// </summary>
+    private static async Task EnsureEntitySelectedAsync(IPage page)
+    {
+        var isSelected = await page.EvaluateAsync<bool>(
+            @"() => {
+                const sel = document.querySelector('.card-body select.form-select');
+                return sel && sel.value !== '';
+            }");
+
+        if (!isSelected)
+        {
+            // Выбрать первое доступное ЮЛ
+            await page.EvaluateAsync(
+                @"() => {
+                    const sel = document.querySelector('.card-body select.form-select');
+                    if (sel && sel.options.length > 1) {
+                        sel.value = sel.options[1].value;
+                        sel.dispatchEvent(new Event('change', { bubbles: true }));
+                    }
+                }");
+            await page.WaitForTimeoutAsync(1000);
         }
     }
 

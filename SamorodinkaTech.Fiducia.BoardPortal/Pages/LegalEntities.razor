@@ -185,7 +185,9 @@ else
             await using var ctx = await DbFactory.CreateDbContextAsync();
 
             // Определяем ЮЛ через EcosystemParticipant по login из localStorage
-            var login = await JS.InvokeAsync<string?>("localStorage.getItem", "currentUserName");
+            var login = await JS.InvokeAsync<string?>("localStorage.getItem", "currentUserLogin");
+            Logger.LogDebug("LegalEntities: currentUserLogin из localStorage = '{Login}'", login ?? "(null)");
+
             if (string.IsNullOrEmpty(login))
             {
                 Logger.LogWarning("LegalEntities: login не найден в localStorage");

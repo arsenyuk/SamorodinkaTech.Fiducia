@@ -178,6 +178,7 @@
             Logger.LogDebug("[LOGIN] Сохранение данных в localStorage");
             await JS.InvokeVoidAsync("localStorage.setItem", "currentUserId", result.UserId?.ToString() ?? "");
             await JS.InvokeVoidAsync("localStorage.setItem", "currentUserName", result.UserName ?? "");
+            await JS.InvokeVoidAsync("localStorage.setItem", "currentUserLogin", result.Login ?? "");
             await JS.InvokeVoidAsync("localStorage.setItem", "currentUserRole", result.Claims.GetValueOrDefault("role", "MEMBER_BOARD"));
             await JS.InvokeVoidAsync("localStorage.setItem", "greetingShownAt", DateTime.UtcNow.ToString("o"));
 

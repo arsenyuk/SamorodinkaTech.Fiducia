@@ -20,7 +20,32 @@ public static class BoardPortalHelper
     {
         await page.GotoAsync(PortalUrls.GetUrl(Portal.BoardPortal, "/legal-entities"));
         await AuthHelper.WaitForBlazorReady(page);
-        await page.WaitForTimeoutAsync(1000);
+
+        // Ждём загрузки данных ЮЛ (вкладка "Карточка ЮЛ" появляется только после загрузки)
+        try
+        {
+            await page.WaitForFunctionAsync(
+                @"() => {
+                    const tabs = document.querySelectorAll('button.nav-link');
+                    for (const tab of tabs) {
+                        if (tab.textContent.includes('Карточка ЮЛ')) return true;
+                    }
+                    return false;
+                }",
+                null,
+                new PageWaitForFunctionOptions { Timeout = 15_000 });
+        }
+        catch
+        {
+            // Проверяем, есть ли сообщение об ошибке
+            var errorText = await page.EvaluateAsync<string>(
+                "() => document.querySelector('.alert-danger')?.textContent ?? ''");
+            if (!string.IsNullOrEmpty(errorText))
+                throw new InvalidOperationException(
+                    $"LegalEntities page error: {errorText}");
+            throw new InvalidOperationException(
+                "LegalEntities: вкладка 'Карточка ЮЛ' не появилась — данные ЮЛ не загружены.");
+        }
 
         // Click on "Карточка ЮЛ" tab (tab 0)
         await page.EvaluateAsync(
