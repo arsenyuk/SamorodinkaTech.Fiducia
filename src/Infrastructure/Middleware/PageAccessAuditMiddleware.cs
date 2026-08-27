@@ -92,10 +92,10 @@ public class PageAccessAuditMiddleware
             || string.Equals(method, "DELETE", StringComparison.OrdinalIgnoreCase);
         var isError = statusCode >= 400;
 
-        // Для GET-запросов: логируем ТОЛЬКО обращения к страницам (не API) авторизованными пользователями
+        // Для GET-запросов: логируем обращения к страницам (не API)
         if (isGet && !isError)
         {
-            if (IsPageRoute(path) && !IsPublicPage(path) && userId.HasValue)
+            if (IsPageRoute(path) && !IsPublicPage(path))
             {
                 await LogPageAccessAsync(path, userIp, userId);
             }
@@ -154,6 +154,8 @@ public class PageAccessAuditMiddleware
             }
             catch { /* не критично */ }
         }
+
+        var userPart = login ?? (userId.HasValue ? userId.Value.ToString("N")[..8] : "anonymous");
 
         await _auditService.LogEventAsync(
             "PAGE_ACCESS",

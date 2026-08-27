@@ -21,17 +21,21 @@ public static class PageVerificationHelper
     /// </summary>
     public static async Task VerifyBoardPortalPagesAsync(IPage boardPage)
     {
-        // US-002: Заседания СД
+        // US-002: Заседания СД — заголовок + кнопка создания
         await VerifyPageAsync(boardPage, "/meetings",
             "Созывы заседаний СД", "Board Portal: Meetings");
+        await VerifyButtonAsync(boardPage, "/meetings",
+            "button.btn-primary", "Создать уведомление", "Board Portal: Meetings");
 
         // US-002: Голосование (GUID-заглушка — ожидаем spinner или сообщение)
         await VerifyPageAsync(boardPage, "/voting/00000000-0000-0000-0000-000000000000",
             "spinner-border", "Board Portal: Voting");
 
-        // US-004: Комитеты
+        // US-004: Комитеты — заголовок + типы поведения
         await VerifyPageAsync(boardPage, "/committees",
             "Комитеты совета директоров", "Board Portal: Committees");
+        await VerifyContentAnyAsync(boardPage, "/committees",
+            new[] { "Защитный", "Стратегический" }, "Board Portal: Committees");
 
         // US-004: Документы
         await VerifyPageAsync(boardPage, "/documents",
@@ -41,9 +45,12 @@ public static class PageVerificationHelper
         await VerifyPageAsync(boardPage, "/print-forms",
             "_framework/blazor.server.js", "Board Portal: PrintForms");
 
-        // US-021: Каталог документов
+        // US-021: Каталог документов — заголовок + accordion-структура
         await VerifyPageAsync(boardPage, "/documents/catalog",
             "Предоставленные документы", "Board Portal: DocumentsCatalog");
+        await VerifyContentAnyAsync(boardPage, "/documents/catalog",
+            new[] { "accordion", "Нет предоставленных", "Юридическое лицо не выбрано" },
+            "Board Portal: DocumentsCatalog");
 
         // US-022: ОСУ
         await VerifyPageAsync(boardPage, "/osu-meetings",
@@ -53,13 +60,20 @@ public static class PageVerificationHelper
         await VerifyPageAsync(boardPage, "/agenda-osu",
             "Повестка", "Board Portal: AgendaOsu");
 
-        // US-023: Участники
+        // US-023: Участники — заголовок + container-fluid
         await VerifyPageAsync(boardPage, "/participants",
             "Участники", "Board Portal: Participants");
+        await VerifyVisibleAsync(boardPage, "/participants",
+            ".container-fluid", "Board Portal: Participants");
 
         // US-024: Договоры
         await VerifyPageAsync(boardPage, "/contracts",
             "Договоры", "Board Portal: Contracts");
+
+        // US-020: Требования (share requests)
+        await VerifyContentAnyAsync(boardPage, "/share-requests",
+            new[] { "Мои запросы", "Требования", "Нет запросов", "Подать требование" },
+            "Board Portal: ShareRequests");
 
         // US-010: Оповещения
         await VerifyPageAsync(boardPage, "/notifications",
@@ -163,5 +177,52 @@ public static class PageVerificationHelper
         // Проверка записи в логе аудита после каждого перехода на страницу
         await page.WaitForTimeoutAsync(AuditWriteDelayMs);
         await AuditLogHelper.AssertPageAccessLoggedAsync(path);
+    }
+
+    private static async Task VerifyButtonAsync(IPage page, string path, string selector, string buttonText, string label)
+    {
+        var portal = page.Url.Contains("5001") ? Portal.AdminConsole : Portal.BoardPortal;
+
+        if (!page.Url.Contains(path))
+        {
+            await page.GotoAsync(PortalUrls.GetUrl(portal, path));
+            await page.WaitForLoadStateAsync(LoadState.NetworkIdle,
+                new() { Timeout = NetworkIdleTimeoutMs });
+        }
+
+        var button = await page.QuerySelectorAsync($"{selector}:has-text('{buttonText}')");
+        button.Should().NotBeNull($"{label}: на странице {path} должна быть кнопка «{buttonText}»");
+    }
+
+    private static async Task VerifyContentAnyAsync(IPage page, string path, string[] expectedTexts, string label)
+    {
+        var portal = page.Url.Contains("5001") ? Portal.AdminConsole : Portal.BoardPortal;
+
+        if (!page.Url.Contains(path))
+        {
+            await page.GotoAsync(PortalUrls.GetUrl(portal, path));
+            await page.WaitForLoadStateAsync(LoadState.NetworkIdle,
+                new() { Timeout = NetworkIdleTimeoutMs });
+        }
+
+        var content = await page.ContentAsync();
+        var found = expectedTexts.Any(t => content.Contains(t));
+        found.Should().BeTrue(
+            $"{label}: страница {path} должна содержать один из: {string.Join(", ", expectedTexts)}");
+    }
+
+    private static async Task VerifyVisibleAsync(IPage page, string path, string selector, string label)
+    {
+        var portal = page.Url.Contains("5001") ? Portal.AdminConsole : Portal.BoardPortal;
+
+        if (!page.Url.Contains(path))
+        {
+            await page.GotoAsync(PortalUrls.GetUrl(portal, path));
+            await page.WaitForLoadStateAsync(LoadState.NetworkIdle,
+                new() { Timeout = NetworkIdleTimeoutMs });
+        }
+
+        var visible = await page.IsVisibleAsync(selector);
+        visible.Should().BeTrue($"{label}: на странице {path} должен быть видим элемент «{selector}»");
     }
 }

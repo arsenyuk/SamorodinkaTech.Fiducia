@@ -4,7 +4,7 @@ namespace SamorodinkaTech.Fiducia.Tests.Functional.Helpers;
 
 /// <summary>
 /// Хелпер для чтения и проверки записей в логе аудита.
-/// Логи аудита хранятся в ./logs/audit/ (Dev) или /var/log/fiducia/audit/ (Prod).
+/// Логи аудита: BoardPortal/logs/audit/ и AdminConsole/logs/audit/.
 /// Формат файла: audit-{yyyyMMddHH}.log
 /// Формат строки: [{timestamp}] [AUDIT] {actionCode} | User={login} IP={ip} | {description} | {entityName} {entityId}
 /// </summary>
@@ -12,49 +12,54 @@ public static class AuditLogHelper
 {
     private static readonly string[] AuditLogDirectories =
     [
-        "./logs/audit",
-        "/var/log/fiducia/audit"
+        "./SamorodinkaTech.Fiducia.BoardPortal/logs/audit",
+        "./SamorodinkaTech.Fiducia.AdminConsole/logs/audit"
     ];
 
     /// <summary>
-    /// Найти директорию с логами аудита.
+    /// Найти все директории с логами аудита.
     /// </summary>
-    private static string FindAuditLogDirectory()
+    private static string[] FindAuditLogDirectories()
     {
-        foreach (var dir in AuditLogDirectories)
-        {
-            if (Directory.Exists(dir))
-                return dir;
-        }
-
-        throw new DirectoryNotFoundException(
-            $"Директория с логами аудита не найдена. Проверены: {string.Join(", ", AuditLogDirectories)}");
+        return AuditLogDirectories.Where(Directory.Exists).ToArray();
     }
 
     /// <summary>
-    /// Получить файл лога аудита за текущий час.
+    /// Получить все файлы лога аудита за текущий час из всех директорий.
     /// </summary>
-    private static string GetCurrentAuditLogFile()
+    private static string[] GetCurrentAuditLogFiles()
     {
-        var dir = FindAuditLogDirectory();
+        var dirs = FindAuditLogDirectories();
+        if (dirs.Length == 0)
+            throw new DirectoryNotFoundException(
+                $"Директория с логами аудита не найдена. Проверены: {string.Join(", ", AuditLogDirectories)}");
+
         var fileName = $"audit-{DateTime.UtcNow:yyyyMMddHH}.log";
-        var filePath = Path.Combine(dir, fileName);
+        var files = dirs
+            .Select(d => Path.Combine(d, fileName))
+            .Where(File.Exists)
+            .ToArray();
 
-        if (!File.Exists(filePath))
+        if (files.Length == 0)
             throw new FileNotFoundException(
-                $"Файл лога аудита не найден: {filePath}. Убедитесь, что приложение запущено и генерирует аудит-события.");
+                $"Файл лога аудита не найден ({fileName}). Проверены: {string.Join(", ", dirs)}");
 
-        return filePath;
+        return files;
     }
 
     /// <summary>
-    /// Прочитать все строки из текущего файла лога аудита.
+    /// Прочитать все строки из файлов лога аудита (все порталы).
     /// </summary>
     public static async Task<IReadOnlyList<string>> ReadAuditLogAsync()
     {
-        var filePath = GetCurrentAuditLogFile();
-        var lines = await File.ReadAllLinesAsync(filePath);
-        return lines;
+        var files = GetCurrentAuditLogFiles();
+        var allLines = new List<string>();
+        foreach (var file in files)
+        {
+            var lines = await File.ReadAllLinesAsync(file);
+            allLines.AddRange(lines);
+        }
+        return allLines;
     }
 
     /// <summary>

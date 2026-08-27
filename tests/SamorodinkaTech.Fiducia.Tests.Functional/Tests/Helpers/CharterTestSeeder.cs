@@ -82,7 +82,7 @@ public static class CharterTestSeeder
         await adminPage.WaitForTimeoutAsync(1000);
 
         // ═══════════════════════════════════════════════════════════════════
-        // Шаг 3: Создание всех ЮЛ + назначение ролей
+        // Шаг 3: Создание всех ЮЛ + назначение ролей + создание пользователей
         // ═══════════════════════════════════════════════════════════════════
         foreach (var entity in CharterTestDataFixed.LegalEntities)
         {
@@ -100,11 +100,23 @@ public static class CharterTestSeeder
 
             var persons = CharterTestDataFixed.PersonsByEntity[entity.Number];
 
+            // Создание пользователя + назначение ролей для ГД
             if (persons.Gd is not null)
             {
-                Console.WriteLine($"[Seeder] Назначение ролей ГД: {persons.Gd.LastName} {persons.Gd.FirstName}...");
+                Console.WriteLine($"[Seeder] Создание пользователя ГД: {persons.Gd.LastName} {persons.Gd.FirstName}...");
                 try
                 {
+                    var email = $"{persons.Gd.Uid}@test.local";
+                    var phone = $"+7900{entity.Number:D4}0001";
+                    await AdminConsoleHelper.CreateUserAsync(
+                        adminPage,
+                        persons.Gd.LastName,
+                        persons.Gd.FirstName,
+                        persons.Gd.MiddleName,
+                        email,
+                        phone);
+                    Console.WriteLine($"[Seeder] Пользователь создан: {persons.Gd.Uid}");
+
                     await AdminConsoleHelper.AssignRolesAsync(
                         adminPage,
                         persons.Gd.LastName,
@@ -117,32 +129,45 @@ public static class CharterTestSeeder
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"[Seeder] ОШИБКА назначения ролей для {persons.Gd.LastName}: {ex.Message}");
+                    Console.WriteLine($"[Seeder] ОШИБКА для ГД {persons.Gd.LastName}: {ex.Message}");
                     throw;
                 }
             }
             else if (persons.Participants.Count > 0)
             {
+                // Нет ГД — назначаем роли первому участнику
                 var firstParticipant = persons.Participants[0];
                 var nameParts = firstParticipant.FullName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
                 if (nameParts.Length >= 3)
                 {
-                    Console.WriteLine($"[Seeder] Назначение ролей участника: {firstParticipant.FullName}...");
+                    var login = firstParticipant.FullName.ToLower().Replace(" ", ".");
+                    Console.WriteLine($"[Seeder] Создание пользователя участника: {firstParticipant.FullName}...");
                     try
                     {
+                        var email = $"{login}@test.local";
+                        var phone = $"+7900{entity.Number:D4}0002";
+                        await AdminConsoleHelper.CreateUserAsync(
+                            adminPage,
+                            nameParts[0],
+                            nameParts[1],
+                            nameParts[2],
+                            email,
+                            phone);
+                        Console.WriteLine($"[Seeder] Пользователь создан: {login}");
+
                         await AdminConsoleHelper.AssignRolesAsync(
                             adminPage,
                             nameParts[0],
                             nameParts[1],
                             nameParts[2],
                             "Директор",
-                            firstParticipant.FullName.ToLower().Replace(" ", "."),
+                            login,
                             [CharterTestDataFixed.RoleLeAdmin, CharterTestDataFixed.RoleCeo]);
                         Console.WriteLine($"[Seeder] Роли назначены: {firstParticipant.FullName}");
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine($"[Seeder] ОШИБКА назначения ролей для {firstParticipant.FullName}: {ex.Message}");
+                        Console.WriteLine($"[Seeder] ОШИБКА для {firstParticipant.FullName}: {ex.Message}");
                         throw;
                     }
                 }

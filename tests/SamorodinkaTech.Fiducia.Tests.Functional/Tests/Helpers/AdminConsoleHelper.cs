@@ -183,5 +183,61 @@ public static class AdminConsoleHelper
         }
     }
 
+    /// <summary>
+    /// Создать пользователя на странице /users.
+    /// </summary>
+    public static async Task CreateUserAsync(
+        IPage page,
+        string lastName,
+        string firstName,
+        string middleName,
+        string email,
+        string phone)
+    {
+        await page.GotoAsync(PortalUrls.GetUrl(Portal.AdminConsole, "/users"));
+        await AuthHelper.WaitForBlazorReady(page);
+        await page.WaitForTimeoutAsync(1000);
+
+        // Click "+ Добавить" button
+        await page.EvaluateAsync(
+            @"() => {
+                const buttons = document.querySelectorAll('button');
+                for (const btn of buttons) {
+                    if (btn.textContent.includes('Добавить')) { btn.click(); return; }
+                }
+            }");
+        await page.WaitForTimeoutAsync(500);
+
+        // Wait for modal to appear
+        await page.WaitForSelectorAsync(".modal.show", new PageWaitForSelectorOptions { Timeout = DefaultTimeout });
+
+        // Fill fields via Blazor @bind — need to dispatch 'input' event
+        var inputs = await page.QuerySelectorAllAsync(".modal .modal-body input.form-control");
+
+        // inputs[0] = Фамилия, inputs[1] = Имя, inputs[2] = Отчество, inputs[3] = Email, inputs[4] = Телефон
+        var values = new[] { lastName, firstName, middleName, email, phone };
+        for (int i = 0; i < Math.Min(inputs.Count, values.Length); i++)
+        {
+            if (inputs[i] is not null && !string.IsNullOrEmpty(values[i]))
+            {
+                await inputs[i].FillAsync(values[i]);
+                await inputs[i].DispatchEventAsync("change");
+            }
+        }
+
+        await page.WaitForTimeoutAsync(500);
+
+        // Click "Создать" in modal
+        await page.ClickAsync(".modal-footer button.btn-primary");
+
+        // Wait for modal to close
+        await page.WaitForFunctionAsync(
+            "() => document.querySelector('.modal.show') === null",
+            null,
+            new PageWaitForFunctionOptions { Timeout = DefaultTimeout });
+
+        await page.WaitForTimeoutAsync(500);
+    }
+
     private static string EscapeJs(string value) => value.Replace("'", "\\'").Replace("\\", "\\\\");
 }
