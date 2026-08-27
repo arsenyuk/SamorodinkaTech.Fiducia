@@ -33,16 +33,22 @@ public static class AdminConsoleHelper
             await loginInput.DispatchEventAsync("change");
         }
 
-        // Заполнить остальные поля
-        var inputs = await page.QuerySelectorAllAsync(".modal .modal-body input.form-control");
+        // Заполнить остальные поля (пропуская уже заполненное поле логина в input-group)
+        var allInputs = await page.QuerySelectorAllAsync(".modal .modal-body input.form-control");
         var values = new[] { lastName, firstName, middleName, email };
-        for (int i = 0; i < Math.Min(inputs.Count, values.Length); i++)
+        var valueIndex = 0;
+        foreach (var input in allInputs)
         {
-            if (inputs[i] is not null && !string.IsNullOrEmpty(values[i]))
+            var parentHtml = await input.EvaluateAsync<string>("el => el.parentElement?.className ?? ''");
+            if (parentHtml.Contains("input-group"))
+                continue; // поле логина уже заполнено — пропускаем
+
+            if (input is not null && valueIndex < values.Length && !string.IsNullOrEmpty(values[valueIndex]))
             {
-                await inputs[i].FillAsync(values[i]);
-                await inputs[i].DispatchEventAsync("change");
+                await input.FillAsync(values[valueIndex]);
+                await input.DispatchEventAsync("change");
             }
+            valueIndex++;
         }
 
         await page.WaitForTimeoutAsync(500);

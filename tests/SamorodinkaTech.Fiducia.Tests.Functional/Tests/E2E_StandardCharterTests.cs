@@ -9,745 +9,103 @@ namespace SamorodinkaTech.Fiducia.Tests.Functional;
 /// БД сбрасывается ОДИН раз перед прогоном всех тестов.
 /// Каждый тест работает со своим фиксированным ЮЛ и набором лиц.
 /// Запрещено параллельное исполнение (Collection "CharterTests").
-/// Тестовый сценарий:
-/// 1. Логин ГД в Board Portal (пользователь уже создан при сидировании)
-/// 2. Заполнение полей ЮЛ + выбор типового устава
-/// 3. Сохранение и проверка отсутствия ошибок
-/// 4. Добавление участников (для ExecutiveBody A)
-/// 5. Проверка страниц Board Portal и Admin Console (US-002..US-024)
-/// 6. Проверка записей аудита (вход, чтение/запись, участники)
-/// 7. Проверка отсутствия ошибок в логе приложения за период работы теста
+/// При ошибке в одном тесте все последующие тесты прерываются.
 /// </summary>
 [Collection("CharterTests")]
 public class E2E_StandardCharterTests : BrowserFixture
 {
+    /// <summary>
+    /// Флаг: хотя бы один тест завершился ошибкой.
+    /// После установки все последующие тесты прерываются.
+    /// </summary>
+    private static volatile bool _anyTestFailed;
+
     // ══════════════════════════════════════════════════════════════════════
     // Тесты: 36 самостоятельных [Fact] (по одному на каждый типовой устав)
     // ══════════════════════════════════════════════════════════════════════
 
-    [Fact]
-    public async Task StandardCharter01_CompleteFlow()
-    {
-        var testStartTime = DateTimeOffset.UtcNow;
-        var testName = "StandardCharter01_CompleteFlow";
-
-        var (adminPage, boardPage, ldapPage, login) = await SetupFullCycleAsync(1);
-        try
-        {
-            await ExecuteCharterFlowAsync(boardPage, adminPage, charterNumber: 1, testStartTime);
-            await AssertAuditAsync(login, entityHasExecutiveBodyA: true);
-        }
-        finally
-        {
-            var testEndTime = DateTimeOffset.UtcNow;
-            await AppLogHelper.AssertNoErrorsInAppLogSafeAsync(testStartTime, testEndTime, testName);
-            await CleanupAsync(adminPage, boardPage, ldapPage);
-        }
-    }
-
-    [Fact]
-    public async Task StandardCharter02_CompleteFlow()
-    {
-        var testStartTime = DateTimeOffset.UtcNow;
-        var testName = "StandardCharter02_CompleteFlow";
-
-        var (adminPage, boardPage, ldapPage, login) = await SetupFullCycleAsync(2);
-        try
-        {
-            await ExecuteCharterFlowAsync(boardPage, adminPage, charterNumber: 2, testStartTime);
-            await AssertAuditAsync(login, entityHasExecutiveBodyA: true);
-        }
-        finally
-        {
-            var testEndTime = DateTimeOffset.UtcNow;
-            await AppLogHelper.AssertNoErrorsInAppLogSafeAsync(testStartTime, testEndTime, testName);
-            await CleanupAsync(adminPage, boardPage, ldapPage);
-        }
-    }
-
-    [Fact]
-    public async Task StandardCharter03_CompleteFlow()
-    {
-        var testStartTime = DateTimeOffset.UtcNow;
-        var testName = "StandardCharter03_CompleteFlow";
-
-        var (adminPage, boardPage, ldapPage, login) = await SetupFullCycleAsync(3);
-        try
-        {
-            await ExecuteCharterFlowAsync(boardPage, adminPage, charterNumber: 3, testStartTime);
-            await AssertAuditAsync(login, entityHasExecutiveBodyA: true);
-        }
-        finally
-        {
-            var testEndTime = DateTimeOffset.UtcNow;
-            await AppLogHelper.AssertNoErrorsInAppLogSafeAsync(testStartTime, testEndTime, testName);
-            await CleanupAsync(adminPage, boardPage, ldapPage);
-        }
-    }
-
-    [Fact]
-    public async Task StandardCharter04_CompleteFlow()
-    {
-        var testStartTime = DateTimeOffset.UtcNow;
-        var testName = "StandardCharter04_CompleteFlow";
-
-        var (adminPage, boardPage, ldapPage, login) = await SetupFullCycleAsync(4);
-        try
-        {
-            await ExecuteCharterFlowAsync(boardPage, adminPage, charterNumber: 4, testStartTime);
-            await AssertAuditAsync(login, entityHasExecutiveBodyA: true);
-        }
-        finally
-        {
-            var testEndTime = DateTimeOffset.UtcNow;
-            await AppLogHelper.AssertNoErrorsInAppLogSafeAsync(testStartTime, testEndTime, testName);
-            await CleanupAsync(adminPage, boardPage, ldapPage);
-        }
-    }
-
-    [Fact]
-    public async Task StandardCharter05_CompleteFlow()
-    {
-        var testStartTime = DateTimeOffset.UtcNow;
-        var testName = "StandardCharter05_CompleteFlow";
-
-        var (adminPage, boardPage, ldapPage, login) = await SetupFullCycleAsync(5);
-        try
-        {
-            await ExecuteCharterFlowAsync(boardPage, adminPage, charterNumber: 5, testStartTime);
-            await AssertAuditAsync(login, entityHasExecutiveBodyA: true);
-        }
-        finally
-        {
-            var testEndTime = DateTimeOffset.UtcNow;
-            await AppLogHelper.AssertNoErrorsInAppLogSafeAsync(testStartTime, testEndTime, testName);
-            await CleanupAsync(adminPage, boardPage, ldapPage);
-        }
-    }
-
-    [Fact]
-    public async Task StandardCharter06_CompleteFlow()
-    {
-        var testStartTime = DateTimeOffset.UtcNow;
-        var testName = "StandardCharter06_CompleteFlow";
-
-        var (adminPage, boardPage, ldapPage, login) = await SetupFullCycleAsync(6);
-        try
-        {
-            await ExecuteCharterFlowAsync(boardPage, adminPage, charterNumber: 6, testStartTime);
-            await AssertAuditAsync(login, entityHasExecutiveBodyA: true);
-        }
-        finally
-        {
-            var testEndTime = DateTimeOffset.UtcNow;
-            await AppLogHelper.AssertNoErrorsInAppLogSafeAsync(testStartTime, testEndTime, testName);
-            await CleanupAsync(adminPage, boardPage, ldapPage);
-        }
-    }
-
-    [Fact]
-    public async Task StandardCharter07_CompleteFlow()
-    {
-        var testStartTime = DateTimeOffset.UtcNow;
-        var testName = "StandardCharter07_CompleteFlow";
-
-        var (adminPage, boardPage, ldapPage, login) = await SetupFullCycleAsync(7);
-        try
-        {
-            await ExecuteCharterFlowAsync(boardPage, adminPage, charterNumber: 7, testStartTime);
-            await AssertAuditAsync(login, entityHasExecutiveBodyA: false);
-        }
-        finally
-        {
-            var testEndTime = DateTimeOffset.UtcNow;
-            await AppLogHelper.AssertNoErrorsInAppLogSafeAsync(testStartTime, testEndTime, testName);
-            await CleanupAsync(adminPage, boardPage, ldapPage);
-        }
-    }
-
-    [Fact]
-    public async Task StandardCharter08_CompleteFlow()
-    {
-        var testStartTime = DateTimeOffset.UtcNow;
-        var testName = "StandardCharter08_CompleteFlow";
-
-        var (adminPage, boardPage, ldapPage, login) = await SetupFullCycleAsync(8);
-        try
-        {
-            await ExecuteCharterFlowAsync(boardPage, adminPage, charterNumber: 8, testStartTime);
-            await AssertAuditAsync(login, entityHasExecutiveBodyA: false);
-        }
-        finally
-        {
-            var testEndTime = DateTimeOffset.UtcNow;
-            await AppLogHelper.AssertNoErrorsInAppLogSafeAsync(testStartTime, testEndTime, testName);
-            await CleanupAsync(adminPage, boardPage, ldapPage);
-        }
-    }
-
-    [Fact]
-    public async Task StandardCharter09_CompleteFlow()
-    {
-        var testStartTime = DateTimeOffset.UtcNow;
-        var testName = "StandardCharter09_CompleteFlow";
-
-        var (adminPage, boardPage, ldapPage, login) = await SetupFullCycleAsync(9);
-        try
-        {
-            await ExecuteCharterFlowAsync(boardPage, adminPage, charterNumber: 9, testStartTime);
-            await AssertAuditAsync(login, entityHasExecutiveBodyA: false);
-        }
-        finally
-        {
-            var testEndTime = DateTimeOffset.UtcNow;
-            await AppLogHelper.AssertNoErrorsInAppLogSafeAsync(testStartTime, testEndTime, testName);
-            await CleanupAsync(adminPage, boardPage, ldapPage);
-        }
-    }
-
-    [Fact]
-    public async Task StandardCharter10_CompleteFlow()
-    {
-        var testStartTime = DateTimeOffset.UtcNow;
-        var testName = "StandardCharter10_CompleteFlow";
-
-        var (adminPage, boardPage, ldapPage, login) = await SetupFullCycleAsync(10);
-        try
-        {
-            await ExecuteCharterFlowAsync(boardPage, adminPage, charterNumber: 10, testStartTime);
-            await AssertAuditAsync(login, entityHasExecutiveBodyA: false);
-        }
-        finally
-        {
-            var testEndTime = DateTimeOffset.UtcNow;
-            await AppLogHelper.AssertNoErrorsInAppLogSafeAsync(testStartTime, testEndTime, testName);
-            await CleanupAsync(adminPage, boardPage, ldapPage);
-        }
-    }
-
-    [Fact]
-    public async Task StandardCharter11_CompleteFlow()
-    {
-        var testStartTime = DateTimeOffset.UtcNow;
-        var testName = "StandardCharter11_CompleteFlow";
-
-        var (adminPage, boardPage, ldapPage, login) = await SetupFullCycleAsync(11);
-        try
-        {
-            await ExecuteCharterFlowAsync(boardPage, adminPage, charterNumber: 11, testStartTime);
-            await AssertAuditAsync(login, entityHasExecutiveBodyA: false);
-        }
-        finally
-        {
-            var testEndTime = DateTimeOffset.UtcNow;
-            await AppLogHelper.AssertNoErrorsInAppLogSafeAsync(testStartTime, testEndTime, testName);
-            await CleanupAsync(adminPage, boardPage, ldapPage);
-        }
-    }
-
-    [Fact]
-    public async Task StandardCharter12_CompleteFlow()
-    {
-        var testStartTime = DateTimeOffset.UtcNow;
-        var testName = "StandardCharter12_CompleteFlow";
-
-        var (adminPage, boardPage, ldapPage, login) = await SetupFullCycleAsync(12);
-        try
-        {
-            await ExecuteCharterFlowAsync(boardPage, adminPage, charterNumber: 12, testStartTime);
-            await AssertAuditAsync(login, entityHasExecutiveBodyA: false);
-        }
-        finally
-        {
-            var testEndTime = DateTimeOffset.UtcNow;
-            await AppLogHelper.AssertNoErrorsInAppLogSafeAsync(testStartTime, testEndTime, testName);
-            await CleanupAsync(adminPage, boardPage, ldapPage);
-        }
-    }
-
-    [Fact]
-    public async Task StandardCharter13_CompleteFlow()
-    {
-        var testStartTime = DateTimeOffset.UtcNow;
-        var testName = "StandardCharter13_CompleteFlow";
-
-        var (adminPage, boardPage, ldapPage, login) = await SetupFullCycleAsync(13);
-        try
-        {
-            await ExecuteCharterFlowAsync(boardPage, adminPage, charterNumber: 13, testStartTime);
-            await AssertAuditAsync(login, entityHasExecutiveBodyA: false);
-        }
-        finally
-        {
-            var testEndTime = DateTimeOffset.UtcNow;
-            await AppLogHelper.AssertNoErrorsInAppLogSafeAsync(testStartTime, testEndTime, testName);
-            await CleanupAsync(adminPage, boardPage, ldapPage);
-        }
-    }
-
-    [Fact]
-    public async Task StandardCharter14_CompleteFlow()
-    {
-        var testStartTime = DateTimeOffset.UtcNow;
-        var testName = "StandardCharter14_CompleteFlow";
-
-        var (adminPage, boardPage, ldapPage, login) = await SetupFullCycleAsync(14);
-        try
-        {
-            await ExecuteCharterFlowAsync(boardPage, adminPage, charterNumber: 14, testStartTime);
-            await AssertAuditAsync(login, entityHasExecutiveBodyA: false);
-        }
-        finally
-        {
-            var testEndTime = DateTimeOffset.UtcNow;
-            await AppLogHelper.AssertNoErrorsInAppLogSafeAsync(testStartTime, testEndTime, testName);
-            await CleanupAsync(adminPage, boardPage, ldapPage);
-        }
-    }
-
-    [Fact]
-    public async Task StandardCharter15_CompleteFlow()
-    {
-        var testStartTime = DateTimeOffset.UtcNow;
-        var testName = "StandardCharter15_CompleteFlow";
-
-        var (adminPage, boardPage, ldapPage, login) = await SetupFullCycleAsync(15);
-        try
-        {
-            await ExecuteCharterFlowAsync(boardPage, adminPage, charterNumber: 15, testStartTime);
-            await AssertAuditAsync(login, entityHasExecutiveBodyA: false);
-        }
-        finally
-        {
-            var testEndTime = DateTimeOffset.UtcNow;
-            await AppLogHelper.AssertNoErrorsInAppLogSafeAsync(testStartTime, testEndTime, testName);
-            await CleanupAsync(adminPage, boardPage, ldapPage);
-        }
-    }
-
-    [Fact]
-    public async Task StandardCharter16_CompleteFlow()
-    {
-        var testStartTime = DateTimeOffset.UtcNow;
-        var testName = "StandardCharter16_CompleteFlow";
-
-        var (adminPage, boardPage, ldapPage, login) = await SetupFullCycleAsync(16);
-        try
-        {
-            await ExecuteCharterFlowAsync(boardPage, adminPage, charterNumber: 16, testStartTime);
-            await AssertAuditAsync(login, entityHasExecutiveBodyA: false);
-        }
-        finally
-        {
-            var testEndTime = DateTimeOffset.UtcNow;
-            await AppLogHelper.AssertNoErrorsInAppLogSafeAsync(testStartTime, testEndTime, testName);
-            await CleanupAsync(adminPage, boardPage, ldapPage);
-        }
-    }
-
-    [Fact]
-    public async Task StandardCharter17_CompleteFlow()
-    {
-        var testStartTime = DateTimeOffset.UtcNow;
-        var testName = "StandardCharter17_CompleteFlow";
-
-        var (adminPage, boardPage, ldapPage, login) = await SetupFullCycleAsync(17);
-        try
-        {
-            await ExecuteCharterFlowAsync(boardPage, adminPage, charterNumber: 17, testStartTime);
-            await AssertAuditAsync(login, entityHasExecutiveBodyA: false);
-        }
-        finally
-        {
-            var testEndTime = DateTimeOffset.UtcNow;
-            await AppLogHelper.AssertNoErrorsInAppLogSafeAsync(testStartTime, testEndTime, testName);
-            await CleanupAsync(adminPage, boardPage, ldapPage);
-        }
-    }
-
-    [Fact]
-    public async Task StandardCharter18_CompleteFlow()
-    {
-        var testStartTime = DateTimeOffset.UtcNow;
-        var testName = "StandardCharter18_CompleteFlow";
-
-        var (adminPage, boardPage, ldapPage, login) = await SetupFullCycleAsync(18);
-        try
-        {
-            await ExecuteCharterFlowAsync(boardPage, adminPage, charterNumber: 18, testStartTime);
-            await AssertAuditAsync(login, entityHasExecutiveBodyA: false);
-        }
-        finally
-        {
-            var testEndTime = DateTimeOffset.UtcNow;
-            await AppLogHelper.AssertNoErrorsInAppLogSafeAsync(testStartTime, testEndTime, testName);
-            await CleanupAsync(adminPage, boardPage, ldapPage);
-        }
-    }
-
-    [Fact]
-    public async Task StandardCharter19_CompleteFlow()
-    {
-        var testStartTime = DateTimeOffset.UtcNow;
-        var testName = "StandardCharter19_CompleteFlow";
-
-        var (adminPage, boardPage, ldapPage, login) = await SetupFullCycleAsync(19);
-        try
-        {
-            await ExecuteCharterFlowAsync(boardPage, adminPage, charterNumber: 19, testStartTime);
-            await AssertAuditAsync(login, entityHasExecutiveBodyA: true);
-        }
-        finally
-        {
-            var testEndTime = DateTimeOffset.UtcNow;
-            await AppLogHelper.AssertNoErrorsInAppLogSafeAsync(testStartTime, testEndTime, testName);
-            await CleanupAsync(adminPage, boardPage, ldapPage);
-        }
-    }
-
-    [Fact]
-    public async Task StandardCharter20_CompleteFlow()
-    {
-        var testStartTime = DateTimeOffset.UtcNow;
-        var testName = "StandardCharter20_CompleteFlow";
-
-        var (adminPage, boardPage, ldapPage, login) = await SetupFullCycleAsync(20);
-        try
-        {
-            await ExecuteCharterFlowAsync(boardPage, adminPage, charterNumber: 20, testStartTime);
-            await AssertAuditAsync(login, entityHasExecutiveBodyA: true);
-        }
-        finally
-        {
-            var testEndTime = DateTimeOffset.UtcNow;
-            await AppLogHelper.AssertNoErrorsInAppLogSafeAsync(testStartTime, testEndTime, testName);
-            await CleanupAsync(adminPage, boardPage, ldapPage);
-        }
-    }
-
-    [Fact]
-    public async Task StandardCharter21_CompleteFlow()
-    {
-        var testStartTime = DateTimeOffset.UtcNow;
-        var testName = "StandardCharter21_CompleteFlow";
-
-        var (adminPage, boardPage, ldapPage, login) = await SetupFullCycleAsync(21);
-        try
-        {
-            await ExecuteCharterFlowAsync(boardPage, adminPage, charterNumber: 21, testStartTime);
-            await AssertAuditAsync(login, entityHasExecutiveBodyA: true);
-        }
-        finally
-        {
-            var testEndTime = DateTimeOffset.UtcNow;
-            await AppLogHelper.AssertNoErrorsInAppLogSafeAsync(testStartTime, testEndTime, testName);
-            await CleanupAsync(adminPage, boardPage, ldapPage);
-        }
-    }
-
-    [Fact]
-    public async Task StandardCharter22_CompleteFlow()
-    {
-        var testStartTime = DateTimeOffset.UtcNow;
-        var testName = "StandardCharter22_CompleteFlow";
-
-        var (adminPage, boardPage, ldapPage, login) = await SetupFullCycleAsync(22);
-        try
-        {
-            await ExecuteCharterFlowAsync(boardPage, adminPage, charterNumber: 22, testStartTime);
-            await AssertAuditAsync(login, entityHasExecutiveBodyA: true);
-        }
-        finally
-        {
-            var testEndTime = DateTimeOffset.UtcNow;
-            await AppLogHelper.AssertNoErrorsInAppLogSafeAsync(testStartTime, testEndTime, testName);
-            await CleanupAsync(adminPage, boardPage, ldapPage);
-        }
-    }
-
-    [Fact]
-    public async Task StandardCharter23_CompleteFlow()
-    {
-        var testStartTime = DateTimeOffset.UtcNow;
-        var testName = "StandardCharter23_CompleteFlow";
-
-        var (adminPage, boardPage, ldapPage, login) = await SetupFullCycleAsync(23);
-        try
-        {
-            await ExecuteCharterFlowAsync(boardPage, adminPage, charterNumber: 23, testStartTime);
-            await AssertAuditAsync(login, entityHasExecutiveBodyA: true);
-        }
-        finally
-        {
-            var testEndTime = DateTimeOffset.UtcNow;
-            await AppLogHelper.AssertNoErrorsInAppLogSafeAsync(testStartTime, testEndTime, testName);
-            await CleanupAsync(adminPage, boardPage, ldapPage);
-        }
-    }
-
-    [Fact]
-    public async Task StandardCharter24_CompleteFlow()
-    {
-        var testStartTime = DateTimeOffset.UtcNow;
-        var testName = "StandardCharter24_CompleteFlow";
-
-        var (adminPage, boardPage, ldapPage, login) = await SetupFullCycleAsync(24);
-        try
-        {
-            await ExecuteCharterFlowAsync(boardPage, adminPage, charterNumber: 24, testStartTime);
-            await AssertAuditAsync(login, entityHasExecutiveBodyA: true);
-        }
-        finally
-        {
-            var testEndTime = DateTimeOffset.UtcNow;
-            await AppLogHelper.AssertNoErrorsInAppLogSafeAsync(testStartTime, testEndTime, testName);
-            await CleanupAsync(adminPage, boardPage, ldapPage);
-        }
-    }
-
-    [Fact]
-    public async Task StandardCharter25_CompleteFlow()
-    {
-        var testStartTime = DateTimeOffset.UtcNow;
-        var testName = "StandardCharter25_CompleteFlow";
-
-        var (adminPage, boardPage, ldapPage, login) = await SetupFullCycleAsync(25);
-        try
-        {
-            await ExecuteCharterFlowAsync(boardPage, adminPage, charterNumber: 25, testStartTime);
-            await AssertAuditAsync(login, entityHasExecutiveBodyA: false);
-        }
-        finally
-        {
-            var testEndTime = DateTimeOffset.UtcNow;
-            await AppLogHelper.AssertNoErrorsInAppLogSafeAsync(testStartTime, testEndTime, testName);
-            await CleanupAsync(adminPage, boardPage, ldapPage);
-        }
-    }
-
-    [Fact]
-    public async Task StandardCharter26_CompleteFlow()
-    {
-        var testStartTime = DateTimeOffset.UtcNow;
-        var testName = "StandardCharter26_CompleteFlow";
-
-        var (adminPage, boardPage, ldapPage, login) = await SetupFullCycleAsync(26);
-        try
-        {
-            await ExecuteCharterFlowAsync(boardPage, adminPage, charterNumber: 26, testStartTime);
-            await AssertAuditAsync(login, entityHasExecutiveBodyA: false);
-        }
-        finally
-        {
-            var testEndTime = DateTimeOffset.UtcNow;
-            await AppLogHelper.AssertNoErrorsInAppLogSafeAsync(testStartTime, testEndTime, testName);
-            await CleanupAsync(adminPage, boardPage, ldapPage);
-        }
-    }
-
-    [Fact]
-    public async Task StandardCharter27_CompleteFlow()
-    {
-        var testStartTime = DateTimeOffset.UtcNow;
-        var testName = "StandardCharter27_CompleteFlow";
-
-        var (adminPage, boardPage, ldapPage, login) = await SetupFullCycleAsync(27);
-        try
-        {
-            await ExecuteCharterFlowAsync(boardPage, adminPage, charterNumber: 27, testStartTime);
-            await AssertAuditAsync(login, entityHasExecutiveBodyA: false);
-        }
-        finally
-        {
-            var testEndTime = DateTimeOffset.UtcNow;
-            await AppLogHelper.AssertNoErrorsInAppLogSafeAsync(testStartTime, testEndTime, testName);
-            await CleanupAsync(adminPage, boardPage, ldapPage);
-        }
-    }
-
-    [Fact]
-    public async Task StandardCharter28_CompleteFlow()
-    {
-        var testStartTime = DateTimeOffset.UtcNow;
-        var testName = "StandardCharter28_CompleteFlow";
-
-        var (adminPage, boardPage, ldapPage, login) = await SetupFullCycleAsync(28);
-        try
-        {
-            await ExecuteCharterFlowAsync(boardPage, adminPage, charterNumber: 28, testStartTime);
-            await AssertAuditAsync(login, entityHasExecutiveBodyA: false);
-        }
-        finally
-        {
-            var testEndTime = DateTimeOffset.UtcNow;
-            await AppLogHelper.AssertNoErrorsInAppLogSafeAsync(testStartTime, testEndTime, testName);
-            await CleanupAsync(adminPage, boardPage, ldapPage);
-        }
-    }
-
-    [Fact]
-    public async Task StandardCharter29_CompleteFlow()
-    {
-        var testStartTime = DateTimeOffset.UtcNow;
-        var testName = "StandardCharter29_CompleteFlow";
-
-        var (adminPage, boardPage, ldapPage, login) = await SetupFullCycleAsync(29);
-        try
-        {
-            await ExecuteCharterFlowAsync(boardPage, adminPage, charterNumber: 29, testStartTime);
-            await AssertAuditAsync(login, entityHasExecutiveBodyA: false);
-        }
-        finally
-        {
-            var testEndTime = DateTimeOffset.UtcNow;
-            await AppLogHelper.AssertNoErrorsInAppLogSafeAsync(testStartTime, testEndTime, testName);
-            await CleanupAsync(adminPage, boardPage, ldapPage);
-        }
-    }
-
-    [Fact]
-    public async Task StandardCharter30_CompleteFlow()
-    {
-        var testStartTime = DateTimeOffset.UtcNow;
-        var testName = "StandardCharter30_CompleteFlow";
-
-        var (adminPage, boardPage, ldapPage, login) = await SetupFullCycleAsync(30);
-        try
-        {
-            await ExecuteCharterFlowAsync(boardPage, adminPage, charterNumber: 30, testStartTime);
-            await AssertAuditAsync(login, entityHasExecutiveBodyA: false);
-        }
-        finally
-        {
-            var testEndTime = DateTimeOffset.UtcNow;
-            await AppLogHelper.AssertNoErrorsInAppLogSafeAsync(testStartTime, testEndTime, testName);
-            await CleanupAsync(adminPage, boardPage, ldapPage);
-        }
-    }
-
-    [Fact]
-    public async Task StandardCharter31_CompleteFlow()
-    {
-        var testStartTime = DateTimeOffset.UtcNow;
-        var testName = "StandardCharter31_CompleteFlow";
-
-        var (adminPage, boardPage, ldapPage, login) = await SetupFullCycleAsync(31);
-        try
-        {
-            await ExecuteCharterFlowAsync(boardPage, adminPage, charterNumber: 31, testStartTime);
-            await AssertAuditAsync(login, entityHasExecutiveBodyA: false);
-        }
-        finally
-        {
-            var testEndTime = DateTimeOffset.UtcNow;
-            await AppLogHelper.AssertNoErrorsInAppLogSafeAsync(testStartTime, testEndTime, testName);
-            await CleanupAsync(adminPage, boardPage, ldapPage);
-        }
-    }
-
-    [Fact]
-    public async Task StandardCharter32_CompleteFlow()
-    {
-        var testStartTime = DateTimeOffset.UtcNow;
-        var testName = "StandardCharter32_CompleteFlow";
-
-        var (adminPage, boardPage, ldapPage, login) = await SetupFullCycleAsync(32);
-        try
-        {
-            await ExecuteCharterFlowAsync(boardPage, adminPage, charterNumber: 32, testStartTime);
-            await AssertAuditAsync(login, entityHasExecutiveBodyA: false);
-        }
-        finally
-        {
-            var testEndTime = DateTimeOffset.UtcNow;
-            await AppLogHelper.AssertNoErrorsInAppLogSafeAsync(testStartTime, testEndTime, testName);
-            await CleanupAsync(adminPage, boardPage, ldapPage);
-        }
-    }
-
-    [Fact]
-    public async Task StandardCharter33_CompleteFlow()
-    {
-        var testStartTime = DateTimeOffset.UtcNow;
-        var testName = "StandardCharter33_CompleteFlow";
-
-        var (adminPage, boardPage, ldapPage, login) = await SetupFullCycleAsync(33);
-        try
-        {
-            await ExecuteCharterFlowAsync(boardPage, adminPage, charterNumber: 33, testStartTime);
-            await AssertAuditAsync(login, entityHasExecutiveBodyA: false);
-        }
-        finally
-        {
-            var testEndTime = DateTimeOffset.UtcNow;
-            await AppLogHelper.AssertNoErrorsInAppLogSafeAsync(testStartTime, testEndTime, testName);
-            await CleanupAsync(adminPage, boardPage, ldapPage);
-        }
-    }
-
-    [Fact]
-    public async Task StandardCharter34_CompleteFlow()
-    {
-        var testStartTime = DateTimeOffset.UtcNow;
-        var testName = "StandardCharter34_CompleteFlow";
-
-        var (adminPage, boardPage, ldapPage, login) = await SetupFullCycleAsync(34);
-        try
-        {
-            await ExecuteCharterFlowAsync(boardPage, adminPage, charterNumber: 34, testStartTime);
-            await AssertAuditAsync(login, entityHasExecutiveBodyA: false);
-        }
-        finally
-        {
-            var testEndTime = DateTimeOffset.UtcNow;
-            await AppLogHelper.AssertNoErrorsInAppLogSafeAsync(testStartTime, testEndTime, testName);
-            await CleanupAsync(adminPage, boardPage, ldapPage);
-        }
-    }
-
-    [Fact]
-    public async Task StandardCharter35_CompleteFlow()
-    {
-        var testStartTime = DateTimeOffset.UtcNow;
-        var testName = "StandardCharter35_CompleteFlow";
-
-        var (adminPage, boardPage, ldapPage, login) = await SetupFullCycleAsync(35);
-        try
-        {
-            await ExecuteCharterFlowAsync(boardPage, adminPage, charterNumber: 35, testStartTime);
-            await AssertAuditAsync(login, entityHasExecutiveBodyA: false);
-        }
-        finally
-        {
-            var testEndTime = DateTimeOffset.UtcNow;
-            await AppLogHelper.AssertNoErrorsInAppLogSafeAsync(testStartTime, testEndTime, testName);
-            await CleanupAsync(adminPage, boardPage, ldapPage);
-        }
-    }
-
-    [Fact]
-    public async Task StandardCharter36_CompleteFlow()
-    {
-        var testStartTime = DateTimeOffset.UtcNow;
-        var testName = "StandardCharter36_CompleteFlow";
-
-        var (adminPage, boardPage, ldapPage, login) = await SetupFullCycleAsync(36);
-        try
-        {
-            await ExecuteCharterFlowAsync(boardPage, adminPage, charterNumber: 36, testStartTime);
-            await AssertAuditAsync(login, entityHasExecutiveBodyA: false);
-        }
-        finally
-        {
-            var testEndTime = DateTimeOffset.UtcNow;
-            await AppLogHelper.AssertNoErrorsInAppLogSafeAsync(testStartTime, testEndTime, testName);
-            await CleanupAsync(adminPage, boardPage, ldapPage);
-        }
-    }
+    [Fact] public async Task StandardCharter01_CompleteFlow() => await RunTestAsync(1, "StandardCharter01_CompleteFlow", entityHasExecutiveBodyA: true);
+    [Fact] public async Task StandardCharter02_CompleteFlow() => await RunTestAsync(2, "StandardCharter02_CompleteFlow", entityHasExecutiveBodyA: true);
+    [Fact] public async Task StandardCharter03_CompleteFlow() => await RunTestAsync(3, "StandardCharter03_CompleteFlow", entityHasExecutiveBodyA: true);
+    [Fact] public async Task StandardCharter04_CompleteFlow() => await RunTestAsync(4, "StandardCharter04_CompleteFlow", entityHasExecutiveBodyA: true);
+    [Fact] public async Task StandardCharter05_CompleteFlow() => await RunTestAsync(5, "StandardCharter05_CompleteFlow", entityHasExecutiveBodyA: true);
+    [Fact] public async Task StandardCharter06_CompleteFlow() => await RunTestAsync(6, "StandardCharter06_CompleteFlow", entityHasExecutiveBodyA: true);
+    [Fact] public async Task StandardCharter07_CompleteFlow() => await RunTestAsync(7, "StandardCharter07_CompleteFlow", entityHasExecutiveBodyA: false);
+    [Fact] public async Task StandardCharter08_CompleteFlow() => await RunTestAsync(8, "StandardCharter08_CompleteFlow", entityHasExecutiveBodyA: false);
+    [Fact] public async Task StandardCharter09_CompleteFlow() => await RunTestAsync(9, "StandardCharter09_CompleteFlow", entityHasExecutiveBodyA: false);
+    [Fact] public async Task StandardCharter10_CompleteFlow() => await RunTestAsync(10, "StandardCharter10_CompleteFlow", entityHasExecutiveBodyA: false);
+    [Fact] public async Task StandardCharter11_CompleteFlow() => await RunTestAsync(11, "StandardCharter11_CompleteFlow", entityHasExecutiveBodyA: false);
+    [Fact] public async Task StandardCharter12_CompleteFlow() => await RunTestAsync(12, "StandardCharter12_CompleteFlow", entityHasExecutiveBodyA: false);
+    [Fact] public async Task StandardCharter13_CompleteFlow() => await RunTestAsync(13, "StandardCharter13_CompleteFlow", entityHasExecutiveBodyA: false);
+    [Fact] public async Task StandardCharter14_CompleteFlow() => await RunTestAsync(14, "StandardCharter14_CompleteFlow", entityHasExecutiveBodyA: false);
+    [Fact] public async Task StandardCharter15_CompleteFlow() => await RunTestAsync(15, "StandardCharter15_CompleteFlow", entityHasExecutiveBodyA: false);
+    [Fact] public async Task StandardCharter16_CompleteFlow() => await RunTestAsync(16, "StandardCharter16_CompleteFlow", entityHasExecutiveBodyA: false);
+    [Fact] public async Task StandardCharter17_CompleteFlow() => await RunTestAsync(17, "StandardCharter17_CompleteFlow", entityHasExecutiveBodyA: false);
+    [Fact] public async Task StandardCharter18_CompleteFlow() => await RunTestAsync(18, "StandardCharter18_CompleteFlow", entityHasExecutiveBodyA: false);
+    [Fact] public async Task StandardCharter19_CompleteFlow() => await RunTestAsync(19, "StandardCharter19_CompleteFlow", entityHasExecutiveBodyA: true);
+    [Fact] public async Task StandardCharter20_CompleteFlow() => await RunTestAsync(20, "StandardCharter20_CompleteFlow", entityHasExecutiveBodyA: true);
+    [Fact] public async Task StandardCharter21_CompleteFlow() => await RunTestAsync(21, "StandardCharter21_CompleteFlow", entityHasExecutiveBodyA: true);
+    [Fact] public async Task StandardCharter22_CompleteFlow() => await RunTestAsync(22, "StandardCharter22_CompleteFlow", entityHasExecutiveBodyA: true);
+    [Fact] public async Task StandardCharter23_CompleteFlow() => await RunTestAsync(23, "StandardCharter23_CompleteFlow", entityHasExecutiveBodyA: true);
+    [Fact] public async Task StandardCharter24_CompleteFlow() => await RunTestAsync(24, "StandardCharter24_CompleteFlow", entityHasExecutiveBodyA: true);
+    [Fact] public async Task StandardCharter25_CompleteFlow() => await RunTestAsync(25, "StandardCharter25_CompleteFlow", entityHasExecutiveBodyA: false);
+    [Fact] public async Task StandardCharter26_CompleteFlow() => await RunTestAsync(26, "StandardCharter26_CompleteFlow", entityHasExecutiveBodyA: false);
+    [Fact] public async Task StandardCharter27_CompleteFlow() => await RunTestAsync(27, "StandardCharter27_CompleteFlow", entityHasExecutiveBodyA: false);
+    [Fact] public async Task StandardCharter28_CompleteFlow() => await RunTestAsync(28, "StandardCharter28_CompleteFlow", entityHasExecutiveBodyA: false);
+    [Fact] public async Task StandardCharter29_CompleteFlow() => await RunTestAsync(29, "StandardCharter29_CompleteFlow", entityHasExecutiveBodyA: false);
+    [Fact] public async Task StandardCharter30_CompleteFlow() => await RunTestAsync(30, "StandardCharter30_CompleteFlow", entityHasExecutiveBodyA: false);
+    [Fact] public async Task StandardCharter31_CompleteFlow() => await RunTestAsync(31, "StandardCharter31_CompleteFlow", entityHasExecutiveBodyA: false);
+    [Fact] public async Task StandardCharter32_CompleteFlow() => await RunTestAsync(32, "StandardCharter32_CompleteFlow", entityHasExecutiveBodyA: false);
+    [Fact] public async Task StandardCharter33_CompleteFlow() => await RunTestAsync(33, "StandardCharter33_CompleteFlow", entityHasExecutiveBodyA: false);
+    [Fact] public async Task StandardCharter34_CompleteFlow() => await RunTestAsync(34, "StandardCharter34_CompleteFlow", entityHasExecutiveBodyA: false);
+    [Fact] public async Task StandardCharter35_CompleteFlow() => await RunTestAsync(35, "StandardCharter35_CompleteFlow", entityHasExecutiveBodyA: false);
+    [Fact] public async Task StandardCharter36_CompleteFlow() => await RunTestAsync(36, "StandardCharter36_CompleteFlow", entityHasExecutiveBodyA: false);
 
     // ══════════════════════════════════════════════════════════════════════
     // Вспомогательные методы
     // ══════════════════════════════════════════════════════════════════════
+
+    /// <summary>
+    /// Единый запуск теста: проверка флага → инициализация → flow → аудит → cleanup.
+    /// При ошибке: флаг _anyTestFailed = true, тест падает, все последующие пропускаются.
+    /// </summary>
+    private async Task RunTestAsync(int charterNumber, string testName, bool entityHasExecutiveBodyA)
+    {
+        SkipIfPreviousTestFailed();
+
+        var testStartTime = DateTimeOffset.UtcNow;
+
+        var (adminPage, boardPage, ldapPage, login) = await SetupFullCycleAsync(charterNumber);
+        try
+        {
+            await ExecuteCharterFlowAsync(boardPage, adminPage, charterNumber, testStartTime);
+            await AssertAuditAsync(login, entityHasExecutiveBodyA);
+        }
+        catch (Exception ex)
+        {
+            _anyTestFailed = true;
+            Console.WriteLine($"[FAIL] {testName}: {ex.Message}");
+            throw;
+        }
+        finally
+        {
+            var testEndTime = DateTimeOffset.UtcNow;
+            await AppLogHelper.AssertNoErrorsInAppLogSafeAsync(testStartTime, testEndTime, testName);
+            await CleanupAsync(adminPage, boardPage, ldapPage);
+        }
+    }
+
+    /// <summary>
+    /// Если предыдущий тест упал — прервать текущий тест без выполнения.
+    /// </summary>
+    private static void SkipIfPreviousTestFailed()
+    {
+        if (_anyTestFailed)
+        {
+            throw new InvalidOperationException(
+                "Предыдущий тест завершился ошибкой — прогон прерван.");
+        }
+    }
 
     /// <summary>
     /// Первоначальная инициализация: инфраструктура + БД + LDAP + сидирование.
@@ -773,7 +131,7 @@ public class E2E_StandardCharterTests : BrowserFixture
         var persons = CharterTestDataFixed.PersonsByEntity[charterNumber];
 
         // Логин ГД в Board Portal
-        var gdLogin = persons.Gd?.Uid ?? persons.Participants[0].Uid;
+        var gdLogin = persons.Gd?.Login ?? persons.Participants[0].Login;
         await AuthHelper.LoginAsBoardUserAsync(boardPage, gdLogin);
         boardPage.Url.Should().Contain("/main");
 

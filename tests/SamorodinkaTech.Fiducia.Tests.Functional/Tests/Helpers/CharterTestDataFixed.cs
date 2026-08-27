@@ -41,68 +41,68 @@ public static class CharterTestDataFixed
     public static readonly LegalEntityRecord[] LegalEntities =
     [
         // ── Типовые уставы 01–06 (ExecutiveBody A) ──────────────────
-        new(1,  "Общество с ограниченной ответственностью «Тестовый Устав 01»",  "7701345678", "1013456789012", "ООО «Тест 01»",  ExecutiveBodyA, PersonData.CreateAdmin("admin.tu01", "Администратор Тестович Тестовый01", "Тестович", "Администратор", "Тестовый01")),
-        new(2,  "Общество с ограниченной ответственностью «Тестовый Устав 02»",  "7702345678", "1023456789012", "ООО «Тест 02»",  ExecutiveBodyA, PersonData.CreateAdmin("admin.tu02", "Администратор Тестович Тестовый02", "Тестович", "Администратор", "Тестовый02")),
-        new(3,  "Общество с ограниченной ответственностью «Тестовый Устав 03»",  "7703345678", "1033456789012", "ООО «Тест 03»",  ExecutiveBodyA, PersonData.CreateAdmin("admin.tu03", "Администратор Тестович Тестовый03", "Тестович", "Администратор", "Тестовый03")),
-        new(4,  "Общество с ограниченной ответственностью «Тестовый Устав 04»",  "7704345678", "1043456789012", "ООО «Тест 04»",  ExecutiveBodyA, PersonData.CreateAdmin("admin.tu04", "Администратор Тестович Тестовый04", "Тестович", "Администратор", "Тестовый04")),
-        new(5,  "Общество с ограниченной ответственностью «Тестовый Устав 05»",  "7705345678", "1053456789012", "ООО «Тест 05»",  ExecutiveBodyA, PersonData.CreateAdmin("admin.tu05", "Администратор Тестович Тестовый05", "Тестович", "Администратор", "Тестовый05")),
-        new(6,  "Общество с ограниченной ответственностью «Тестовый Устав 06»",  "7706345678", "1063456789012", "ООО «Тест 06»",  ExecutiveBodyA, PersonData.CreateAdmin("admin.tu06", "Администратор Тестович Тестовый06", "Тестович", "Администратор", "Тестовый06")),
+        new(1,  "Общество с ограниченной ответственностью «Нечаев и Partners»",  "7701345678", "1013456789012", "ООО «Н и P»",  ExecutiveBodyA, PersonData.CreateAdmin("nechaev.va", "Нечаев Василий Алексеевич", "Нечаев", "Василий", "Алексеевич", "nechaev.va")),
+        new(2,  "Общество с ограниченной ответственностью «Соболев Групп»",  "7702345678", "1023456789012", "ООО «Соболев Групп»",  ExecutiveBodyA, PersonData.CreateAdmin("sobolev.dn", "Соболев Дмитрий Николаевич", "Соболев", "Дмитрий", "Николаевич", "sobolev.dn")),
+        new(3,  "Общество с ограниченной ответственностью «Токарев Технолоджиз»",  "7703345678", "1033456789012", "ООО «ТТ»",  ExecutiveBodyA, PersonData.CreateAdmin("tokarev.as", "Токарев Андрей Сергеевич", "Токарев", "Андрей", "Сергеевич", "tokarev.as")),
+        new(4,  "Общество с ограниченной ответственностью «Ермаков Консалтинг»",  "7704345678", "1043456789012", "ООО «ЕК»",  ExecutiveBodyA, PersonData.CreateAdmin("ermakov.ia", "Ермаков Игорь Александрович", "Ермаков", "Игорь", "Александрович", "ermakov.ia")),
+        new(5,  "Общество с ограниченной ответственностью «Ларионов Девелопмент»",  "7705345678", "1053456789012", "ООО «ЛД»",  ExecutiveBodyA, PersonData.CreateAdmin("larionov.sp", "Ларионов Сергей Павлович", "Ларионов", "Сергей", "Павлович", "larionov.sp")),
+        new(6,  "Общество с ограниченной ответственностью «Савельев Инвест»",  "7706345678", "1063456789012", "ООО «СИ»",  ExecutiveBodyA, PersonData.CreateAdmin("savelyev.rt", "Савельев Роман Тимурович", "Савельев", "Роман", "Тимурович", "savelyev.rt")),
 
         // ── Типовые уставы 07–12 (ExecutiveBody B) ──────────────────
-        new(7,  "Общество с ограниченной ответственностью «Тестовый Устав 07»",  "7707345678", "1073456789012", "ООО «Тест 07»",  ExecutiveBodyB, PersonData.CreateAdmin("admin.tu07", "Администратор Тестович Тестовый07", "Тестович", "Администратор", "Тестовый07")),
-        new(8,  "Общество с ограниченной ответственностью «Тестовый Устав 08»",  "7708345678", "1083456789012", "ООО «Тест 08»",  ExecutiveBodyB, PersonData.CreateAdmin("admin.tu08", "Администратор Тестович Тестовый08", "Тестович", "Администратор", "Тестовый08")),
-        new(9,  "Общество с ограниченной ответственностью «Тестовый Устав 09»",  "7709345678", "1093456789012", "ООО «Тест 09»",  ExecutiveBodyB, PersonData.CreateAdmin("admin.tu09", "Администратор Тестович Тестовый09", "Тестович", "Администратор", "Тестовый09")),
-        new(10, "Общество с ограниченной ответственностью «Тестовый Устав 10»",  "7710345678", "1103456789012", "ООО «Тест 10»",  ExecutiveBodyB, PersonData.CreateAdmin("admin.tu10", "Администратор Тестович Тестовый10", "Тестович", "Администратор", "Тестовый10")),
-        new(11, "Общество с ограниченной ответственностью «Тестовый Устав 11»",  "7711345678", "1113456789012", "ООО «Тест 11»",  ExecutiveBodyB, PersonData.CreateAdmin("admin.tu11", "Администратор Тестович Тестовый11", "Тестович", "Администратор", "Тестовый11")),
-        new(12, "Общество с ограниченной ответственностью «Тестовый Устав 12»",  "7712345678", "1123456789012", "ООО «Тест 12»",  ExecutiveBodyB, PersonData.CreateAdmin("admin.tu12", "Администратор Тестович Тестовый12", "Тестович", "Администратор", "Тестовый12")),
+        new(7,  "Общество с ограниченной ответственностью «Наумов Трейд»",  "7707345678", "1073456789012", "ООО «НТ»",  ExecutiveBodyB, PersonData.CreateAdmin("naumov.vr", "Наумов Виталий Романович", "Наумов", "Виталий", "Романович", "naumov.vr")),
+        new(8,  "Общество с ограниченной ответственностью «Щукин Сервис»",  "7708345678", "1083456789012", "ООО «ЩС»",  ExecutiveBodyB, PersonData.CreateAdmin("shchukin.mo", "Щукин Михаил Олегович", "Щукин", "Михаил", "Олегович", "shchukin.mo")),
+        new(9,  "Общество с ограниченной ответственностью «Скамыкин Логистикс»",  "7709345678", "1093456789012", "ООО «СЛ»",  ExecutiveBodyB, PersonData.CreateAdmin("skomykin.vk", "Скамыкин Виктор Кириллович", "Скамыкин", "Виктор", "Кириллович", "skomykin.vk")),
+        new(10, "Общество с ограниченной ответственностью «Тихонов Энерджи»",  "7710345678", "1103456789012", "ООО «ТЭ»",  ExecutiveBodyB, PersonData.CreateAdmin("tikhonov.ab", "Тихонов Аркадий Борисович", "Тихонов", "Аркадий", "Борисович", "tikhonov.ab")),
+        new(11, "Общество с ограниченной ответственностью «Зимин Медиа»",  "7711345678", "1113456789012", "ООО «ЗМ»",  ExecutiveBodyB, PersonData.CreateAdmin("zimin.fi", "Зимин Фёдор Ильич", "Зимин", "Фёдор", "Ильич", "zimin.fi")),
+        new(12, "Общество с ограниченной ответственностью «Пономарёв Солюшнз»",  "7712345678", "1123456789012", "ООО «ПС»",  ExecutiveBodyB, PersonData.CreateAdmin("ponomarev.vs", "Пономарёв Вадим Сергеевич", "Пономарёв", "Вадим", "Сергеевич", "ponomarev.vs")),
 
         // ── Типовые уставы 13–18 (ExecutiveBody C) ──────────────────
-        new(13, "Общество с ограниченной ответственностью «Тестовый Устав 13»",  "7713345678", "1133456789012", "ООО «Тест 13»",  ExecutiveBodyC, PersonData.CreateAdmin("admin.tu13", "Администратор Тестович Тестовый13", "Тестович", "Администратор", "Тестовый13")),
-        new(14, "Общество с ограниченной ответственностью «Тестовый Устав 14»",  "7714345678", "1143456789012", "ООО «Тест 14»",  ExecutiveBodyC, PersonData.CreateAdmin("admin.tu14", "Администратор Тестович Тестовый14", "Тестович", "Администратор", "Тестовый14")),
-        new(15, "Общество с ограниченной ответственностью «Тестовый Устав 15»",  "7715345678", "1153456789012", "ООО «Тест 15»",  ExecutiveBodyC, PersonData.CreateAdmin("admin.tu15", "Администратор Тестович Тестовый15", "Тестович", "Администратор", "Тестовый15")),
-        new(16, "Общество с ограниченной ответственностью «Тестовый Устав 16»",  "7716345678", "1163456789012", "ООО «Тест 16»",  ExecutiveBodyC, PersonData.CreateAdmin("admin.tu16", "Администратор Тестович Тестовый16", "Тестович", "Администратор", "Тестовый16")),
-        new(17, "Общество с ограниченной ответственностью «Тестовый Устав 17»",  "7717345678", "1173456789012", "ООО «Тест 17»",  ExecutiveBodyC, PersonData.CreateAdmin("admin.tu17", "Администратор Тестович Тестовый17", "Тестович", "Администратор", "Тестовый17")),
-        new(18, "Общество с ограниченной ответственностью «Тестовый Устав 18»",  "7718345678", "1183456789012", "ООО «Тест 18»",  ExecutiveBodyC, PersonData.CreateAdmin("admin.tu18", "Администратор Тестович Тестовый18", "Тестович", "Администратор", "Тестовый18")),
+        new(13, "Общество с ограниченной ответственностью «Высоцкий Холдинг»",  "7713345678", "1133456789012", "ООО «ВХ»",  ExecutiveBodyC, PersonData.CreateAdmin("vysockiy.ov", "Высоцкий Олег Васильевич", "Высоцкий", "Олег", "Васильевич", "vysockiy.ov")),
+        new(14, "Общество с ограниченной ответственностью «Гладков Тех»",  "7714345678", "1143456789012", "ООО «ГТ»",  ExecutiveBodyC, PersonData.CreateAdmin("gladkov.sa", "Гладков Сергей Алексеевич", "Гладков", "Сергей", "Алексеевич", "gladkov.sa")),
+        new(15, "Общество с ограниченной ответственностью «Давыденко Групп»",  "7715345678", "1153456789012", "ООО «ДГ»",  ExecutiveBodyC, PersonData.CreateAdmin("davydenko.ti", "Давыденко Тарас Иванович", "Давыденко", "Тарас", "Иванович", "davydenko.ti")),
+        new(16, "Общество с ограниченной ответственностью «Ельцов Финанс»",  "7716345678", "1163456789012", "ООО «ЕФ»",  ExecutiveBodyC, PersonData.CreateAdmin("eltsov.vn", "Ельцов Виктор Николаевич", "Ельцов", "Виктор", "Николаевич", "eltsov.vn")),
+        new(17, "Общество с ограниченной ответственностью «Зайцев Продакшн»",  "7717345678", "1173456789012", "ООО «ЗП»",  ExecutiveBodyC, PersonData.CreateAdmin("zaitsev.mo", "Зайцев Максим Олегович", "Зайцев", "Максим", "Олегович", "zaitsev.mo")),
+        new(18, "Общество с ограниченной ответственностью «Капустин Альянс»",  "7718345678", "1183456789012", "ООО «КА»",  ExecutiveBodyC, PersonData.CreateAdmin("kapustin.yv", "Капустин Ярослав Вадимович", "Капустин", "Ярослав", "Вадимович", "kapustin.yv")),
 
         // ── Типовые уставы 19–24 (ExecutiveBody A) ──────────────────
-        new(19, "Общество с ограниченной ответственностью «Тестовый Устав 19»",  "7719345678", "1193456789012", "ООО «Тест 19»",  ExecutiveBodyA, PersonData.CreateAdmin("admin.tu19", "Администратор Тестович Тестовый19", "Тестович", "Администратор", "Тестовый19")),
-        new(20, "Общество с ограниченной ответственностью «Тестовый Устав 20»",  "7720345678", "1203456789012", "ООО «Тест 20»",  ExecutiveBodyA, PersonData.CreateAdmin("admin.tu20", "Администратор Тестович Тестовый20", "Тестович", "Администратор", "Тестовый20")),
-        new(21, "Общество с ограниченной ответственностью «Тестовый Устав 21»",  "7721345678", "1213456789012", "ООО «Тест 21»",  ExecutiveBodyA, PersonData.CreateAdmin("admin.tu21", "Администратор Тестович Тестовый21", "Тестович", "Администратор", "Тестовый21")),
-        new(22, "Общество с ограниченной ответственностью «Тестовый Устав 22»",  "7722345678", "1223456789012", "ООО «Тест 22»",  ExecutiveBodyA, PersonData.CreateAdmin("admin.tu22", "Администратор Тестович Тестовый22", "Тестович", "Администратор", "Тестовый22")),
-        new(23, "Общество с ограниченной ответственностью «Тестовый Устав 23»",  "7723345678", "1233456789012", "ООО «Тест 23»",  ExecutiveBodyA, PersonData.CreateAdmin("admin.tu23", "Администратор Тестович Тестовый23", "Тестович", "Администратор", "Тестовый23")),
-        new(24, "Общество с ограниченной ответственностью «Тестовый Устав 24»",  "7724345678", "1243456789012", "ООО «Тест 24»",  ExecutiveBodyA, PersonData.CreateAdmin("admin.tu24", "Администратор Тестович Тестовый24", "Тестович", "Администратор", "Тестовый24")),
+        new(19, "Общество с ограниченной ответственностью «Лихачёв Инновейшн»",  "7719345678", "1193456789012", "ООО «ЛИ»",  ExecutiveBodyA, PersonData.CreateAdmin("likhachev.gv", "Лихачёв Глеб Викторович", "Лихачёв", "Глеб", "Викторович", "likhachev.gv")),
+        new(20, "Общество с ограниченной ответственностью «Матвеев Лабс»",  "7720345678", "1203456789012", "ООО «МЛ»",  ExecutiveBodyA, PersonData.CreateAdmin("matveev.yi", "Матвеев Ярослав Игоревич", "Матвеев", "Ярослав", "Игоревич", "matveev.yi")),
+        new(21, "Общество с ограниченной ответственностью «Носков Инвестментс»",  "7721345678", "1213456789012", "ООО «НИ»",  ExecutiveBodyA, PersonData.CreateAdmin("noskov.vs", "Носков Виталий Сергеевич", "Носков", "Виталий", "Сергеевич", "noskov.vs")),
+        new(22, "Общество с ограниченной ответственностью «Овчинников Девелопмент»",  "7722345678", "1223456789012", "ООО «ОД»",  ExecutiveBodyA, PersonData.CreateAdmin("ovchinnikov.so", "Овчинников Святослав Олегович", "Овчинников", "Святослав", "Олегович", "ovchinnikov.so")),
+        new(23, "Общество с ограниченной ответственностью «Пустырников Консалтинг»",  "7723345678", "1233456789012", "ООО «ПК»",  ExecutiveBodyA, PersonData.CreateAdmin("pustyrnikov.iy", "Пустырников Игорь Юрьевич", "Пустырников", "Игорь", "Юрьевич", "pustyrnikov.iy")),
+        new(24, "Общество с ограниченной ответственностью «Ртищев Технолоджиз»",  "7724345678", "1243456789012", "ООО «РТ»",  ExecutiveBodyA, PersonData.CreateAdmin("rtishchev.aa", "Ртищев Аркадий Андреевич", "Ртищев", "Аркадий", "Андреевич", "rtishchev.aa")),
 
         // ── Типовые уставы 25–30 (ExecutiveBody B) ──────────────────
-        new(25, "Общество с ограниченной ответственностью «Тестовый Устав 25»",  "7725345678", "1253456789012", "ООО «Тест 25»",  ExecutiveBodyB, PersonData.CreateAdmin("admin.tu25", "Администратор Тестович Тестовый25", "Тестович", "Администратор", "Тестовый25")),
-        new(26, "Общество с ограниченной ответственностью «Тестовый Устав 26»",  "7726345678", "1263456789012", "ООО «Тест 26»",  ExecutiveBodyB, PersonData.CreateAdmin("admin.tu26", "Администратор Тестович Тестовый26", "Тестович", "Администратор", "Тестовый26")),
-        new(27, "Общество с ограниченной ответственностью «Тестовый Устав 27»",  "7727345678", "1273456789012", "ООО «Тест 27»",  ExecutiveBodyB, PersonData.CreateAdmin("admin.tu27", "Администратор Тестович Тестовый27", "Тестович", "Администратор", "Тестовый27")),
-        new(28, "Общество с ограниченной ответственностью «Тестовый Устав 28»",  "7728345678", "1283456789012", "ООО «Тест 28»",  ExecutiveBodyB, PersonData.CreateAdmin("admin.tu28", "Администратор Тестович Тестовый28", "Тестович", "Администратор", "Тестовый28")),
-        new(29, "Общество с ограниченной ответственностью «Тестовый Устав 29»",  "7729345678", "1293456789012", "ООО «Тест 29»",  ExecutiveBodyB, PersonData.CreateAdmin("admin.tu29", "Администратор Тестович Тестовый29", "Тестович", "Администратор", "Тестовый29")),
-        new(30, "Общество с ограниченной ответственностью «Тестовый Устав 30»",  "7730345678", "1303456789012", "ООО «Тест 30»",  ExecutiveBodyB, PersonData.CreateAdmin("admin.tu30", "Администратор Тестович Тестовый30", "Тестович", "Администратор", "Тестовый30")),
+        new(25, "Общество с ограниченной ответственностью «Сухов Групп»",  "7725345678", "1253456789012", "ООО «СГ»",  ExecutiveBodyB, PersonData.CreateAdmin("sukhov.da", "Сухов Данил Александрович", "Сухов", "Данил", "Александрович", "sukhov.da")),
+        new(26, "Общество с ограниченной ответственностью «Толкачёв Сервис»",  "7726345678", "1263456789012", "ООО «ТС»",  ExecutiveBodyB, PersonData.CreateAdmin("tolkachev.no", "Толкачёв Никита Олегович", "Толкачёв", "Никита", "Олегович", "tolkachev.no")),
+        new(27, "Общество с ограниченной ответственностью «Ушаков Трейд»",  "7727345678", "1273456789012", "ООО «УТ»",  ExecutiveBodyB, PersonData.CreateAdmin("ushakov.vs", "Ушаков Владислав Сергеевич", "Ушаков", "Владислав", "Сергеевич", "ushakov.vs")),
+        new(28, "Общество с ограниченной ответственностью «Филиппов Логистикс»",  "7728345678", "1283456789012", "ООО «ФЛ»",  ExecutiveBodyB, PersonData.CreateAdmin("filippov.so", "Филиппов Семён Олегович", "Филиппов", "Семён", "Олегович", "filippov.so")),
+        new(29, "Общество с ограниченной ответственностью «Харитонов Энерджи»",  "7729345678", "1293456789012", "ООО «ХЭ»",  ExecutiveBodyB, PersonData.CreateAdmin("kharitonov.an", "Харитонов Алексей Николаевич", "Харитонов", "Алексей", "Николаевич", "kharitonov.an")),
+        new(30, "Общество с ограниченной ответственностью «Цыганков Медиа»",  "7730345678", "1303456789012", "ООО «ЦМ»",  ExecutiveBodyB, PersonData.CreateAdmin("tsygankov.av", "Цыганков Артём Вадимович", "Цыганков", "Артём", "Вадимович", "tsygankov.av")),
 
         // ── Типовые уставы 31–36 (ExecutiveBody C) ──────────────────
-        new(31, "Общество с ограниченной ответственностью «Тестовый Устав 31»",  "7731345678", "1313456789012", "ООО «Тест 31»",  ExecutiveBodyC, PersonData.CreateAdmin("admin.tu31", "Администратор Тестович Тестовый31", "Тестович", "Администратор", "Тестовый31")),
-        new(32, "Общество с ограниченной ответственностью «Тестовый Устав 32»",  "7732345678", "1323456789012", "ООО «Тест 32»",  ExecutiveBodyC, PersonData.CreateAdmin("admin.tu32", "Администратор Тестович Тестовый32", "Тестович", "Администратор", "Тестовый32")),
-        new(33, "Общество с ограниченной ответственностью «Тестовый Устав 33»",  "7733345678", "1333456789012", "ООО «Тест 33»",  ExecutiveBodyC, PersonData.CreateAdmin("admin.tu33", "Администратор Тестович Тестовый33", "Тестович", "Администратор", "Тестовый33")),
-        new(34, "Общество с ограниченной ответственностью «Тестовый Устав 34»",  "7734345678", "1343456789012", "ООО «Тест 34»",  ExecutiveBodyC, PersonData.CreateAdmin("admin.tu34", "Администратор Тестович Тестовый34", "Тестович", "Администратор", "Тестовый34")),
-        new(35, "Общество с ограниченной ответственностью «Тестовый Устав 35»",  "7735345678", "1353456789012", "ООО «Тест 35»",  ExecutiveBodyC, PersonData.CreateAdmin("admin.tu35", "Администратор Тестович Тестовый35", "Тестович", "Администратор", "Тестовый35")),
-        new(36, "Общество с ограниченной ответственностью «Тестовый Устав 36»",  "7736345678", "1363456789012", "ООО «Тест 36»",  ExecutiveBodyC, PersonData.CreateAdmin("admin.tu36", "Администратор Тестович Тестовый36", "Тестович", "Администратор", "Тестовый36")),
+        new(31, "Общество с ограниченной ответственностью «Шмелёв Альянс»",  "7731345678", "1313456789012", "ООО «ША»",  ExecutiveBodyC, PersonData.CreateAdmin("shmelev.oa", "Шмелёв Олег Александрович", "Шмелёв", "Олег", "Александрович", "shmelev.oa")),
+        new(32, "Общество с ограниченной ответственностью «Юдин Финанс»",  "7732345678", "1323456789012", "ООО «ЮФ»",  ExecutiveBodyC, PersonData.CreateAdmin("yudin.ri", "Юдин Роман Игоревич", "Юдин", "Роман", "Игоревич", "yudin.ri")),
+        new(33, "Общество с ограниченной ответственностью «Яковлев Продакшн»",  "7733345678", "1333456789012", "ООО «ЯП»",  ExecutiveBodyC, PersonData.CreateAdmin("yakovlev.sd", "Яковлев Святослав Дмитриевич", "Яковлев", "Святослав", "Дмитриевич", "yakovlev.sd")),
+        new(34, "Общество с ограниченной ответственностью «Абросимов Инновейшн»",  "7734345678", "1343456789012", "ООО «АИ»",  ExecutiveBodyC, PersonData.CreateAdmin("abrosimov.pv", "Абросимов Павел Валерьевич", "Абросимов", "Павел", "Валерьевич", "abrosimov.pv")),
+        new(35, "Общество с ограниченной ответственностью «Булатов Лабс»",  "7735345678", "1353456789012", "ООО «БЛ»",  ExecutiveBodyC, PersonData.CreateAdmin("bulatov.ts", "Булатов Тарас Сергеевич", "Булатов", "Тарас", "Сергеевич", "bulatov.ts")),
+        new(36, "Общество с ограниченной ответственностью «Васильев Инвестментс»",  "7736345678", "1363456789012", "ООО «ВИ»",  ExecutiveBodyC, PersonData.CreateAdmin("vasiliev.vo", "Васильев Владислав Олегович", "Васильев", "Владислав", "Олегович", "vasiliev.vo")),
 
         // ── Нетиповые уставы 37–50 (ExecutiveBody A по умолчанию) ───
-        new(37,  "Общество с ограниченной ответственностью «Нетиповой Устав 01»", "7801987654", "2019876543212", "ООО «НТ 01»",  ExecutiveBodyA, PersonData.CreateAdmin("admin.nu01", "Администратор Тестович Нетиповой01", "Тестович", "Администратор", "Нетиповой01")),
-        new(38,  "Общество с ограниченной ответственностью «Нетиповой Устав 02»", "7802987654", "2029876543212", "ООО «НТ 02»",  ExecutiveBodyA, PersonData.CreateAdmin("admin.nu02", "Администратор Тестович Нетиповой02", "Тестович", "Администратор", "Нетиповой02")),
-        new(39,  "Общество с ограниченной ответственностью «Нетиповой Устав 03»", "7803987654", "2039876543212", "ООО «НТ 03»",  ExecutiveBodyA, PersonData.CreateAdmin("admin.nu03", "Администратор Тестович Нетиповой03", "Тестович", "Администратор", "Нетиповой03")),
-        new(40,  "Общество с ограниченной ответственностью «Нетиповой Устав 04»", "7804987654", "2049876543212", "ООО «НТ 04»",  ExecutiveBodyA, PersonData.CreateAdmin("admin.nu04", "Администратор Тестович Нетиповой04", "Тестович", "Администратор", "Нетиповой04")),
-        new(41,  "Общество с ограниченной ответственностью «Нетиповой Устав 05»", "7805987654", "2059876543212", "ООО «НТ 05»",  ExecutiveBodyA, PersonData.CreateAdmin("admin.nu05", "Администратор Тестович Нетиповой05", "Тестович", "Администратор", "Нетиповой05")),
-        new(42,  "Общество с ограниченной ответственностью «Нетиповой Устав 06»", "7806987654", "2069876543212", "ООО «НТ 06»",  ExecutiveBodyA, PersonData.CreateAdmin("admin.nu06", "Администратор Тестович Нетиповой06", "Тестович", "Администратор", "Нетиповой06")),
-        new(43,  "Общество с ограниченной ответственностью «Нетиповой Устав 07»", "7807987654", "2079876543212", "ООО «НТ 07»",  ExecutiveBodyA, PersonData.CreateAdmin("admin.nu07", "Администратор Тестович Нетиповой07", "Тестович", "Администратор", "Нетиповой07")),
-        new(44,  "Общество с ограниченной ответственностью «Нетиповой Устав 08»", "7808987654", "2089876543212", "ООО «НТ 08»",  ExecutiveBodyA, PersonData.CreateAdmin("admin.nu08", "Администратор Тестович Нетиповой08", "Тестович", "Администратор", "Нетиповой08")),
-        new(45,  "Общество с ограниченной ответственностью «Нетиповой Устав 09»", "7809987654", "2099876543212", "ООО «НТ 09»",  ExecutiveBodyA, PersonData.CreateAdmin("admin.nu09", "Администратор Тестович Нетиповой09", "Тестович", "Администратор", "Нетиповой09")),
-        new(46,  "Общество с ограниченной ответственностью «Нетиповой Устав 10»", "7810987654", "2109876543212", "ООО «НТ 10»",  ExecutiveBodyA, PersonData.CreateAdmin("admin.nu10", "Администратор Тестович Нетиповой10", "Тестович", "Администратор", "Нетиповой10")),
-        new(47,  "Общество с ограниченной ответственностью «Нетиповой Устав 11»", "7811987654", "2119876543212", "ООО «НТ 11»",  ExecutiveBodyA, PersonData.CreateAdmin("admin.nu11", "Администратор Тестович Нетиповой11", "Тестович", "Администратор", "Нетиповой11")),
-        new(48,  "Общество с ограниченной ответственностью «Нетиповой Устав 12»", "7812987654", "2129876543212", "ООО «НТ 12»",  ExecutiveBodyA, PersonData.CreateAdmin("admin.nu12", "Администратор Тестович Нетиповой12", "Тестович", "Администратор", "Нетиповой12")),
-        new(49,  "Общество с ограниченной ответственностью «Нетиповой Устав 13»", "7813987654", "2139876543212", "ООО «НТ 13»",  ExecutiveBodyA, PersonData.CreateAdmin("admin.nu13", "Администратор Тестович Нетиповой13", "Тестович", "Администратор", "Нетиповой13")),
-        new(50,  "Общество с ограниченной ответственностью «Нетиповой Устав 14»", "7814987654", "2149876543212", "ООО «НТ 14»",  ExecutiveBodyA, PersonData.CreateAdmin("admin.nu14", "Администратор Тестович Нетиповой14", "Тестович", "Администратор", "Нетиповой14")),
+        new(37,  "Общество с ограниченной ответственностью «Гарин Холдинг»", "7801987654", "2019876543212", "ООО «ГХ»",  ExecutiveBodyA, PersonData.CreateAdmin("garin.sa", "Гарин Станислав Андреевич", "Гарин", "Станислав", "Андреевич", "garin.sa")),
+        new(38,  "Общество с ограниченной ответственностью «Дементьев Тех»", "7802987654", "2029876543212", "ООО «ДТ»",  ExecutiveBodyA, PersonData.CreateAdmin("dementiev.rs", "Дементьев Роман Сергеевич", "Дементьев", "Роман", "Сергеевич", "dementiev.rs")),
+        new(39,  "Общество с ограниченной ответственностью «Ефимов Групп»", "7803987654", "2039876543212", "ООО «ЕГ»",  ExecutiveBodyA, PersonData.CreateAdmin("efimov.yd", "Ефимов Ярослав Дмитриевич", "Ефимов", "Ярослав", "Дмитриевич", "efimov.yd")),
+        new(40,  "Общество с ограниченной ответственностью «Жуков Финанс»", "7804987654", "2049876543212", "ООО «ЖФ»",  ExecutiveBodyA, PersonData.CreateAdmin("zhukov.dp", "Жуков Даниил Павлович", "Жуков", "Даниил", "Павлович", "zhukov.dp")),
+        new(41,  "Общество с ограниченной ответственностью «Зайцев Продакшн»", "7805987654", "2059876543212", "ООО «ЗП»",  ExecutiveBodyA, PersonData.CreateAdmin("zaitsev.so", "Зайцев Святослав Олегович", "Зайцев", "Святослав", "Олегович", "zaitsev.so")),
+        new(42,  "Общество с ограниченной ответственностью «Ильин Инновейшн»", "7806987654", "2069876543212", "ООО «ЛИ»",  ExecutiveBodyA, PersonData.CreateAdmin("ilin.vn", "Ильин Владислав Николаевич", "Ильин", "Владислав", "Николаевич", "ilin.vn")),
+        new(43,  "Общество с ограниченной ответственностью «Козлов Лабс»", "7807987654", "2079876543212", "ООО «КЛ»",  ExecutiveBodyA, PersonData.CreateAdmin("kozlov.ra", "Козлов Ринат Алексеевич", "Козлов", "Ринат", "Алексеевич", "kozlov.ra")),
+        new(44,  "Общество с ограниченной ответственностью «Ларионов Инвестментс»", "7808987654", "2089876543212", "ООО «ЛИ»",  ExecutiveBodyA, PersonData.CreateAdmin("larionov.si", "Ларионов Станислав Игоревич", "Ларионов", "Станислав", "Игоревич", "larionov.si")),
+        new(45,  "Общество с ограниченной ответственностью «Михайлов Девелопмент»", "7809987654", "2099876543212", "ООО «МД»",  ExecutiveBodyA, PersonData.CreateAdmin("mikhailov.as", "Михайлов Артём Сергеевич", "Михайлов", "Артём", "Сергеевич", "mikhailov.as")),
+        new(46,  "Общество с ограниченной ответственностью «Нечаев Консалтинг»", "7810987654", "2109876543212", "ООО «НК»",  ExecutiveBodyA, PersonData.CreateAdmin("nechaev.dv", "Нечаев Данил Вадимович", "Нечаев", "Данил", "Вадимович", "nechaev.dv")),
+        new(47,  "Общество с ограниченной ответственностью «Овчинников Трейд»", "7811987654", "2119876543212", "ООО «ОТ»",  ExecutiveBodyA, PersonData.CreateAdmin("ovchinnikov.tr", "Овчинников Тимур Романович", "Овчинников", "Тимур", "Романович", "ovchinnikov.tr")),
+        new(48,  "Общество с ограниченной ответственностью «Пономарёв Сервис»", "7812987654", "2129876543212", "ООО «ПС»",  ExecutiveBodyA, PersonData.CreateAdmin("ponomarev.ip", "Пономарёв Игорь Павлович", "Пономарёв", "Игорь", "Павлович", "ponomarev.ip")),
+        new(49,  "Общество с ограниченной ответственностью «Рябов Логистикс»", "7813987654", "2139876543212", "ООО «РЛ»",  ExecutiveBodyA, PersonData.CreateAdmin("ryabov.vs", "Рябов Владислав Сергеевич", "Рябов", "Владислав", "Сергеевич", "ryabov.vs")),
+        new(50,  "Общество с ограниченной ответственностью «Савельев Медиа»", "7814987654", "2149876543212", "ООО «СМ»",  ExecutiveBodyA, PersonData.CreateAdmin("savelyev.ro", "Савельев Ринат Олегович", "Савельев", "Ринат", "Олегович", "savelyev.ro")),
     ];
 
     /// <summary>
@@ -115,47 +115,47 @@ public static class CharterTestDataFixed
         // Типовые уставы 01–06 (ExecutiveBody A): ГД отдельно + участники
         // ════════════════════════════════════════════════════════════════
         [1] = new(
-            Gd: new() { Uid = "gd.tu01", FullName = "ГД Тестович Тестовый01", LastName = "Тестович", FirstName = "ГД", MiddleName = "Тестовый01", Position = "Генеральный директор" },
+            Gd: new() { Uid = "nechaev.va", Login = "nechaev.va", FullName = "Нечаев Василий Алексеевич", LastName = "Нечаев", FirstName = "Василий", MiddleName = "Алексеевич", Position = "Генеральный директор" },
             Participants:
             [
-                PersonData.CreateParticipant("Участник 1 Тестович Тестовый01", 60m),
-                PersonData.CreateParticipant("Участник 2 Тестович Тестовый01", 40m),
+                PersonData.CreateParticipant("Жиров Антон Тарасович", 60m, login: "zhirov.at1"),
+                PersonData.CreateParticipant("Жирова Елена Тарасовна", 40m, login: "zhirova.et1"),
             ]),
         [2] = new(
-            Gd: new() { Uid = "gd.tu02", FullName = "ГД Тестович Тестовый02", LastName = "Тестович", FirstName = "ГД", MiddleName = "Тестовый02", Position = "Генеральный директор" },
+            Gd: new() { Uid = "sobolev.dn", Login = "sobolev.dn", FullName = "Соболев Дмитрий Николаевич", LastName = "Соболев", FirstName = "Дмитрий", MiddleName = "Николаевич", Position = "Генеральный директор" },
             Participants:
             [
-                PersonData.CreateParticipant("Участник 1 Тестович Тестовый02", 34m),
-                PersonData.CreateParticipant("Участник 2 Тестович Тестовый02", 33m),
-                PersonData.CreateParticipant("Участник 3 Тестович Тестовый02", 33m),
+                PersonData.CreateParticipant("Бирюков Олег Степанович", 34m, login: "birukov.os2"),
+                PersonData.CreateParticipant("Бирюкова Ирина Степановна", 33m, login: "birukova.is2"),
+                PersonData.CreateParticipant("Бирюков Станислав Степанович", 33m, login: "birukov.ss2"),
             ]),
         [3] = new(
-            Gd: new() { Uid = "gd.tu03", FullName = "ГД Тестович Тестовый03", LastName = "Тестович", FirstName = "ГД", MiddleName = "Тестовый03", Position = "Генеральный директор" },
+            Gd: new() { Uid = "tokarev.as", Login = "tokarev.as", FullName = "Токарев Андрей Сергеевич", LastName = "Токарев", FirstName = "Андрей", MiddleName = "Сергеевич", Position = "Генеральный директор" },
             Participants:
             [
-                PersonData.CreateParticipant("Участник 1 Тестович Тестовый03", 100m),
+                PersonData.CreateParticipant("Вешняков Максим Юрьевич", 100m, login: "veshnyakov.my3"),
             ]),
         [4] = new(
-            Gd: new() { Uid = "gd.tu04", FullName = "ГД Тестович Тестовый04", LastName = "Тестович", FirstName = "ГД", MiddleName = "Тестовый04", Position = "Генеральный директор" },
+            Gd: new() { Uid = "ermakov.ia", Login = "ermakov.ia", FullName = "Ермаков Игорь Александрович", LastName = "Ермаков", FirstName = "Игорь", MiddleName = "Александрович", Position = "Генеральный директор" },
             Participants:
             [
-                PersonData.CreateParticipant("Участник 1 Тестович Тестовый04", 50m),
-                PersonData.CreateParticipant("Участник 2 Тестович Тестовый04", 50m),
+                PersonData.CreateParticipant("Зубов Владимир Игоревич", 50m, login: "zubov.vi4"),
+                PersonData.CreateParticipant("Зубова Наталья Игоревна", 50m, login: "zubova.ni4"),
             ]),
         [5] = new(
-            Gd: new() { Uid = "gd.tu05", FullName = "ГД Тестович Тестовый05", LastName = "Тестович", FirstName = "ГД", MiddleName = "Тестовый05", Position = "Генеральный директор" },
+            Gd: new() { Uid = "larionov.sp", Login = "larionov.sp", FullName = "Ларионов Сергей Павлович", LastName = "Ларионов", FirstName = "Сергей", MiddleName = "Павлович", Position = "Генеральный директор" },
             Participants:
             [
-                PersonData.CreateParticipant("Участник 1 Тестович Тестовый05", 25m),
-                PersonData.CreateParticipant("Участник 2 Тестович Тестовый05", 25m),
-                PersonData.CreateParticipant("Участник 3 Тестович Тестовый05", 50m),
+                PersonData.CreateParticipant("Прохоров Алексей Викторович", 25m, login: "prokhorev.av5"),
+                PersonData.CreateParticipant("Прохорова Ольга Викторовна", 25m, login: "prokhoreva.ov5"),
+                PersonData.CreateParticipant("Прохоров Пётр Викторович", 50m, login: "prokhorev.pv5"),
             ]),
         [6] = new(
-            Gd: new() { Uid = "gd.tu06", FullName = "ГД Тестович Тестовый06", LastName = "Тестович", FirstName = "ГД", MiddleName = "Тестовый06", Position = "Генеральный директор" },
+            Gd: new() { Uid = "savelyev.rt", Login = "savelyev.rt", FullName = "Савельев Роман Тимурович", LastName = "Савельев", FirstName = "Роман", MiddleName = "Тимурович", Position = "Генеральный директор" },
             Participants:
             [
-                PersonData.CreateParticipant("Участник 1 Тестович Тестовый06", 60m),
-                PersonData.CreateParticipant("Участник 2 Тестович Тестовый06", 40m),
+                PersonData.CreateParticipant("Широков Денис Александрович", 60m, login: "shirokov.da6"),
+                PersonData.CreateParticipant("Широкова Мария Александровна", 40m, login: "shirokova.ma6"),
             ]),
 
         // ════════════════════════════════════════════════════════════════
@@ -165,44 +165,44 @@ public static class CharterTestDataFixed
             Gd: null,
             Participants:
             [
-                PersonData.CreateParticipant("Участник 1 Тестович Тестовый07", 60m, isDirector: true),
-                PersonData.CreateParticipant("Участник 2 Тестович Тестовый07", 40m, isDirector: true),
+                PersonData.CreateParticipant("Комаров Степан Андреевич", 60m, isDirector: true, login: "komarov.sa7"),
+                PersonData.CreateParticipant("Комарова Вера Андреевна", 40m, isDirector: true, login: "komarova.va7"),
             ]),
         [8] = new(
             Gd: null,
             Participants:
             [
-                PersonData.CreateParticipant("Участник 1 Тестович Тестовый08", 34m, isDirector: true),
-                PersonData.CreateParticipant("Участник 2 Тестович Тестовый08", 33m, isDirector: true),
-                PersonData.CreateParticipant("Участник 3 Тестович Тестовый08", 33m, isDirector: true),
+                PersonData.CreateParticipant("Лапин Дмитрий Сергеевич", 34m, isDirector: true, login: "lapin.ds8"),
+                PersonData.CreateParticipant("Лапина Анна Сергеевна", 33m, isDirector: true, login: "lapina.as8"),
+                PersonData.CreateParticipant("Лапин Игорь Сергеевич", 33m, isDirector: true, login: "lapin.is8"),
             ]),
         [9] = new(
             Gd: null,
             Participants:
             [
-                PersonData.CreateParticipant("Участник 1 Тестович Тестовый09", 100m, isDirector: true),
+                PersonData.CreateParticipant("Рябов Николай Вадимович", 100m, isDirector: true, login: "ryabov.nv9"),
             ]),
         [10] = new(
             Gd: null,
             Participants:
             [
-                PersonData.CreateParticipant("Участник 1 Тестович Тестовый10", 50m, isDirector: true),
-                PersonData.CreateParticipant("Участник 2 Тестович Тестовый10", 50m, isDirector: true),
+                PersonData.CreateParticipant("Евстигнеев Павел Данилович", 50m, isDirector: true, login: "evstignxeev.pd10"),
+                PersonData.CreateParticipant("Евстигнеева Татьяна Даниловна", 50m, isDirector: true, login: "evstignxeeva.td10"),
             ]),
         [11] = new(
             Gd: null,
             Participants:
             [
-                PersonData.CreateParticipant("Участник 1 Тестович Тестовый11", 25m, isDirector: true),
-                PersonData.CreateParticipant("Участник 2 Тестович Тестовый11", 25m, isDirector: true),
-                PersonData.CreateParticipant("Участник 3 Тестович Тестовый11", 50m, isDirector: true),
+                PersonData.CreateParticipant("Калачёв Ринат Александрович", 25m, isDirector: true, login: "kalachev.ra11"),
+                PersonData.CreateParticipant("Калачёва Светлана Александровна", 25m, isDirector: true, login: "kalacheva.sa11"),
+                PersonData.CreateParticipant("Калачёв Тимур Александрович", 50m, isDirector: true, login: "kalachev.ta11"),
             ]),
         [12] = new(
             Gd: null,
             Participants:
             [
-                PersonData.CreateParticipant("Участник 1 Тестович Тестовый12", 60m, isDirector: true),
-                PersonData.CreateParticipant("Участник 2 Тестович Тестовый12", 40m, isDirector: true),
+                PersonData.CreateParticipant("Горбунов Евгений Леонидович", 60m, isDirector: true, login: "gorbunov.el12"),
+                PersonData.CreateParticipant("Горбунова Марина Леонидовна", 40m, isDirector: true, login: "gorbunova.ml12"),
             ]),
 
         // ════════════════════════════════════════════════════════════════
@@ -212,91 +212,91 @@ public static class CharterTestDataFixed
             Gd: null,
             Participants:
             [
-                PersonData.CreateParticipant("Участник 1 Тестович Тестовый13", 60m, isDirector: true),
-                PersonData.CreateParticipant("Участник 2 Тестович Тестовый13", 40m, isDirector: true),
+                PersonData.CreateParticipant("Шестаков Пётр Николаевич", 60m, isDirector: true, login: "shestakov.pn13"),
+                PersonData.CreateParticipant("Шестакова Лариса Николаевна", 40m, isDirector: true, login: "shestakova.ln13"),
             ]),
         [14] = new(
             Gd: null,
             Participants:
             [
-                PersonData.CreateParticipant("Участник 1 Тестович Тестовый14", 34m, isDirector: true),
-                PersonData.CreateParticipant("Участник 2 Тестович Тестовый14", 33m, isDirector: true),
-                PersonData.CreateParticipant("Участник 3 Тестович Тестовый14", 33m, isDirector: true),
+                PersonData.CreateParticipant("Суханов Илья Максимович", 34m, isDirector: true, login: "sukhanov.im14"),
+                PersonData.CreateParticipant("Суханова Екатерина Максимовна", 33m, isDirector: true, login: "sukhanova.em14"),
+                PersonData.CreateParticipant("Суханов Кирилл Максимович", 33m, isDirector: true, login: "sukhanov.km14"),
             ]),
         [15] = new(
             Gd: null,
             Participants:
             [
-                PersonData.CreateParticipant("Участник 1 Тестович Тестовый15", 100m, isDirector: true),
+                PersonData.CreateParticipant("Бельский Глеб Андреевич", 100m, isDirector: true, login: "belsky.ga15"),
             ]),
         [16] = new(
             Gd: null,
             Participants:
             [
-                PersonData.CreateParticipant("Участник 1 Тестович Тестовый16", 50m, isDirector: true),
-                PersonData.CreateParticipant("Участник 2 Тестович Тестовый16", 50m, isDirector: true),
+                PersonData.CreateParticipant("Головин Святослав Алексеевич", 50m, isDirector: true, login: "golovin.sa16"),
+                PersonData.CreateParticipant("Головина Надежда Алексеевна", 50m, isDirector: true, login: "golovina.na16"),
             ]),
         [17] = new(
             Gd: null,
             Participants:
             [
-                PersonData.CreateParticipant("Участник 1 Тестович Тестовый17", 25m, isDirector: true),
-                PersonData.CreateParticipant("Участник 2 Тестович Тестовый17", 25m, isDirector: true),
-                PersonData.CreateParticipant("Участник 3 Тестович Тестовый17", 50m, isDirector: true),
+                PersonData.CreateParticipant("Денисов Владислав Юрьевич", 25m, isDirector: true, login: "denisov.vy17"),
+                PersonData.CreateParticipant("Денисова Ксения Юрьевна", 25m, isDirector: true, login: "denisova.ky17"),
+                PersonData.CreateParticipant("Денисов Роман Юрьевич", 50m, isDirector: true, login: "denisov.ry17"),
             ]),
         [18] = new(
             Gd: null,
             Participants:
             [
-                PersonData.CreateParticipant("Участник 1 Тестович Тестовый18", 60m, isDirector: true),
-                PersonData.CreateParticipant("Участник 2 Тестович Тестовый18", 40m, isDirector: true),
+                PersonData.CreateParticipant("Ершов Тимур Сергеевич", 60m, isDirector: true, login: "ershov.ts18"),
+                PersonData.CreateParticipant("Ершова Алиса Сергеевна", 40m, isDirector: true, login: "ershova.as18"),
             ]),
 
         // ════════════════════════════════════════════════════════════════
         // Типовые уставы 19–24 (ExecutiveBody A): ГД отдельно + участники
         // ════════════════════════════════════════════════════════════════
         [19] = new(
-            Gd: new() { Uid = "gd.tu19", FullName = "ГД Тестович Тестовый19", LastName = "Тестович", FirstName = "ГД", MiddleName = "Тестовый19", Position = "Генеральный директор" },
+            Gd: new() { Uid = "likhachev.gv", Login = "likhachev.gv", FullName = "Лихачёв Глеб Викторович", LastName = "Лихачёв", FirstName = "Глеб", MiddleName = "Викторович", Position = "Генеральный директор" },
             Participants:
             [
-                PersonData.CreateParticipant("Участник 1 Тестович Тестовый19", 60m),
-                PersonData.CreateParticipant("Участник 2 Тестович Тестовый19", 40m),
+                PersonData.CreateParticipant("Фролов Станислав Андреевич", 60m, login: "frolov.sa19"),
+                PersonData.CreateParticipant("Фролова Виктория Андреевна", 40m, login: "frolova.va19"),
             ]),
         [20] = new(
-            Gd: new() { Uid = "gd.tu20", FullName = "ГД Тестович Тестовый20", LastName = "Тестович", FirstName = "ГД", MiddleName = "Тестовый20", Position = "Генеральный директор" },
+            Gd: new() { Uid = "matveev.yi", Login = "matveev.yi", FullName = "Матвеев Ярослав Игоревич", LastName = "Матвеев", FirstName = "Ярослав", MiddleName = "Игоревич", Position = "Генеральный директор" },
             Participants:
             [
-                PersonData.CreateParticipant("Участник 1 Тестович Тестовый20", 34m),
-                PersonData.CreateParticipant("Участник 2 Тестович Тестовый20", 33m),
-                PersonData.CreateParticipant("Участник 3 Тестович Тестовый20", 33m),
+                PersonData.CreateParticipant("Харитонов Семён Павлович", 34m, login: "kharitonov.sp20"),
+                PersonData.CreateParticipant("Харитонова Дарья Павловна", 33m, login: "kharitonova.dp20"),
+                PersonData.CreateParticipant("Харитонов Илья Павлович", 33m, login: "kharitonov.ip20"),
             ]),
         [21] = new(
-            Gd: new() { Uid = "gd.tu21", FullName = "ГД Тестович Тестовый21", LastName = "Тестович", FirstName = "ГД", MiddleName = "Тестовый21", Position = "Генеральный директор" },
+            Gd: new() { Uid = "noskov.vs", Login = "noskov.vs", FullName = "Носков Виталий Сергеевич", LastName = "Носков", FirstName = "Виталий", MiddleName = "Сергеевич", Position = "Генеральный директор" },
             Participants:
             [
-                PersonData.CreateParticipant("Участник 1 Тестович Тестовый21", 100m),
+                PersonData.CreateParticipant("Цветков Михаил Евгеньевич", 100m, login: "tsvetkov.me21"),
             ]),
         [22] = new(
-            Gd: new() { Uid = "gd.tu22", FullName = "ГД Тестович Тестовый22", LastName = "Тестович", FirstName = "ГД", MiddleName = "Тестовый22", Position = "Генеральный директор" },
+            Gd: new() { Uid = "ovchinnikov.so", Login = "ovchinnikov.so", FullName = "Овчинников Святослав Олегович", LastName = "Овчинников", FirstName = "Святослав", MiddleName = "Олегович", Position = "Генеральный директор" },
             Participants:
             [
-                PersonData.CreateParticipant("Участник 1 Тестович Тестовый22", 50m),
-                PersonData.CreateParticipant("Участник 2 Тестович Тестовый22", 50m),
+                PersonData.CreateParticipant("Чесноков Денис Валерьевич", 50m, login: "chesnokov.dv22"),
+                PersonData.CreateParticipant("Чеснокова Оксана Валерьевна", 50m, login: "chesnokova.ov22"),
             ]),
         [23] = new(
-            Gd: new() { Uid = "gd.tu23", FullName = "ГД Тестович Тестовый23", LastName = "Тестович", FirstName = "ГД", MiddleName = "Тестовый23", Position = "Генеральный директор" },
+            Gd: new() { Uid = "pustyrnikov.iy", Login = "pustyrnikov.iy", FullName = "Пустырников Игорь Юрьевич", LastName = "Пустырников", FirstName = "Игорь", MiddleName = "Юрьевич", Position = "Генеральный директор" },
             Participants:
             [
-                PersonData.CreateParticipant("Участник 1 Тестович Тестовый23", 25m),
-                PersonData.CreateParticipant("Участник 2 Тестович Тестовый23", 25m),
-                PersonData.CreateParticipant("Участник 3 Тестович Тестовый23", 50m),
+                PersonData.CreateParticipant("Шульга Тарас Игоревич", 25m, login: "shulga.ti23"),
+                PersonData.CreateParticipant("Шульга Марина Игоревна", 25m, login: "shulga.mi23"),
+                PersonData.CreateParticipant("Шульга Алексей Игоревич", 50m, login: "shulga.ai23"),
             ]),
         [24] = new(
-            Gd: new() { Uid = "gd.tu24", FullName = "ГД Тестович Тестовый24", LastName = "Тестович", FirstName = "ГД", MiddleName = "Тестовый24", Position = "Генеральный директор" },
+            Gd: new() { Uid = "rtishchev.aa", Login = "rtishchev.aa", FullName = "Ртищев Аркадий Андреевич", LastName = "Ртищев", FirstName = "Аркадий", MiddleName = "Андреевич", Position = "Генеральный директор" },
             Participants:
             [
-                PersonData.CreateParticipant("Участник 1 Тестович Тестовый24", 60m),
-                PersonData.CreateParticipant("Участник 2 Тестович Тестовый24", 40m),
+                PersonData.CreateParticipant("Юдин Кирилл Леонидович", 60m, login: "yudin.kl24"),
+                PersonData.CreateParticipant("Юдинова Анна Леонидовна", 40m, login: "yudinova.al24"),
             ]),
 
         // ════════════════════════════════════════════════════════════════
@@ -306,44 +306,44 @@ public static class CharterTestDataFixed
             Gd: null,
             Participants:
             [
-                PersonData.CreateParticipant("Участник 1 Тестович Тестовый25", 60m, isDirector: true),
-                PersonData.CreateParticipant("Участник 2 Тестович Тестовый25", 40m, isDirector: true),
+                PersonData.CreateParticipant("Абрамов Роман Викторович", 60m, isDirector: true, login: "abramov.rv25"),
+                PersonData.CreateParticipant("Абрамова Ирина Викторовна", 40m, isDirector: true, login: "abramova.iv25"),
             ]),
         [26] = new(
             Gd: null,
             Participants:
             [
-                PersonData.CreateParticipant("Участник 1 Тестович Тестовый26", 34m, isDirector: true),
-                PersonData.CreateParticipant("Участник 2 Тестович Тестовый26", 33m, isDirector: true),
-                PersonData.CreateParticipant("Участник 3 Тестович Тестовый26", 33m, isDirector: true),
+                PersonData.CreateParticipant("Блинов Степан Андреевич", 34m, isDirector: true, login: "blinov.sa26"),
+                PersonData.CreateParticipant("Блинова Татьяна Андреевна", 33m, isDirector: true, login: "blinova.ta26"),
+                PersonData.CreateParticipant("Блинов Артём Андреевич", 33m, isDirector: true, login: "blinov.aa26"),
             ]),
         [27] = new(
             Gd: null,
             Participants:
             [
-                PersonData.CreateParticipant("Участник 1 Тестович Тестовый27", 100m, isDirector: true),
+                PersonData.CreateParticipant("Виноградов Пётр Дмитриевич", 100m, isDirector: true, login: "vinogradov.pd27"),
             ]),
         [28] = new(
             Gd: null,
             Participants:
             [
-                PersonData.CreateParticipant("Участник 1 Тестович Тестовый28", 50m, isDirector: true),
-                PersonData.CreateParticipant("Участник 2 Тестович Тестовый28", 50m, isDirector: true),
+                PersonData.CreateParticipant("Громов Ринат Игоревич", 50m, isDirector: true, login: "gromov.ri28"),
+                PersonData.CreateParticipant("Громова Елена Игоревна", 50m, isDirector: true, login: "gromova.ei28"),
             ]),
         [29] = new(
             Gd: null,
             Participants:
             [
-                PersonData.CreateParticipant("Участник 1 Тестович Тестовый29", 25m, isDirector: true),
-                PersonData.CreateParticipant("Участник 2 Тестович Тестовый29", 25m, isDirector: true),
-                PersonData.CreateParticipant("Участник 3 Тестович Тестовый29", 50m, isDirector: true),
+                PersonData.CreateParticipant("Демидов Илья Сергеевич", 25m, isDirector: true, login: "demidov.is29"),
+                PersonData.CreateParticipant("Демидова Кристина Сергеевна", 25m, isDirector: true, login: "demidova.ks29"),
+                PersonData.CreateParticipant("Демидов Тимур Сергеевич", 50m, isDirector: true, login: "demidov.ts29"),
             ]),
         [30] = new(
             Gd: null,
             Participants:
             [
-                PersonData.CreateParticipant("Участник 1 Тестович Тестовый30", 60m, isDirector: true),
-                PersonData.CreateParticipant("Участник 2 Тестович Тестовый30", 40m, isDirector: true),
+                PersonData.CreateParticipant("Ермаков Святослав Павлович", 60m, isDirector: true, login: "ermakov.sp30"),
+                PersonData.CreateParticipant("Ермакова Виктория Павловна", 40m, isDirector: true, login: "ermakova.vp30"),
             ]),
 
         // ════════════════════════════════════════════════════════════════
@@ -353,148 +353,149 @@ public static class CharterTestDataFixed
             Gd: null,
             Participants:
             [
-                PersonData.CreateParticipant("Участник 1 Тестович Тестовый31", 60m, isDirector: true),
-                PersonData.CreateParticipant("Участник 2 Тестович Тестовый31", 40m, isDirector: true),
+                PersonData.CreateParticipant("Жуков Денис Викторович", 60m, isDirector: true, login: "zhukov.dv31"),
+                PersonData.CreateParticipant("Жукова Светлана Викторовна", 40m, isDirector: true, login: "zhukova.sv31"),
             ]),
         [32] = new(
             Gd: null,
             Participants:
             [
-                PersonData.CreateParticipant("Участник 1 Тестович Тестовый32", 34m, isDirector: true),
-                PersonData.CreateParticipant("Участник 2 Тестович Тестовый32", 33m, isDirector: true),
-                PersonData.CreateParticipant("Участник 3 Тестович Тестовый32", 33m, isDirector: true),
+                PersonData.CreateParticipant("Зимовец Илья Сергеевич", 34m, isDirector: true, login: "zimovec.is32"),
+                PersonData.CreateParticipant("Зимовец Анна Сергеевна", 33m, isDirector: true, login: "zimovec.as32"),
+                PersonData.CreateParticipant("Зимовец Кирилл Сергеевич", 33m, isDirector: true, login: "zimovec.ks32"),
             ]),
         [33] = new(
             Gd: null,
             Participants:
             [
-                PersonData.CreateParticipant("Участник 1 Тестович Тестовый33", 100m, isDirector: true),
+                PersonData.CreateParticipant("Казаков Николай Олегович", 100m, isDirector: true, login: "kazakov.no33"),
             ]),
         [34] = new(
             Gd: null,
             Participants:
             [
-                PersonData.CreateParticipant("Участник 1 Тестович Тестовый34", 50m, isDirector: true),
-                PersonData.CreateParticipant("Участник 2 Тестович Тестович34", 50m, isDirector: true),
+                PersonData.CreateParticipant("Ларин Ринат Андреевич", 50m, isDirector: true, login: "larin.ra34"),
+                PersonData.CreateParticipant("Ларина Ольга Андреевна", 50m, isDirector: true, login: "larina.oa34"),
             ]),
         [35] = new(
             Gd: null,
             Participants:
             [
-                PersonData.CreateParticipant("Участник 1 Тестович Тестовый35", 25m, isDirector: true),
-                PersonData.CreateParticipant("Участник 2 Тестович Тестовый35", 25m, isDirector: true),
-                PersonData.CreateParticipant("Участник 3 Тестович Тестовый35", 50m, isDirector: true),
+                PersonData.CreateParticipant("Мещеряков Артём Павлович", 25m, isDirector: true, login: "meshcheryakov.ap35"),
+                PersonData.CreateParticipant("Мещерякова Елена Павловна", 25m, isDirector: true, login: "meshcheryakova.ep35"),
+                PersonData.CreateParticipant("Мещеряков Владислав Павлович", 50m, isDirector: true, login: "meshcheryakov.vp35"),
             ]),
         [36] = new(
             Gd: null,
             Participants:
             [
-                PersonData.CreateParticipant("Участник 1 Тестович Тестовый36", 60m, isDirector: true),
-                PersonData.CreateParticipant("Участник 2 Тестович Тестовый36", 40m, isDirector: true),
+                PersonData.CreateParticipant("Некрасов Дмитрий Викторович", 60m, isDirector: true, login: "nekrasov.dv36"),
+                PersonData.CreateParticipant("Некрасова Мария Викторовна", 40m, isDirector: true, login: "nekrasova.mv36"),
             ]),
 
         // ════════════════════════════════════════════════════════════════
         // Нетиповые уставы 37–50 (ExecutiveBody A): ГД + участники
         // ════════════════════════════════════════════════════════════════
         [37] = new(
-            Gd: new() { Uid = "gd.nu01", FullName = "ГД Тестович Нетиповой01", LastName = "Тестович", FirstName = "ГД", MiddleName = "Нетиповой01", Position = "Генеральный директор" },
+            Gd: new() { Uid = "garin.sa", Login = "garin.sa", FullName = "Гарин Станислав Андреевич", LastName = "Гарин", FirstName = "Станислав", MiddleName = "Андреевич", Position = "Генеральный директор" },
             Participants:
             [
-                PersonData.CreateParticipant("Участник 1 Тестович Нетиповой01", 60m),
-                PersonData.CreateParticipant("Участник 2 Тестович Нетиповой01", 40m),
+                PersonData.CreateParticipant("Ельцов Игорь Вадимович", 60m, login: "eltsov.iv37"),
+                PersonData.CreateParticipant("Ельцов Вера Вадимовна", 40m, login: "eltsova.vv37"),
             ]),
         [38] = new(
-            Gd: new() { Uid = "gd.nu02", FullName = "ГД Тестович Нетиповой02", LastName = "Тестович", FirstName = "ГД", MiddleName = "Нетиповой02", Position = "Генеральный директор" },
+            Gd: new() { Uid = "dementiev.rs", Login = "dementiev.rs", FullName = "Дементьев Роман Сергеевич", LastName = "Дементьев", FirstName = "Роман", MiddleName = "Сергеевич", Position = "Генеральный директор" },
             Participants:
             [
-                PersonData.CreateParticipant("Участник 1 Тестович Нетиповой02", 34m),
-                PersonData.CreateParticipant("Участник 2 Тестович Нетиповой02", 33m),
-                PersonData.CreateParticipant("Участник 3 Тестович Нетиповой02", 33m),
+                PersonData.CreateParticipant("Зубков Семён Александрович", 34m, login: "zubkov.sa38"),
+                PersonData.CreateParticipant("Зубкова Татьяна Александровна", 33m, login: "zubkova.ta38"),
+                PersonData.CreateParticipant("Зубков Аркадий Александрович", 33m, login: "zubkov.aa38"),
             ]),
         [39] = new(
-            Gd: new() { Uid = "gd.nu03", FullName = "ГД Тестович Нетиповой03", LastName = "Тестович", FirstName = "ГД", MiddleName = "Нетиповой03", Position = "Генеральный директор" },
+            Gd: new() { Uid = "efimov.yd", Login = "efimov.yd", FullName = "Ефимов Ярослав Дмитриевич", LastName = "Ефимов", FirstName = "Ярослав", MiddleName = "Дмитриевич", Position = "Генеральный директор" },
             Participants:
             [
-                PersonData.CreateParticipant("Участник 1 Тестович Нетиповой03", 100m),
+                PersonData.CreateParticipant("Ильин Максим Викторович", 100m, login: "ilin.mv39"),
             ]),
         [40] = new(
-            Gd: new() { Uid = "gd.nu04", FullName = "ГД Тестович Нетиповой04", LastName = "Тестович", FirstName = "ГД", MiddleName = "Нетиповой04", Position = "Генеральный директор" },
+            Gd: new() { Uid = "zhukov.dp", Login = "zhukov.dp", FullName = "Жуков Даниил Павлович", LastName = "Жуков", FirstName = "Даниил", MiddleName = "Павлович", Position = "Генеральный директор" },
             Participants:
             [
-                PersonData.CreateParticipant("Участник 1 Тестович Нетиповой04", 50m),
-                PersonData.CreateParticipant("Участник 2 Тестович Нетиповой04", 50m),
+                PersonData.CreateParticipant("Корнеев Алексей Сергеевич", 50m, login: "korneev.as40"),
+                PersonData.CreateParticipant("Корнеева Наталья Сергеевна", 50m, login: "korneeva.ns40"),
             ]),
         [41] = new(
-            Gd: new() { Uid = "gd.nu05", FullName = "ГД Тестович Нетиповой05", LastName = "Тестович", FirstName = "ГД", MiddleName = "Нетиповой05", Position = "Генеральный директор" },
+            Gd: new() { Uid = "zaitsev.so", Login = "zaitsev.so", FullName = "Зайцев Святослав Олегович", LastName = "Зайцев", FirstName = "Святослав", MiddleName = "Олегович", Position = "Генеральный директор" },
             Participants:
             [
-                PersonData.CreateParticipant("Участник 1 Тестович Нетиповой05", 25m),
-                PersonData.CreateParticipant("Участник 2 Тестович Нетиповой05", 25m),
-                PersonData.CreateParticipant("Участник 3 Тестович Нетиповой05", 50m),
+                PersonData.CreateParticipant("Лебедев Тарас Валерьевич", 25m, login: "lebedev.tv41"),
+                PersonData.CreateParticipant("Лебедева Ольга Валерьевна", 25m, login: "lebedeva.ov41"),
+                PersonData.CreateParticipant("Лебедев Пётр Валерьевич", 50m, login: "lebedev.pv41"),
             ]),
         [42] = new(
-            Gd: new() { Uid = "gd.nu06", FullName = "ГД Тестович Нетиповой06", LastName = "Тестович", FirstName = "ГД", MiddleName = "Нетиповой06", Position = "Генеральный директор" },
+            Gd: new() { Uid = "ilin.vn", Login = "ilin.vn", FullName = "Ильин Владислав Николаевич", LastName = "Ильин", FirstName = "Владислав", MiddleName = "Николаевич", Position = "Генеральный директор" },
             Participants:
             [
-                PersonData.CreateParticipant("Участник 1 Тестович Нетиповой06", 60m),
-                PersonData.CreateParticipant("Участник 2 Тестович Нетиповой06", 40m),
+                PersonData.CreateParticipant("Мельников Станислав Дмитриевич", 60m, login: "melnikov.sd42"),
+                PersonData.CreateParticipant("Мельникова Виктория Дмитриевна", 40m, login: "melnikova.vd42"),
             ]),
         [43] = new(
-            Gd: new() { Uid = "gd.nu07", FullName = "ГД Тестович Нетиповой07", LastName = "Тестович", FirstName = "ГД", MiddleName = "Нетиповой07", Position = "Генеральный директор" },
+            Gd: new() { Uid = "kozlov.ra", Login = "kozlov.ra", FullName = "Козлов Ринат Алексеевич", LastName = "Козлов", FirstName = "Ринат", MiddleName = "Алексеевич", Position = "Генеральный директор" },
             Participants:
             [
-                PersonData.CreateParticipant("Участник 1 Тестович Нетиповой07", 34m),
-                PersonData.CreateParticipant("Участник 2 Тестович Нетиповой07", 33m),
-                PersonData.CreateParticipant("Участник 3 Тестович Нетиповой07", 33m),
+                PersonData.CreateParticipant("Носков Семён Олегович", 34m, login: "noskov.so43"),
+                PersonData.CreateParticipant("Носкова Анна Олеговна", 33m, login: "noskova.ao43"),
+                PersonData.CreateParticipant("Носков Игорь Олегович", 33m, login: "noskov.io43"),
             ]),
         [44] = new(
-            Gd: new() { Uid = "gd.nu08", FullName = "ГД Тестович Нетиповой08", LastName = "Тестович", FirstName = "ГД", MiddleName = "Нетиповой08", Position = "Генеральный директор" },
+            Gd: new() { Uid = "larionov.si", Login = "larionov.si", FullName = "Ларионов Станислав Игоревич", LastName = "Ларионов", FirstName = "Станислав", MiddleName = "Игоревич", Position = "Генеральный директор" },
             Participants:
             [
-                PersonData.CreateParticipant("Участник 1 Тестович Нетиповой08", 100m),
+                PersonData.CreateParticipant("Овсов Роман Андреевич", 50m, login: "ovsov.ra44"),
+                PersonData.CreateParticipant("Овсова Марина Андреевна", 50m, login: "ovsova.ma44"),
             ]),
         [45] = new(
-            Gd: new() { Uid = "gd.nu09", FullName = "ГД Тестович Нетиповой09", LastName = "Тестович", FirstName = "ГД", MiddleName = "Нетиповой09", Position = "Генеральный директор" },
+            Gd: new() { Uid = "mikhailov.as", Login = "mikhailov.as", FullName = "Михайлов Артём Сергеевич", LastName = "Михайлов", FirstName = "Артём", MiddleName = "Сергеевич", Position = "Генеральный директор" },
             Participants:
             [
-                PersonData.CreateParticipant("Участник 1 Тестович Нетиповой09", 50m),
-                PersonData.CreateParticipant("Участник 2 Тестович Нетиповой09", 50m),
+                PersonData.CreateParticipant("Павлов Святослав Викторович", 60m, login: "pavlov.sv45"),
+                PersonData.CreateParticipant("Павлова Елена Викторовна", 40m, login: "pavlova.ev45"),
             ]),
         [46] = new(
-            Gd: new() { Uid = "gd.nu10", FullName = "ГД Тестович Нетиповой10", LastName = "Тестович", FirstName = "ГД", MiddleName = "Нетиповой10", Position = "Генеральный директор" },
+            Gd: new() { Uid = "nechaev.dv", Login = "nechaev.dv", FullName = "Нечаев Данил Вадимович", LastName = "Нечаев", FirstName = "Данил", MiddleName = "Вадимович", Position = "Генеральный директор" },
             Participants:
             [
-                PersonData.CreateParticipant("Участник 1 Тестович Нетиповой10", 25m),
-                PersonData.CreateParticipant("Участник 2 Тестович Нетиповой10", 25m),
-                PersonData.CreateParticipant("Участник 3 Тестович Нетиповой10", 50m),
+                PersonData.CreateParticipant("Рогов Илья Николаевич", 60m, login: "rogov.in46"),
+                PersonData.CreateParticipant("Рогова Ксения Николаевна", 40m, login: "rogova.kn46"),
             ]),
         [47] = new(
-            Gd: new() { Uid = "gd.nu11", FullName = "ГД Тестович Нетиповой11", LastName = "Тестович", FirstName = "ГД", MiddleName = "Нетиповой11", Position = "Генеральный директор" },
+            Gd: new() { Uid = "ovchinnikov.tr", Login = "ovchinnikov.tr", FullName = "Овчинников Тимур Романович", LastName = "Овчинников", FirstName = "Тимур", MiddleName = "Романович", Position = "Генеральный директор" },
             Participants:
             [
-                PersonData.CreateParticipant("Участник 1 Тестович Нетиповой11", 60m),
-                PersonData.CreateParticipant("Участник 2 Тестович Нетиповой11", 40m),
+                PersonData.CreateParticipant("Сафонов Аркадий Сергеевич", 60m, login: "safonov.as47"),
+                PersonData.CreateParticipant("Сафонова Дарья Сергеевна", 40m, login: "safonova.ds47"),
             ]),
         [48] = new(
-            Gd: new() { Uid = "gd.nu12", FullName = "ГД Тестович Нетиповой12", LastName = "Тестович", FirstName = "ГД", MiddleName = "Нетиповой12", Position = "Генеральный директор" },
+            Gd: new() { Uid = "ponomarev.ip", Login = "ponomarev.ip", FullName = "Пономарёв Игорь Павлович", LastName = "Пономарёв", FirstName = "Игорь", MiddleName = "Павлович", Position = "Генеральный директор" },
             Participants:
             [
-                PersonData.CreateParticipant("Участник 1 Тестович Нетиповой12", 34m),
-                PersonData.CreateParticipant("Участник 2 Тестович Нетиповой12", 33m),
-                PersonData.CreateParticipant("Участник 3 Тестович Нетиповой12", 33m),
+                PersonData.CreateParticipant("Селезнёв Роман Олегович", 34m, login: "seleznev.ro48"),
+                PersonData.CreateParticipant("Селезнёва Вера Олеговна", 33m, login: "selezneva.vo48"),
+                PersonData.CreateParticipant("Селезнёв Максим Олегович", 33m, login: "seleznev.mo48"),
             ]),
         [49] = new(
-            Gd: new() { Uid = "gd.nu13", FullName = "ГД Тестович Нетиповой13", LastName = "Тестович", FirstName = "ГД", MiddleName = "Нетиповой13", Position = "Генеральный директор" },
+            Gd: new() { Uid = "ryabov.vs", Login = "ryabov.vs", FullName = "Рябов Владислав Сергеевич", LastName = "Рябов", FirstName = "Владислав", MiddleName = "Сергеевич", Position = "Генеральный директор" },
             Participants:
             [
-                PersonData.CreateParticipant("Участник 1 Тестович Нетиповой13", 100m),
+                PersonData.CreateParticipant("Тарасов Станислав Игоревич", 50m, login: "tarasov.si49"),
+                PersonData.CreateParticipant("Тарасова Алиса Игоревна", 50m, login: "tarasova.ai49"),
             ]),
         [50] = new(
-            Gd: new() { Uid = "gd.nu14", FullName = "ГД Тестович Нетиповой14", LastName = "Тестович", FirstName = "ГД", MiddleName = "Нетиповой14", Position = "Генеральный директор" },
+            Gd: new() { Uid = "savelyev.ro", Login = "savelyev.ro", FullName = "Савельев Ринат Олегович", LastName = "Савельев", FirstName = "Ринат", MiddleName = "Олегович", Position = "Генеральный директор" },
             Participants:
             [
-                PersonData.CreateParticipant("Участник 1 Тестович Нетиповой14", 50m),
-                PersonData.CreateParticipant("Участник 2 Тестович Нетиповой14", 50m),
+                PersonData.CreateParticipant("Уваров Пётр Вадимович", 60m, login: "uvarov.pv50"),
+                PersonData.CreateParticipant("Уварова Наталья Вадимовна", 40m, login: "uvarova.nv50"),
             ]),
     };
 
@@ -518,6 +519,9 @@ public static class CharterTestDataFixed
         /// <summary>UID в LDAP (пусто для участников без LDAP).</summary>
         public string Uid { get; init; } = string.Empty;
 
+        /// <summary>Логин для UI (фамилия.инициалы, транскрипция с русского).</summary>
+        public string Login { get; init; } = string.Empty;
+
         /// <summary>Полное ФИО.</summary>
         public string FullName { get; init; } = string.Empty;
 
@@ -539,13 +543,13 @@ public static class CharterTestDataFixed
         /// <summary>Участник является ЕИО (для типов B/C).</summary>
         public bool IsDirector { get; init; }
 
-        /// <summary>Создать участника (без LDAP, только ФИО + доля).</summary>
-        public static PersonData CreateParticipant(string fullName, decimal sharePercent, bool isDirector = false) =>
-            new() { FullName = fullName, SharePercent = sharePercent, IsDirector = isDirector };
+        /// <summary>Создать участника (без LDAP, только ФИО + доля + логин).</summary>
+        public static PersonData CreateParticipant(string fullName, decimal sharePercent, bool isDirector = false, string login = "") =>
+            new() { FullName = fullName, SharePercent = sharePercent, IsDirector = isDirector, Login = login };
 
         /// <summary>Создать администратора ЮЛ (LDAP-пользователь с ролью LE_ADMIN).</summary>
-        public static PersonData CreateAdmin(string uid, string fullName, string lastName, string firstName, string middleName) =>
-            new() { Uid = uid, FullName = fullName, LastName = lastName, FirstName = firstName, MiddleName = middleName, Position = "Администратор" };
+        public static PersonData CreateAdmin(string uid, string fullName, string lastName, string firstName, string middleName, string login) =>
+            new() { Uid = uid, Login = login, FullName = fullName, LastName = lastName, FirstName = firstName, MiddleName = middleName, Position = "Администратор" };
     }
 
     /// <summary>Набор лиц для одного ЮЛ.</summary>

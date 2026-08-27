@@ -61,19 +61,19 @@ public static class CharterTestSeeder
             var persons = CharterTestDataFixed.PersonsByEntity[entity.Number];
 
             // Создание администратора ЮЛ
-            var adminEmail = $"{entity.AdminUser.Uid}@test.local";
-            Console.WriteLine($"[Seeder] Пользователь администратора: {entity.AdminUser.LastName} ({entity.AdminUser.Uid})...");
+            var adminEmail = $"{entity.AdminUser.Login}@test.local";
+            Console.WriteLine($"[Seeder] Пользователь администратора: {entity.AdminUser.FullName} ({entity.AdminUser.Login})...");
             await AdminConsoleHelper.CreateUserViaUiAsync(
-                adminPage, entity.AdminUser.Uid,
+                adminPage, entity.AdminUser.Login,
                 entity.AdminUser.LastName, entity.AdminUser.FirstName, entity.AdminUser.MiddleName, adminEmail);
 
             // Создание ГД (или первого участника для типов B/C)
             if (persons.Gd is not null)
             {
-                var email = $"{persons.Gd.Uid}@test.local";
-                Console.WriteLine($"[Seeder] Пользователь ГД: {persons.Gd.LastName} ({persons.Gd.Uid})...");
+                var email = $"{persons.Gd.Login}@test.local";
+                Console.WriteLine($"[Seeder] Пользователь ГД: {persons.Gd.FullName} ({persons.Gd.Login})...");
                 await AdminConsoleHelper.CreateUserViaUiAsync(
-                    adminPage, persons.Gd.Uid,
+                    adminPage, persons.Gd.Login,
                     persons.Gd.LastName, persons.Gd.FirstName, persons.Gd.MiddleName, email);
             }
             else if (persons.Participants.Count > 0)
@@ -82,11 +82,10 @@ public static class CharterTestSeeder
                 var nameParts = p.FullName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
                 if (nameParts.Length >= 3)
                 {
-                    var login = p.FullName.ToLower().Replace(" ", ".");
-                    var email = $"{login}@test.local";
-                    Console.WriteLine($"[Seeder] Пользователь участника: {p.FullName} ({login})...");
+                    var email = $"{p.Login}@test.local";
+                    Console.WriteLine($"[Seeder] Пользователь участника: {p.FullName} ({p.Login})...");
                     await AdminConsoleHelper.CreateUserViaUiAsync(
-                        adminPage, login, nameParts[0], nameParts[1], nameParts[2], email);
+                        adminPage, p.Login, nameParts[0], nameParts[1], nameParts[2], email);
                 }
             }
         }
@@ -106,22 +105,22 @@ public static class CharterTestSeeder
             var persons = CharterTestDataFixed.PersonsByEntity[entity.Number];
 
             // Назначение ролей администратору ЮЛ
-            Console.WriteLine($"[Seeder] Назначение ролей администратору: {entity.AdminUser.LastName} ({entity.AdminUser.Uid})...");
+            Console.WriteLine($"[Seeder] Назначение ролей администратору: {entity.AdminUser.FullName} ({entity.AdminUser.Login})...");
             await AdminConsoleHelper.AssignRolesAsync(
                 adminPage,
                 entity.AdminUser.LastName, entity.AdminUser.FirstName, entity.AdminUser.MiddleName,
-                entity.AdminUser.Position, entity.AdminUser.Uid,
+                entity.AdminUser.Position, entity.AdminUser.Login,
                 [CharterTestDataFixed.RoleLeAdmin]);
             Console.WriteLine($"[Seeder] Роли назначены: {entity.AdminUser.LastName}");
 
             // Назначение ролей ГД (или первому участнику)
             if (persons.Gd is not null)
             {
-                Console.WriteLine($"[Seeder] Назначение ролей ГД: {persons.Gd.LastName} ({persons.Gd.Uid})...");
+                Console.WriteLine($"[Seeder] Назначение ролей ГД: {persons.Gd.FullName} ({persons.Gd.Login})...");
                 await AdminConsoleHelper.AssignRolesAsync(
                     adminPage,
                     persons.Gd.LastName, persons.Gd.FirstName, persons.Gd.MiddleName,
-                    persons.Gd.Position, persons.Gd.Uid,
+                    persons.Gd.Position, persons.Gd.Login,
                     [CharterTestDataFixed.RoleLeAdmin, CharterTestDataFixed.RoleCeo]);
                 Console.WriteLine($"[Seeder] Роли назначены: {persons.Gd.LastName}");
             }
@@ -131,12 +130,11 @@ public static class CharterTestSeeder
                 var nameParts = p.FullName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
                 if (nameParts.Length >= 3)
                 {
-                    var login = p.FullName.ToLower().Replace(" ", ".");
-                    Console.WriteLine($"[Seeder] Назначение ролей участника: {p.FullName} ({login})...");
+                    Console.WriteLine($"[Seeder] Назначение ролей участника: {p.FullName} ({p.Login})...");
                     await AdminConsoleHelper.AssignRolesAsync(
                         adminPage,
                         nameParts[0], nameParts[1], nameParts[2],
-                        "Директор", login,
+                        "Директор", p.Login,
                         [CharterTestDataFixed.RoleLeAdmin, CharterTestDataFixed.RoleCeo]);
                     Console.WriteLine($"[Seeder] Роли назначены: {p.FullName}");
                 }

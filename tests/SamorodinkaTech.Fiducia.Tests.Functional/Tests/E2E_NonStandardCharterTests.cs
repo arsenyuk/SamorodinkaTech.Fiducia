@@ -449,7 +449,7 @@ public class E2E_NonStandardCharterTests : BrowserFixture
         var persons = CharterTestDataFixed.PersonsByEntity[entityIndex];
 
         // Логин ГД в Board Portal
-        var gdLogin = persons.Gd?.Uid ?? persons.Participants[0].Uid;
+        var gdLogin = persons.Gd?.Login ?? persons.Participants[0].Login;
         await AuthHelper.LoginAsBoardUserAsync(boardPage, gdLogin);
         boardPage.Url.Should().Contain("/main");
 
