@@ -71,37 +71,73 @@ public static class PageVerificationHelper
     /// </summary>
     public static async Task VerifyAdminConsolePagesAsync(IPage adminPage)
     {
-        // US-004: Пользователи
+        // Основные страницы
+        await VerifyPageAsync(adminPage, "/main",
+            "_framework/blazor.server.js", "Admin Console: Main");
+
         await VerifyPageAsync(adminPage, "/users",
             "_framework/blazor.server.js", "Admin Console: Users");
 
-        // US-004: Роли
         await VerifyPageAsync(adminPage, "/roles",
             "_framework/blazor.server.js", "Admin Console: Roles");
 
-        // US-004: Шаблоны организаций
-        await VerifyPageAsync(adminPage, "/org-templates",
-            "_framework/blazor.server.js", "Admin Console: OrgTemplates");
-
-        // US-004: Отправленные уведомления
-        await VerifyPageAsync(adminPage, "/sent-notifications",
-            "_framework/blazor.server.js", "Admin Console: SentNotifications");
-
-        // US-004: Справочники
-        await VerifyPageAsync(adminPage, "/dictionaries",
-            "_framework/blazor.server.js", "Admin Console: Dictionaries");
-
-        // US-002: Настройки
         await VerifyPageAsync(adminPage, "/settings",
             "_framework/blazor.server.js", "Admin Console: Settings");
 
-        // US-002: Аудит
-        await VerifyPageAsync(adminPage, "/audit",
-            "_framework/blazor.server.js", "Admin Console: Audit");
+        await VerifyPageAsync(adminPage, "/dictionaries",
+            "_framework/blazor.server.js", "Admin Console: Dictionaries");
 
-        // US-002: ОСА
-        await VerifyPageAsync(adminPage, "/osa-meetings",
-            "_framework/blazor.server.js", "Admin Console: OsaMeetings");
+        // Управление доступом
+        await VerifyPageAsync(adminPage, "/access-management",
+            "_framework/blazor.server.js", "Admin Console: AccessManagement");
+
+        // Юридические лица и уставы
+        await VerifyPageAsync(adminPage, "/standard-charters",
+            "_framework/blazor.server.js", "Admin Console: StandardCharters");
+
+        await VerifyPageAsync(adminPage, "/board-of-directors-list",
+            "_framework/blazor.server.js", "Admin Console: Boards");
+
+        await VerifyPageAsync(adminPage, "/board-of-directors-statuses",
+            "_framework/blazor.server.js", "Admin Console: BoardStatuses");
+
+        await VerifyPageAsync(adminPage, "/board-member-appointment-statuses",
+            "_framework/blazor.server.js", "Admin Console: AppointmentStatuses");
+
+        await VerifyPageAsync(adminPage, "/resignation-reasons",
+            "_framework/blazor.server.js", "Admin Console: ResignationReasons");
+
+        await VerifyPageAsync(adminPage, "/dul-types",
+            "_framework/blazor.server.js", "Admin Console: DulTypes");
+
+        await VerifyPageAsync(adminPage, "/gd-terms",
+            "_framework/blazor.server.js", "Admin Console: GdTerms");
+
+        // Шаблоны организаций
+        await VerifyPageAsync(adminPage, "/org-templates",
+            "_framework/blazor.server.js", "Admin Console: OrgTemplates");
+
+        // Уведомления
+        await VerifyPageAsync(adminPage, "/notification-templates",
+            "_framework/blazor.server.js", "Admin Console: NotificationTemplates");
+
+        await VerifyPageAsync(adminPage, "/notification-types",
+            "_framework/blazor.server.js", "Admin Console: NotificationTypes");
+
+        await VerifyPageAsync(adminPage, "/sent-notifications",
+            "_framework/blazor.server.js", "Admin Console: SentNotifications");
+
+        // Измерения
+        await VerifyPageAsync(adminPage, "/measurement-units",
+            "_framework/blazor.server.js", "Admin Console: MeasurementUnits");
+
+        // Email
+        await VerifyPageAsync(adminPage, "/email-settings",
+            "_framework/blazor.server.js", "Admin Console: EmailSettings");
+
+        // Законодательство
+        await VerifyPageAsync(adminPage, "/board-law",
+            "_framework/blazor.server.js", "Admin Console: BoardLaw");
     }
 
     private static async Task VerifyPageAsync(IPage page, string path, string expectedText, string label)

@@ -32,6 +32,14 @@ public class PageAccessAuditMiddleware
     };
 
     /// <summary>
+    /// Публичные страницы, не требующие авторизации — не логируем.
+    /// </summary>
+    private static readonly HashSet<string> PublicPages = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "/login", "/logout", "/", "/Error"
+    };
+
+    /// <summary>
     /// API-пути, не попадающие в лог аудита (служебные Blazor-вызовы, справочники).
     /// </summary>
     private static readonly HashSet<string> ExcludedApiPaths = new(StringComparer.OrdinalIgnoreCase)
@@ -76,13 +84,25 @@ public class PageAccessAuditMiddleware
         if (IsExcludedApiPath(path) && statusCode == 200)
             return;
 
-        // Логируем ТОЛЬКО: модификации данных (POST/PUT/DELETE) и ошибки доступа (4xx/5xx)
+        // Определяем тип запроса
+        var isGet = string.Equals(method, "GET", StringComparison.OrdinalIgnoreCase);
         var isModification = string.Equals(method, "POST", StringComparison.OrdinalIgnoreCase)
             || string.Equals(method, "PUT", StringComparison.OrdinalIgnoreCase)
             || string.Equals(method, "PATCH", StringComparison.OrdinalIgnoreCase)
             || string.Equals(method, "DELETE", StringComparison.OrdinalIgnoreCase);
         var isError = statusCode >= 400;
 
+        // Для GET-запросов: логируем ТОЛЬКО обращения к страницам (не API) авторизованными пользователями
+        if (isGet && !isError)
+        {
+            if (IsPageRoute(path) && !IsPublicPage(path) && userId.HasValue)
+            {
+                await LogPageAccessAsync(path, userIp, userId);
+            }
+            return;
+        }
+
+        // Для модификаций и ошибок — логируем как раньше
         if (!isModification && !isError)
             return;
 
@@ -115,6 +135,36 @@ public class PageAccessAuditMiddleware
             entityId: null);
     }
 
+    /// <summary>
+    /// Логировать обращение к странице (PAGE_ACCESS).
+    /// </summary>
+    private async Task LogPageAccessAsync(string path, string userIp, Guid? userId)
+    {
+        string? login = null;
+        if (userId.HasValue)
+        {
+            try
+            {
+                await using var ctx = await _dbFactory.CreateDbContextAsync();
+                var user = await ctx.Users
+                    .Where(u => u.Id == userId.Value)
+                    .Select(u => u.Login)
+                    .FirstOrDefaultAsync();
+                login = user;
+            }
+            catch { /* не критично */ }
+        }
+
+        await _auditService.LogEventAsync(
+            "PAGE_ACCESS",
+            userIp,
+            $"GET {path} — успешно",
+            userId: userId,
+            login: login,
+            entityName: "Page",
+            entityId: null);
+    }
+
     private static bool IsExcludedPath(string path)
     {
         if (ExcludedPaths.Any(p => path.StartsWith(p, StringComparison.OrdinalIgnoreCase)))
@@ -127,6 +177,27 @@ public class PageAccessAuditMiddleware
     private static bool IsExcludedApiPath(string path)
     {
         return ExcludedApiPaths.Any(p => path.StartsWith(p, StringComparison.OrdinalIgnoreCase));
+    }
+
+    /// <summary>
+    /// Проверить, является ли путь страницей (не API-вызовом).
+    /// Страницы: пути без расширения, не начинающиеся с /api/.
+    /// </summary>
+    private static bool IsPageRoute(string path)
+    {
+        if (path.StartsWith("/api/", StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        var extension = Path.GetExtension(path);
+        return string.IsNullOrEmpty(extension);
+    }
+
+    /// <summary>
+    /// Проверить, является ли страница публичной (не требует авторизации).
+    /// </summary>
+    private static bool IsPublicPage(string path)
+    {
+        return PublicPages.Contains(path);
     }
 
     private static string GetActionCode(string method, int statusCode, string path) => statusCode switch
