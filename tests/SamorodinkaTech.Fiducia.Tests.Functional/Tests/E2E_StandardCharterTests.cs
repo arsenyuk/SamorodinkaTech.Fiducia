@@ -14,8 +14,9 @@ namespace SamorodinkaTech.Fiducia.Tests.Functional;
 /// 2. Заполнение полей ЮЛ + выбор типового устава
 /// 3. Сохранение и проверка отсутствия ошибок
 /// 4. Добавление участников (для ExecutiveBody A)
-/// 5. Проверка записей аудита (вход, чтение/запись, участники)
-/// 6. Проверка отсутствия ошибок в логе приложения за период работы теста
+/// 5. Проверка страниц Board Portal и Admin Console (US-002..US-024)
+/// 6. Проверка записей аудита (вход, чтение/запись, участники)
+/// 7. Проверка отсутствия ошибок в логе приложения за период работы теста
 /// </summary>
 [Collection("CharterTests")]
 public class E2E_StandardCharterTests : BrowserFixture
@@ -131,7 +132,13 @@ public class E2E_StandardCharterTests : BrowserFixture
             }
 
             // ═══════════════════════════════════════════════════════════════════
-            // Шаг 5: Проверка записей аудита
+            // Шаг 5: Проверка страниц (US-002..US-024) — продолжение flow
+            // ═══════════════════════════════════════════════════════════════════
+            await PageVerificationHelper.VerifyBoardPortalPagesAsync(boardPage);
+            await PageVerificationHelper.VerifyAdminConsolePagesAsync(adminPage);
+
+            // ═══════════════════════════════════════════════════════════════════
+            // Шаг 6: Проверка записей аудита
             // ═══════════════════════════════════════════════════════════════════
             var login = persons.Gd?.FullName ?? persons.Participants[0].FullName;
 
@@ -153,7 +160,7 @@ public class E2E_StandardCharterTests : BrowserFixture
         finally
         {
             // ═══════════════════════════════════════════════════════════════════
-            // Шаг 6: Проверка ошибок в логе приложения за период работы теста
+            // Шаг 7: Проверка ошибок в логе приложения за период работы теста
             // ═══════════════════════════════════════════════════════════════════
             var testEndTime = DateTimeOffset.UtcNow;
             await AppLogHelper.AssertNoErrorsInAppLogSafeAsync(testStartTime, testEndTime, testName);
