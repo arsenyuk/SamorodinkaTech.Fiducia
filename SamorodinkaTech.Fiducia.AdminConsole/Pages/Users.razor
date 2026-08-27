@@ -2,9 +2,12 @@
 @using Microsoft.EntityFrameworkCore
 @using SamorodinkaTech.Fiducia.Domain.Entities
 @using SamorodinkaTech.Fiducia.Domain.Interfaces
+@using System.Security.Claims
 @inject IApplicationDbContext DbContext
 @inject NavigationManager Navigation
 @inject IConfiguration Configuration
+@inject IHttpContextAccessor HttpContextAccessor
+@inject ILdapService LdapService
 
 <PageTitle>Fiducia — Пользователи</PageTitle>
 
@@ -57,6 +60,16 @@
                     <button type="button" class="btn-close" @onclick="CloseModals"></button>
                 </div>
                 <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Логин *</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control" @bind="_newLogin">
+                            <button class="btn btn-outline-secondary" @onclick="SearchLdapAsync" disabled="@_ldapSearching">
+                                @if (_ldapSearching) { <span class="spinner-border spinner-border-sm"></span> } else { <span>🔍</span> }
+                            </button>
+                        </div>
+                        @if (!string.IsNullOrEmpty(_ldapWarning)) { <div class="text-warning small mt-1">@_ldapWarning</div> }
+                    </div>
                     <div class="mb-3">
                         <label class="form-label">Фамилия *</label>
                         <input type="text" class="form-control" @bind="_newLastName">
@@ -155,12 +168,15 @@
 
     // Создание пользователя
     private bool _showCreateModal;
+    private string _newLogin = string.Empty;
     private string _newLastName = string.Empty;
     private string _newFirstName = string.Empty;
     private string _newMiddleName = string.Empty;
     private string _newEmail = string.Empty;
     private string _newPhone = string.Empty;
     private bool _newIsExternal;
+    private bool _ldapSearching;
+    private string? _ldapWarning;
 
     // Инвайт
     private bool _showInviteModal;
@@ -243,19 +259,59 @@
     {
         _showCreateModal = false;
         _showInviteModal = false;
+        _ldapWarning = null;
+    }
+
+    private async Task SearchLdapAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_newLogin)) { _ldapWarning = "Введите логин."; return; }
+
+        _ldapSearching = true;
+        _ldapWarning = null;
+        try
+        {
+            var user = await LdapService.FindUserByLoginAsync(_newLogin);
+            if (user is null)
+            {
+                _ldapWarning = $"Пользователь «{_newLogin}» не найден в LDAP.";
+                return;
+            }
+            // Автозаполнение полей из LDAP
+            var nameParts = user.DisplayName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (nameParts.Length >= 2)
+            {
+                _newLastName = nameParts[0];
+                _newFirstName = nameParts[1];
+                _newMiddleName = nameParts.Length >= 3 ? nameParts[2] : string.Empty;
+            }
+            _newEmail = user.Email ?? $"{_newLogin}@ldap.local";
+            _newPhone = user.Phone ?? string.Empty;
+        }
+        catch (Exception ex)
+        {
+            _ldapWarning = $"Ошибка LDAP: {ex.Message}";
+        }
+        finally
+        {
+            _ldapSearching = false;
+        }
     }
 
     private async Task CreateUser()
     {
+        if (string.IsNullOrWhiteSpace(_newLogin)) { return; }
+
         var user = new User
         {
+            Login = _newLogin,
             LastName = _newLastName,
             FirstName = _newFirstName,
             MiddleName = _newMiddleName,
             Email = _newEmail,
             Phone = _newPhone,
             IsExternal = _newIsExternal,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = await GetCurrentUserAsync()
         };
 
         DbContext.Users.Add(user);
@@ -263,6 +319,20 @@
 
         CloseModals();
         await OnInitializedAsync();
+    }
+
+    private async Task<Guid?> GetCurrentUserAsync()
+    {
+        try
+        {
+            var userIdClaim = HttpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                           ?? HttpContextAccessor.HttpContext?.User?.FindFirst("sub")?.Value;
+            return Guid.TryParse(userIdClaim, out var userId) ? userId : null;
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     private async Task GenerateInvite()

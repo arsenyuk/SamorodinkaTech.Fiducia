@@ -73,12 +73,13 @@ else if (authMethod == "LDAP")
     builder.Services.AddScoped<IAuthProvider>(sp =>
     {
         var ldap = sp.GetRequiredService<ILdapService>();
+        var db = sp.GetRequiredService<IApplicationDbContext>();
         var logger = sp.GetRequiredService<ILogger<LdapAuthProvider>>();
         var sysAdminGroupDn = builder.Configuration["Ldap:SysAdminGroupDn"]
                              ?? "cn=SysAdmins,ou=Groups,dc=bryansk-arsenal,dc=local";
         var boardGroupDn = builder.Configuration["Ldap:BoardGroupDn"]
                           ?? "cn=BoardOfDirectors,ou=Groups,dc=bryansk-arsenal,dc=local";
-        return new LdapAuthProvider(ldap, logger, sysAdminGroupDn, boardGroupDn);
+        return new LdapAuthProvider(ldap, db, logger, sysAdminGroupDn, boardGroupDn);
     });
     }
 }
@@ -218,7 +219,7 @@ if (builder.Configuration.GetValue<bool>("CbrFinOrg:Enabled"))
 // LDAP — корпоративный каталог для синхронизации состава СД (опционально)
 if (builder.Configuration.GetValue<bool>("Ldap:Enabled"))
 {
-    builder.Services.AddSingleton<ILdapService>(sp =>
+    builder.Services.AddScoped<ILdapService>(sp =>
     {
         var cfg = builder.Configuration.GetSection("Ldap");
         var logger = sp.GetRequiredService<ILogger<LdapService>>();

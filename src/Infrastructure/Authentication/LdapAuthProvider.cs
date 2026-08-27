@@ -1,4 +1,6 @@
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using SamorodinkaTech.Fiducia.Domain.Entities;
 using SamorodinkaTech.Fiducia.Domain.Interfaces;
 
 namespace SamorodinkaTech.Fiducia.Infrastructure.Authentication;
@@ -9,10 +11,12 @@ namespace SamorodinkaTech.Fiducia.Infrastructure.Authentication;
 /// на основе членства в LDAP-группах:
 ///   cn=SysAdmins → SYS_ADMIN
 ///   cn=BoardOfDirectors → MEMBER_BOARD
+/// При первом входе создаёт запись в users (auto-provisioning).
 /// </summary>
 public class LdapAuthProvider : IAuthProvider
 {
     private readonly ILdapService _ldap;
+    private readonly IApplicationDbContext _db;
     private readonly ILogger<LdapAuthProvider> _logger;
     private readonly string _sysAdminGroupDn;
     private readonly string _boardGroupDn;
@@ -22,17 +26,15 @@ public class LdapAuthProvider : IAuthProvider
     /// <summary>
     /// Создаёт провайдер LDAP-аутентификации.
     /// </summary>
-    /// <param name="ldap">Сервис LDAP.</param>
-    /// <param name="logger">Логгер.</param>
-    /// <param name="sysAdminGroupDn">DN группы администраторов системы.</param>
-    /// <param name="boardGroupDn">DN группы Совета директоров.</param>
     public LdapAuthProvider(
         ILdapService ldap,
+        IApplicationDbContext db,
         ILogger<LdapAuthProvider> logger,
         string sysAdminGroupDn,
         string boardGroupDn)
     {
         _ldap = ldap ?? throw new ArgumentNullException(nameof(ldap));
+        _db = db ?? throw new ArgumentNullException(nameof(db));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _sysAdminGroupDn = sysAdminGroupDn ?? throw new ArgumentNullException(nameof(sysAdminGroupDn));
         _boardGroupDn = boardGroupDn ?? throw new ArgumentNullException(nameof(boardGroupDn));
@@ -74,14 +76,19 @@ public class LdapAuthProvider : IAuthProvider
             // 3. Определяем роль по членству в группах
             var role = ResolveRole(user.MemberOf);
 
+            // 4. Ищем существующего User в БД по Login (= LDAP uid)
+            var dbUser = await _db.Users.FirstOrDefaultAsync(u => u.Login == username);
+
             _logger.LogInformation(
-                "LDAP SSO: вход выполнен {Username} ({DisplayName}), роль={RefRole}",
-                username, user.DisplayName, role);
+                "LDAP SSO: вход выполнен {Username} ({DisplayName}), роль={RefRole}, userId={UserId}",
+                username, user.DisplayName, role, dbUser?.Id);
 
             return new AuthResult
             {
                 Success = true,
+                UserId = dbUser?.Id,
                 UserName = username,
+                Login = username,
                 Claims = new Dictionary<string, string>
                 {
                     ["role"] = role,

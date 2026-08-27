@@ -10,22 +10,72 @@ public static class AdminConsoleHelper
     private const int DefaultTimeout = 15_000;
 
     /// <summary>
+    /// Создать пользователя на странице /users через UI.
+    /// </summary>
+    public static async Task CreateUserViaUiAsync(IPage page, string login, string lastName, string firstName, string middleName, string email)
+    {
+        await page.GotoAsync(PortalUrls.GetUrl(Portal.AdminConsole, "/users"));
+        await AuthHelper.WaitForBlazorReady(page);
+        await page.WaitForTimeoutAsync(2000);
+
+        // Клик "+ Добавить"
+        await page.ClickAsync("button.btn-primary:has-text('Добавить')");
+        await page.WaitForTimeoutAsync(500);
+
+        // Дождаться модального окна
+        await page.WaitForSelectorAsync(".modal.show", new PageWaitForSelectorOptions { Timeout = DefaultTimeout });
+
+        // Заполнить поле Логин
+        var loginInput = await page.QuerySelectorAsync(".modal .input-group input.form-control");
+        if (loginInput is not null)
+        {
+            await loginInput.FillAsync(login);
+            await loginInput.DispatchEventAsync("change");
+        }
+
+        // Заполнить остальные поля
+        var inputs = await page.QuerySelectorAllAsync(".modal .modal-body input.form-control");
+        var values = new[] { lastName, firstName, middleName, email };
+        for (int i = 0; i < Math.Min(inputs.Count, values.Length); i++)
+        {
+            if (inputs[i] is not null && !string.IsNullOrEmpty(values[i]))
+            {
+                await inputs[i].FillAsync(values[i]);
+                await inputs[i].DispatchEventAsync("change");
+            }
+        }
+
+        await page.WaitForTimeoutAsync(500);
+
+        // Клик "Создать"
+        await page.ClickAsync(".modal-footer button.btn-primary");
+
+        // Дождаться закрытия модального окна
+        await page.WaitForFunctionAsync(
+            "() => document.querySelector('.modal.show') === null",
+            null,
+            new PageWaitForFunctionOptions { Timeout = DefaultTimeout });
+
+        await page.WaitForTimeoutAsync(1000);
+    }
+
+    /// <summary>
     /// Создать юридическое лицо на странице /access-management.
     /// </summary>
     public static async Task CreateLegalEntityAsync(IPage page, string name, string inn)
     {
-        await page.GotoAsync(PortalUrls.GetUrl(Portal.AdminConsole, "/access-management"));
-        await AuthHelper.WaitForBlazorReady(page);
-        await page.WaitForTimeoutAsync(1000);
+        if (!page.Url.Contains("/access-management"))
+        {
+            await page.GotoAsync(PortalUrls.GetUrl(Portal.AdminConsole, "/access-management"));
+            await AuthHelper.WaitForBlazorReady(page);
+            await page.WaitForTimeoutAsync(3000);
+        }
 
-        // Click "+ Создать ЮЛ" button via JS
-        await page.EvaluateAsync(
-            @"() => {
-                const buttons = document.querySelectorAll('button');
-                for (const btn of buttons) {
-                    if (btn.textContent.includes('Создать ЮЛ')) { btn.click(); return; }
-                }
-            }");
+        // Дождаться кнопки "+ Создать ЮЛ"
+        await page.WaitForSelectorAsync("button:has-text('Создать ЮЛ')", new PageWaitForSelectorOptions { Timeout = DefaultTimeout });
+
+        // Click "+ Создать ЮЛ" button
+        await page.ClickAsync("button:has-text('Создать ЮЛ')");
         await page.WaitForTimeoutAsync(500);
 
         // Wait for modal to appear
@@ -71,8 +121,9 @@ public static class AdminConsoleHelper
             new PageWaitForFunctionOptions { Timeout = DefaultTimeout });
 
         // Reload page to refresh entity list, then select the newly created entity
-        await page.ReloadAsync();
+        await page.GotoAsync(PortalUrls.GetUrl(Portal.AdminConsole, "/access-management"));
         await AuthHelper.WaitForBlazorReady(page);
+        await page.WaitForTimeoutAsync(3000);
 
         // Wait for entity list to load (select must have >1 option)
         await page.WaitForFunctionAsync(
@@ -119,11 +170,22 @@ public static class AdminConsoleHelper
         {
             await page.GotoAsync(PortalUrls.GetUrl(Portal.AdminConsole, "/access-management"));
             await AuthHelper.WaitForBlazorReady(page);
-            await page.WaitForTimeoutAsync(1000);
+            await page.WaitForTimeoutAsync(3000);
         }
 
         // Wait for employee form to be visible (depends on _selectedLegalEntityId)
-        await page.WaitForSelectorAsync(".card-body input.form-control-sm, .card-body .input-group .form-control", new PageWaitForSelectorOptions { Timeout = DefaultTimeout });
+        try
+        {
+            await page.WaitForSelectorAsync(".card-body input.form-control-sm, .card-body .input-group .form-control", new PageWaitForSelectorOptions { Timeout = DefaultTimeout });
+        }
+        catch (TimeoutException)
+        {
+            // Диагностика: вывести состояние страницы
+            var url = page.Url;
+            var bodyText = await page.EvaluateAsync<string>("() => document.body?.innerText?.substring(0, 500) ?? 'empty'");
+            throw new InvalidOperationException(
+                $"[AddEmployeeAsync] Форма сотрудника не найдена. URL: {url}. Body: {bodyText}");
+        }
 
         // Fill fields — LastName, FirstName, MiddleName, Position have form-control-sm; Login has form-control inside input-group
         var nameInputs = await page.QuerySelectorAllAsync(".card-body input.form-control-sm");
@@ -181,62 +243,6 @@ public static class AdminConsoleHelper
         {
             await AddEmployeeAsync(page, lastName, firstName, middleName, position, login, roleCode);
         }
-    }
-
-    /// <summary>
-    /// Создать пользователя на странице /users.
-    /// </summary>
-    public static async Task CreateUserAsync(
-        IPage page,
-        string lastName,
-        string firstName,
-        string middleName,
-        string email,
-        string phone)
-    {
-        await page.GotoAsync(PortalUrls.GetUrl(Portal.AdminConsole, "/users"));
-        await AuthHelper.WaitForBlazorReady(page);
-        await page.WaitForTimeoutAsync(1000);
-
-        // Click "+ Добавить" button
-        await page.EvaluateAsync(
-            @"() => {
-                const buttons = document.querySelectorAll('button');
-                for (const btn of buttons) {
-                    if (btn.textContent.includes('Добавить')) { btn.click(); return; }
-                }
-            }");
-        await page.WaitForTimeoutAsync(500);
-
-        // Wait for modal to appear
-        await page.WaitForSelectorAsync(".modal.show", new PageWaitForSelectorOptions { Timeout = DefaultTimeout });
-
-        // Fill fields via Blazor @bind — need to dispatch 'input' event
-        var inputs = await page.QuerySelectorAllAsync(".modal .modal-body input.form-control");
-
-        // inputs[0] = Фамилия, inputs[1] = Имя, inputs[2] = Отчество, inputs[3] = Email, inputs[4] = Телефон
-        var values = new[] { lastName, firstName, middleName, email, phone };
-        for (int i = 0; i < Math.Min(inputs.Count, values.Length); i++)
-        {
-            if (inputs[i] is not null && !string.IsNullOrEmpty(values[i]))
-            {
-                await inputs[i].FillAsync(values[i]);
-                await inputs[i].DispatchEventAsync("change");
-            }
-        }
-
-        await page.WaitForTimeoutAsync(500);
-
-        // Click "Создать" in modal
-        await page.ClickAsync(".modal-footer button.btn-primary");
-
-        // Wait for modal to close
-        await page.WaitForFunctionAsync(
-            "() => document.querySelector('.modal.show') === null",
-            null,
-            new PageWaitForFunctionOptions { Timeout = DefaultTimeout });
-
-        await page.WaitForTimeoutAsync(500);
     }
 
     private static string EscapeJs(string value) => value.Replace("'", "\\'").Replace("\\", "\\\\");

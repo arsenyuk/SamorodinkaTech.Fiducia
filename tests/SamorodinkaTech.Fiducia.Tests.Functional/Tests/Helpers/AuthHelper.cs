@@ -48,6 +48,16 @@ public static class AuthHelper
             null,
             new PageWaitForFunctionOptions { Timeout = DefaultTimeout });
         await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+
+        // Дождаться готовности Blazor Server circuit
+        await page.WaitForFunctionAsync(
+            @"() => {
+                return document.querySelector('script[src*=""blazor.server.js""]') !== null
+                    && document.querySelectorAll('button').length > 0;
+            }",
+            null,
+            new PageWaitForFunctionOptions { Timeout = DefaultTimeout });
+        await page.WaitForTimeoutAsync(2000);
     }
 
     /// <summary>
@@ -85,6 +95,16 @@ public static class AuthHelper
             null,
             new PageWaitForFunctionOptions { Timeout = DefaultTimeout });
         await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+
+        // Дождаться готовности Blazor Server circuit
+        await page.WaitForFunctionAsync(
+            @"() => {
+                return document.querySelector('script[src*=""blazor.server.js""]') !== null
+                    && document.querySelectorAll('button').length > 0;
+            }",
+            null,
+            new PageWaitForFunctionOptions { Timeout = DefaultTimeout });
+        await page.WaitForTimeoutAsync(2000);
     }
 
     /// <summary>

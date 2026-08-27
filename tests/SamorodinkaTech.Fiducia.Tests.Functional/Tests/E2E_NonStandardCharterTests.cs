@@ -59,7 +59,7 @@ public class E2E_NonStandardCharterTests : BrowserFixture
                 boardPage, "exit-allowed", ExitAllowed);
             await AddParticipantsAsync(boardPage, 37);
             await BoardPortalHelper.SaveAndVerifyAsync(boardPage);
-            await VerifyPagesAsync(boardPage, adminPage);
+            await VerifyPagesAsync(boardPage, adminPage, testStartTime);
 
             await AssertAuditForNonStandardCharterAsync(login, participantsAdded: true);
         }
@@ -85,7 +85,7 @@ public class E2E_NonStandardCharterTests : BrowserFixture
             await BoardPortalHelper.ConfigureCharterParameterAsync(boardPage, "exit-min-share", ExitMinSharePercent);
             await AddParticipantsAsync(boardPage, 38);
             await BoardPortalHelper.SaveAndVerifyAsync(boardPage);
-            await VerifyPagesAsync(boardPage, adminPage);
+            await VerifyPagesAsync(boardPage, adminPage, testStartTime);
 
             await AssertAuditForNonStandardCharterAsync(login, participantsAdded: true);
         }
@@ -111,7 +111,7 @@ public class E2E_NonStandardCharterTests : BrowserFixture
             await BoardPortalHelper.ConfigureCharterParameterAsync(boardPage, "exit-max-share", ExitMaxSharePercent);
             await AddParticipantsAsync(boardPage, 39);
             await BoardPortalHelper.SaveAndVerifyAsync(boardPage);
-            await VerifyPagesAsync(boardPage, adminPage);
+            await VerifyPagesAsync(boardPage, adminPage, testStartTime);
 
             await AssertAuditForNonStandardCharterAsync(login, participantsAdded: true);
         }
@@ -137,7 +137,7 @@ public class E2E_NonStandardCharterTests : BrowserFixture
             await BoardPortalHelper.ConfigureCharterParameterAsync(boardPage, "exit-condition", ExitConditionDescription);
             await AddParticipantsAsync(boardPage, 40);
             await BoardPortalHelper.SaveAndVerifyAsync(boardPage);
-            await VerifyPagesAsync(boardPage, adminPage);
+            await VerifyPagesAsync(boardPage, adminPage, testStartTime);
 
             await AssertAuditForNonStandardCharterAsync(login, participantsAdded: true);
         }
@@ -163,7 +163,7 @@ public class E2E_NonStandardCharterTests : BrowserFixture
             await BoardPortalHelper.ConfigureCharterParameterAsync(boardPage, "exit-unanimous", ExitRequiresUnanimousOsu);
             await AddParticipantsAsync(boardPage, 41);
             await BoardPortalHelper.SaveAndVerifyAsync(boardPage);
-            await VerifyPagesAsync(boardPage, adminPage);
+            await VerifyPagesAsync(boardPage, adminPage, testStartTime);
 
             await AssertAuditForNonStandardCharterAsync(login, participantsAdded: true);
         }
@@ -188,7 +188,7 @@ public class E2E_NonStandardCharterTests : BrowserFixture
             await BoardPortalHelper.ConfigureCharterParameterAsync(boardPage, "transfer-participants", TransferToParticipants);
             await AddParticipantsAsync(boardPage, 42);
             await BoardPortalHelper.SaveAndVerifyAsync(boardPage);
-            await VerifyPagesAsync(boardPage, adminPage);
+            await VerifyPagesAsync(boardPage, adminPage, testStartTime);
 
             await AssertAuditForNonStandardCharterAsync(login, participantsAdded: true);
         }
@@ -213,7 +213,7 @@ public class E2E_NonStandardCharterTests : BrowserFixture
             await BoardPortalHelper.ConfigureCharterParameterAsync(boardPage, "transfer-third-parties", TransferToThirdParties);
             await AddParticipantsAsync(boardPage, 43);
             await BoardPortalHelper.SaveAndVerifyAsync(boardPage);
-            await VerifyPagesAsync(boardPage, adminPage);
+            await VerifyPagesAsync(boardPage, adminPage, testStartTime);
 
             await AssertAuditForNonStandardCharterAsync(login, participantsAdded: true);
         }
@@ -238,7 +238,7 @@ public class E2E_NonStandardCharterTests : BrowserFixture
             await BoardPortalHelper.ConfigureCharterParameterAsync(boardPage, "preemptive-right", PreemptiveRight);
             await AddParticipantsAsync(boardPage, 44);
             await BoardPortalHelper.SaveAndVerifyAsync(boardPage);
-            await VerifyPagesAsync(boardPage, adminPage);
+            await VerifyPagesAsync(boardPage, adminPage, testStartTime);
 
             await AssertAuditForNonStandardCharterAsync(login, participantsAdded: true);
         }
@@ -263,7 +263,7 @@ public class E2E_NonStandardCharterTests : BrowserFixture
             await BoardPortalHelper.ConfigureCharterParameterAsync(boardPage, "inheritance", InheritanceWithoutConsent);
             await AddParticipantsAsync(boardPage, 45);
             await BoardPortalHelper.SaveAndVerifyAsync(boardPage);
-            await VerifyPagesAsync(boardPage, adminPage);
+            await VerifyPagesAsync(boardPage, adminPage, testStartTime);
 
             await AssertAuditForNonStandardCharterAsync(login, participantsAdded: true);
         }
@@ -288,7 +288,7 @@ public class E2E_NonStandardCharterTests : BrowserFixture
             await BoardPortalHelper.ConfigureCharterParameterAsync(boardPage, "executive-body", ExecutiveBody);
             await AddParticipantsAsync(boardPage, 46);
             await BoardPortalHelper.SaveAndVerifyAsync(boardPage);
-            await VerifyPagesAsync(boardPage, adminPage);
+            await VerifyPagesAsync(boardPage, adminPage, testStartTime);
 
             await AssertAuditForNonStandardCharterAsync(login, participantsAdded: true);
         }
@@ -314,7 +314,7 @@ public class E2E_NonStandardCharterTests : BrowserFixture
             await BoardPortalHelper.AssertBoardOfDirectorsAvailableAsync(boardPage);
             await AddParticipantsAsync(boardPage, 47);
             await BoardPortalHelper.SaveAndVerifyAsync(boardPage);
-            await VerifyPagesAsync(boardPage, adminPage);
+            await VerifyPagesAsync(boardPage, adminPage, testStartTime);
 
             await AssertAuditForNonStandardCharterAsync(login, participantsAdded: true);
         }
@@ -340,7 +340,7 @@ public class E2E_NonStandardCharterTests : BrowserFixture
             await BoardPortalHelper.ConfigureCharterParameterAsync(boardPage, "board-convenes-osu", BoardDecidesConveningOsu);
             await AddParticipantsAsync(boardPage, 48);
             await BoardPortalHelper.SaveAndVerifyAsync(boardPage);
-            await VerifyPagesAsync(boardPage, adminPage);
+            await VerifyPagesAsync(boardPage, adminPage, testStartTime);
 
             await AssertAuditForNonStandardCharterAsync(login, participantsAdded: true);
         }
@@ -366,7 +366,7 @@ public class E2E_NonStandardCharterTests : BrowserFixture
             await BoardPortalHelper.ConfigureCharterParameterAsync(boardPage, "vosu-threshold", VosuThresholdPercent);
             await AddParticipantsAsync(boardPage, 49);
             await BoardPortalHelper.SaveAndVerifyAsync(boardPage);
-            await VerifyPagesAsync(boardPage, adminPage);
+            await VerifyPagesAsync(boardPage, adminPage, testStartTime);
 
             await AssertAuditForNonStandardCharterAsync(login, participantsAdded: true);
         }
@@ -407,7 +407,7 @@ public class E2E_NonStandardCharterTests : BrowserFixture
             await BoardPortalHelper.AssertBoardOfDirectorsAvailableAsync(boardPage);
             await AddParticipantsAsync(boardPage, 50);
             await BoardPortalHelper.SaveAndVerifyAsync(boardPage);
-            await VerifyPagesAsync(boardPage, adminPage);
+            await VerifyPagesAsync(boardPage, adminPage, testStartTime);
 
             await AssertAuditForNonStandardCharterAsync(login, participantsAdded: true);
         }
@@ -423,10 +423,10 @@ public class E2E_NonStandardCharterTests : BrowserFixture
     // Вспомогательные методы
     // ══════════════════════════════════════════════════════════════════════
 
-    private static async Task VerifyPagesAsync(IPage boardPage, IPage adminPage)
+    private static async Task VerifyPagesAsync(IPage boardPage, IPage adminPage, DateTimeOffset testStartTime)
     {
-        await PageVerificationHelper.VerifyBoardPortalPagesAsync(boardPage);
-        await PageVerificationHelper.VerifyAdminConsolePagesAsync(adminPage);
+        await PageVerificationHelper.VerifyBoardPortalPagesAsync(boardPage, testStartTime);
+        await PageVerificationHelper.VerifyAdminConsolePagesAsync(adminPage, testStartTime);
     }
 
     private async Task<(IPage adminPage, IPage boardPage, IPage ldapPage, string login)> SetupFullCycleAsync(int entityIndex)

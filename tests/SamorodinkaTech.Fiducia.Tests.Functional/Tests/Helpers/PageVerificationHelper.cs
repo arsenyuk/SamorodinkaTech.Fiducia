@@ -16,11 +16,15 @@ public static class PageVerificationHelper
     /// <summary>Задержка перед проверкой аудита (мс) — серверу нужно время на запись.</summary>
     private const int AuditWriteDelayMs = 1_000;
 
+    /// <summary>Время начала проверки страниц (для фильтрации аудита).</summary>
+    private static DateTimeOffset _verifyStartTime;
+
     /// <summary>
     /// Проверить основные страницы Board Portal (с авторизованной сессией).
     /// </summary>
-    public static async Task VerifyBoardPortalPagesAsync(IPage boardPage)
+    public static async Task VerifyBoardPortalPagesAsync(IPage boardPage, DateTimeOffset? testStartTime = null)
     {
+        _verifyStartTime = testStartTime ?? DateTimeOffset.UtcNow;
         // US-002: Заседания СД — заголовок + кнопка создания
         await VerifyPageAsync(boardPage, "/meetings",
             "Созывы заседаний СД", "Board Portal: Meetings");
@@ -83,8 +87,10 @@ public static class PageVerificationHelper
     /// <summary>
     /// Проверить основные страницы Admin Console (с авторизованной сессией ГД → Admin).
     /// </summary>
-    public static async Task VerifyAdminConsolePagesAsync(IPage adminPage)
+    public static async Task VerifyAdminConsolePagesAsync(IPage adminPage, DateTimeOffset? testStartTime = null)
     {
+        _verifyStartTime = testStartTime ?? DateTimeOffset.UtcNow;
+
         // Основные страницы
         await VerifyPageAsync(adminPage, "/main",
             "_framework/blazor.server.js", "Admin Console: Main");
@@ -176,7 +182,8 @@ public static class PageVerificationHelper
 
         // Проверка записи в логе аудита после каждого перехода на страницу
         await page.WaitForTimeoutAsync(AuditWriteDelayMs);
-        await AuditLogHelper.AssertPageAccessLoggedAsync(path);
+        var now = DateTimeOffset.UtcNow;
+        await AuditLogHelper.AssertPageAccessLoggedAsync(path, _verifyStartTime, now);
     }
 
     private static async Task VerifyButtonAsync(IPage page, string path, string selector, string buttonText, string label)

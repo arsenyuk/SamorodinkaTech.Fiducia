@@ -1,4 +1,5 @@
 using FluentAssertions;
+using System.Text.RegularExpressions;
 
 namespace SamorodinkaTech.Fiducia.Tests.Functional.Helpers;
 
@@ -6,15 +7,20 @@ namespace SamorodinkaTech.Fiducia.Tests.Functional.Helpers;
 /// Хелпер для чтения и проверки записей в логе аудита.
 /// Логи аудита: BoardPortal/logs/audit/ и AdminConsole/logs/audit/.
 /// Формат файла: audit-{yyyyMMddHH}.log
-/// Формат строки: [{timestamp}] [AUDIT] {actionCode} | User={login} IP={ip} | {description} | {entityName} {entityId}
+/// Формат строки: [yyyy-MM-dd HH:mm:ss] [AUDIT] {actionCode} | User={login} IP={ip} | {description} | {entityName} {entityId}
 /// </summary>
-public static class AuditLogHelper
+public static partial class AuditLogHelper
 {
     private static readonly string[] AuditLogDirectories =
     [
         "./SamorodinkaTech.Fiducia.BoardPortal/logs/audit",
         "./SamorodinkaTech.Fiducia.AdminConsole/logs/audit"
     ];
+
+    // Парсер строки аудита: [timestamp] [AUDIT] actionCode
+    // Пример: [2026-08-27 07:41:52] [AUDIT] LOGIN_SUCCESS | ...
+    [GeneratedRegex(@"^\[(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\] \[AUDIT\]")]
+    private static partial Regex AuditLineRegex();
 
     /// <summary>
     /// Найти все директории с логами аудита.
@@ -63,11 +69,48 @@ public static class AuditLogHelper
     }
 
     /// <summary>
+    /// Прочитать строки аудита за указанный временной диапазон.
+    /// </summary>
+    public static async Task<IReadOnlyList<string>> ReadAuditLogAsync(DateTimeOffset from, DateTimeOffset to)
+    {
+        var allLines = await ReadAuditLogAsync();
+        var regex = AuditLineRegex();
+        var matchingLines = new List<string>();
+
+        foreach (var line in allLines)
+        {
+            var match = regex.Match(line);
+            if (!match.Success) continue;
+
+            if (DateTimeOffset.TryParse(match.Groups[1].Value, out var timestamp))
+            {
+                if (timestamp >= from && timestamp <= to)
+                {
+                    matchingLines.Add(line);
+                }
+            }
+        }
+
+        return matchingLines;
+    }
+
+    /// <summary>
     /// Найти записи аудита, содержащие указанный actionCode.
     /// </summary>
     public static async Task<IReadOnlyList<string>> FindEntriesByActionCodeAsync(string actionCode)
     {
         var lines = await ReadAuditLogAsync();
+        return lines
+            .Where(l => l.Contains($"[AUDIT] {actionCode}", StringComparison.OrdinalIgnoreCase))
+            .ToList();
+    }
+
+    /// <summary>
+    /// Найти записи аудита с указанным actionCode за временной диапазон.
+    /// </summary>
+    public static async Task<IReadOnlyList<string>> FindEntriesByActionCodeAsync(string actionCode, DateTimeOffset from, DateTimeOffset to)
+    {
+        var lines = await ReadAuditLogAsync(from, to);
         return lines
             .Where(l => l.Contains($"[AUDIT] {actionCode}", StringComparison.OrdinalIgnoreCase))
             .ToList();
@@ -90,6 +133,17 @@ public static class AuditLogHelper
     public static async Task<IReadOnlyList<string>> FindEntriesContainingAsync(string text)
     {
         var lines = await ReadAuditLogAsync();
+        return lines
+            .Where(l => l.Contains(text, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+    }
+
+    /// <summary>
+    /// Найти записи аудита, содержащие указанный текст, за временной диапазон.
+    /// </summary>
+    public static async Task<IReadOnlyList<string>> FindEntriesContainingAsync(string text, DateTimeOffset from, DateTimeOffset to)
+    {
+        var lines = await ReadAuditLogAsync(from, to);
         return lines
             .Where(l => l.Contains(text, StringComparison.OrdinalIgnoreCase))
             .ToList();
@@ -171,6 +225,17 @@ public static class AuditLogHelper
         var entries = await FindEntriesContainingAsync(path);
         entries.Should().NotBeEmpty(
             $"Доступ к странице '{path}' должен быть залогирован в аудите");
+    }
+
+    /// <summary>
+    /// Проверить, что чтение страницы залогировано за указанный временной диапазон.
+    /// </summary>
+    public static async Task AssertPageAccessLoggedAsync(string path, DateTimeOffset from, DateTimeOffset to)
+    {
+        var entries = await FindEntriesContainingAsync(path, from, to);
+        entries.Should().NotBeEmpty(
+            $"Доступ к странице '{path}' должен быть залогирован в аудите " +
+            $"за период {from:HH:mm:ss} — {to:HH:mm:ss}");
     }
 
     /// <summary>

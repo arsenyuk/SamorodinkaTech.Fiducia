@@ -88,6 +88,12 @@ public static class CharterTestGlobalInit
 
         foreach (var entity in CharterTestDataFixed.LegalEntities)
         {
+            // Администратор ЮЛ
+            if (seen.Add(entity.AdminUser.Uid))
+            {
+                yield return entity.AdminUser;
+            }
+
             if (!CharterTestDataFixed.PersonsByEntity.TryGetValue(entity.Number, out var persons))
                 continue;
 
