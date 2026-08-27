@@ -44,13 +44,14 @@
     else
     {
         @* Блок-предупреждения *@
-        @if (!_hasRegistrar && !_isLlc)
+        @if (!_hasRegistrar && (_isPjsc || _isNjsc))
         {
             <div class="alert alert-warning d-flex align-items-center" role="alert">
                 <span class="me-2">⚠</span>
                 <div>
                     <strong>Договор с регистратором обязателен для всех АО.</strong>
-                    Заключите договор с лицензированным регистратором для ведения реестра владельцев ценных бумаг (39-ФЗ).
+                    Заключите договор с лицензированным регистратором для ведения реестра владельцев ценных бумаг
+                    (<LawReferenceLink Article="article-39fz-registrar" Text="ст. 8 39-ФЗ" />).
                 </div>
             </div>
         }
@@ -267,6 +268,7 @@
     private bool _isParticipant;
     private bool _isLlc;
     private bool _isPjsc;
+    private bool _isNjsc;
     private List<ContractView> _allContracts = new();
     private string? _globalError;
     private string? _legalEntityName;
@@ -295,6 +297,7 @@
                     .FirstOrDefaultAsync();
                 _isLlc = OkopfTypeMapper.IsLlc(le?.Code);
                 _isPjsc = OkopfTypeMapper.IsPjsc(le?.Code);
+                _isNjsc = OkopfTypeMapper.IsNjsc(le?.Code);
                 _legalEntityName = le?.ShortName;
             }
             _measurementUnitShortNames = await ctx.RefMeasurementUnits

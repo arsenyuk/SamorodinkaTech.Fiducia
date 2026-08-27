@@ -45,6 +45,10 @@ public static class OkopfTypeMapper
     public static bool IsLlc(string? okopfCode) =>
         string.Equals(okopfCode?.Trim(), LlcCode, StringComparison.Ordinal);
 
+    /// <summary>НАО — Непубличное акционерное общество (Non-Public Joint-Stock Company).</summary>
+    public static bool IsNjsc(string? okopfCode) =>
+        string.Equals(okopfCode?.Trim(), NjscCode, StringComparison.Ordinal);
+
     /// <summary>Человекочитаемая метка типа организации для сообщений об ошибках.</summary>
     public static string TypeLabel(OrgValidationType type) => type switch
     {

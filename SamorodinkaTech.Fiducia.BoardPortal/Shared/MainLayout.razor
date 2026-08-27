@@ -86,6 +86,22 @@ else
             _isInitialized = true;
             _userName = await JS.InvokeAsync<string>("localStorage.getItem", "currentUserName") ?? "Гость";
 
+            // Гард: при отсутствии авторизации не даём оставаться на защищённых маршрутах
+            try
+            {
+                var userId = await JS.InvokeAsync<string>("localStorage.getItem", "currentUserId");
+                var relative = NavigationManager.ToBaseRelativePath(NavigationManager.Uri).Trim('/');
+                var isPublicRoute = string.IsNullOrEmpty(relative)
+                    || relative == "/"
+                    || _publicPaths.Any(p => relative.StartsWith(p.TrimStart('/'), StringComparison.OrdinalIgnoreCase));
+                if (string.IsNullOrEmpty(userId) && !isPublicRoute)
+                {
+                    NavigationManager.NavigateTo("/login", true);
+                    return;
+                }
+            }
+            catch { }
+
             try
             {
                 await using var ctx = await DbFactory.CreateDbContextAsync();

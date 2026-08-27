@@ -1,8 +1,33 @@
 @inject NavigationManager Navigation
+@inject ISecurityAuditService AuditService
+@inject IHttpContextAccessor HttpContextAccessor
 
 @code {
-    protected override void OnInitialized()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        Navigation.NavigateTo($"/login?returnUrl={Uri.EscapeDataString(Navigation.Uri)}", forceLoad: true);
+        if (firstRender)
+        {
+            var httpCtx = HttpContextAccessor.HttpContext;
+            var path = httpCtx?.Request.Path.Value ?? "/";
+            var userIp = httpCtx?.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+            var userId = GetUserId(httpCtx);
+
+            await AuditService.LogEventAsync(
+                "PAGE_ACCESS_DENIED",
+                userIp,
+                $"Unauthorized access attempt: {path}",
+                userId: userId,
+                entityName: "Page",
+                entityId: null);
+
+            Navigation.NavigateTo($"/login?returnUrl={Uri.EscapeDataString(Navigation.Uri)}", forceLoad: true);
+        }
+    }
+
+    private static Guid? GetUserId(Microsoft.AspNetCore.Http.HttpContext? context)
+    {
+        var claim = context?.User?.FindFirst("sub")?.Value
+                  ?? context?.User?.FindFirst("user_id")?.Value;
+        return Guid.TryParse(claim, out var userId) ? userId : null;
     }
 }
