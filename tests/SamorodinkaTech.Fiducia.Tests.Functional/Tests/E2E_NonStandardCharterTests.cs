@@ -442,7 +442,7 @@ public class E2E_NonStandardCharterTests : BrowserFixture
         await CharterTestGlobalInit.InitializeAsync(adminPage, ldapPage);
 
         // Сидирование: логин + создание ЮЛ + роли (один раз)
-        await CharterTestSeeder.EnsureSeededAsync(adminPage, ldapPage);
+        await CharterTestSeeder.EnsureSeededAsync(adminPage, entityIndex);
 
         // Получение фиксированных данных
         var entity = CharterTestDataFixed.LegalEntities[entityIndex - 1];

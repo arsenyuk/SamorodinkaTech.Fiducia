@@ -125,15 +125,19 @@ public class E2E_StandardCharterTests : BrowserFixture
         await CharterTestGlobalInit.InitializeAsync(adminPage, ldapPage);
 
         // Сидирование (один раз): создание ЮЛ + пользователей + ролей
-        await CharterTestSeeder.EnsureSeededAsync(adminPage, ldapPage);
+        await CharterTestSeeder.EnsureSeededAsync(adminPage, charterNumber);
 
         // Получение данных для данного ЮЛ
+        var entity = CharterTestDataFixed.LegalEntities[charterNumber - 1];
         var persons = CharterTestDataFixed.PersonsByEntity[charterNumber];
 
         // Логин ГД в Board Portal
         var gdLogin = persons.Gd?.Login ?? persons.Participants[0].Login;
         await AuthHelper.LoginAsBoardUserAsync(boardPage, gdLogin);
         boardPage.Url.Should().Contain("/main");
+
+        // Выбор ЮЛ в Board Portal (после логина ЮЛ не выбрано автоматически)
+        await SelectLegalEntityAsync(boardPage, entity);
 
         return (adminPage, boardPage, ldapPage, gdLogin);
     }
@@ -188,6 +192,50 @@ public class E2E_StandardCharterTests : BrowserFixture
         }
 
         await AuditLogHelper.AssertNoAccessDeniedAsync();
+    }
+
+    /// <summary>
+    /// Выбрать ЮЛ в Board Portal после логина. После входа ГД ЮЛ не выбрано автоматически.
+    /// </summary>
+    private static async Task SelectLegalEntityAsync(IPage boardPage, CharterTestDataFixed.LegalEntityRecord entity)
+    {
+        await boardPage.GotoAsync(PortalUrls.GetUrl(Portal.BoardPortal, "/legal-entities"));
+        await AuthHelper.WaitForBlazorReady(boardPage);
+        await boardPage.WaitForTimeoutAsync(2000);
+
+        // Ищем select (dropdown) с ЮЛ и выбираем по ИНН
+        var selected = await boardPage.EvaluateAsync<bool>(
+            $@"() => {{
+                const selects = document.querySelectorAll('select.form-select');
+                for (const sel of selects) {{
+                    for (const opt of sel.options) {{
+                        if (opt.text.includes('{entity.Inn}') || opt.text.includes('{entity.ShortName}')) {{
+                            sel.value = opt.value;
+                            sel.dispatchEvent(new Event('change', {{ bubbles: true }}));
+                            return true;
+                        }}
+                    }}
+                }}
+                return false;
+            }}");
+
+        if (!selected)
+        {
+            // Fallback: кликаем по имени ЮЛ в таблице/списке
+            await boardPage.EvaluateAsync(
+                $@"() => {{
+                    const elements = document.querySelectorAll('td, a, button, span, div');
+                    for (const el of elements) {{
+                        const text = el.textContent || '';
+                        if (text.includes('{entity.Inn}') || text.includes('{entity.ShortName}')) {{
+                            el.click();
+                            return;
+                        }}
+                    }}
+                }}");
+        }
+
+        await boardPage.WaitForTimeoutAsync(1000);
     }
 
     private static async Task CleanupAsync(IPage adminPage, IPage boardPage, IPage ldapPage)
