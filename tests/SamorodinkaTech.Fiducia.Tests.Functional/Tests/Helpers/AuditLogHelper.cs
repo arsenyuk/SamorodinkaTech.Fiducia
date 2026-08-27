@@ -11,11 +11,26 @@ namespace SamorodinkaTech.Fiducia.Tests.Functional.Helpers;
 /// </summary>
 public static partial class AuditLogHelper
 {
+    private static readonly string ProjectRoot = FindProjectRoot();
+
     private static readonly string[] AuditLogDirectories =
     [
-        "./SamorodinkaTech.Fiducia.BoardPortal/logs/audit",
-        "./SamorodinkaTech.Fiducia.AdminConsole/logs/audit"
+        Path.Combine(ProjectRoot, "SamorodinkaTech.Fiducia.BoardPortal", "logs", "audit"),
+        Path.Combine(ProjectRoot, "SamorodinkaTech.Fiducia.AdminConsole", "logs", "audit")
     ];
+
+    private static string FindProjectRoot()
+    {
+        var dir = AppContext.BaseDirectory;
+        while (dir is not null)
+        {
+            if (Directory.GetFiles(dir, "*.sln").Length > 0 ||
+                Directory.GetFiles(dir, "*.slnx").Length > 0)
+                return dir;
+            dir = Directory.GetParent(dir)?.FullName;
+        }
+        return Directory.GetCurrentDirectory();
+    }
 
     // Парсер строки аудита: [timestamp] [AUDIT] actionCode
     // Пример: [2026-08-27 07:41:52] [AUDIT] LOGIN_SUCCESS | ...
@@ -40,15 +55,18 @@ public static partial class AuditLogHelper
             throw new DirectoryNotFoundException(
                 $"Директория с логами аудита не найдена. Проверены: {string.Join(", ", AuditLogDirectories)}");
 
-        var fileName = $"audit-{DateTime.UtcNow:yyyyMMddHH}.log";
         var files = dirs
-            .Select(d => Path.Combine(d, fileName))
-            .Where(File.Exists)
+            .SelectMany(d =>
+            {
+                try { return Directory.GetFiles(d, "audit-*.log"); }
+                catch { return Array.Empty<string>(); }
+            })
+            .OrderByDescending(f => f)
             .ToArray();
 
         if (files.Length == 0)
             throw new FileNotFoundException(
-                $"Файл лога аудита не найден ({fileName}). Проверены: {string.Join(", ", dirs)}");
+                $"Файлы лога аудита не найдены (audit-*.log). Проверены: {string.Join(", ", dirs)}");
 
         return files;
     }

@@ -57,6 +57,24 @@ public static class BoardPortalHelper
             }");
         await page.WaitForTimeoutAsync(500);
 
+        // Выбрать ОКОПФ = "12300" (ООО) если ещё не установлен
+        await page.EvaluateAsync(
+            @"() => {
+                const selects = document.querySelectorAll('select.form-select-sm');
+                for (const sel of selects) {
+                    for (const opt of sel.options) {
+                        if (opt.value === '12300') {
+                            if (sel.value !== '12300') {
+                                sel.value = '12300';
+                                sel.dispatchEvent(new Event('change', { bubbles: true }));
+                            }
+                            return;
+                        }
+                    }
+                }
+            }");
+        await page.WaitForTimeoutAsync(500);
+
         // Fill editable fields if they exist as inputs
         if (shortName is not null)
         {
@@ -455,10 +473,10 @@ public static class BoardPortalHelper
     }
 
     /// <summary>DTO-ответ при добавлении участника.</summary>
-    private record AddParticipantResponse(Guid Id);
+    private class AddParticipantResponse { public Guid Id { get; set; } }
 
     /// <summary>DTO-ответ при получении списка участников.</summary>
-    private record ParticipantListResponse(int Count);
+    private class ParticipantListResponse { public int Count { get; set; } }
 
     private static string EscapeJs(string value) => value.Replace("'", "\\'").Replace("\\", "\\\\");
 }

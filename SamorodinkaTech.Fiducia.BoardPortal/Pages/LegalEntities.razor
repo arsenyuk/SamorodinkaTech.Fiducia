@@ -86,8 +86,16 @@ else if (_legalEntity is not null)
                             <dt class="col-sm-4 text-muted fw-normal">ОГРН</dt>
                             <dd class="col-sm-8">@(_legalEntity.Ogrn ?? "—")</dd>
 
-                            <dt class="col-sm-4 text-muted fw-normal">ОКОПФ</dt>
-                            <dd class="col-sm-8">@(_legalEntity.RefOkopf?.Name ?? "—")</dd>
+                            <dt class="col-sm-4 text-muted fw-normal">ОКОПФ *</dt>
+                            <dd class="col-sm-8">
+                                <select class="form-select form-select-sm" @bind="_selectedOkopfCode">
+                                    <option value="">— выбрать —</option>
+                                    @foreach (var okopf in _okopfList)
+                                    {
+                                        <option value="@okopf.Code">@okopf.Name</option>
+                                    }
+                                </select>
+                            </dd>
                         </dl>
                     </div>
                 </div>
@@ -174,6 +182,10 @@ else
     private OrgValidationType _orgType = OrgValidationType.Unknown;
     private bool _hasBoardOfDirectors;
 
+    // ОКОПФ
+    private string _selectedOkopfCode = "";
+    private List<RefOkopf> _okopfList = new();
+
     // Интервал ГОСА
     private int _gosaStartDay = 1;
     private int _gosaStartMonth = 3;
@@ -223,6 +235,10 @@ else
 
             Logger.LogDebug("LegalEntities: загружено ЮЛ {LegalEntityName} (ИНН {Inn})", _legalEntity.Name, _legalEntity.Inn);
 
+            // Загружаем справочник ОКОПФ
+            _okopfList = await ctx.RefOkopf.OrderBy(o => o.Name).ToListAsync();
+            _selectedOkopfCode = _legalEntity.RefOkopf?.Code ?? "";
+
             // Определяем тип организации
             if (_legalEntity.RefOkopf?.Code is not null)
             {
@@ -254,7 +270,33 @@ else
 
         try
         {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+            var le = await ctx.LegalEntities.FindAsync(_legalEntity.Id);
+            if (le is null) return;
+
+            // Сохраняем ОКОПФ
+            if (!string.IsNullOrEmpty(_selectedOkopfCode))
+            {
+                var okopf = await ctx.RefOkopf.FirstOrDefaultAsync(o => o.Code == _selectedOkopfCode);
+                if (okopf != null)
+                {
+                    le.OkopfId = okopf.Id;
+                    Logger.LogDebug("LegalEntities: ОКОПФ установлен = {Code} ({Name})", okopf.Code, okopf.Name);
+                }
+            }
+
+            await ctx.SaveChangesAsync();
             _successMessage = "Настройки сохранены.";
+
+            // Обновляем локальное состояние
+            _legalEntity = await ctx.LegalEntities
+                .Include(le => le.RefOkopf)
+                .FirstOrDefaultAsync(le => le.Id == _legalEntity.Id);
+
+            if (_legalEntity?.RefOkopf?.Code is not null)
+                _orgType = OkopfTypeMapper.DetectType(_legalEntity.RefOkopf.Code);
+
+            _hasBoardOfDirectors = _orgType != OrgValidationType.Unknown;
         }
         catch (Exception ex)
         {
