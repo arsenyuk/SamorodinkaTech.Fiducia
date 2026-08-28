@@ -384,20 +384,32 @@ public static class BoardPortalHelper
     /// </summary>
     public static async Task AssertNonStandardCharterFieldsVisibleAsync(IPage page)
     {
-        var hasCustomFields = await page.EvaluateAsync<bool>(
-            @"() => {
-                // Проверяем наличие полей данных нетипового устава:
-                // либо checkboxes с data-testid, либо конкретные элементы формы
-                const checkboxes = document.querySelectorAll('input[type=""checkbox""]');
-                const selects = document.querySelectorAll('select');
-                const textInputs = document.querySelectorAll('input[type=""text""], input[type=""number""]');
+        var content = await page.ContentAsync();
 
-                // Нетиповой устав показывает минимум 3+ элементов управления
-                // (в отличие от типового, где только 1 select с номерами 01-36)
-                return (checkboxes.length + selects.length + textInputs.length) >= 3;
-            }");
-        hasCustomFields.Should().BeTrue(
-            "Поля нетипового устава (checkboxes, selects, inputs) должны быть видны после выбора 'Нетиповой'");
+        // Все 17 параметров нетипового устава
+        content.Should().Contain("Исполнительный орган",
+            "Нетиповой устав: 'Исполнительный орган'");
+        content.Should().Contain("Выход участника",
+            "Нетиповой устав: 'Выход участника'");
+        content.Should().Contain("Преимущественное право",
+            "Нетиповой устав: 'Преимущественное право'");
+        content.Should().Contain("Совет директоров",
+            "Нетиповой устав: 'Совет директоров'");
+        content.Should().Contain("Подтверждение протокола",
+            "Нетиповой устав: 'Подтверждение протокола'");
+        content.Should().Contain("Обязательный аудит",
+            "Нетиповой устав: 'Обязательный аудит'");
+        content.Should().Contain("Ревизионная комиссия",
+            "Нетиповой устав: 'Ревизионная комиссия'");
+        content.Should().Contain("Срок полномочий",
+            "Нетиповой устав: 'Срок полномочий'");
+        content.Should().Contain("Переход доли к наследникам",
+            "Нетиповой устав: 'Переход доли к наследникам'");
+
+        // Проверяем наличие select-элементов (минимум 6: ExecutiveBody, Exit, Preemptive, Board, Audit, Revision)
+        var selects = page.Locator("select.form-select");
+        (await selects.CountAsync()).Should().BeGreaterThanOrEqualTo(6,
+            "Нетиповой устав должен содержать минимум 6 select для параметров");
     }
 
     /// <summary>
