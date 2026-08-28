@@ -74,44 +74,6 @@ public static class BoardPortalHelper
             }");
         await page.WaitForTimeoutAsync(500);
 
-        // Выбрать ОКОПФ = "12300" (ООО) если ещё не установлен
-        await page.EvaluateAsync(
-            @"() => {
-                const selects = document.querySelectorAll('select.form-select-sm');
-                for (const sel of selects) {
-                    for (const opt of sel.options) {
-                        if (opt.value === '12300') {
-                            if (sel.value !== '12300') {
-                                sel.value = '12300';
-                                sel.dispatchEvent(new Event('change', { bubbles: true }));
-                            }
-                            return;
-                        }
-                    }
-                }
-            }");
-        await page.WaitForTimeoutAsync(500);
-
-        // Проверяем наличие ОКОПФ и устанавливаем "12300" (ООО)
-        var okopfSelect = await page.QuerySelectorAsync("select.form-select-sm");
-        okopfSelect.Should().NotBeNull("Поле ОКОПФ должно быть доступно на вкладке 'Карточка ЮЛ'");
-        await page.EvaluateAsync(
-            @"() => {
-                const selects = document.querySelectorAll('select.form-select-sm');
-                for (const sel of selects) {
-                    for (const opt of sel.options) {
-                        if (opt.value === '12300') {
-                            if (sel.value !== '12300') {
-                                sel.value = '12300';
-                                sel.dispatchEvent(new Event('change', { bubbles: true }));
-                            }
-                            return;
-                        }
-                    }
-                }
-            }");
-        await page.WaitForTimeoutAsync(500);
-
         // Fill editable fields if they exist as inputs
         if (shortName is not null)
         {

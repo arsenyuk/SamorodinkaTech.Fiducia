@@ -101,26 +101,29 @@ public static class AdminConsoleHelper
         // Wait for modal to appear
         await page.WaitForSelectorAsync(".modal.show", new PageWaitForSelectorOptions { Timeout = DefaultTimeout });
 
-        // Fill name — FillAsync dispatches 'input' but Blazor @bind needs 'change'
+        // Проверяем наличие полей в модальном окне
+        var modalInputs = await page.QuerySelectorAllAsync(".modal input.form-control");
+        if (modalInputs.Count < 2)
+            throw new InvalidOperationException(
+                "Модальное окно 'Создать ЮЛ' должно содержать минимум 2 поля (Наименование + ИНН)");
+
         var nameInput = await page.QuerySelectorAsync(".modal input.form-control");
-        if (nameInput is not null)
-        {
-            await nameInput.FillAsync(name);
-            await nameInput.DispatchEventAsync("change");
-        }
+        if (nameInput is null)
+            throw new InvalidOperationException(
+                "Модальное окно 'Создать ЮЛ' должно содержать поле 'Наименование'");
+
+        var innInput = await page.QuerySelectorAsync(".modal input[maxlength='12']");
+        if (innInput is null)
+            throw new InvalidOperationException(
+                "Модальное окно 'Создать ЮЛ' должно содержать поле 'ИНН' (maxlength=12)");
+
+        // Fill name
+        await nameInput.FillAsync(name);
+        await nameInput.DispatchEventAsync("change");
 
         // Fill INN — find input with maxlength=12
-        var allModalInputs = await page.QuerySelectorAllAsync(".modal input.form-control");
-        foreach (var input in allModalInputs)
-        {
-            var maxLength = await input.GetAttributeAsync("maxlength");
-            if (maxLength == "12")
-            {
-                await input.FillAsync(inn);
-                await input.DispatchEventAsync("change");
-                break;
-            }
-        }
+        await innInput!.FillAsync(inn);
+        await innInput.DispatchEventAsync("change");
 
         // Wait for Blazor to process change events and enable the button
         await page.WaitForFunctionAsync(
