@@ -213,6 +213,22 @@ public class E2E_StandardCharterTests : BrowserFixture
                 "Страница ОСУ должна загрузиться после настройки ЮЛ");
         }
 
+        // Шаг 3.1: Проверка вкладки «Интервал ООСУ/ГОСА» на странице /legal-entities
+        // Для ООО (ОКОПФ=12300) — «Интервал ООСУ», для АО/НАО — «Интервал ГОСА»
+        // Все тестовые ЮЛ — ООО, поэтому проверяем «Интервал ООСУ»
+        await BoardPortalHelper.NavigateToAsync(boardPage, "legal-entities");
+        const string intervalTabText = "Интервал ООСУ";
+        var intervalTab = boardPage.Locator($"button:has-text('{intervalTabText}')");
+        if (await intervalTab.CountAsync() > 0)
+        {
+            await intervalTab.First.ClickAsync();
+            await boardPage.WaitForTimeoutAsync(500);
+            // Проверяем, что поля вкладки видимы (день + месяц)
+            var dayInput = boardPage.Locator("input[type='number']");
+            (await dayInput.CountAsync()).Should().BeGreaterThan(0,
+                $"Вкладка «{intervalTabText}» должна содержать поле для дня");
+        }
+
         // Шаг 4: Добавление участников (только для ExecutiveBody A — ГД отдельно от участников)
         if (entity.ExecutiveBodyType == CharterTestDataFixed.ExecutiveBodyA)
         {

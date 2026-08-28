@@ -40,9 +40,18 @@ else if (_legalEntity is not null)
                 <li class="nav-item">
                     <button class="nav-link @(_activeTab == 0 ? "active" : "")" @onclick="() => _activeTab = 0">Карточка ЮЛ</button>
                 </li>
-                <li class="nav-item">
-                    <button class="nav-link @(_activeTab == 1 ? "active" : "")" @onclick="() => _activeTab = 1">Интервал ГОСА</button>
-                </li>
+                @if (_orgType == OrgValidationType.LLC)
+                {
+                    <li class="nav-item">
+                        <button class="nav-link @(_activeTab == 1 ? "active" : "")" @onclick="() => _activeTab = 1">Интервал ООСУ</button>
+                    </li>
+                }
+                else
+                {
+                    <li class="nav-item">
+                        <button class="nav-link @(_activeTab == 1 ? "active" : "")" @onclick="() => _activeTab = 1">Интервал ГОСА</button>
+                    </li>
+                }
                 <li class="nav-item">
                     <button class="nav-link @(_activeTab == 2 ? "active" : "")" @onclick="() => _activeTab = 2">Документооборот</button>
                 </li>
@@ -78,13 +87,21 @@ else if (_legalEntity is not null)
                             <dd class="col-sm-8">@_legalEntity.Name</dd>
 
                             <dt class="col-sm-4 text-muted fw-normal">Краткое наименование</dt>
-                            <dd class="col-sm-8">@(_legalEntity.ShortName ?? "—")</dd>
+                            <dd class="col-sm-8">
+                                <input type="text" class="form-control form-control-sm" placeholder="Краткое наименование"
+                                       value="@(_legalEntity.ShortName ?? "")"
+                                       @onchange="e => _newShortName = e.Value?.ToString()" />
+                            </dd>
 
                             <dt class="col-sm-4 text-muted fw-normal">ИНН</dt>
                             <dd class="col-sm-8">@_legalEntity.Inn</dd>
 
                             <dt class="col-sm-4 text-muted fw-normal">ОГРН</dt>
-                            <dd class="col-sm-8">@(_legalEntity.Ogrn ?? "—")</dd>
+                            <dd class="col-sm-8">
+                                <input type="text" class="form-control form-control-sm" placeholder="ОГРН"
+                                       value="@(_legalEntity.Ogrn ?? "")"
+                                       @onchange="e => _newOgrn = e.Value?.ToString()" />
+                            </dd>
 
                             <dt class="col-sm-4 text-muted fw-normal">ОКОПФ *</dt>
                             <dd class="col-sm-8">
@@ -105,11 +122,11 @@ else if (_legalEntity is not null)
             {
                 <div class="row g-3">
                     <div class="col-md-6">
-                        <label class="form-label">Начало ГОСА (день)</label>
+                        <label class="form-label">Начало @(_orgType == OrgValidationType.LLC ? "ООСУ" : "ГОСА") (день)</label>
                         <input type="number" class="form-control" @bind="_gosaStartDay" min="1" max="31" />
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label">Начало ГОСА (месяц)</label>
+                        <label class="form-label">Начало @(_orgType == OrgValidationType.LLC ? "ООСУ" : "ГОСА") (месяц)</label>
                         <select class="form-select" @bind="_gosaStartMonth">
                             <option value="1">Январь</option>
                             <option value="2">Февраль</option>
@@ -182,6 +199,12 @@ else
     private OrgValidationType _orgType = OrgValidationType.Unknown;
     private bool _hasBoardOfDirectors;
 
+    // Краткое наименование (редактируемое)
+    private string? _newShortName;
+
+    // ОГРН (редактируемое)
+    private string? _newOgrn;
+
     // ОКОПФ
     private string _selectedOkopfCode = "";
     private List<RefOkopf> _okopfList = new();
@@ -238,6 +261,8 @@ else
             // Загружаем справочник ОКОПФ
             _okopfList = await ctx.RefOkopf.OrderBy(o => o.Name).ToListAsync();
             _selectedOkopfCode = _legalEntity.RefOkopf?.Code ?? "";
+            _newShortName = _legalEntity.ShortName;
+            _newOgrn = _legalEntity.Ogrn;
 
             // Определяем тип организации
             if (_legalEntity.RefOkopf?.Code is not null)
@@ -283,6 +308,20 @@ else
                     le.OkopfId = okopf.Id;
                     Logger.LogDebug("LegalEntities: ОКОПФ установлен = {Code} ({Name})", okopf.Code, okopf.Name);
                 }
+            }
+
+            // Сохраняем краткое наименование
+            if (_newShortName is not null && _newShortName != le.ShortName)
+            {
+                le.ShortName = _newShortName;
+                Logger.LogDebug("LegalEntities: краткое наименование установлено = {ShortName}", _newShortName);
+            }
+
+            // Сохраняем ОГРН
+            if (_newOgrn is not null && _newOgrn != le.Ogrn)
+            {
+                le.Ogrn = _newOgrn;
+                Logger.LogDebug("LegalEntities: ОГРН установлен = {Ogrn}", _newOgrn);
             }
 
             await ctx.SaveChangesAsync();
