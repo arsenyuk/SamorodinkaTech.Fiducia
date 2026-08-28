@@ -1915,6 +1915,36 @@ public class US0XX_FeatureTests : BrowserFixture
 - [ ] `docs/e2e-tests.md` обновлён (маппинг бизнес-процесс → тест)
 - [ ] Существующие E2E-тесты не сломаны (ревизия)
 
+### E2E-тесты: навигация через UI, не через URL (КРИТИЧНО)
+
+В сквозных тестах **запрещено** переходить на страницы сайта напрямую через URL
+(`page.GotoAsync("/legal-entities")` и т.п.), за исключением:
+- Страниц входа (`/login`)
+- Страниц, для которых явно указано прямое обращение в описании теста
+
+**Обязательный паттерн**: навигация через элементы интерфейса — меню, ссылки, кнопки.
+
+```csharp
+// ❌ Запрещено
+await page.GotoAsync(PortalUrls.GetUrl(Portal.BoardPortal, "/legal-entities"));
+
+// ✅ Правильно: клик по пункту меню
+await page.ClickAsync("a[href='legal-entities']");
+await AuthHelper.WaitForBlazorReady(page);
+```
+
+```csharp
+// ❌ Запрещено
+await page.GotoAsync(PortalUrls.GetUrl(Portal.AdminConsole, "/access-management"));
+
+// ✅ Правильно: клик по пункту меню
+await page.ClickAsync("a[href='access-management']");
+await AuthHelper.WaitForBlazorReady(page);
+```
+
+Причина: E2E-тест проверяет реальный сценарий пользователя. Прямой переход
+по URL обходит навигацию и не тестирует корректность работы меню/ссылок.
+
 ### Сквозные тесты = E2E-тесты (КРИТИЧНО)
 
 Термин **«сквозные тесты»** в проекте означает **E2E-тесты** (end-to-end, сквозные). Это синонимы.

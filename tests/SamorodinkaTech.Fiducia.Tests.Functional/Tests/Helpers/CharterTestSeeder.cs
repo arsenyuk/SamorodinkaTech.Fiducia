@@ -94,9 +94,7 @@ public static class CharterTestSeeder
 
         // ── Создание ЮЛ + назначение ролей ───────────────────────────
         Console.WriteLine($"[Seeder] ЮЛ {charterNumber}: создание ЮЛ и назначение ролей...");
-        await adminPage.GotoAsync(PortalUrls.GetUrl(Portal.AdminConsole, "/access-management"));
-        await AuthHelper.WaitForBlazorReady(adminPage);
-        await adminPage.WaitForTimeoutAsync(1000);
+        await AdminConsoleHelper.NavigateToAsync(adminPage, "/access-management");
 
         Console.WriteLine($"[Seeder] ЮЛ {charterNumber}: {entity.Name} (ИНН {entity.Inn})...");
         await AdminConsoleHelper.CreateLegalEntityAsync(adminPage, entity.Name, entity.Inn);

@@ -10,13 +10,29 @@ public static class AdminConsoleHelper
     private const int DefaultTimeout = 15_000;
 
     /// <summary>
+    /// Навигация через меню Admin Console. Кликает по ссылке в левом меню.
+    /// </summary>
+    public static async Task NavigateToAsync(IPage page, string menuHref)
+    {
+        var link = page.Locator($"a[href='{menuHref}']");
+        if (await link.CountAsync() > 0)
+        {
+            await link.First.ClickAsync();
+        }
+        else
+        {
+            await page.ClickAsync($"a[href='{menuHref}']");
+        }
+        await AuthHelper.WaitForBlazorReady(page);
+        await page.WaitForTimeoutAsync(2000);
+    }
+
+    /// <summary>
     /// Создать пользователя на странице /users через UI.
     /// </summary>
     public static async Task CreateUserViaUiAsync(IPage page, string login, string lastName, string firstName, string middleName, string email)
     {
-        await page.GotoAsync(PortalUrls.GetUrl(Portal.AdminConsole, "/users"));
-        await AuthHelper.WaitForBlazorReady(page);
-        await page.WaitForTimeoutAsync(2000);
+        await NavigateToAsync(page, "/users");
 
         // Клик "+ Добавить"
         await page.ClickAsync("button.btn-primary:has-text('Добавить')");
@@ -72,9 +88,7 @@ public static class AdminConsoleHelper
     {
         if (!page.Url.Contains("/access-management"))
         {
-            await page.GotoAsync(PortalUrls.GetUrl(Portal.AdminConsole, "/access-management"));
-            await AuthHelper.WaitForBlazorReady(page);
-            await page.WaitForTimeoutAsync(3000);
+            await NavigateToAsync(page, "/access-management");
         }
 
         // Дождаться кнопки "+ Создать ЮЛ"
@@ -127,9 +141,7 @@ public static class AdminConsoleHelper
             new PageWaitForFunctionOptions { Timeout = DefaultTimeout });
 
         // Reload page to refresh entity list, then select the newly created entity
-        await page.GotoAsync(PortalUrls.GetUrl(Portal.AdminConsole, "/access-management"));
-        await AuthHelper.WaitForBlazorReady(page);
-        await page.WaitForTimeoutAsync(3000);
+        await NavigateToAsync(page, "/access-management");
 
         // Wait for entity list to load (select must have >1 option)
         await page.WaitForFunctionAsync(
@@ -175,9 +187,7 @@ public static class AdminConsoleHelper
         // Ensure we're on the access management page
         if (!page.Url.Contains("/access-management"))
         {
-            await page.GotoAsync(PortalUrls.GetUrl(Portal.AdminConsole, "/access-management"));
-            await AuthHelper.WaitForBlazorReady(page);
-            await page.WaitForTimeoutAsync(3000);
+            await NavigateToAsync(page, "/access-management");
         }
 
         // Гарантируем, что ЮЛ выбрано (после LoadEmployeesAsync выбор может сброситься)

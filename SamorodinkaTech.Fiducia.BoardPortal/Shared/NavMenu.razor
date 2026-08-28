@@ -13,6 +13,11 @@
 </div>
 
 <div class="@NavMenuCssClass nav-scrollable" @onclick="ToggleNavMenu">
+    <div class="nav-item px-3">
+        <NavLink class="nav-link" href="legal-entities">
+            <span class="oi oi-briefcase" aria-hidden="true"></span> Юридическое лицо
+        </NavLink>
+    </div>
     <nav class="flex-column">
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="meetings">
@@ -127,16 +132,30 @@
             _isCeo = user.IsInRole("CEO");
 
             await using var ctx = await DbFactory.CreateDbContextAsync();
-            var workplace = await ctx.CurrentWorkplaces.FirstOrDefaultAsync();
-            var leId = workplace?.LastSelectedLegalEntityId;
-            if (leId is not null && leId != Guid.Empty)
+
+            // Определяем ЮЛ через EcosystemParticipant по login из JWT
+            var userIdStr = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            string? login = null;
+            if (Guid.TryParse(userIdStr, out var userId))
             {
-                var le = await ctx.LegalEntities
-                    .Where(x => x.Id == leId.Value)
-                    .Select(x => new { x.Name, x.RefOkopf!.Code })
-                    .FirstOrDefaultAsync();
-                _isLlc = GosaSvc.IsLlc(le?.Code);
-                _legalEntityName = le?.Name ?? "Fiducia";
+                var userEntity = await ctx.Users.FindAsync(userId);
+                login = userEntity?.Login;
+            }
+
+            if (!string.IsNullOrEmpty(login))
+            {
+                var participant = await ctx.EcosystemParticipants
+                    .FirstOrDefaultAsync(ep => ep.Login == login);
+
+                if (participant is not null)
+                {
+                    var le = await ctx.LegalEntities
+                        .Where(x => x.Id == participant.LegalEntityId)
+                        .Select(x => new { x.Name, OkopfCode = x.RefOkopf != null ? x.RefOkopf.Code : null })
+                        .FirstOrDefaultAsync();
+                    _isLlc = GosaSvc.IsLlc(le?.OkopfCode);
+                    _legalEntityName = le?.Name ?? "Fiducia";
+                }
             }
         }
         catch { /* fallback: показываем ОСА */ }

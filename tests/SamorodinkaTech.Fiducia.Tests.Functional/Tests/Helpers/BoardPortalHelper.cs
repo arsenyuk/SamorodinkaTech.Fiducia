@@ -11,6 +11,24 @@ public static class BoardPortalHelper
     private const int DefaultTimeout = 15_000;
 
     /// <summary>
+    /// Навигация через меню Board Portal. Кликает по ссылке в левом меню.
+    /// </summary>
+    public static async Task NavigateToAsync(IPage page, string menuHref)
+    {
+        var link = page.Locator($"a[href='{menuHref}']");
+        if (await link.CountAsync() > 0)
+        {
+            await link.First.ClickAsync();
+        }
+        else
+        {
+            await page.ClickAsync($"a[href='{menuHref}']");
+        }
+        await AuthHelper.WaitForBlazorReady(page);
+        await page.WaitForTimeoutAsync(2000);
+    }
+
+    /// <summary>
     /// Заполнить основные поля ЮЛ на странице /legal-entities.
     /// </summary>
     public static async Task FillLegalEntityFieldsAsync(
@@ -18,8 +36,7 @@ public static class BoardPortalHelper
         string? shortName = null,
         string? ogrn = null)
     {
-        await page.GotoAsync(PortalUrls.GetUrl(Portal.BoardPortal, "/legal-entities"));
-        await AuthHelper.WaitForBlazorReady(page);
+        await NavigateToAsync(page, "legal-entities");
 
         // Ждём загрузки данных ЮЛ (вкладка "Карточка ЮЛ" появляется только после загрузки)
         try
@@ -119,9 +136,7 @@ public static class BoardPortalHelper
         // Navigate to legal entities page if not already there
         if (!page.Url.Contains("/legal-entities"))
         {
-            await page.GotoAsync(PortalUrls.GetUrl(Portal.BoardPortal, "/legal-entities"));
-            await AuthHelper.WaitForBlazorReady(page);
-            await page.WaitForTimeoutAsync(1000);
+            await NavigateToAsync(page, "legal-entities");
         }
 
         // Click on "Устав" tab (tab index 3, only for LLC)
@@ -214,9 +229,7 @@ public static class BoardPortalHelper
     {
         if (!page.Url.Contains("/legal-entities"))
         {
-            await page.GotoAsync(PortalUrls.GetUrl(Portal.BoardPortal, "/legal-entities"));
-            await AuthHelper.WaitForBlazorReady(page);
-            await page.WaitForTimeoutAsync(1000);
+            await NavigateToAsync(page, "legal-entities");
         }
 
         // Click "Устав" tab
