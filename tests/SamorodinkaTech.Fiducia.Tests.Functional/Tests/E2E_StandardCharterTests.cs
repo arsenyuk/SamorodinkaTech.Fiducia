@@ -201,6 +201,38 @@ public class E2E_StandardCharterTests : BrowserFixture
         hasErrors.Should().BeFalse(
             $"Для типового устава №{charterNumber} не должно быть ошибок");
 
+        // Шаг 2.1: Проверка параметров типового устава на вкладке «Устав»
+        await BoardPortalHelper.NavigateToAsync(boardPage, "legal-entities");
+        var charterTab = boardPage.Locator("button:has-text('Устав')");
+        if (await charterTab.CountAsync() > 0)
+        {
+            await charterTab.First.ClickAsync();
+            await boardPage.WaitForTimeoutAsync(500);
+
+            var charterContent = await boardPage.ContentAsync();
+            var charterNumStr = charterNumber.ToString("D2");
+
+            // Заголовок устава
+            charterContent.Should().Contain($"Типовой устав № {charterNumStr}",
+                $"Устав №{charterNumber}: должен отображаться заголовок");
+
+            // Все 7 параметров типового устава
+            charterContent.Should().Contain("Исполнительный орган",
+                $"Устав №{charterNumber}: параметр 'Исполнительный орган'");
+            charterContent.Should().Contain("Выход участника",
+                $"Устав №{charterNumber}: параметр 'Выход участника'");
+            charterContent.Should().Contain("Переход доли к участникам",
+                $"Устав №{charterNumber}: параметр 'Переход доли к участникам'");
+            charterContent.Should().Contain("Переход доли к третьим лицам",
+                $"Устав №{charterNumber}: параметр 'Переход доли к третьим лицам'");
+            charterContent.Should().Contain("Преимущественное право",
+                $"Устав №{charterNumber}: параметр 'Преимущественное право'");
+            charterContent.Should().Contain("Переход доли наследникам",
+                $"Устав №{charterNumber}: параметр 'Переход доли наследникам'");
+            charterContent.Should().Contain("Подтверждение протокола",
+                $"Устав №{charterNumber}: параметр 'Подтверждение протокола'");
+        }
+
         // Шаг 3: Переход на ОСУ — страница должна загрузиться после настройки ЮЛ
         // (ОСУ доступна только для ООО — если ссылка есть в меню, проверяем)
         var osuLink = boardPage.Locator("a[href='osu-meetings']");
