@@ -92,16 +92,46 @@ public static class BoardPortalHelper
             }");
         await page.WaitForTimeoutAsync(500);
 
+        // Проверяем наличие ОКОПФ и устанавливаем "12300" (ООО)
+        var okopfSelect = await page.QuerySelectorAsync("select.form-select-sm");
+        okopfSelect.Should().NotBeNull("Поле ОКОПФ должно быть доступно на вкладке 'Карточка ЮЛ'");
+        await page.EvaluateAsync(
+            @"() => {
+                const selects = document.querySelectorAll('select.form-select-sm');
+                for (const sel of selects) {
+                    for (const opt of sel.options) {
+                        if (opt.value === '12300') {
+                            if (sel.value !== '12300') {
+                                sel.value = '12300';
+                                sel.dispatchEvent(new Event('change', { bubbles: true }));
+                            }
+                            return;
+                        }
+                    }
+                }
+            }");
+        await page.WaitForTimeoutAsync(500);
+
         // Fill editable fields if they exist as inputs
         if (shortName is not null)
         {
+            var shortNameInput = await page.EvaluateAsync<bool>(
+                @"() => {
+                    const inputs = document.querySelectorAll('input');
+                    for (const input of inputs) {
+                        const ph = (input.placeholder || '').toLowerCase();
+                        if (ph.includes('краткое')) return true;
+                    }
+                    return false;
+                }");
+            shortNameInput.Should().BeTrue("Поле 'Краткое наименование' должно быть доступно");
+
             await page.EvaluateAsync(
                 $@"() => {{
                     const inputs = document.querySelectorAll('input');
                     for (const input of inputs) {{
                         const ph = (input.placeholder || '').toLowerCase();
-                        const nm = (input.name || '').toLowerCase();
-                        if (ph.includes('краткое') || nm.includes('shortname')) {{
+                        if (ph.includes('краткое')) {{
                             input.value = '{EscapeJs(shortName)}';
                             input.dispatchEvent(new Event('input', {{ bubbles: true }}));
                             return;
@@ -112,13 +142,23 @@ public static class BoardPortalHelper
 
         if (ogrn is not null)
         {
+            var ogrnInput = await page.EvaluateAsync<bool>(
+                @"() => {
+                    const inputs = document.querySelectorAll('input');
+                    for (const input of inputs) {
+                        const ph = (input.placeholder || '').toLowerCase();
+                        if (ph.includes('огрн')) return true;
+                    }
+                    return false;
+                }");
+            ogrnInput.Should().BeTrue("Поле 'ОГРН' должно быть доступно");
+
             await page.EvaluateAsync(
                 $@"() => {{
                     const inputs = document.querySelectorAll('input');
                     for (const input of inputs) {{
                         const ph = (input.placeholder || '').toLowerCase();
-                        const nm = (input.name || '').toLowerCase();
-                        if (ph.includes('огрн') || nm.includes('ogrn')) {{
+                        if (ph.includes('огрн')) {{
                             input.value = '{EscapeJs(ogrn)}';
                             input.dispatchEvent(new Event('input', {{ bubbles: true }}));
                             return;
