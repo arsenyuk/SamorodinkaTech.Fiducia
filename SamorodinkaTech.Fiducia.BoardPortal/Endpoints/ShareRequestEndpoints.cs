@@ -33,7 +33,7 @@ public static class ShareRequestEndpoints
             try
             {
                 await using var ctx = await dbFactory.CreateDbContextAsync();
-                var leId = await GetLegalEntityIdAsync(ctx);
+                var leId = await LegalEntityHelper.GetLegalEntityIdAsync(ctx, http);
                 if (leId is null)
                     return Results.Ok(Array.Empty<object>());
 
@@ -140,6 +140,7 @@ public static class ShareRequestEndpoints
         // GET: порог для типа требования
         shareRequests.MapGet("/threshold", async (
             string typeCode,
+            HttpContext http,
             IDbContextFactory<FiduciaDbContext> dbFactory,
             ILoggerFactory loggerFactory) =>
         {
@@ -147,7 +148,7 @@ public static class ShareRequestEndpoints
             try
             {
                 await using var ctx = await dbFactory.CreateDbContextAsync();
-                var leId = await GetLegalEntityIdAsync(ctx);
+                var leId = await LegalEntityHelper.GetLegalEntityIdAsync(ctx, http);
                 if (leId is null) return Results.Ok(new { threshold = (decimal?)null, defaultThreshold = 10m });
 
                 decimal? threshold = typeCode switch
@@ -1732,11 +1733,6 @@ public static class ShareRequestEndpoints
         var charter = await ctx.LegalEntityCharters.FindAsync(leId);
         var threshold = charter?.VosuThresholdPercent ?? 10m; // по умолчанию 10%
 
-        // Загружаем участника
-        var workplace = await ctx.CurrentWorkplaces.FirstOrDefaultAsync();
-        if (workplace?.LastSelectedLegalEntityId is null)
-            return "Юридическое лицо не выбрано";
-
         // Находим участника по userId из контекста (передаём через payload)
         decimal? sharePercent = null;
         if (!string.IsNullOrEmpty(dto.Payload))
@@ -1758,8 +1754,7 @@ public static class ShareRequestEndpoints
     private static async Task<(Guid? leId, IResult? error)> ValidateAccessAsync(
         FiduciaDbContext ctx, HttpContext http, ISecurityAuditService audit, ILogger logger)
     {
-        var workplace = await ctx.CurrentWorkplaces.FirstOrDefaultAsync();
-        var leId = workplace?.LastSelectedLegalEntityId;
+        var leId = await LegalEntityHelper.GetLegalEntityIdAsync(ctx, http);
         if (leId is null || leId == Guid.Empty)
         {
             logger.LogWarning("Юридическое лицо не выбрано");
@@ -1786,12 +1781,6 @@ public static class ShareRequestEndpoints
         }
 
         return (leId, null);
-    }
-
-    private static async Task<Guid?> GetLegalEntityIdAsync(FiduciaDbContext ctx)
-    {
-        var workplace = await ctx.CurrentWorkplaces.FirstOrDefaultAsync();
-        return workplace?.LastSelectedLegalEntityId;
     }
 
     private static object MapToDto(ShareRequest r) => new

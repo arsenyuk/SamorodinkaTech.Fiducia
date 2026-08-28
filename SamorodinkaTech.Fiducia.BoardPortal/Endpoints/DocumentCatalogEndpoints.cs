@@ -19,6 +19,7 @@ public static class DocumentCatalogEndpoints
 
         // GET: каталог документов — все группы с файлами для текущего участника
         catalog.MapGet("/", async (
+            HttpContext http,
             IDbContextFactory<FiduciaDbContext> dbFactory,
             ILoggerFactory loggerFactory) =>
         {
@@ -26,7 +27,7 @@ public static class DocumentCatalogEndpoints
             try
             {
                 await using var ctx = await dbFactory.CreateDbContextAsync();
-                var leId = await GetLegalEntityIdAsync(ctx);
+                var leId = await GetLegalEntityIdAsync(ctx, http);
                 if (leId is null)
                     return Results.BadRequest(new { error = "Юридическое лицо не выбрано" });
 
@@ -119,6 +120,7 @@ public static class DocumentCatalogEndpoints
         // GET: история предоставления по конкретной группе
         catalog.MapGet("/{groupCode}", async (
             string groupCode,
+            HttpContext http,
             IDbContextFactory<FiduciaDbContext> dbFactory,
             ILoggerFactory loggerFactory) =>
         {
@@ -126,7 +128,7 @@ public static class DocumentCatalogEndpoints
             try
             {
                 await using var ctx = await dbFactory.CreateDbContextAsync();
-                var leId = await GetLegalEntityIdAsync(ctx);
+                var leId = await GetLegalEntityIdAsync(ctx, http);
                 if (leId is null)
                     return Results.BadRequest(new { error = "Юридическое лицо не выбрано" });
 
@@ -176,10 +178,18 @@ public static class DocumentCatalogEndpoints
         });
     }
 
-    private static async Task<Guid?> GetLegalEntityIdAsync(FiduciaDbContext ctx)
+    private static async Task<Guid?> GetLegalEntityIdAsync(FiduciaDbContext ctx, HttpContext http)
     {
-        var workplace = await ctx.CurrentWorkplaces.FirstOrDefaultAsync();
-        return workplace?.LastSelectedLegalEntityId;
+        var userIdStr = http.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(userIdStr) || !Guid.TryParse(userIdStr, out var userId))
+            return null;
+
+        var user = await ctx.Users.FindAsync(userId);
+        if (user is null) return null;
+
+        var participant = await ctx.EcosystemParticipants
+            .FirstOrDefaultAsync(ep => ep.Login == user.Login);
+        return participant?.LegalEntityId;
     }
 
     private static List<string> ParseDocumentTypeCodes(string? payload)

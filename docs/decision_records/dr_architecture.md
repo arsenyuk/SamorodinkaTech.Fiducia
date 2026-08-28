@@ -221,7 +221,7 @@
    - `IBoardMemberLdapService` (Domain) — бизнес-уровень: маппинг LDAP-должностей (`title`) на коды `ref_board_member_types`, контроль уникальности (`IsDuplicate`, `FindDuplicates`).
    - `BoardMemberLdapService` (Infrastructure) — композиция над `ILDapService`.
 
-3. **Docker-демо**: `docker-compose.ldap.yml` с OpenLDAP (`osixia/openldap`), предзаполненный seed.ldif с организацией «ПАО Брянский арсенал» и 6 членами СД в группе `cn=BoardOfDirectors`.
+3. **Docker-демо**: `docker-compose.ldap.yml` с OpenLDAP (`osixia/openldap`), предзаполненный seed.ldif с организацией «ООО «Фидуция»» и 6 членами СД в группе `cn=BoardOfDirectors`.
 
 4. **Независимость от LDAP в тестах**: mock-объекты (`MockLdapService`, `MockBoardMemberLdapService`) с in-memory хранилищем — 34 unit-теста покрывают все операции без поднятого сервера.
 

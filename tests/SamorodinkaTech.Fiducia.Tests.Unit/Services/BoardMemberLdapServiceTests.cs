@@ -167,10 +167,10 @@ public class BoardMemberLdapServiceTests
         {
             Login = "a.smirnova",
             FullName = "Смирнова А.В.",
-            Email = "a.smirnova@bryansk-arsenal.ru",
+            Email = "a.smirnova@fiducia.ru",
             Title = "Член Совета директоров",
             Phone = "+7-999-500-50-05",
-            DistinguishedName = "cn=Смирнова Анна Владимировна,ou=Users,dc=bryansk-arsenal,dc=local",
+            DistinguishedName = "cn=Смирнова Анна Владимировна,ou=Users,dc=fiducia,dc=local",
             SuggestedMemberTypeCode = "STAFF"
         });
 
@@ -179,7 +179,7 @@ public class BoardMemberLdapServiceTests
 
         c.Login.Should().Be("a.smirnova");
         c.FullName.Should().Be("Смирнова А.В.");
-        c.Email.Should().Be("a.smirnova@bryansk-arsenal.ru");
+        c.Email.Should().Be("a.smirnova@fiducia.ru");
         c.Title.Should().Be("Член Совета директоров");
         c.Phone.Should().Be("+7-999-500-50-05");
         c.DistinguishedName.Should().Contain("Смирнова");

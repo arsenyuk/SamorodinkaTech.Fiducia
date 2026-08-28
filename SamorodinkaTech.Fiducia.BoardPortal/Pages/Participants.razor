@@ -7,6 +7,7 @@
 @inject HttpClient Http
 @inject ILogger<Participants> Logger
 @inject NavigationManager Nav
+@inject IJSRuntime JS
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 
 <PageTitle>Fiducia — Участники</PageTitle>
@@ -922,16 +923,32 @@ else
         try
         {
             await using var ctx = await DbFactory.CreateDbContextAsync();
-            var workplace = await ctx.CurrentWorkplaces.FirstOrDefaultAsync();
-            if (workplace?.LastSelectedLegalEntityId is null)
+
+            // Определяем ЮЛ через EcosystemParticipant по login из JWT
+            var userIdStr = await JS.InvokeAsync<string?>("localStorage.getItem", "currentUserId");
+            Guid? userId = Guid.TryParse(userIdStr, out var uid) ? uid : null;
+
+            Guid? leId = null;
+            if (userId.HasValue)
             {
-                _error = "Юридическое лицо не выбрано. Перейдите в Административную консоль → Юридические лица и выберите ООО.";
+                var user = await ctx.Users.FindAsync(userId.Value);
+                if (user is not null)
+                {
+                    var participant = await ctx.EcosystemParticipants
+                        .FirstOrDefaultAsync(ep => ep.Login == user.Login);
+                    leId = participant?.LegalEntityId;
+                }
+            }
+
+            if (leId is null)
+            {
+                _error = "Юридическое лицо не выбрано. Обратитесь к администратору.";
                 return;
             }
 
             var le = await ctx.LegalEntities
                 .Include(x => x.RefOkopf)
-                .FirstOrDefaultAsync(x => x.Id == workplace.LastSelectedLegalEntityId.Value);
+                .FirstOrDefaultAsync(x => x.Id == leId.Value);
 
             if (le is null)
             {

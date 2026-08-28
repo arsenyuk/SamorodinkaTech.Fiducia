@@ -76,9 +76,9 @@ else if (authMethod == "LDAP")
         var db = sp.GetRequiredService<IApplicationDbContext>();
         var logger = sp.GetRequiredService<ILogger<LdapAuthProvider>>();
         var sysAdminGroupDn = builder.Configuration["Ldap:SysAdminGroupDn"]
-                             ?? "cn=SysAdmins,ou=Groups,dc=bryansk-arsenal,dc=local";
+                             ?? "cn=SysAdmins,ou=Groups,dc=fiducia,dc=local";
         var boardGroupDn = builder.Configuration["Ldap:BoardGroupDn"]
-                          ?? "cn=BoardOfDirectors,ou=Groups,dc=bryansk-arsenal,dc=local";
+                          ?? "cn=BoardOfDirectors,ou=Groups,dc=fiducia,dc=local";
         return new LdapAuthProvider(ldap, db, logger, sysAdminGroupDn, boardGroupDn);
     });
     }
@@ -226,7 +226,7 @@ if (builder.Configuration.GetValue<bool>("Ldap:Enabled"))
         var inner = new LdapService(
             cfg["Server"] ?? "localhost",
             int.TryParse(cfg["Port"], out var port) ? port : 389,
-            cfg["BaseDn"] ?? "dc=bryansk-arsenal,dc=local",
+            cfg["BaseDn"] ?? "dc=fiducia,dc=local",
             cfg["BindUser"],
             cfg["BindPassword"],
             logger);
@@ -241,7 +241,7 @@ if (builder.Configuration.GetValue<bool>("Ldap:Enabled"))
         var ldap = sp.GetRequiredService<ILdapService>();
         var logger = sp.GetRequiredService<ILogger<BoardMemberLdapService>>();
         var boardGroupDn = builder.Configuration["Ldap:BoardGroupDn"]
-                           ?? "cn=BoardOfDirectors,ou=Groups,dc=bryansk-arsenal,dc=local";
+                           ?? "cn=BoardOfDirectors,ou=Groups,dc=fiducia,dc=local";
         return new BoardMemberLdapService(ldap, logger, boardGroupDn);
     });
 }

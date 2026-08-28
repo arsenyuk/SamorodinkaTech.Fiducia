@@ -30,7 +30,7 @@ public static class AgendaItemEndpoints
             try
             {
                 await using var ctx = await dbFactory.CreateDbContextAsync();
-                var leId = await GetLegalEntityIdAsync(ctx, http);
+                var leId = await LegalEntityHelper.GetLegalEntityIdAsync(ctx, http);
                 if (leId is null)
                     return Results.Ok(new ExtraSettingsDto(false, null));
 
@@ -58,7 +58,7 @@ public static class AgendaItemEndpoints
             try
             {
                 await using var ctx = await dbFactory.CreateDbContextAsync();
-                var leId = await GetLegalEntityIdAsync(ctx, http);
+                var leId = await LegalEntityHelper.GetLegalEntityIdAsync(ctx, http);
                 if (leId is null)
                     return Results.Ok(new List<object>());
 
@@ -87,7 +87,7 @@ public static class AgendaItemEndpoints
             try
             {
                 await using var ctx = await dbFactory.CreateDbContextAsync();
-                var leId = await GetLegalEntityIdAsync(ctx, http);
+                var leId = await LegalEntityHelper.GetLegalEntityIdAsync(ctx, http);
                 if (leId is null)
                     return Results.BadRequest(new { error = "Юридическое лицо не выбрано" });
 
@@ -141,7 +141,7 @@ public static class AgendaItemEndpoints
             try
             {
                 await using var ctx = await dbFactory.CreateDbContextAsync();
-                var leId = await GetLegalEntityIdAsync(ctx, http);
+                var leId = await LegalEntityHelper.GetLegalEntityIdAsync(ctx, http);
                 if (leId is null)
                 {
                     logger.LogWarning("Получение повестки: юридическое лицо не выбрано");
@@ -181,7 +181,7 @@ public static class AgendaItemEndpoints
             try
             {
                 await using var ctx = await dbFactory.CreateDbContextAsync();
-                var leId = await GetLegalEntityIdAsync(ctx, http);
+                var leId = await LegalEntityHelper.GetLegalEntityIdAsync(ctx, http);
                 if (leId is null)
                 {
                     logger.LogWarning("Создание пункта повестки: юридическое лицо не выбрано");
@@ -249,7 +249,7 @@ public static class AgendaItemEndpoints
             try
             {
                 await using var ctx = await dbFactory.CreateDbContextAsync();
-                var leId = await GetLegalEntityIdAsync(ctx, http);
+                var leId = await LegalEntityHelper.GetLegalEntityIdAsync(ctx, http);
                 if (leId is null)
                 {
                     logger.LogWarning("Принятие пункта повестки {Id}: юридическое лицо не выбрано", id);
@@ -291,7 +291,7 @@ public static class AgendaItemEndpoints
             try
             {
                 await using var ctx = await dbFactory.CreateDbContextAsync();
-                var leId = await GetLegalEntityIdAsync(ctx, http);
+                var leId = await LegalEntityHelper.GetLegalEntityIdAsync(ctx, http);
                 if (leId is null)
                 {
                     logger.LogWarning("Отклонение пункта повестки {Id}: юридическое лицо не выбрано", id);
@@ -334,12 +334,6 @@ public static class AgendaItemEndpoints
                 return Results.BadRequest(new { error = ex.Message });
             }
         });
-    }
-
-    private static async Task<Guid?> GetLegalEntityIdAsync(FiduciaDbContext ctx, HttpContext http)
-    {
-        var workplace = await ctx.CurrentWorkplaces.FirstOrDefaultAsync();
-        return workplace?.LastSelectedLegalEntityId;
     }
 
     public record AgendaItemDto(Guid Id, string Title, string TargetType, string Reason, string Status, Guid? ShareRequestId, DateTime CreatedAt);

@@ -9,8 +9,8 @@ namespace SamorodinkaTech.Fiducia.Tests.Functional.Helpers;
 public static class LdapHelper
 {
     private const string PhpLdapAdminUrl = "http://localhost:8082";
-    private const string LdapBaseDn = "dc=bryansk-arsenal,dc=local";
-    private const string LdapAdminDn = "cn=admin,dc=bryansk-arsenal,dc=local";
+    private const string LdapBaseDn = "dc=fiducia,dc=local";
+    private const string LdapAdminDn = "cn=admin,dc=fiducia,dc=local";
     private const string LdapAdminPassword = "admin";
     private const string UsersOu = "ou=users";
     private const string GroupsOu = "ou=groups";
@@ -227,7 +227,7 @@ userPassword: {password}
         {
             var trimmed = line.Trim();
 
-            // Обычный DN: dn: cn=user01,ou=users,dc=bryansk-arsenal,dc=local
+            // Обычный DN: dn: cn=user01,ou=users,dc=fiducia,dc=local
             if (trimmed.StartsWith("dn:", StringComparison.OrdinalIgnoreCase))
             {
                 var dn = trimmed[3..].Trim();

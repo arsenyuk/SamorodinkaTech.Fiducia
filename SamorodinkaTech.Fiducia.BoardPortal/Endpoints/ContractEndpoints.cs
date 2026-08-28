@@ -228,11 +228,11 @@ public static class ContractEndpoints
         // GET: список договоров текущего ЮЛ
         contracts.MapGet("/", async (
             string? contractType,
+            HttpContext http,
             IDbContextFactory<FiduciaDbContext> dbFactory) =>
         {
             await using var ctx = await dbFactory.CreateDbContextAsync();
-            var workplace = await ctx.CurrentWorkplaces.FirstOrDefaultAsync();
-            var leId = workplace?.LastSelectedLegalEntityId;
+            var leId = await LegalEntityHelper.GetLegalEntityIdAsync(ctx, http);
             if (leId is null || leId == Guid.Empty)
                 return Results.Ok(Array.Empty<object>());
 
@@ -405,8 +405,7 @@ public static class ContractEndpoints
                 return Results.Forbid();
 
             await using var ctx = ((FiduciaDbContext)db);
-            var workplace = await ctx.CurrentWorkplaces.FirstOrDefaultAsync();
-            var leId = workplace?.LastSelectedLegalEntityId;
+            var leId = await LegalEntityHelper.GetLegalEntityIdAsync(ctx, http);
             if (leId is null || leId == Guid.Empty)
             {
                 logger.LogWarning("Создание договора: юридическое лицо не выбрано");

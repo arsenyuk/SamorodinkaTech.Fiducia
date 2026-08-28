@@ -74,7 +74,7 @@ public static class ParticipantEndpoints
             if (ecoParticipant is null)
                 return Results.Ok(new { Id = (Guid?)null, FullName = (string?)null, SharePercent = (decimal?)null });
 
-            var leId = await GetLegalEntityIdAsync(ctx);
+            var leId = await LegalEntityHelper.GetLegalEntityIdAsync(ctx, http);
             if (leId is null)
                 return Results.Ok(new { Id = (Guid?)null, FullName = (string?)null, SharePercent = (decimal?)null });
 
@@ -325,14 +325,14 @@ public static class ParticipantEndpoints
         // GET: список казначейских долей
         treasuryShares.MapGet("/", async (
             Guid? legalEntityId,
+            HttpContext http,
             IDbContextFactory<FiduciaDbContext> dbFactory) =>
         {
             await using var ctx = await dbFactory.CreateDbContextAsync();
             var leId = legalEntityId;
             if (leId is null || leId == Guid.Empty)
             {
-                var workplace = await ctx.CurrentWorkplaces.FirstOrDefaultAsync();
-                leId = workplace?.LastSelectedLegalEntityId;
+                leId = await LegalEntityHelper.GetLegalEntityIdAsync(ctx, http);
             }
             if (leId is null || leId == Guid.Empty)
                 return Results.Ok(Array.Empty<object>());
@@ -477,11 +477,11 @@ public static class ParticipantEndpoints
 
         // GET: список актов загрузки реестра
         registryUploads.MapGet("/", async (
+            HttpContext http,
             IDbContextFactory<FiduciaDbContext> dbFactory) =>
         {
             await using var ctx = await dbFactory.CreateDbContextAsync();
-            var workplace = await ctx.CurrentWorkplaces.FirstOrDefaultAsync();
-            var leId = workplace?.LastSelectedLegalEntityId;
+            var leId = await LegalEntityHelper.GetLegalEntityIdAsync(ctx, http);
             if (leId is null || leId == Guid.Empty)
                 return Results.Ok(Array.Empty<object>());
 
@@ -520,8 +520,9 @@ public static class ParticipantEndpoints
                 if (sigExt != ".sig" && sigExt != ".p7s")
                     return Results.BadRequest(new { error = "Файл подписи должен иметь расширение .sig или .p7s" });
 
-                var workplace = await ctx.CurrentWorkplaces.FirstOrDefaultAsync();
-                var leId = workplace!.LastSelectedLegalEntityId!.Value;
+                var leId = await LegalEntityHelper.GetLegalEntityIdAsync(ctx, http);
+                if (leId is null)
+                    return Results.BadRequest(new { error = "Юридическое лицо не определено" });
 
                 var userIdStr = http.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
                 Guid? userId = Guid.TryParse(userIdStr, out var uid) ? uid : null;
@@ -563,7 +564,7 @@ public static class ParticipantEndpoints
                 var entity = new BoardRegistryUpload
                 {
                     Id = Guid.NewGuid(),
-                    LegalEntityId = leId,
+                    LegalEntityId = leId.Value,
                     XmlFileId = xmlFileEntry.Id,
                     XmlOriginalName = file.FileName,
                     SignatureFileId = sigFileEntry.Id,
@@ -686,11 +687,11 @@ public static class ParticipantEndpoints
         // GET: список информирований об изменении сведений
         participantChanges.MapGet("/", async (
             Guid? participantId,
+            HttpContext http,
             IDbContextFactory<FiduciaDbContext> dbFactory) =>
         {
             await using var ctx = await dbFactory.CreateDbContextAsync();
-            var workplace = await ctx.CurrentWorkplaces.FirstOrDefaultAsync();
-            var leId = workplace?.LastSelectedLegalEntityId;
+            var leId = await LegalEntityHelper.GetLegalEntityIdAsync(ctx, http);
             if (leId is null || leId == Guid.Empty)
                 return Results.Ok(Array.Empty<object>());
 
@@ -722,8 +723,9 @@ public static class ParticipantEndpoints
                 var llcCheck = await ValidateParticipantAccessAsync(ctx, http, audit, logger);
                 if (llcCheck is not null) return llcCheck;
 
-                var workplace = await ctx.CurrentWorkplaces.FirstOrDefaultAsync();
-                var leId = workplace!.LastSelectedLegalEntityId!.Value;
+                var leId = await LegalEntityHelper.GetLegalEntityIdAsync(ctx, http);
+                if (leId is null)
+                    return Results.BadRequest(new { error = "Юридическое лицо не определено" });
 
                 var userIdStr = http.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
                 Guid? userId = Guid.TryParse(userIdStr, out var uid) ? uid : null;
@@ -731,7 +733,7 @@ public static class ParticipantEndpoints
                 var entity = new BoardParticipantChange
                 {
                     Id = Guid.NewGuid(),
-                    LegalEntityId = leId,
+                    LegalEntityId = leId.Value,
                     ParticipantId = dto.ParticipantId,
                     ParticipantType = dto.ParticipantType ?? "FL",
                     FullName = dto.FullName,
@@ -965,8 +967,7 @@ public static class ParticipantEndpoints
         ISecurityAuditService audit,
         ILogger logger)
     {
-        var workplace = await ctx.CurrentWorkplaces.FirstOrDefaultAsync();
-        var leId = workplace?.LastSelectedLegalEntityId;
+        var leId = await LegalEntityHelper.GetLegalEntityIdAsync(ctx, http);
         if (leId is null || leId == Guid.Empty)
         {
             logger.LogWarning("Юридическое лицо не выбрано (participant access)");
@@ -1242,12 +1243,6 @@ public static class ParticipantEndpoints
         public string? Date { get; init; }
         public string? PaperDocNumber { get; init; }
         public string? Comment { get; init; }
-    }
-
-    private static async Task<Guid?> GetLegalEntityIdAsync(FiduciaDbContext ctx)
-    {
-        var workplace = await ctx.CurrentWorkplaces.FirstOrDefaultAsync();
-        return workplace?.LastSelectedLegalEntityId;
     }
 
     /// <summary>DTO для рассмотрения заявки.</summary>
