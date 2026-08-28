@@ -160,13 +160,34 @@ public static class PageVerificationHelper
             "_framework/blazor.server.js", "Admin Console: BoardLaw");
     }
 
-    private static async Task VerifyPageAsync(IPage page, string path, string expectedText, string label)
+    private static async Task NavigateToPageAsync(IPage page, string path)
     {
-        var portal = page.Url.Contains("5001") ? Portal.AdminConsole : Portal.BoardPortal;
-
-        await page.GotoAsync(PortalUrls.GetUrl(portal, path));
+        // Навигация через ссылку в меню (href без ведущего /)
+        var href = path.TrimStart('/');
+        var link = page.Locator($"a[href='{href}']");
+        if (await link.CountAsync() > 0)
+        {
+            await link.First.ClickAsync();
+        }
+        else
+        {
+            // Fallback: кликаем по ссылке с ведущим /
+            var linkWithSlash = page.Locator($"a[href='/{href}']");
+            if (await linkWithSlash.CountAsync() > 0)
+                await linkWithSlash.First.ClickAsync();
+            else
+                throw new InvalidOperationException(
+                    $"Навигация: ссылка с href='{href}' не найдена в меню. " +
+                    $"Добавьте пункт меню для {path}.");
+        }
+        await AuthHelper.WaitForBlazorReady(page);
         await page.WaitForLoadStateAsync(LoadState.NetworkIdle,
             new() { Timeout = NetworkIdleTimeoutMs });
+    }
+
+    private static async Task VerifyPageAsync(IPage page, string path, string expectedText, string label)
+    {
+        await NavigateToPageAsync(page, path);
 
         var content = await page.ContentAsync();
 
@@ -188,13 +209,9 @@ public static class PageVerificationHelper
 
     private static async Task VerifyButtonAsync(IPage page, string path, string selector, string buttonText, string label)
     {
-        var portal = page.Url.Contains("5001") ? Portal.AdminConsole : Portal.BoardPortal;
-
         if (!page.Url.Contains(path))
         {
-            await page.GotoAsync(PortalUrls.GetUrl(portal, path));
-            await page.WaitForLoadStateAsync(LoadState.NetworkIdle,
-                new() { Timeout = NetworkIdleTimeoutMs });
+            await NavigateToPageAsync(page, path);
         }
 
         var button = await page.QuerySelectorAsync($"{selector}:has-text('{buttonText}')");
@@ -203,13 +220,9 @@ public static class PageVerificationHelper
 
     private static async Task VerifyContentAnyAsync(IPage page, string path, string[] expectedTexts, string label)
     {
-        var portal = page.Url.Contains("5001") ? Portal.AdminConsole : Portal.BoardPortal;
-
         if (!page.Url.Contains(path))
         {
-            await page.GotoAsync(PortalUrls.GetUrl(portal, path));
-            await page.WaitForLoadStateAsync(LoadState.NetworkIdle,
-                new() { Timeout = NetworkIdleTimeoutMs });
+            await NavigateToPageAsync(page, path);
         }
 
         var content = await page.ContentAsync();
@@ -220,13 +233,9 @@ public static class PageVerificationHelper
 
     private static async Task VerifyVisibleAsync(IPage page, string path, string selector, string label)
     {
-        var portal = page.Url.Contains("5001") ? Portal.AdminConsole : Portal.BoardPortal;
-
         if (!page.Url.Contains(path))
         {
-            await page.GotoAsync(PortalUrls.GetUrl(portal, path));
-            await page.WaitForLoadStateAsync(LoadState.NetworkIdle,
-                new() { Timeout = NetworkIdleTimeoutMs });
+            await NavigateToPageAsync(page, path);
         }
 
         var visible = await page.IsVisibleAsync(selector);
