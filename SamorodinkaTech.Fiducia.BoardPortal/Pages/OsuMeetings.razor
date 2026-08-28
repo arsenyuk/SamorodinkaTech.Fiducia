@@ -8,6 +8,7 @@
 @inject ILegalEntityGosaIntervalService GosaSvc
 @inject ILogger<OsuMeetings> Logger
 @inject NavigationManager Nav
+@inject IJSRuntime JS
 @inject IConfiguration Config
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 
@@ -220,8 +221,8 @@
         try
         {
             await using var ctx = await DbFactory.CreateDbContextAsync();
-            var workplace = await ctx.CurrentWorkplaces.FirstOrDefaultAsync();
-            _currentLegalEntityId = workplace?.LastSelectedLegalEntityId ?? Guid.Empty;
+            var leId = await LegalEntityHelper.GetLegalEntityIdAsync(ctx, JS);
+            _currentLegalEntityId = leId ?? Guid.Empty;
 
             // Загружаем шаблон из system_settings
             var settings = await ctx.SystemSettings.ToDictionaryAsync(x => x.Key, x => x.Value);

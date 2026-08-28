@@ -105,11 +105,11 @@ else
             try
             {
                 await using var ctx = await DbFactory.CreateDbContextAsync();
-                var workplace = await ctx.CurrentWorkplaces.FirstOrDefaultAsync();
-                if (workplace?.LastSelectedLegalEntityId is not null && workplace.LastSelectedLegalEntityId != Guid.Empty)
+                var leId = await LegalEntityHelper.GetLegalEntityIdAsync(ctx, JS);
+                if (leId is not null && leId != Guid.Empty)
                 {
                     var le = await ctx.LegalEntities
-                        .Where(x => x.Id == workplace.LastSelectedLegalEntityId.Value)
+                        .Where(x => x.Id == leId.Value)
                         .Select(x => x.Name)
                         .FirstOrDefaultAsync();
                     if (!string.IsNullOrWhiteSpace(le))

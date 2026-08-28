@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.JSInterop;
 using System.Security.Claims;
 using SamorodinkaTech.Fiducia.Infrastructure.Persistence;
 
@@ -45,5 +46,22 @@ public static class LegalEntityHelper
             : $"{user.LastName} {user.FirstName} {user.MiddleName}";
 
         return (login, fullName);
+    }
+
+    /// <summary>
+    /// Получить ID текущего ЮЛ для Blazor-компонента (через localStorage → EcosystemParticipant).
+    /// </summary>
+    public static async Task<Guid?> GetLegalEntityIdAsync(FiduciaDbContext ctx, IJSRuntime js)
+    {
+        var userIdStr = await js.InvokeAsync<string?>("localStorage.getItem", "currentUserId");
+        if (string.IsNullOrEmpty(userIdStr) || !Guid.TryParse(userIdStr, out var userId))
+            return null;
+
+        var user = await ctx.Users.FindAsync(userId);
+        if (user is null) return null;
+
+        var participant = await ctx.EcosystemParticipants
+            .FirstOrDefaultAsync(ep => ep.Login == user.Login);
+        return participant?.LegalEntityId;
     }
 }

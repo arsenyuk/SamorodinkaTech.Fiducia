@@ -1,6 +1,7 @@
 @page "/"
 @inject NavigationManager Nav
 @inject IDbContextFactory<SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext> DbFactory
+@inject IJSRuntime JS
 @using SamorodinkaTech.Fiducia.Domain.Entities
 @using SamorodinkaTech.Fiducia.Domain.Validation
 
@@ -27,15 +28,15 @@
         try
         {
             await using var ctx = await DbFactory.CreateDbContextAsync();
-            var workplace = await ctx.CurrentWorkplaces.FirstOrDefaultAsync();
-            if (workplace?.LastSelectedLegalEntityId is null)
+            var leId = await LegalEntityHelper.GetLegalEntityIdAsync(ctx, JS);
+            if (leId is null)
             {
                 _showProposalButton = false;
                 StateHasChanged();
                 return;
             }
             var le = await ctx.LegalEntities
-                .Where(x => x.Id == workplace.LastSelectedLegalEntityId.Value)
+                .Where(x => x.Id == leId.Value)
                 .Select(x => new { x.RefOkopf!.Code })
                 .FirstOrDefaultAsync();
             if (le is null)
@@ -51,7 +52,7 @@
             else
             {
                 var charter = await ctx.LegalEntityCharters
-                    .FindAsync(workplace.LastSelectedLegalEntityId.Value);
+                    .FindAsync(leId.Value);
                 _showProposalButton = charter?.HasBoardOfDirectors ?? false;
             }
         }
