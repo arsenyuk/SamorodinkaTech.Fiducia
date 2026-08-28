@@ -213,7 +213,7 @@ public class E2E_StandardCharterTests : BrowserFixture
                 "Страница ОСУ должна загрузиться после настройки ЮЛ");
         }
 
-        // Шаг 3.1: Проверка вкладки «Интервал ООСУ/ГОСА» на странице /legal-entities
+                // Шаг 3.1: Проверка вкладки «Интервал ООСУ/ГОСА» на странице /legal-entities
         // Для ООО (ОКОПФ=12300) — «Интервал ООСУ», для АО/НАО — «Интервал ГОСА»
         // Все тестовые ЮЛ — ООО, поэтому проверяем «Интервал ООСУ»
         await BoardPortalHelper.NavigateToAsync(boardPage, "legal-entities");
@@ -223,10 +223,29 @@ public class E2E_StandardCharterTests : BrowserFixture
         {
             await intervalTab.First.ClickAsync();
             await boardPage.WaitForTimeoutAsync(500);
-            // Проверяем, что поля вкладки видимы (день + месяц)
-            var dayInput = boardPage.Locator("input[type='number']");
-            (await dayInput.CountAsync()).Should().BeGreaterThan(0,
-                $"Вкладка «{intervalTabText}» должна содержать поле для дня");
+
+            // Проверяем заголовки полей
+            var intervalContent = await boardPage.ContentAsync();
+            intervalContent.Should().Contain("Начало ООСУ",
+                "Вкладка «Интервал ООСУ» должна содержать заголовок 'Начало ООСУ'");
+            intervalContent.Should().Contain("Завершение ООСУ",
+                "Вкладка «Интервал ООСУ» должна содержать заголовок 'Завершение ООСУ'");
+
+            // Проверяем select-ы для дней (2 штуки: Начало + Завершение)
+            var daySelects = boardPage.Locator("select.form-select[style*='width:80px']");
+            (await daySelects.CountAsync()).Should().Be(2,
+                "Должно быть 2 select для дней (Начало + Завершение)");
+
+            // Проверяем select-ы для месяцев (2 штуки: Начало + Завершение)
+            var monthSelects = boardPage.Locator("select.form-select[style*='width:100px']");
+            (await monthSelects.CountAsync()).Should().Be(2,
+                "Должно быть 2 select для месяцев (Начало + Завершение)");
+
+            // Проверяем опции в select месяцев (Март–Июнь)
+            var monthOptions = await monthSelects.First.EvaluateAsync<string[]>(
+                "sel => Array.from(sel.options).map(o => o.textContent)");
+            monthOptions.Should().Contain(new[] { "Март", "Апрель", "Май", "Июнь" },
+                "Select месяцев должен содержать Март, Апрель, Май, Июнь");
         }
 
         // Шаг 4: Добавление участников (только для ExecutiveBody A — ГД отдельно от участников)
