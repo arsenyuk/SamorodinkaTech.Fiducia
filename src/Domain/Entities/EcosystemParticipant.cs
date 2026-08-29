@@ -43,6 +43,9 @@ public class EcosystemParticipant
     /// <summary>Кто создал запись (created_by).</summary>
     public Guid? CreatedBy { get; set; }
 
+    /// <summary>Навигация: учётная запись пользователя.</summary>
+    public User? User { get; set; }
+
     /// <summary>Навигация: юридическое лицо.</summary>
     public LegalEntity? LegalEntity { get; set; }
 

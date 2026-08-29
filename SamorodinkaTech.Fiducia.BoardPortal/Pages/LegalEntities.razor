@@ -1260,21 +1260,6 @@
             }
         }
 
-        // Загружаем руководителя (CurrentWorkplace) для выбранного ЮЛ
-        var ip = await ctx.CurrentWorkplaces.FirstOrDefaultAsync();
-        if (ip != null)
-        {
-            _influentialPersonId = ip.Id;
-            editPosition = ip.Position ?? "Генеральный директор";
-            editFullName = ip.FullName ?? string.Empty;
-        }
-        else
-        {
-            _influentialPersonId = null;
-            editPosition = "Генеральный директор";
-            editFullName = string.Empty;
-        }
-
         // Определяем тип организации
         await ResolveOrgTypeAsync(le.Id);
         editHasBoardOfDirectors = _orgType != OrgType.Unknown;
@@ -1370,31 +1355,6 @@
         try
         {
             await using var ctx = await DbFactory.CreateDbContextAsync();
-
-            // Сохраняем руководителя
-            if (_influentialPersonId.HasValue)
-            {
-                var ip = await ctx.CurrentWorkplaces.FirstOrDefaultAsync(x => x.Id == _influentialPersonId.Value);
-                if (ip != null)
-                {
-                    ip.FullName = string.IsNullOrWhiteSpace(editFullName) ? string.Empty : editFullName.Trim();
-                    ip.Position = string.IsNullOrWhiteSpace(editPosition) ? null : editPosition.Trim();
-                    ip.LastSelectedLegalEntityId = selectedEntity.Id;
-                }
-            }
-            else
-            {
-                // Создаём запись руководителя, если её ещё нет
-                var ip = new SamorodinkaTech.Fiducia.Domain.Entities.CurrentWorkplace
-                {
-                    Id = Guid.NewGuid(),
-                    FullName = string.IsNullOrWhiteSpace(editFullName) ? string.Empty : editFullName.Trim(),
-                    Position = string.IsNullOrWhiteSpace(editPosition) ? null : editPosition.Trim(),
-                    LastSelectedLegalEntityId = selectedEntity.Id
-                };
-                ctx.CurrentWorkplaces.Add(ip);
-                _influentialPersonId = ip.Id;
-            }
 
             // Сохраняем настройки СД
             if (editHasBoardOfDirectors)
@@ -1634,11 +1594,6 @@
             await ctx.LegalEntityVotingRules
                 .Where(x => x.LegalEntityId == id)
                 .ExecuteDeleteAsync();
-
-            // Сброс ссылки в current_workplace
-            await ctx.CurrentWorkplaces
-                .Where(x => x.LastSelectedLegalEntityId == id)
-                .ExecuteUpdateAsync(s => s.SetProperty(x => x.LastSelectedLegalEntityId, (Guid?)null));
 
             Logger.LogInformation("Конфигурация ЮЛ {LegalEntityId} ({LegalEntityName}) очищена", id, name);
             saveSuccess = $"Конфигурация «{name}» очищена.";

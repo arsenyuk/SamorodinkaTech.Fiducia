@@ -11,26 +11,7 @@
         <div class="card-header">
             <h5 class="mb-0">Текущее юридическое лицо</h5>
         </div>
-        <div class="card-body">
-            <div class="row mb-3">
-                <div class="col-md-6">
-                    <label class="form-label">Выберите организацию</label>
-                    <select class="form-select" @bind="_selectedLeId">
-                        <option value="">— не выбрано —</option>
-                        @foreach (var le in _legalEntities)
-                        {
-                            <option value="@le.Id">@le.Name (ИНН: @le.Inn)</option>
-                        }
-                    </select>
-                    <small class="text-muted">Определяет контекст для шаблонов, заседаний и других страниц</small>
-                </div>
-            </div>
-            @if (!string.IsNullOrEmpty(_leSaveMessage))
-            {
-                <div class="alert alert-success py-2">@_leSaveMessage</div>
-            }
-            <button class="btn btn-primary btn-sm" @onclick="SaveSelectedLegalEntity">Сохранить</button>
-        </div>
+
     </div>
 
     <!-- Системные настройки -->
@@ -410,7 +391,7 @@
 
     // Текущее ЮЛ
     private List<SamorodinkaTech.Fiducia.Domain.Entities.LegalEntity> _legalEntities = new();
-    private string _selectedLeId = "";
+
     private string? _leSaveMessage;
 
     // Удалено: настройки логирования приложений перешли в appsettings.* (см. AGENTS.md — Конфигурация логирования)
@@ -424,10 +405,6 @@
             // Загружаем список ЮЛ
             _legalEntities = await ctx.LegalEntities.OrderBy(x => x.Name).ToListAsync();
 
-            // Загружаем текущее место работы
-            var wp = await ctx.CurrentWorkplaces.FirstOrDefaultAsync();
-            if (wp != null)
-                _selectedLeId = wp.LastSelectedLegalEntityId?.ToString() ?? "";
 
             // Загружаем системные настройки
             var settings = await ctx.SystemSettings.ToDictionaryAsync(x => x.Key, x => x.Value);
@@ -441,24 +418,6 @@
                 _blockedExtensions = blockedExt;
             if (settings.TryGetValue("qr_code_extensions", out var qrExt) && !string.IsNullOrEmpty(qrExt))
                 _qrExtensions = qrExt;
-        }
-        catch { }
-    }
-
-    private async Task SaveSelectedLegalEntity()
-    {
-        try
-        {
-            await using var ctx = await DbFactory.CreateDbContextAsync();
-            var wp = await ctx.CurrentWorkplaces.FirstOrDefaultAsync();
-            if (wp != null)
-            {
-                wp.LastSelectedLegalEntityId = string.IsNullOrEmpty(_selectedLeId)
-                    ? null
-                    : Guid.Parse(_selectedLeId);
-                await ctx.SaveChangesAsync();
-                _leSaveMessage = "Юридическое лицо обновлено.";
-            }
         }
         catch { }
     }

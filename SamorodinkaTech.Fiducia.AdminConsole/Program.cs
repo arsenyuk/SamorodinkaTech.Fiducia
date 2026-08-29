@@ -384,44 +384,6 @@ app.MapGet("/api/legal-entities/search", async (
     return Results.Ok(list);
 }).RequireAuthorization(policy => policy.RequireRole("SYS_ADMIN"));
 
-// Admin: чтение/сохранение руководителя ЮЛ (influential_people — singleton, BDR‑007)
-app.MapGet("/api/influential-people/list", async (IApplicationDbContext db, CancellationToken ct) =>
-{
-    var ip = await db.CurrentWorkplaces.FirstOrDefaultAsync(ct);
-    return Results.Ok(ip is null ? new { } : new { ip.Id, ip.FullName, ip.Position });
-}).RequireAuthorization(policy => policy.RequireRole("SYS_ADMIN"));
-
-app.MapPost("/api/influential-people", async (
-    IApplicationDbContext db,
-    CurrentWorkplace dto,
-    CancellationToken ct) =>
-{
-    if (string.IsNullOrWhiteSpace(dto.FullName))
-        return Results.BadRequest(new { message = "FullName is required" });
-
-    var existing = await db.CurrentWorkplaces.FirstOrDefaultAsync(ct);
-    if (existing != null)
-    {
-        existing.FullName = dto.FullName.Trim();
-        existing.Position = string.IsNullOrWhiteSpace(dto.Position) ? null : dto.Position.Trim();
-    }
-    else
-    {
-        var ip = new CurrentWorkplace
-        {
-            Id = Guid.NewGuid(),
-            FullName = dto.FullName.Trim(),
-            Position = string.IsNullOrWhiteSpace(dto.Position) ? null : dto.Position.Trim()
-        };
-        await db.CurrentWorkplaces.AddAsync(ip, ct);
-    }
-
-    if (db is DbContext ef)
-        await ef.SaveChangesAsync(ct);
-
-    return Results.NoContent();
-}).RequireAuthorization(policy => policy.RequireRole("SYS_ADMIN"));
-
 // Admin: чтение интервала ГОСА (глобальные настройки СД, BDR‑007)
 app.MapGet("/api/legal-entities/{id:guid}/gosa-window", async (
     Guid id,
@@ -592,10 +554,6 @@ app.MapDelete("/api/legal-entities/{id:guid}", async (Guid id, IApplicationDbCon
     await ((FiduciaDbContext)db).LegalEntityVotingRules
         .Where(x => x.LegalEntityId == id)
         .ExecuteDeleteAsync(ct);
-
-    await ((FiduciaDbContext)db).CurrentWorkplaces
-        .Where(x => x.LastSelectedLegalEntityId == id)
-        .ExecuteUpdateAsync(s => s.SetProperty(x => x.LastSelectedLegalEntityId, (Guid?)null), ct);
 
     await ((FiduciaDbContext)db).SaveChangesAsync(ct);
 

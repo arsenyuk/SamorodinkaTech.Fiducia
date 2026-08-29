@@ -38,7 +38,6 @@ public interface IApplicationDbContext
     DbSet<ElectionConsent> ElectionConsents { get; }
     DbSet<OsaMeetingFile> OsaMeetingFiles { get; }
     DbSet<LegalEntity> LegalEntities { get; }
-    DbSet<CurrentWorkplace> CurrentWorkplaces { get; }
     DbSet<LegalEntityBoardSettings> LegalEntityBoardSettings { get; }
     DbSet<LegalEntityCharter> LegalEntityCharters { get; }
     DbSet<LegalEntityVotingRules> LegalEntityVotingRules { get; }

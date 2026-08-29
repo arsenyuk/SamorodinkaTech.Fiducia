@@ -528,16 +528,6 @@ CREATE TABLE IF NOT EXISTS legal_entity_email_settings (
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ix_legal_entity_email_settings_legal_entity_id ON legal_entity_email_settings(legal_entity_id);
 
--- Таблица: current_workplace (руководитель ЮЛ, singleton, BDR-007)
-CREATE TABLE IF NOT EXISTS current_workplace (
-    id uuid PRIMARY KEY,
-    full_name varchar(300) NOT NULL,
-    position varchar(200),
-    last_selected_legal_entity_id uuid REFERENCES legal_entities(id)
-);
-
--- Singleton: не более одной записи руководителя (одно-компанийный режим, BDR-007)
-CREATE UNIQUE INDEX IF NOT EXISTS ux_current_workplace_singleton ON current_workplace ((1));
 
 -- Таблица: legal_entity_board_settings (глобальные настройки СД, singleton, BDR-007)
 CREATE TABLE IF NOT EXISTS legal_entity_board_settings (

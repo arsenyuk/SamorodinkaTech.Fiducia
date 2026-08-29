@@ -39,7 +39,6 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
     public DbSet<UserBoardMemberResignation> UserBoardMemberResignations => Set<UserBoardMemberResignation>();
     public DbSet<OsaMeetingFile> OsaMeetingFiles => Set<OsaMeetingFile>();
     public DbSet<LegalEntity> LegalEntities => Set<LegalEntity>();
-    public DbSet<CurrentWorkplace> CurrentWorkplaces => Set<CurrentWorkplace>();
     public DbSet<LegalEntityBoardSettings> LegalEntityBoardSettings => Set<LegalEntityBoardSettings>();
     public DbSet<LegalEntityVotingRules> LegalEntityVotingRules => Set<LegalEntityVotingRules>();
     public DbSet<LegalEntityEmailSettings> LegalEntityEmailSettings => Set<LegalEntityEmailSettings>();
@@ -245,15 +244,6 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.Property(x => x.CreatedBy).HasColumnName("created_by").IsRequired();
         });
 
-        modelBuilder.Entity<CurrentWorkplace>(b =>
-        {
-            b.ToTable("current_workplace");
-            b.HasKey(x => x.Id);
-            b.Property(x => x.Id).HasColumnName("id");
-            b.Property(x => x.FullName).HasColumnName("full_name").IsRequired();
-            b.Property(x => x.Position).HasColumnName("position").HasMaxLength(200);
-            b.Property(x => x.LastSelectedLegalEntityId).HasColumnName("last_selected_legal_entity_id");
-        });
 
         modelBuilder.Entity<LegalEntityBoardSettings>(b =>
         {

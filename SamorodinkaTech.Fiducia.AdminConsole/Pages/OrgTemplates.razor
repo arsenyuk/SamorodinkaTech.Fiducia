@@ -146,7 +146,7 @@
             await using var ctx = await DbFactory.CreateDbContextAsync();
 
             // Загружаем текущий контекст организации
-            var wp = await ctx.CurrentWorkplaces.FirstOrDefaultAsync();
+            /*var wp = await ctx.CurrentWorkplaces.FirstOrDefaultAsync();
             if (wp?.LastSelectedLegalEntityId != null)
             {
                 _currentLe = await ctx.LegalEntities
@@ -161,7 +161,7 @@
                         .AnyAsync(x => x.OsaMeeting.LegalEntityId == _currentLe.Id
                                     && x.Status.Code == "ACTIVE");
                 }
-            }
+            }*/
 
             var query = ctx.TplOrgIntents.AsQueryable();
 

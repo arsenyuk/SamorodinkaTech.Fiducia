@@ -2,6 +2,7 @@
 @using Microsoft.EntityFrameworkCore
 @using SamorodinkaTech.Fiducia.Domain.Entities
 @using Markdig
+@inject IJSRuntime JS
 @inject IDbContextFactory<SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext> DbFactory
 @inject ILogger<EmailSettings> Logger
 @attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "SYS_ADMIN")]
@@ -109,16 +110,29 @@ else
     protected override async Task OnInitializedAsync()
     {
         await using var ctx = await DbFactory.CreateDbContextAsync();
-        var workplace = await ctx.CurrentWorkplaces.FirstOrDefaultAsync();
-        var targetId = workplace?.LastSelectedLegalEntityId;
-
-        if (targetId is null || targetId == Guid.Empty)
+        var login = await JS.InvokeAsync<string?>("eval", "localStorage.getItem('userLogin')");
+        if (string.IsNullOrEmpty(login))
+        {
+            Logger.LogWarning("EmailSettings: login не найден в localStorage");
             return;
+        }
 
-        _legalEntity = await ctx.LegalEntities
-            .Where(x => x.Id == targetId.Value)
-            .Select(x => new Domain.Entities.LegalEntity { Id = x.Id, Name = x.Name, Inn = x.Inn })
-            .FirstOrDefaultAsync();
+        var ep = await ctx.EcosystemParticipants
+            .Include(x => x.LegalEntity)
+            .FirstOrDefaultAsync(x => x.User.Login == login);
+
+        if (ep?.LegalEntity is null)
+        {
+            Logger.LogWarning("EmailSettings: для пользователя {Login} нет привязки к ЮЛ", login);
+            return;
+        }
+
+        _legalEntity = new Domain.Entities.LegalEntity
+        {
+            Id = ep.LegalEntity.Id,
+            Name = ep.LegalEntity.Name,
+            Inn = ep.LegalEntity.Inn
+        };
 
         if (_legalEntity is null)
             return;
