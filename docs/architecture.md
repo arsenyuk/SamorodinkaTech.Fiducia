@@ -213,7 +213,7 @@ SamorodinkaTech.Fiducia/
 
 ### Auth (Аутентификация и авторизация)
 
-**Сущности**: `User`, `Role`, `UserRole`, `CurrentWorkplace`.
+**Сущности**: `User`, `Role`, `UserRole`.
 
 **Интерфейсы**: `IAuthProvider`, `ISessionService`.
 

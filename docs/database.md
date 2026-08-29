@@ -112,13 +112,6 @@ erDiagram
         numeric vosu_threshold_percent
     }
 
-    current_workplace {
-        uuid id PK
-        varchar full_name
-        varchar position
-        uuid last_selected_legal_entity_id FK
-    }
-
     legal_entity_extra_settings {
         uuid legal_entity_id PK,FK
         boolean notary_list_approved
@@ -237,7 +230,6 @@ erDiagram
     legal_entities ||--o{ osa_meetings : "organises"
     legal_entities ||--|| legal_entity_charter : "has charter"
     legal_entities ||--o{ ref_standard_charter : "references"
-    current_workplace }o--|| legal_entities : "selected"
     legal_entity_extra_settings ||--|| legal_entities : "has settings"
     legal_entity_extra_settings }o--o| osa_meetings : "decided by"
     agenda_items }o--|| legal_entities : "belongs to"
@@ -669,17 +661,6 @@ CREATE TABLE committee_members (
 | `has_board_of_directors` | BOOLEAN | Наличие Совета директоров по уставу |
 | `gd_term_id` | UUID | FK → ref_gd_term (срок полномочий ГД, nullable) |
 | `vosu_threshold_percent` | NUMERIC(4,2) | Порог доли участника для требования о созыве ВОСУ (nullable, по умолчанию 10%). Только для ООО с нетиповым уставом |
-
-### current_workplace
-
-Текущий руководитель и выбранное ЮЛ (singleton, BDR-007). Не более одной записи.
-
-| Поле | Тип | Описание |
-|------|-----|----------|
-| `id` | UUID | Первичный ключ |
-| `full_name` | VARCHAR(300) | ФИО руководителя |
-| `position` | VARCHAR(200) | Должность (nullable) |
-| `last_selected_legal_entity_id` | UUID | FK → legal_entities (выбранное ЮЛ, nullable) |
 
 ### legal_entity_extra_settings
 

@@ -6,7 +6,7 @@ using SamorodinkaTech.Fiducia.Infrastructure.Persistence;
 namespace SamorodinkaTech.Fiducia.BoardPortal;
 
 /// <summary>
-/// Хелпер для определения текущего ЮЛ через EcosystemParticipant (вместо current_workplace).
+/// Хелпер для определения текущего ЮЛ через EcosystemParticipant.
 /// </summary>
 public static class LegalEntityHelper
 {

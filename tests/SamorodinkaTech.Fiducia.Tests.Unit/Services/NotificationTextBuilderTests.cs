@@ -336,7 +336,6 @@ public class EmptyDbContext : DbContext, IApplicationDbContext
     public DbSet<UserBoardMemberResignation> UserBoardMemberResignations => Set<UserBoardMemberResignation>();
     public DbSet<OsaMeetingFile> OsaMeetingFiles => Set<OsaMeetingFile>();
     public DbSet<LegalEntity> LegalEntities => Set<LegalEntity>();
-    public DbSet<CurrentWorkplace> CurrentWorkplaces => Set<CurrentWorkplace>();
     public DbSet<LegalEntityBoardSettings> LegalEntityBoardSettings => Set<LegalEntityBoardSettings>();
     public DbSet<LegalEntityVotingRules> LegalEntityVotingRules => Set<LegalEntityVotingRules>();
     public DbSet<LegalEntityEmailSettings> LegalEntityEmailSettings => Set<LegalEntityEmailSettings>();
