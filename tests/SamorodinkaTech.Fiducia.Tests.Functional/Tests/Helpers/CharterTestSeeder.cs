@@ -50,13 +50,12 @@ public static class CharterTestSeeder
 
     private static async Task SeedEntityAsync(IPage adminPage, int charterNumber)
     {
-        // Логин SYS_ADMIN (один раз)
-        if (!_loggedIn)
+        // Логин SYS_ADMIN: проверяем текущую страницу, а не статический флаг
+        if (!adminPage.Url.Contains("/main"))
         {
             Console.WriteLine($"[Seeder] Логин SYS_ADMIN...");
             await AuthHelper.LoginAsAdminAsync(adminPage, CharterTestDataFixed.SysAdminLogin);
             adminPage.Url.Should().Contain("/main");
-            _loggedIn = true;
             Console.WriteLine("[Seeder] Логин выполнен.");
         }
 
@@ -98,6 +97,19 @@ public static class CharterTestSeeder
 
         Console.WriteLine($"[Seeder] ЮЛ {charterNumber}: {entity.Name} (ИНН {entity.Inn})...");
         await AdminConsoleHelper.CreateLegalEntityAsync(adminPage, entity.Name, entity.Inn);
+
+        // ── Установка ОКОПФ (ООО = 12300) ──────────────────────────
+        // Получаем ID выбранного ЮЛ из dropdown
+        var selectedLeId = await adminPage.EvaluateAsync<string?>(
+            @"() => {
+                const sel = document.querySelector('.card-body select.form-select');
+                return sel ? sel.value : null;
+            }");
+        if (!string.IsNullOrEmpty(selectedLeId) && Guid.TryParse(selectedLeId, out var leGuid))
+        {
+            Console.WriteLine($"[Seeder] ЮЛ {charterNumber}: установка ОКОПФ 12300 (ООО)...");
+            await AdminConsoleHelper.SetOkopfAsync(adminPage, leGuid, "12300");
+        }
 
         // Роли администратору (EcosystemParticipant + Employee + UserRole через UI)
         await AdminConsoleHelper.AssignRolesAsync(

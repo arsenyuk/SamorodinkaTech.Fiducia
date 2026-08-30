@@ -103,6 +103,22 @@ public static class CharterTestDataFixed
         new(48,  "Общество с ограниченной ответственностью «Пономарёв Сервис»", "7812987654", "2129876543212", "ООО «ПС»",  ExecutiveBodyA, PersonData.CreateAdmin("ponomarev.ip", "Пономарёв Игорь Павлович", "Пономарёв", "Игорь", "Павлович", "ponomarev.ip")),
         new(49,  "Общество с ограниченной ответственностью «Рябов Логистикс»", "7813987654", "2139876543212", "ООО «РЛ»",  ExecutiveBodyA, PersonData.CreateAdmin("ryabov.vs", "Рябов Владислав Сергеевич", "Рябов", "Владислав", "Сергеевич", "ryabov.vs")),
         new(50,  "Общество с ограниченной ответственностью «Савельев Медиа»", "7814987654", "2149876543212", "ООО «СМ»",  ExecutiveBodyA, PersonData.CreateAdmin("savelyev.ro", "Савельев Ринат Олегович", "Савельев", "Ринат", "Олегович", "savelyev.ro")),
+
+        // ── 7 моделей ЕИО: нетиповой устав (номера 51–57) ────────────
+        // Модель 1: ГД — наёмный сотрудник (Type A)
+        new(51,  "Общество с ограниченной ответственностью «Тарасов Инвест»", "7815987654", "2159876543212", "ООО «ТИ»",  ExecutiveBodyA, PersonData.CreateAdmin("tarasov.ev", "Тарасов Евгений Владимирович", "Тарасов", "Евгений", "Владимирович", "tarasov.ev")),
+        // Модель 2: ГД — участник общества (Type A)
+        new(52,  "Общество с ограниченной ответственностью «Уваров Тех»", "7816987654", "2169876543212", "ООО «УТ»",  ExecutiveBodyA, PersonData.CreateAdmin("uvarov.di", "Уваров Дмитрий Игоревич", "Уваров", "Дмитрий", "Игоревич", "uvarov.di")),
+        // Модель 3: Управляющий — ИП (Type D)
+        new(53,  "Общество с ограниченной ответственностью «Фёдоров Групп»", "7817987654", "2179876543212", "ООО «ФГ»",  'D', PersonData.CreateAdmin("fedorov.ka", "Фёдоров Кирилл Андреевич", "Фёдоров", "Кирилл", "Андреевич", "fedorov.ka")),
+        // Модель 4: Управляющая организация (Type E)
+        new(54,  "Общество с ограниченной ответственностью «Хромов Лабс»", "7818987654", "2189876543212", "ООО «ХЛ»",  'E', PersonData.CreateAdmin("khromov.ni", "Хромов Никита Игоревич", "Хромов", "Никита", "Игоревич", "khromov.ni")),
+        // Модель 5: Все участники — директора (Type B)
+        new(55,  "Общество с ограниченной ответственностью «Цветков Продакшн»", "7819987654", "2199876543212", "ООО «ЦП»",  ExecutiveBodyB, PersonData.CreateAdmin("tsvetkov.sa", "Цветков Станислав Андреевич", "Цветков", "Станислав", "Андреевич", "tsvetkov.sa")),
+        // Модель 6: Все участники совместно (Type C)
+        new(56,  "Общество с ограниченной ответственностью «Шестаков Финанс»", "7820987654", "2209876543212", "ООО «ШФ»",  ExecutiveBodyC, PersonData.CreateAdmin("shestakov.vi", "Шестаков Виктор Игоревич", "Шестаков", "Виктор", "Игоревич", "shestakov.vi")),
+        // Модель 7: Несколько ЕИО (Type F)
+        new(57,  "Общество с ограниченной ответственностью «Щербаков Консалтинг»", "7821987654", "2219876543212", "ООО «ЩК»",  'F', PersonData.CreateAdmin("shcherbakov.am", "Щербаков Артём Максимович", "Щербаков", "Артём", "Максимович", "shcherbakov.am")),
     ];
 
     /// <summary>
@@ -496,6 +512,73 @@ public static class CharterTestDataFixed
             [
                 PersonData.CreateParticipant("Уваров Пётр Вадимович", 60m, login: "uvarov.pv50"),
                 PersonData.CreateParticipant("Уварова Наталья Вадимовна", 40m, login: "uvarova.nv50"),
+            ]),
+
+        // ════════════════════════════════════════════════════════════════
+        // 7 моделей ЕИО: нетиповой устав (51–57)
+        // ════════════════════════════════════════════════════════════════
+
+        // Модель 1: ГД — наёмный сотрудник (Type A, ГД не участник)
+        [51] = new(
+            Gd: new() { Uid = "tarasov.ev", Login = "tarasov.ev", FullName = "Тарасов Евгений Владимирович", LastName = "Тарасов", FirstName = "Евгений", MiddleName = "Владимирович", Position = "Генеральный директор" },
+            Participants:
+            [
+                PersonData.CreateParticipant("Андреев Павел Сергеевич", 60m, login: "andreev.ps51"),
+                PersonData.CreateParticipant("Андреева Ольга Сергеевна", 40m, login: "andreeva.os51"),
+            ]),
+
+        // Модель 2: ГД — участник общества (Type A, ГД = участник)
+        [52] = new(
+            Gd: new() { Uid = "uvarov.di", Login = "uvarov.di", FullName = "Уваров Дмитрий Игоревич", LastName = "Уваров", FirstName = "Дмитрий", MiddleName = "Игоревич", Position = "Генеральный директор" },
+            Participants:
+            [
+                PersonData.CreateParticipant("Борисов Алексей Николаевич", 50m, login: "borisov.an52"),
+                PersonData.CreateParticipant("Борисова Елена Николаевна", 50m, login: "borisova.en52"),
+            ]),
+
+        // Модель 3: Управляющий — ИП (Type D)
+        [53] = new(
+            Gd: null,
+            Participants:
+            [
+                PersonData.CreateParticipant("Волков Максим Андреевич", 60m, login: "volkov.ma53"),
+                PersonData.CreateParticipant("Волкова Ирина Андреевна", 40m, login: "volkova.ia53"),
+            ]),
+
+        // Модель 4: Управляющая организация (Type E)
+        [54] = new(
+            Gd: null,
+            Participants:
+            [
+                PersonData.CreateParticipant("Григорьев Денис Викторович", 50m, login: "grigoriev.dv54"),
+                PersonData.CreateParticipant("Григорьева Анна Викторовна", 50m, login: "grigorieva.av54"),
+            ]),
+
+        // Модель 5: Все участники — директора (Type B)
+        [55] = new(
+            Gd: null,
+            Participants:
+            [
+                PersonData.CreateParticipant("Давыдов Роман Сергеевич", 50m, isDirector: true, login: "davydov.rs55"),
+                PersonData.CreateParticipant("Давыдова Ксения Сергеевна", 50m, isDirector: true, login: "davydova.ks55"),
+            ]),
+
+        // Модель 6: Все участники совместно (Type C)
+        [56] = new(
+            Gd: null,
+            Participants:
+            [
+                PersonData.CreateParticipant("Егоров Тимур Александрович", 60m, isDirector: true, login: "egorov.ta56"),
+                PersonData.CreateParticipant("Егорова Виктория Александровна", 40m, isDirector: true, login: "egorova.va56"),
+            ]),
+
+        // Модель 7: Несколько ЕИО (Type F)
+        [57] = new(
+            Gd: null,
+            Participants:
+            [
+                PersonData.CreateParticipant("Жданов Илья Павлович", 50m, isDirector: true, login: "zhdanov.ip57"),
+                PersonData.CreateParticipant("Жданова Мария Павловна", 50m, isDirector: true, login: "zhdanova.mp57"),
             ]),
     };
 

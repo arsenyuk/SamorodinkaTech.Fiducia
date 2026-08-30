@@ -51,7 +51,7 @@ public class LegalEntityCharter
     /// <summary>Переход доли к наследникам без согласия остальных (inheritance_without_consent).</summary>
     public bool InheritanceWithoutConsent { get; set; } = true;
 
-    /// <summary>Тип единоличного исполнительного органа: A — гендиректор, B — каждый участник, C — все совместно (executive_body).</summary>
+    /// <summary>Тип единоличного исполнительного органа: A — гендиректор, B — каждый участник, C — все совместно, D — управляющий ИП, E — управляющая организация, F — несколько ЕИО (executive_body).</summary>
     public char ExecutiveBody { get; set; } = 'A';
 
     /// <summary>Идентификатор способа подтверждения протоколов ОСУ (protocol_confirmation_method_id).</summary>

@@ -396,6 +396,33 @@ public static class BoardPortalHelper
     }
 
     // ══════════════════════════════════════════════════════════════════════
+    // Тип исполнительного органа (нетиповой устав)
+    // ══════════════════════════════════════════════════════════════════════
+
+    /// <summary>
+    /// Установить тип исполнительного органа (A/B/C/D/E/F) в select на странице нетипового устава.
+    /// Select использует @bind="_executiveBodyStr" — устанавливаем value через JS.
+    /// </summary>
+    public static async Task SetExecutiveBodyAsync(IPage page, string executiveBodyType)
+    {
+        await page.EvaluateAsync(
+            $@"() => {{
+                const selects = document.querySelectorAll('select');
+                for (const sel of selects) {{
+                    const opts = sel.querySelectorAll('option');
+                    for (const opt of opts) {{
+                        if (opt.value === '{executiveBodyType}') {{
+                            sel.value = '{executiveBodyType}';
+                            sel.dispatchEvent(new Event('change', {{ bubbles: true }}));
+                            return;
+                        }}
+                    }}
+                }}
+            }}");
+        await page.WaitForTimeoutAsync(500);
+    }
+
+    // ══════════════════════════════════════════════════════════════════════
     // Участники общества
     // ══════════════════════════════════════════════════════════════════════
 

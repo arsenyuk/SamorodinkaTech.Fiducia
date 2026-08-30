@@ -560,6 +560,21 @@ app.MapDelete("/api/legal-entities/{id:guid}", async (Guid id, IApplicationDbCon
     return Results.Ok(new { message = "Конфигурация ЮЛ очищена" });
 }).RequireAuthorization(policy => policy.RequireRole("SYS_ADMIN"));
 
+// Admin: установка ОКОПФ для юридического лица
+app.MapPut("/api/legal-entities/{id:guid}/okopf", async (Guid id, string okopfCode, IApplicationDbContext db, CancellationToken ct) =>
+{
+    var le = await ((FiduciaDbContext)db).LegalEntities.FirstOrDefaultAsync(x => x.Id == id, ct);
+    if (le is null) return Results.NotFound(new { message = "ЮЛ не найдено" });
+
+    var okopf = await ((FiduciaDbContext)db).RefOkopf.FirstOrDefaultAsync(o => o.Code == okopfCode, ct);
+    if (okopf is null) return Results.BadRequest(new { message = $"ОКОПФ с кодом {okopfCode} не найден" });
+
+    le.OkopfId = okopf.Id;
+    await ((FiduciaDbContext)db).SaveChangesAsync(ct);
+
+    return Results.Ok(new { message = $"ОКОПФ установлен: {okopfCode}", okopfId = okopf.Id });
+}).RequireAuthorization(policy => policy.RequireRole("SYS_ADMIN"));
+
 app.MapBlazorHub();
 app.MapFallbackToPage("/_Host");
 

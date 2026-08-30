@@ -673,8 +673,11 @@
                                                         <option value="A">A — Генеральный директор</option>
                                                         <option value="B">B — Каждый участник — директор</option>
                                                         <option value="C">C — Все участники совместно</option>
+                                                        <option value="D">D — Управляющий ИП (ст. 42 14-ФЗ)</option>
+                                                        <option value="E">E — Управляющая организация (ст. 42 14-ФЗ)</option>
+                                                        <option value="F">F — Несколько ЕИО (п. 3 ст. 65.3 ГК РФ)</option>
                                                     </select>
-                                                    <div class="form-text">Тип исполнительного органа: A — гендиректор, B — каждый участник = директор, C — все совместно. Определяет процедуру избрания и подписания документов.</div>
+                                                    <div class="form-text">Тип исполнительного органа: A — гендиректор, B — каждый участник = директор, C — все совместно, D — управляющий ИП, E — управляющая организация, F — несколько ЕИО. Определяет процедуру избрания и подписания документов.</div>
                                                 </div>
                                                 @if (_customExecutiveBody == 'A')
                                                 {
@@ -1282,6 +1285,10 @@
         // Для ООО — наличие СД определяется уставом
         if (_orgType == OrgType.LLC)
             editHasBoardOfDirectors = string.IsNullOrEmpty(_editCharterNumber) && _customHasBoardOfDirectors;
+
+        // Загружаем ФИО и должность руководителя (для валидации при сохранении)
+        editFullName = le.Name ?? string.Empty;
+        editPosition = "Генеральный директор";
 
         saveError = null;
         saveSuccess = null;

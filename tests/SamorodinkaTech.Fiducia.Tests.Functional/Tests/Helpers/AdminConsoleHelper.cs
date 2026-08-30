@@ -295,5 +295,25 @@ public static class AdminConsoleHelper
         }
     }
 
+    /// <summary>
+    /// Установить ОКОПФ для юридического лица через API (PUT /api/legal-entities/{id}/okopf).
+    /// Требует авторизованную сессию Admin Console с ролью SYS_ADMIN.
+    /// </summary>
+    public static async Task SetOkopfAsync(IPage page, Guid legalEntityId, string okopfCode)
+    {
+        var result = await page.EvaluateAsync<dynamic>(
+            $@"async () => {{
+                const response = await fetch('/api/legal-entities/{legalEntityId}/okopf?okopfCode={okopfCode}', {{
+                    method: 'PUT',
+                    credentials: 'same-origin'
+                }});
+                if (!response.ok) {{
+                    const body = await response.text();
+                    throw new Error(`PUT /api/legal-entities/{legalEntityId}/okopf failed: ${{response.status}} ${{body}}`);
+                }}
+                return await response.json();
+            }}");
+    }
+
     private static string EscapeJs(string value) => value.Replace("'", "\\'").Replace("\\", "\\\\");
 }

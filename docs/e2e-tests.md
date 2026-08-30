@@ -76,6 +76,13 @@
 | Договоры (включая управляющих ИП) | US-024 | `US024_ContractTests` | ✅ Реализован |
 | Типовой устав (выбор, просмотр, добавление участников, аудит) | — | `E2E_StandardCharterTests` (36 variants) | ✅ Реализован |
 | Нетиповой устав (параметризованный, добавление участников, аудит) | — | `E2E_NonStandardCharterTests` (14 tests) | ✅ Реализован |
+| Модель ЕИО: ГД — наёмный сотрудник | — | `E2E_NonStandardCharterTests::Model1_HiredCeo` | ✅ Реализован |
+| Модель ЕИО: ГД — участник общества | — | `E2E_NonStandardCharterTests::Model2_CeoParticipant` | ✅ Реализован |
+| Модель ЕИО: Управляющий — ИП (ст. 42 14-ФЗ) | — | `E2E_NonStandardCharterTests::Model3_ManagerIp` | ✅ Реализован |
+| Модель ЕИО: Управляющая организация (ст. 42 14-ФЗ) | — | `E2E_NonStandardCharterTests::Model4_ManagingOrg` | ✅ Реализован |
+| Модель ЕИО: Все участники — директора | — | `E2E_NonStandardCharterTests::Model5_AllParticipantsDirectors` | ✅ Реализован |
+| Модель ЕИО: Все участники совместно | — | `E2E_NonStandardCharterTests::Model6_AllParticipantsJoint` | ✅ Реализован |
+| Модель ЕИО: Несколько ЕИО (п. 3 ст. 65.3 ГК РФ) | — | `E2E_NonStandardCharterTests::Model7_MultipleEio` | ✅ Реализован |
 | Коллективное требование (ВОСУ) | — | — | ❌ Нет теста |
 
 ---
