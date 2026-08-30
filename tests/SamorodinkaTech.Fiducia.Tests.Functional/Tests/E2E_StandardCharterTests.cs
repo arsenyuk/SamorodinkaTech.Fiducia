@@ -14,6 +14,10 @@ namespace SamorodinkaTech.Fiducia.Tests.Functional;
 [Collection("CharterTests")]
 public class E2E_StandardCharterTests : BrowserFixture
 {
+    public E2E_StandardCharterTests(GlobalFixture globalFixture) : base(globalFixture)
+    {
+    }
+
     /// <summary>
     /// Флаг: хотя бы один тест завершился ошибкой.
     /// После установки все последующие тесты прерываются (SkipIfPreviousTestFailed).

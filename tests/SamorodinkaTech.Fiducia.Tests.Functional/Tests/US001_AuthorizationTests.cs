@@ -9,6 +9,10 @@ namespace SamorodinkaTech.Fiducia.Tests.Functional;
 /// </summary>
 public class US001_AuthorizationTests : BrowserFixture
 {
+    public US001_AuthorizationTests(GlobalFixture globalFixture) : base(globalFixture)
+    {
+    }
+
     [Fact]
     public async Task BoardPortal_LoginPage_ShowsSelectDropdown()
         => await AssertLoginDropdownAsync(Portal.BoardPortal);

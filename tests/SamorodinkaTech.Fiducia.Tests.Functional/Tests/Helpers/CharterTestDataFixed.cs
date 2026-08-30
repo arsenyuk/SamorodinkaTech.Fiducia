@@ -559,8 +559,8 @@ public static class CharterTestDataFixed
             Gd: null,
             Participants:
             [
-                PersonData.CreateParticipant("Давыдов Роман Сергеевич", 50m, isDirector: true, login: "davydov.rs55"),
-                PersonData.CreateParticipant("Давыдова Ксения Сергеевна", 50m, isDirector: true, login: "davydova.ks55"),
+                PersonData.CreateParticipant("Давыдов Роман Сергеевич", 50m, isDirector: true, login: "davydov.rs55") with { Uid = "davydov.rs55" },
+                PersonData.CreateParticipant("Давыдова Ксения Сергеевна", 50m, isDirector: true, login: "davydova.ks55") with { Uid = "davydova.ks55" },
             ]),
 
         // Модель 6: Все участники совместно (Type C)
@@ -568,8 +568,8 @@ public static class CharterTestDataFixed
             Gd: null,
             Participants:
             [
-                PersonData.CreateParticipant("Егоров Тимур Александрович", 60m, isDirector: true, login: "egorov.ta56"),
-                PersonData.CreateParticipant("Егорова Виктория Александровна", 40m, isDirector: true, login: "egorova.va56"),
+                PersonData.CreateParticipant("Егоров Тимур Александрович", 60m, isDirector: true, login: "egorov.ta56") with { Uid = "egorov.ta56" },
+                PersonData.CreateParticipant("Егорова Виктория Александровна", 40m, isDirector: true, login: "egorova.va56") with { Uid = "egorova.va56" },
             ]),
 
         // Модель 7: Несколько ЕИО (Type F)
@@ -577,8 +577,8 @@ public static class CharterTestDataFixed
             Gd: null,
             Participants:
             [
-                PersonData.CreateParticipant("Жданов Илья Павлович", 50m, isDirector: true, login: "zhdanov.ip57"),
-                PersonData.CreateParticipant("Жданова Мария Павловна", 50m, isDirector: true, login: "zhdanova.mp57"),
+                PersonData.CreateParticipant("Жданов Илья Павлович", 50m, isDirector: true, login: "zhdanov.ip57") with { Uid = "zhdanov.ip57" },
+                PersonData.CreateParticipant("Жданова Мария Павловна", 50m, isDirector: true, login: "zhdanova.mp57") with { Uid = "zhdanova.mp57" },
             ]),
     };
 
@@ -627,8 +627,20 @@ public static class CharterTestDataFixed
         public bool IsDirector { get; init; }
 
         /// <summary>Создать участника (без LDAP, только ФИО + доля + логин).</summary>
-        public static PersonData CreateParticipant(string fullName, decimal sharePercent, bool isDirector = false, string login = "") =>
-            new() { FullName = fullName, SharePercent = sharePercent, IsDirector = isDirector, Login = login };
+        public static PersonData CreateParticipant(string fullName, decimal sharePercent, bool isDirector = false, string login = "")
+        {
+            var parts = fullName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            return new()
+            {
+                FullName = fullName,
+                SharePercent = sharePercent,
+                IsDirector = isDirector,
+                Login = login,
+                LastName = parts.Length > 0 ? parts[0] : string.Empty,
+                FirstName = parts.Length > 1 ? parts[1] : string.Empty,
+                MiddleName = parts.Length > 2 ? parts[2] : string.Empty,
+            };
+        }
 
         /// <summary>Создать администратора ЮЛ (LDAP-пользователь с ролью LE_ADMIN).</summary>
         public static PersonData CreateAdmin(string uid, string fullName, string lastName, string firstName, string middleName, string login) =>

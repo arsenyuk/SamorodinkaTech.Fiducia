@@ -11,7 +11,6 @@ namespace SamorodinkaTech.Fiducia.Tests.Functional.Helpers;
 /// </summary>
 public static class CharterTestSeeder
 {
-    private static bool _loggedIn;
     private static readonly HashSet<int> _seededEntities = [];
     private static Exception? _seedingException;
     private static readonly SemaphoreSlim Semaphore = new(1, 1);

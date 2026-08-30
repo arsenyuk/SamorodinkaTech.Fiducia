@@ -22,6 +22,9 @@ namespace SamorodinkaTech.Fiducia.Tests.Functional;
 [Collection("CharterTests")]
 public class E2E_NonStandardCharterTests : BrowserFixture
 {
+    public E2E_NonStandardCharterTests(GlobalFixture globalFixture) : base(globalFixture)
+    {
+    }
     // ══════════════════════════════════════════════════════════════════════
     // Параметры нетипового устава ( фиксированные значения )
     // ══════════════════════════════════════════════════════════════════════

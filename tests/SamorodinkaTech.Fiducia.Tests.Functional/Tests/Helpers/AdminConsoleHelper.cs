@@ -51,7 +51,8 @@ public static class AdminConsoleHelper
 
         // Заполнить остальные поля (пропуская уже заполненное поле логина в input-group)
         var allInputs = await page.QuerySelectorAllAsync(".modal .modal-body input.form-control");
-        var values = new[] { lastName, firstName, middleName, email };
+        var phone = $"+7{login.GetHashCode() % 10000000000:D10}"; // Уникальный телефон на основе логина
+        var values = new[] { lastName, firstName, middleName, email, phone };
         var valueIndex = 0;
         foreach (var input in allInputs)
         {

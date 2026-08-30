@@ -3,29 +3,22 @@ using Microsoft.Playwright;
 namespace SamorodinkaTech.Fiducia.Tests.Functional;
 
 /// <summary>
-/// Базовый класс — поднимает/останавливает Playwright браузер.
+/// Базовый класс — предоставляет доступ к браузеру из GlobalFixture.
+/// НЕ создаёт свой экземпляр браузера — использует общий из GlobalFixture.
 /// </summary>
-public class BrowserFixture : IAsyncLifetime
+public class BrowserFixture
 {
-    private IPlaywright _playwright = null!;
-    private IBrowser _browser = null!;
+    private readonly GlobalFixture _globalFixture;
 
-    public async Task InitializeAsync()
+    public BrowserFixture(GlobalFixture globalFixture)
     {
-        _playwright = await Playwright.CreateAsync();
-        _browser = await _playwright.Chromium.LaunchAsync(new() { Headless = true });
-    }
-
-    public async Task DisposeAsync()
-    {
-        await _browser.CloseAsync();
-        _playwright.Dispose();
+        _globalFixture = globalFixture;
     }
 
     /// <summary>Создать страницу по базе URL (для редких случаев).</summary>
     public async Task<IPage> CreatePageAsync(string? urlBase = null)
     {
-        var page = await _browser.NewPageAsync(new() { IgnoreHTTPSErrors = true });
+        var page = await _globalFixture.Browser.NewPageAsync(new() { IgnoreHTTPSErrors = true });
         if (!string.IsNullOrEmpty(urlBase))
             await page.GotoAsync(urlBase);
         return page;
