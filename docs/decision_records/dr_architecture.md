@@ -377,3 +377,314 @@
 ### Связанные документы
 
 - `docs/legal-entity-types.md` — справочник переводов типов ЮЛ
+
+---
+
+## ADR-025: Сквозные (E2E) тесты — архитектура и бизнес-сценарии
+
+**Статус**: Принято
+**Дата**: 2026-08-30
+
+### Контекст
+
+Система требует сквозного тестирования пользовательских сценариев от входа в систему до проверки корректности бизнес-логики. Тесты должны работать с реальным браузером, базой данных и LDAP, проверять аудит и логирование.
+
+### Решение
+
+#### Стек технологий
+
+| Компонент | Версия | Лицензия | Назначение |
+|-----------|--------|----------|------------|
+| **xUnit v3** | 4.0.0 | Apache-2.0 | Тестовый фреймворк с `AssemblyFixture` |
+| **Playwright** | 1.52.0 | Apache-2.0 | Браузерная автоматизация (Chromium) |
+| **FluentAssertions** | 6.12.0 | Apache-2.0 | Читаемые утверждения (фиксация на 6.x) |
+| **Microsoft.NET.Test.Sdk** | 17.14.1 | MIT | Платформа тестирования |
+
+**Важно**: FluentAssertions 7.x имеет коммерческую лицензию. Фиксация на 6.12.0.
+
+#### Архитектура тестов
+
+```
+AssemblyInfo.cs
+├── [assembly: AssemblyFixture(typeof(GlobalFixture))]   ← ОДИН раз на сборку
+│   └── GlobalFixture : IAsyncLifetime
+│       ├── InfrastructureHelper.EnsureInfrastructureReadyAsync()
+│       ├── Playwright.CreateAsync() + Browser.LaunchAsync()
+│       └── CharterTestGlobalInit.InitializeAsync()
+│           ├── Сброс БД (DbResetHelper)
+│           ├── Удаление LDAP-пользователей
+│           └── Создание LDAP-пользователей для всех ЮЛ
+│
+├── GlobalFixture.Browser  ← общий для всех тестов
+│
+└── BrowserFixture (per-class)
+    ├── CreateBoardPortalPageAsync()
+    ├── CreateAdminConsolePageAsync()
+    └── CreatePageAsync()
+```
+
+**GlobalFixture** — assembly-level fixture (xUnit v3). Выполняется ОДИН раз перед ВСЕМИ тестами. Инициализирует инфраструктуру, сбрасывает БД, создаёт LDAP-пользователей.
+
+**BrowserFixture** — per-class fixture. Предоставляет доступ к общему браузеру из GlobalFixture. Создаёт страницы для каждого теста.
+
+#### Бизнес-сценарии
+
+| № | Сценарий | ЮЛ | Тест |
+|---|---------|-----|------|
+| 1 | ЮЛ со типовым уставом | 01–36 | `E2E_StandardCharterTests` |
+| 2 | ЮЛ с нетиповым уставом | 37–50 | `E2E_NonStandardCharterTests` |
+| 3 | ЕИО: ГД — наёмный сотрудник (Type A) | 51 | `Model1_HiredCeo` |
+| 4 | ЕИО: ГД — участник общества (Type A) | 52 | `Model2_CeoParticipant` |
+| 5 | ЕИО: Управляющий — ИП (Type D) | 53 | `Model3_ManagerIp` |
+| 6 | ЕИО: Управляющая организация (Type E) | 54 | `Model4_ManagingOrg` |
+| 7 | ЕИО: Все участники — директора (Type B) | 55 | `Model5_AllParticipantsDirectors` |
+| 8 | ЕИО: Все участники совместно (Type C) | 56 | `Model6_AllParticipantsJoint` |
+| 9 | ЕИО: Несколько ЕИО (Type F) | 57 | `Model7_MultipleEio` |
+
+Полное описание бизнес-сценариев: `docs/e2e-scenarios.md`.
+
+#### Правила
+
+1. **Зеркальная синхронизация**: `docs/user-stories.md` ↔ E2E-тесты ↔ `docs/e2e-tests.md`
+2. **Проверка аудита**: каждый тест проверяет записи в логе аудита
+3. **Проверка лога приложения**: каждый тест проверяет отсутствие ERROR/FATAL
+4. **Логирование ошибок**: вывод в `/tmp/e2e-test-output.log`
+5. **Остановка при ошибке (КРИТИЧНО)**:
+   - Вывод **каждого** запуска перенаправляется в `/tmp/e2e-test-output.log`
+   - При обнаружении **любой** ошибки (FAIL, TimeoutException, assertion failure) — **немедленно останавливаться** и читать лог
+   - Запрещено запускать повторно «для проверки» без анализа причины падения
+   - Перед исправлением — **всегда** читать лог и логи порталов, а не строить догадки
+
+#### Фильтрация тестов (xUnit v3 + MTP)
+
+```bash
+# Один тест
+dotnet test -- --filter "NonStandardCharter_Model1"
+
+# Все модели ЕИО
+dotnet test -- --filter "NonStandardCharter_Model"
+
+# Все тесты уставов
+dotnet test -- --filter "Charter"
+```
+
+**Важно**: в xUnit v3 + Microsoft.Testing.Platform фильтр передаётся через `--` (двойной дефис).
+
+### Альтернативы
+
+- **Selenium** — отклонено: Playwright быстрее, проще в настройке, встроенные等待и
+- **NUnit** — отклонено: xUnit v3 лучше интегрирован с .NET 10 SDK
+- **Коммерческие платформы** (BrowserStack, SauceLabs) — отклонено: требуют лицензии
+
+### Последствия
+
+- **Позитив**: 57 тестов покрывают все бизнес-сценарии, автоматизация аудита, проверка LDAP
+- **Негатив**: тесты зависят от Docker-контейнеров (PostgreSQL, LDAP), время прогона ~9 минут
+
+### Связанные документы
+
+- `docs/e2e-scenarios.md` — бизнес-сценарии (источник группировки)
+- `ADR-025` — архитектура E2E-тестов
+
+---
+
+## ADR-026: Структура E2E-тестов — группировка по бизнес-сценариям
+
+**Статус**: Принято
+**Дата**: 2026-08-30
+
+### Контекст
+
+При большом количестве E2E-тестов файлы становятся громоздкими (300–700 строк), что затрудняет навигацию, review и поддержку. Смешивание тестов для разных бизнес-сценариев в одном файле нарушает принцип единственной ответственности.
+
+### Решение
+
+**Разбивать большие файлы E2E-тестов на отдельные файлы по группам бизнес-сценариев**, описанных в `docs/e2e-scenarios.md`.
+
+#### Принцип группировки
+
+Каждый файл тестов соответствует **одному бизнес-сценарию** из `docs/e2e-scenarios.md`:
+
+```
+Tests/
+├── E2E_StandardCharterTests.cs           ← Сценарий 1: Типовой устав
+├── E2E_NonStandardCharterTests.cs        ← Сценарий 2: Нетиповой устав
+├── E2E_EioHiredCeoTests.cs               ← Сценарий 3: ГД — наёмный
+├── E2E_EioCeoParticipantTests.cs         ← Сценарий 4: ГД — участник
+├── E2E_EioManagerIpTests.cs              ← Сценарий 5: Управляющий ИП
+├── E2E_EioManagingOrgTests.cs            ← Сценарий 6: Упр. организация
+├── E2E_EioAllDirectorsTests.cs           ← Сценарий 7: Все — директора
+├── E2E_EioAllJointTests.cs              ← Сценарий 8: Все совместно
+├── E2E_EioMultipleEioTests.cs            ← Сценарий 9: Несколько ЕИО
+└── Helpers/                              ← Общие хелперы
+```
+
+#### Правила
+
+1. **Один файл = один бизнес-сценарий** из `docs/e2e-scenarios.md`
+2. **Именование**: `E2E_<КраткоеИмя>Tests.cs` — отражает сценарий, а не реализацию
+3. **Не более 200 строк** на файл — при превышении выделять подгруппы в отдельные файлы
+4. **Общие хелперы** — в `Tests/Helpers/`, не дублировать между файлами
+5. **Collection** — общий `[Collection("CharterTests")]` для последовательного выполнения
+6. **При добавлении нового сценария** — создавать новый файл, а не дописывать в существующий
+
+#### Формат именования
+
+| Бизнес-сценарий | Имя файла |
+|----------------|-----------|
+| ЮЛ со типовым уставом | `E2E_StandardCharterTests.cs` |
+| ЮЛ с нетиповым уставом | `E2E_NonStandardCharterTests.cs` |
+| ЕИО: ГД — наёмный | `E2E_EioHiredCeoTests.cs` |
+| ЕИО: ГД — участник | `E2E_EioCeoParticipantTests.cs` |
+| ЕИО: Управляющий ИП | `E2E_EioManagerIpTests.cs` |
+| ЕИО: Упр. организация | `E2E_EioManagingOrgTests.cs` |
+| ЕИО: Все — директора | `E2E_EioAllDirectorsTests.cs` |
+| ЕИО: Все совместно | `E2E_EioAllJointTests.cs` |
+| ЕИО: Несколько ЕИО | `E2E_EioMultipleEioTests.cs` |
+
+### Альтернативы
+
+- **Один файл на все тесты** — отклонено: нарушает SRP, затрудняет review
+- **Один файл на каждый [Fact]** — отклонено: избыточное дробление, много файлов-обёрток
+- **Группировка по слоям** (UI/API/DB) — отклонено: E2E-тесты сквозные, группировка по слоям неуместна
+
+### Последствия
+
+- **Позитив**: навигация по бизнес-сценариям, простота добавления новых тестов, чистый review
+- **Негатив**: больше файлов, но каждый файл маленький и понятный
+
+### Связанные документы
+
+- `docs/e2e-scenarios.md` — бизнес-сценарии (источник группировки)
+- `ADR-025` — архитектура E2E-тестов
+
+---
+
+## ADR-027: Правила E2E-тестов (КРИТИЧНО)
+
+**Статус**: Принято
+**Дата**: 2026-08-30
+
+### Правила
+
+#### 1. Проверка контента вместо HTTP-статуса (КРИТИЧНО)
+
+Playwright `page.Response` возвращает HTTP 200 даже для страниц с ошибками Blazor. Проверять статус бессмысленно — сравнивать текст контента или наличие UI-элементов.
+
+```csharp
+// ❌ Статус почти всегда 200 — бесполезно
+page.Response.StatusCode.Should().Be(200);
+
+// ✅ Проверяем реальный контент
+(await page.QuerySelectorAsync("button.btn-primary:has-text('Создать')"))
+    .Should().NotBeNull();
+```
+
+#### 2. `IPage` не Disposable (КРИТИЧНО)
+
+`IPage` не реализует `IDisposable`/`IAsyncDisposable`. Запрещено `using var page = ...`.
+
+```csharp
+// ✅
+var page = await _browser.NewPageAsync(new BrowserNewPageOptions { IgnoreHTTPSErrors = true });
+```
+
+#### 3. Централизованная конфигурация URLs (КРИТИЧНО)
+
+Адреса сервисов хранятся в одном месте (`PortalUrls`), не хардкодятся в тестах.
+
+```csharp
+public static class PortalUrls {
+    public const string BoardPortal = "http://localhost:5002";
+    public const string AdminConsole = "http://localhost:5001";
+}
+```
+
+#### 4. Навигация через UI, не через URL (КРИТИЧНО)
+
+Запрещено `page.GotoAsync(url)` для страниц приложения. Навигация через клик по меню/ссылкам — как реальный пользователь.
+
+```csharp
+// ❌
+await page.GotoAsync(PortalUrls.GetUrl(Portal.BoardPortal, "/legal-entities"));
+// ✅
+await page.ClickAsync("a[href='legal-entities']");
+```
+
+Исключение: страницы входа (`/login`).
+
+#### 5. Проверка аудита (КРИТИЧНО)
+
+Каждый E2E-тест обязан проверять записи в логе аудита:
+
+| Операция | Метод проверки |
+|----------|---------------|
+| Вход | `AuditLogHelper.AssertLoginLoggedAsync(login)` |
+| Сохранение | `AuditLogHelper.AssertDataUpdateLoggedAsync(path)` |
+| Создание | `AuditLogHelper.AssertDataCreateLoggedAsync(path)` |
+| Доступ | `AuditLogHelper.AssertNoAccessDeniedAsync()` |
+
+#### 6. Проверка лога приложения (КРИТИЧНО)
+
+Каждый E2E-тест обязан проверять отсутствие ERROR/FATAL:
+
+```csharp
+var testStartTime = DateTimeOffset.UtcNow;
+try { /* тест */ }
+finally {
+    var testEndTime = DateTimeOffset.UtcNow;
+    await AppLogHelper.AssertNoErrorsInAppLogSafeAsync(testStartTime, testEndTime, testName);
+}
+```
+
+Тесты с проверкой лога должны иметь `[Collection("Name")]` для последовательного выполнения.
+
+#### 7. Лог и остановка при ошибке (КРИТИЧНО)
+
+- Вывод каждого запуска в `/tmp/e2e-test-output.log`
+- При ошибке — **немедленно останавливаться**, читать лог
+- Запрещено запускать повторно без анализа причины
+- Перед исправлением — читать лог и логи порталов
+
+#### 8. Анализ лога после запуска (КРИТИЧНО)
+
+После завершения тестов — самостоятельно прочитать лог, извлечь провалившиеся тесты, представить структурированный отчёт.
+
+#### 9. Зеркальная синхронизация с документацией (КРИТИЧНО)
+
+`docs/user-stories.md` ↔ E2E-тесты ↔ `docs/e2e-tests.md`. При изменении — обновлять оба файла одновременно. Номера US в именах классов совпадают с US в документации.
+
+#### 10. Жизненный цикл при реализации фичи (КРИТИЧНО)
+
+1. **Ревизия** существующих тестов (анализ, не запуск)
+2. **Создание** новых тестов — ДАЖЕ если сценарий не может завершиться
+3. **Обновление** документации: `user-stories.md` + `e2e-tests.md`
+
+#### 11. Паттерн теста (КРИТИЧНО)
+
+Минимальный тест проверяет: страница загружается, UI-элементы присутствуют, контент корректен.
+
+```csharp
+public class US0XX_FeatureTests : BrowserFixture
+{
+    [Fact]
+    public async Task BoardPortal_FeaturePage_ShouldLoadWithExpectedContent()
+    {
+        var page = await CreateBoardPortalPageAsync("/feature-page");
+        var content = await page.ContentAsync();
+        content.Should().Contain("_framework/blazor.server.js");
+        content.Should().Contain("Ожидаемый заголовок");
+    }
+}
+```
+
+#### 12. Терминология (КРИТИЧНО)
+
+«Сквозные тесты» = «E2E-тесты» (синонимы). При изменении — обновлять код и документацию одновременно.
+
+### Связанные документы
+
+- `ADR-025` — архитектура E2E-тестов
+- `ADR-026` — группировка тестов по бизнес-сценариям
+- `docs/e2e-scenarios.md` — бизнес-сценарии
+- `docs/e2e-tests.md` — техническая реализация
