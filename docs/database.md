@@ -651,7 +651,7 @@ CREATE TABLE committee_members (
 | `transfer_to_third_parties_without_consent` | BOOLEAN | Переход доли к третьим лицам без согласия остальных |
 | `preemptive_right` | BOOLEAN | Преимущественное право покупки доли участниками |
 | `inheritance_without_consent` | BOOLEAN | Переход доли к наследникам без согласия остальных |
-| `executive_body` | CHAR(1) | Тип единоличного исп. органа: A — гендиректор, B — каждый участник, C — все совместно |
+| `executive_body` | CHAR(1) | Тип единоличного исп. органа: A — гендиректор, B — каждый участник, C — все совместно, D — управляющий ИП (ст. 42 14-ФЗ), E — управляющая организация (ст. 42 14-ФЗ), F — несколько ЕИО (п. 3 ст. 65.3 ГК РФ) |
 | `decision_confirmation_by_all_sign` | BOOLEAN | Подтверждение решений подписанием протокола всеми участниками |
 | `charter_document_id` | UUID | FK → files (текст устава, nullable) |
 | `board_regulation_document_id` | UUID | FK → files (Положение о СД, nullable) |
