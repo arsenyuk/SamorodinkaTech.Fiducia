@@ -102,7 +102,8 @@ public static class ParticipantEndpoints
             BoardParticipantDto dto,
             ISecurityAuditService audit,
             ILoggerFactory loggerFactory,
-            IDbContextFactory<FiduciaDbContext> dbFactory) =>
+            IDbContextFactory<FiduciaDbContext> dbFactory,
+            IServiceProvider serviceProvider) =>
         {
             var logger = loggerFactory.CreateLogger("Participants");
             try
@@ -132,6 +133,9 @@ public static class ParticipantEndpoints
                 logger.LogInformation("[{Ip}] Добавлен участник: {Name}, доля={Share}%, ЮЛ={LeId}",
                     ClientIpHelper.GetClientIp(http), entity.FullName ?? entity.CompanyName, entity.SharePercent, leId);
 
+                // ЕДИН: автоматическая привязка MasterId при наличии ПДн
+                _ = TriggerEdinBindingAsync(serviceProvider, logger, ctx, entity);
+
                 return Results.Ok(MapParticipantToDto(entity));
             }
             catch (Exception ex)
@@ -148,7 +152,8 @@ public static class ParticipantEndpoints
             BoardParticipantDto dto,
             ISecurityAuditService audit,
             ILoggerFactory loggerFactory,
-            IDbContextFactory<FiduciaDbContext> dbFactory) =>
+            IDbContextFactory<FiduciaDbContext> dbFactory,
+            IServiceProvider serviceProvider) =>
         {
             var logger = loggerFactory.CreateLogger("Participants");
             try
@@ -189,6 +194,9 @@ public static class ParticipantEndpoints
 
                 logger.LogInformation("[{Ip}] Обновлён участник: {Name}, id={Id}",
                     ClientIpHelper.GetClientIp(http), entity.FullName ?? entity.CompanyName, id);
+
+                // ЕДИН: автоматическая привязка MasterId при наличии ПДн
+                _ = TriggerEdinBindingAsync(serviceProvider, logger, ctx, entity);
 
                 return Results.Ok(MapParticipantToDto(entity));
             }
@@ -1056,6 +1064,75 @@ public static class ParticipantEndpoints
         while (inner.InnerException != null)
             inner = inner.InnerException;
         return inner.Message;
+    }
+
+    /// <summary>
+    /// Fire-and-forget: привязка ЕДИН MasterId к пользователю после сохранения участника.
+    /// Выполняется асинхронно, не блокирует ответ API.
+    /// </summary>
+    private static async Task TriggerEdinBindingAsync(
+        IServiceProvider serviceProvider,
+        ILogger logger,
+        FiduciaDbContext ctx,
+        BoardParticipant entity)
+    {
+        try
+        {
+            var bindingService = serviceProvider.GetService<IEdinBindingService>();
+            if (bindingService is null)
+                return;
+
+            if (entity.ParticipantType != "FL")
+                return;
+
+            if (string.IsNullOrWhiteSpace(entity.FullName))
+                return;
+
+            if (!entity.EcosystemParticipantId.HasValue)
+                return;
+
+            var ecoParticipant = await ctx.EcosystemParticipants.FindAsync(entity.EcosystemParticipantId.Value);
+            if (ecoParticipant is null)
+                return;
+
+            if (ecoParticipant.MpiMasterId.HasValue)
+                return;
+
+            var (lastName, firstName, middleName) = SplitFullName(entity.FullName);
+            var ecoId = entity.EcosystemParticipantId.Value;
+
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await bindingService.ResolveAndBindAsync(
+                        ecoId, lastName, firstName, middleName,
+                        entity.PersonInn, null, null,
+                        entity.PassportSeries, entity.PassportNumber);
+                }
+                catch (Exception ex)
+                {
+                    logger.LogWarning(ex, "ЕДИН: ошибка привязки для участника {Name}", entity.FullName);
+                }
+            });
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "ЕДИН: ошибка запуска привязки для участника {Name}", entity.FullName);
+        }
+    }
+
+    /// <summary>Разбивает ФИО на фамилию, имя и отчество.</summary>
+    private static (string LastName, string FirstName, string? MiddleName) SplitFullName(string fullName)
+    {
+        var parts = fullName.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        return parts.Length switch
+        {
+            >= 3 => (parts[0], parts[1], parts[2]),
+            2 => (parts[0], parts[1], null),
+            1 => (parts[0], parts[0], null),
+            _ => ("", "", null)
+        };
     }
 
     private static object MapParticipantToDto(BoardParticipant p) => new

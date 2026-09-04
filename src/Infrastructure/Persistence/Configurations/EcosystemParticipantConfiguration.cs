@@ -22,6 +22,11 @@ public class EcosystemParticipantConfiguration : IEntityTypeConfiguration<Ecosys
         builder.Property(x => x.Inn).HasColumnName("inn").HasMaxLength(12);
         builder.Property(x => x.Login).HasColumnName("login").HasMaxLength(100).IsRequired();
         builder.Property(x => x.UserId).HasColumnName("user_id");
+
+        // MPI: мастер-запись (источник: ЕДИН)
+        builder.Property(x => x.MpiMasterId).HasColumnName("mpi_master_id");
+        builder.HasIndex(x => x.MpiMasterId).HasDatabaseName("ix_ecosystem_participant_mpi_master_id");
+
         builder.Property(x => x.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("CURRENT_TIMESTAMP");
         builder.Property(x => x.CreatedBy).HasColumnName("created_by");
 

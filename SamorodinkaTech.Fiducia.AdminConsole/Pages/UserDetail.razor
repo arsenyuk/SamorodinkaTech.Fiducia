@@ -55,6 +55,10 @@
                                     @onclick='() => SwitchTab("appointments")'>Назначения в СД</button>
                         </li>
                     }
+                    <li class="nav-item">
+                        <button class="nav-link @(_tab == "edin" ? "active" : "")"
+                                @onclick='() => SwitchTab("edin")'>ЕДИН</button>
+                    </li>
                 </ul>
             </div>
             <div class="card-body">
@@ -291,6 +295,25 @@
                             </tbody>
                         </table>
                     }
+                }
+                else if (_tab == "edin")
+                {
+                    <dl class="row mb-0">
+                        <dt class="col-sm-3">MPI MasterId</dt>
+                        <dd class="col-sm-9">
+                            @if (_user!.MpiMasterId.HasValue)
+                            {
+                                <code>@_user.MpiMasterId.Value</code>
+                                <span class="badge bg-success ms-2">Привязан</span>
+                            }
+                            else
+                            {
+                                <span class="text-muted">Не привязан</span>
+                            }
+                        </dd>
+                        <dt class="col-sm-3">Источник</dt>
+                        <dd class="col-sm-9">LDAP/AD</dd>
+                    </dl>
                 }
             </div>
         </div>

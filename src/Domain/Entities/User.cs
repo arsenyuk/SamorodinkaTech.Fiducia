@@ -45,6 +45,9 @@ public class User
     /// <summary>Дата создания учётной записи в LDAP-каталоге (ldap_created_at).</summary>
     public DateTime? LdapCreatedAt { get; set; }
 
+    /// <summary>Идентификатор мастер-записи MPI (mpi_master_id). Источник: LDAP/AD.</summary>
+    public Guid? MpiMasterId { get; set; }
+
     /// <summary>Признак системного пользователя (is_system).</summary>
     public bool IsSystem { get; set; }
 

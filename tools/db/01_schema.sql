@@ -26,12 +26,15 @@ CREATE TABLE IF NOT EXISTS users (
     is_active boolean DEFAULT TRUE NOT NULL,
     account_expires_at timestamp with time zone,
     ldap_created_at timestamp with time zone,
-    is_system boolean DEFAULT FALSE NOT NULL
+    is_system boolean DEFAULT FALSE NOT NULL,
+    -- MPI: идентификатор мастер-записи (источник: LDAP/AD)
+    mpi_master_id uuid
 );
 
 CREATE INDEX IF NOT EXISTS ix_users_is_external ON users(is_external);
 CREATE INDEX IF NOT EXISTS ix_users_is_active ON users(is_active);
 CREATE INDEX IF NOT EXISTS ix_users_is_system ON users(is_system);
+CREATE INDEX IF NOT EXISTS ix_users_mpi_master_id ON users(mpi_master_id) WHERE mpi_master_id IS NOT NULL;
 
 -- ============================================================================
 -- Физические лица (создаются после users — ссылаются на users через created_by)
@@ -426,6 +429,8 @@ CREATE TABLE IF NOT EXISTS ecosystem_participants (
     inn varchar(12),
     login varchar(100) NOT NULL,
     user_id uuid REFERENCES users(id) ON DELETE SET NULL,
+    -- MPI: идентификатор мастер-записи (источник: ЕДИН API)
+    mpi_master_id uuid,
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     created_by uuid REFERENCES users(id)
 );
@@ -436,6 +441,8 @@ CREATE UNIQUE INDEX ux_ecosystem_participant_le_login
 CREATE INDEX ix_ecosystem_participant_le ON ecosystem_participants(legal_entity_id);
 
 CREATE INDEX ix_ecosystem_participant_user_id ON ecosystem_participants(user_id);
+
+CREATE INDEX ix_ecosystem_participant_mpi_master_id ON ecosystem_participants(mpi_master_id) WHERE mpi_master_id IS NOT NULL;
 
 -- ============================================================================
 -- ПЭП: соглашение о Politically Exposed Person (привязано к участнику экосистемы)

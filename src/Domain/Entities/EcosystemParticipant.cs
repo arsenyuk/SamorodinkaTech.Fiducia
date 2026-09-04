@@ -37,6 +37,9 @@ public class EcosystemParticipant
     /// <summary>Ссылка на учётную запись (user_id).</summary>
     public Guid? UserId { get; set; }
 
+    /// <summary>Идентификатор мастер-записи MPI (mpi_master_id). Источник: ЕДИН API.</summary>
+    public Guid? MpiMasterId { get; set; }
+
     /// <summary>Дата создания записи (created_at).</summary>
     public DateTime CreatedAt { get; set; }
 

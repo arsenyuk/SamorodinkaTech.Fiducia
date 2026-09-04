@@ -27,6 +27,10 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(u => u.LdapCreatedAt).HasColumnName("ldap_created_at");
         builder.Property(u => u.IsSystem).HasColumnName("is_system").HasDefaultValue(false);
 
+        // MPI: мастер-запись (источник: LDAP)
+        builder.Property(u => u.MpiMasterId).HasColumnName("mpi_master_id");
+        builder.HasIndex(u => u.MpiMasterId);
+
         // Онбординг внешних директоров
         builder.Property(u => u.InvitationToken).HasColumnName("invitation_token");
         builder.Property(u => u.InvitationExpiresAt).HasColumnName("invitation_expires_at");

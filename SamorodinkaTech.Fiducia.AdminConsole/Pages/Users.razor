@@ -30,6 +30,7 @@
                         <th>ФИО</th>
                         <th>Роли в СД</th>
                         <th>Статус выбытия</th>
+                        <th>ЕДИН</th>
                         <th>Тип</th>
                     </tr>
                 </thead>
@@ -40,6 +41,16 @@
                             <td><strong>@user.FullName</strong></td>
                             <td>@user.BoardRoles</td>
                             <td>@user.ResignationStatus</td>
+                            <td>
+                                @if (user.MpiMasterId.HasValue)
+                                {
+                                    <span class="badge bg-success" title="@user.MpiMasterId">✓</span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">—</span>
+                                }
+                            </td>
                             <td>@(user.IsSystem ? "Системный" : "")</td>
                         </tr>
                     }
@@ -233,7 +244,7 @@
                 resignationStatus = $"Выбыл: {reason}, {date}";
             }
 
-            return new UserRow(u.Id, fullName, boardRoles, resignationStatus, u.IsSystem);
+            return new UserRow(u.Id, fullName, boardRoles, resignationStatus, u.MpiMasterId, u.IsSystem);
         }).OrderBy(r => r.FullName).ToList();
     }
 
@@ -373,5 +384,5 @@
         await Task.CompletedTask;
     }
 
-    private record UserRow(Guid UserId, string FullName, string BoardRoles, string ResignationStatus, bool IsSystem);
+    private record UserRow(Guid UserId, string FullName, string BoardRoles, string ResignationStatus, Guid? MpiMasterId, bool IsSystem);
 }

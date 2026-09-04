@@ -222,6 +222,26 @@ if (builder.Configuration.GetValue<bool>("Ldap:Enabled"))
     });
 }
 
+// ЕДИН (Mnemonios MPI) — идентификация физических лиц (опционально)
+// Все настройки — в appsettings.json, секция Edin (ADR-022)
+builder.Services.Configure<EdinOptions>(builder.Configuration.GetSection("Edin"));
+if (builder.Configuration.GetValue<bool>("Edin:Enabled"))
+{
+    builder.Services.AddScoped<IEdinApiClient>(sp =>
+    {
+        var options = sp.GetRequiredService<IOptions<EdinOptions>>().Value;
+        var logger = sp.GetRequiredService<ILogger<EdinApiClient>>();
+        var httpClient = new HttpClient { BaseAddress = new Uri(options.BaseUrl) };
+        var inner = new EdinApiClient(httpClient, logger, options);
+        var auditService = sp.GetRequiredService<ISecurityAuditService>();
+        var ipProvider = sp.GetRequiredService<IClientIpProvider>();
+        var auditLogger = sp.GetRequiredService<ILogger<AuditEdinDecorator>>();
+        return new AuditEdinDecorator(inner, auditService, ipProvider, auditLogger);
+    });
+
+    builder.Services.AddScoped<IEdinBindingService, EdinBindingService>();
+}
+
 // JWT Authentication
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
