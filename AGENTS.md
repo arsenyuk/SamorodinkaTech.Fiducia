@@ -682,7 +682,7 @@ Api → Application → Domain ← Infrastructure
   (для интеграций с 3+ параметрами) или `IConfiguration["Section:Key"]`
   (для простых случаев).
 - Правило действует для всех интеграций: TrueConf, МТС Линк, LDAP,
-  FileStorage, СПАРК, SecurityAudit, Session, Serilog.
+  FileStorage, СПАРК, SecurityAudit, Session, Serilog, ЕДИН.
 
 ### Чувствительные данные в конфигурации (КРИТИЧНО)
 
@@ -766,6 +766,15 @@ Api → Application → Domain ← Infrastructure
   `throw`; в dev-окружении допускается dev-ключ с предупреждением в логах.
 - Рекомендуемый паттерн для будущих интеграций с тяжёлой инициализацией:
   `Lazy<T>` в DI с try-catch и fallback на no-op реализацию.
+
+### MPI MasterId — два источника (КРИТИЧНО)
+
+- `users.mpi_master_id` — источник: LDAP/AD (синхронизация атрибута каталога).
+- `ecosystem_participants.mpi_master_id` — источник: ЕДИН API (resolve по ДУЛ/ИНН/СНИЛС).
+- MasterId **не редактируется вручную** — оба значения системные.
+- При ЕДИН resolve: привязка к `ecosystem_participants` → поиск УЗ в `users` по `mpi_master_id`.
+- UNIQUE constraint на `users.mpi_master_id` **не применяется** (допускается несколько УЗ на одно ФЛ).
+- При ошибке в доказательствах идентичности — проблема решается через ЕДИН Steward, а не через UI Fiducia.
 
 ### Ссылки на законы — всплывающие окна (ADR-025)
 
