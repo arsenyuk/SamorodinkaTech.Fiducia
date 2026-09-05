@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS users (
     first_name varchar(150) NOT NULL,
     middle_name varchar(150),
     email varchar(255) UNIQUE NOT NULL,
-    phone varchar(20) UNIQUE NOT NULL,
+    phone varchar(20) NOT NULL,
     is_external boolean DEFAULT FALSE NOT NULL,
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     created_by uuid REFERENCES users(id),

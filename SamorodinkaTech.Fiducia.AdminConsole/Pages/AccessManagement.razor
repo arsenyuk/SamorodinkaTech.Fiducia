@@ -53,56 +53,8 @@
 
 @if (_activeTab == 0 && !string.IsNullOrEmpty(_selectedLegalEntityId))
 {
-    <div class="card mb-3">
-        <div class="card-body">
-            <h5>Добавить сотрудника</h5>
-            <div class="row g-2">
-                <div class="col-md-2">
-                    <label class="form-label small">Фамилия *</label>
-                    <input class="form-control form-control-sm" @bind="_empLastName" />
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label small">Имя *</label>
-                    <input class="form-control form-control-sm" @bind="_empFirstName" />
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label small">Отчество</label>
-                    <input class="form-control form-control-sm" @bind="_empMiddleName" />
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label small">Должность *</label>
-                    <input class="form-control form-control-sm" @bind="_empPosition" />
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label small">Логин *</label>
-                    <div class="input-group input-group-sm">
-                        <input class="form-control" @bind="_empLogin" />
-                        <button class="btn btn-outline-secondary" @onclick="SearchLdapAsync" disabled="@_ldapSearching">🔍</button>
-                    </div>
-                    @if (!string.IsNullOrEmpty(_ldapWarning))
-                    {
-                        <div class="text-warning small mt-1">@_ldapWarning</div>
-                    }
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label small">Роль *</label>
-                    <select class="form-select form-select-sm" @bind="_empRoleCode">
-                        <option value="">— выбрать —</option>
-                        @foreach (var r in _assignableRoles)
-                        {
-                            <option value="@r.Code">@r.Name</option>
-                        }
-                    </select>
-                </div>
-            </div>
-            <div class="mt-2">
-                <button class="btn btn-primary btn-sm" @onclick="AddEmployee" disabled="@(_addEmpLoading || !_canAddEmployee)">Добавить</button>
-            </div>
-            @if (!string.IsNullOrEmpty(_empError))
-            {
-                <div class="alert alert-danger py-1 px-2 mt-2 mb-0 small">@_empError</div>
-            }
-        </div>
+    <div class="mb-3">
+        <button class="btn btn-primary btn-sm" @onclick="ShowAddEmployeeModal">+ Добавить сотрудника</button>
     </div>
 
     <table class="table table-sm table-striped">
@@ -256,6 +208,70 @@
     </div>
 }
 
+@if (_showAddEmpModal)
+{
+    <div class="modal show d-block" tabindex="-1" style="background-color:rgba(0,0,0,.5)">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Добавить сотрудника</h5>
+                    <button class="btn-close" @onclick="CloseAddEmployeeModal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Фамилия *</label>
+                            <input class="form-control" @bind="_empLastName" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Имя *</label>
+                            <input class="form-control" @bind="_empFirstName" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Отчество</label>
+                            <input class="form-control" @bind="_empMiddleName" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Должность *</label>
+                            <input class="form-control" @bind="_empPosition" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Логин *</label>
+                            <div class="input-group">
+                                <input class="form-control" @bind="_empLogin" />
+                                <button class="btn btn-outline-secondary" @onclick="SearchLdapAsync" disabled="@_ldapSearching">🔍</button>
+                            </div>
+                            @if (!string.IsNullOrEmpty(_ldapWarning))
+                            {
+                                <div class="text-warning small mt-1">@_ldapWarning</div>
+                            }
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Роль *</label>
+                            <select class="form-select" @bind="_empRoleCode">
+                                <option value="">— выбрать —</option>
+                                @foreach (var r in _assignableRoles)
+                                {
+                                    <option value="@r.Code">@r.Name</option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+                    @if (!string.IsNullOrEmpty(_empError))
+                    {
+                        <div class="alert alert-danger py-1 px-2 mt-3 mb-0 small">@_empError</div>
+                    }
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" @onclick="CloseAddEmployeeModal">Отмена</button>
+                    <button class="btn btn-primary" @onclick="AddEmployee"
+                            disabled="@(_addEmpLoading || !_canAddEmployee)">Добавить</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
 @code {
     private bool IsDevelopment => Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Development";
 
@@ -288,6 +304,9 @@
     private string _createLeName = "", _createLeInn = "";
     private string? _createLeNameError, _createLeInnError, _createLeError;
     private bool _createLeLoading;
+
+    // ── Модальное окно добавления сотрудника ──
+    private bool _showAddEmpModal;
 
     // ── Вычисляемые свойства ──
     private bool _canAddEmployee => !_addEmpLoading
@@ -445,6 +464,24 @@
         }
     }
 
+    private void ShowAddEmployeeModal()
+    {
+        _empLastName = "";
+        _empFirstName = "";
+        _empMiddleName = "";
+        _empPosition = "";
+        _empLogin = "";
+        _empRoleCode = "";
+        _empError = null;
+        _ldapWarning = null;
+        _showAddEmpModal = true;
+    }
+
+    private void CloseAddEmployeeModal()
+    {
+        _showAddEmpModal = false;
+    }
+
     private async Task AddEmployee()
     {
         _addEmpLoading = true;
@@ -536,14 +573,7 @@
 
             await ctx.SaveChangesAsync();
 
-            _empLastName = "";
-            _empFirstName = "";
-            _empMiddleName = "";
-            _empPosition = "";
-            _empLogin = "";
-            _empRoleCode = "";
-            _ldapWarning = null;
-
+            CloseAddEmployeeModal();
             await LoadEmployeesAsync();
         }
         catch (Exception ex)
