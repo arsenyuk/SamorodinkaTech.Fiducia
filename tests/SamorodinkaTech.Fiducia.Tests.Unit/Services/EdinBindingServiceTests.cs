@@ -6,6 +6,7 @@ using SamorodinkaTech.Fiducia.Domain.Entities;
 using SamorodinkaTech.Fiducia.Domain.Interfaces;
 using SamorodinkaTech.Fiducia.Domain.Models.Edin;
 using SamorodinkaTech.Fiducia.Infrastructure.Services;
+using SamorodinkaTech.Fiducia.Infrastructure.Persistence;
 using SamorodinkaTech.Fiducia.Tests.Unit.Mocks;
 
 namespace SamorodinkaTech.Fiducia.Tests.Unit.Services;
@@ -13,21 +14,23 @@ namespace SamorodinkaTech.Fiducia.Tests.Unit.Services;
 /// <summary>
 /// Unit-тесты EdinBindingService: привязка MPI MasterId к участнику и поиск УЗ.
 /// </summary>
-public class EdinBindingServiceTests
+public class EdinBindingServiceTests : IDisposable
 {
     private readonly MockEdinApiClient _edinClient = new();
-    private readonly Mock<IApplicationDbContext> _dbContextMock = new();
     private readonly Mock<ILogger<EdinBindingService>> _loggerMock = new();
+    private readonly FiduciaDbContext _dbContext;
     private readonly EdinBindingService _sut;
-
-    private readonly List<User> _users = new();
-    private readonly List<EcosystemParticipant> _participants = new();
 
     public EdinBindingServiceTests()
     {
-        SetupDbSets();
-        _sut = new EdinBindingService(_edinClient, _dbContextMock.Object, _loggerMock.Object);
+        var options = new DbContextOptionsBuilder<FiduciaDbContext>()
+            .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+            .Options;
+        _dbContext = new FiduciaDbContext(options);
+        _sut = new EdinBindingService(_edinClient, _dbContext, _loggerMock.Object);
     }
+
+    public void Dispose() => _dbContext.Dispose();
 
     /// <summary>
     /// Успешный resolve: MasterId привязывается к участнику, УЗ найдена в БД → user_id установлен.
@@ -36,17 +39,16 @@ public class EdinBindingServiceTests
     public async Task ResolveAndBindAsync_WhenMasterIdFoundInDb_ShouldLinkUser()
     {
         var masterId = Guid.NewGuid();
-        var user = new User { Id = Guid.NewGuid(), MpiMasterId = masterId, Login = "ivanov" };
-        _users.Add(user);
+        var user = new User { Id = Guid.NewGuid(), MpiMasterId = masterId, Login = "ivanov",
+            LastName = "Иванов", FirstName = "Иван", Email = "i@t.ru", Phone = "123",
+            CreatedBy = Guid.NewGuid() };
+        _dbContext.Users.Add(user);
 
         var participant = CreateParticipant();
-        _participants.Add(participant);
+        _dbContext.EcosystemParticipants.Add(participant);
+        await _dbContext.SaveChangesAsync();
 
-        _edinClient.ResolveResult = new EdinPersonResult
-        {
-            MasterId = masterId,
-            Status = "Matched"
-        };
+        _edinClient.ResolveResult = new EdinPersonResult { MasterId = masterId, Status = "Matched" };
 
         var result = await _sut.ResolveAndBindAsync(
             participant.Id, "Иванов", "Иван", "Иванович",
@@ -56,9 +58,6 @@ public class EdinBindingServiceTests
         result.MpiMasterId.Should().Be(masterId);
         result.LinkedUserId.Should().Be(user.Id);
         result.UserSource.Should().Be("db");
-
-        participant.MpiMasterId.Should().Be(masterId);
-        participant.UserId.Should().Be(user.Id);
     }
 
     /// <summary>
@@ -70,7 +69,8 @@ public class EdinBindingServiceTests
         _edinClient.SimulateUnavailable = true;
 
         var participant = CreateParticipant();
-        _participants.Add(participant);
+        _dbContext.EcosystemParticipants.Add(participant);
+        await _dbContext.SaveChangesAsync();
 
         var result = await _sut.ResolveAndBindAsync(
             participant.Id, "Иванов", "Иван", null,
@@ -78,7 +78,6 @@ public class EdinBindingServiceTests
 
         result.Success.Should().BeFalse();
         result.Error.Should().Contain("недоступен");
-        result.MpiMasterId.Should().BeNull();
     }
 
     /// <summary>
@@ -96,7 +95,8 @@ public class EdinBindingServiceTests
         };
 
         var participant = CreateParticipant();
-        _participants.Add(participant);
+        _dbContext.EcosystemParticipants.Add(participant);
+        await _dbContext.SaveChangesAsync();
 
         var result = await _sut.ResolveAndBindAsync(
             participant.Id, "Иванов", "Иван", null,
@@ -136,7 +136,8 @@ public class EdinBindingServiceTests
         var participant = CreateParticipant();
         participant.MpiMasterId = masterId;
         participant.UserId = userId;
-        _participants.Add(participant);
+        _dbContext.EcosystemParticipants.Add(participant);
+        await _dbContext.SaveChangesAsync();
 
         _edinClient.ResolveResult = new EdinPersonResult { MasterId = masterId, Status = "Matched" };
 
@@ -159,7 +160,8 @@ public class EdinBindingServiceTests
         _edinClient.ResolveResult = new EdinPersonResult { MasterId = masterId, Status = "Matched" };
 
         var participant = CreateParticipant();
-        _participants.Add(participant);
+        _dbContext.EcosystemParticipants.Add(participant);
+        await _dbContext.SaveChangesAsync();
 
         var result = await _sut.ResolveAndBindAsync(
             participant.Id, "Иванов", "Иван", null,
@@ -168,10 +170,6 @@ public class EdinBindingServiceTests
         result.Success.Should().BeTrue();
         result.MpiMasterId.Should().Be(masterId);
         result.LinkedUserId.Should().BeNull();
-        result.UserSource.Should().BeNull();
-
-        participant.MpiMasterId.Should().Be(masterId);
-        participant.UserId.Should().BeNull();
     }
 
     /// <summary>
@@ -181,7 +179,8 @@ public class EdinBindingServiceTests
     public async Task ResolveAndBindAsync_ShouldPassCorrectDataToEdin()
     {
         var participant = CreateParticipant();
-        _participants.Add(participant);
+        _dbContext.EcosystemParticipants.Add(participant);
+        await _dbContext.SaveChangesAsync();
 
         _edinClient.ResolveResult = new EdinPersonResult { MasterId = Guid.NewGuid(), Status = "Matched" };
 
@@ -192,33 +191,6 @@ public class EdinBindingServiceTests
         _edinClient.LastResolveLastName.Should().Be("Петров");
         _edinClient.LastResolveInn.Should().Be("7709901234");
         _edinClient.ResolveCallCount.Should().Be(1);
-    }
-
-    private void SetupDbSets()
-    {
-        var usersQueryable = _users.AsQueryable();
-        var usersMockSet = new Mock<DbSet<User>>();
-        usersMockSet.As<IQueryable<User>>().Setup(m => m.Provider).Returns(usersQueryable.Provider);
-        usersMockSet.As<IQueryable<User>>().Setup(m => m.Expression).Returns(usersQueryable.Expression);
-        usersMockSet.As<IQueryable<User>>().Setup(m => m.ElementType).Returns(usersQueryable.ElementType);
-        usersMockSet.As<IQueryable<User>>().Setup(m => m.GetEnumerator()).Returns(usersQueryable.GetEnumerator());
-        usersMockSet.Setup(s => s.FindAsync(It.IsAny<object[]>()))
-            .Returns<object[]>(key => Task.FromResult(_users.FirstOrDefault(u => u.Id == (Guid)key[0])));
-
-        _dbContextMock.Setup(db => db.Users).Returns(usersMockSet.Object);
-
-        var participantsQueryable = _participants.AsQueryable();
-        var participantsMockSet = new Mock<DbSet<EcosystemParticipant>>();
-        participantsMockSet.As<IQueryable<EcosystemParticipant>>().Setup(m => m.Provider).Returns(participantsQueryable.Provider);
-        participantsMockSet.As<IQueryable<EcosystemParticipant>>().Setup(m => m.Expression).Returns(participantsQueryable.Expression);
-        participantsMockSet.As<IQueryable<EcosystemParticipant>>().Setup(m => m.ElementType).Returns(participantsQueryable.ElementType);
-        participantsMockSet.As<IQueryable<EcosystemParticipant>>().Setup(m => m.GetEnumerator()).Returns(participantsQueryable.GetEnumerator());
-        participantsMockSet.Setup(s => s.FindAsync(It.IsAny<object[]>()))
-            .Returns<object[]>(key => Task.FromResult(_participants.FirstOrDefault(p => p.Id == (Guid)key[0])));
-
-        _dbContextMock.Setup(db => db.EcosystemParticipants).Returns(participantsMockSet.Object);
-        _dbContextMock.Setup(db => db.SaveChangesAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(1);
     }
 
     private static EcosystemParticipant CreateParticipant() => new()

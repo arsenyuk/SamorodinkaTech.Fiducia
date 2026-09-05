@@ -54,6 +54,37 @@ services:
       retries: 20
       start_period: 10s
 
+  # ЕДИН (Mnemonios MPI) — Master Person Index (опционально)
+  mnemonios-postgres:
+    image: postgres:16.15-alpine
+    container_name: fiducia-mnemonios-postgres
+    environment:
+      POSTGRES_DB: mnemonios
+      POSTGRES_USER: mnemonios
+      POSTGRES_PASSWORD: mnemonios_dev
+    ports:
+      - "5435:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mnemonios"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  mnemonios:
+    build:
+      context: ../SamorodinkaTech.Mnemonios
+      dockerfile: Dockerfile
+    container_name: fiducia-mnemonios
+    environment:
+      - ConnectionStrings__DefaultConnection=Host=mnemonios-postgres;Port=5432;Database=mnemonios;Username=mnemonios;Password=mnemonios_dev
+      - HmacSettings__Key=default_dev_key_replace_in_production_32ch
+      - ASPNETCORE_ENVIRONMENT=Development
+    ports:
+      - "5010:5080"
+    depends_on:
+      mnemonios-postgres:
+        condition: service_healthy
+
 volumes:
   postgres_data:
   minio_data:

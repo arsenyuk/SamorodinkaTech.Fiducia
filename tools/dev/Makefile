@@ -2,7 +2,7 @@ SHELL := /bin/bash
 
 PG := docker-compose exec -T postgres psql -U fiducia -d fiducia -v ON_ERROR_STOP=1 -f /dev/stdin
 
-.PHONY: db-init db-recreate e2e-start e2e-stop e2e-test
+.PHONY: db-init db-recreate mpi-init e2e-start e2e-stop e2e-test
 
 db-init:
 	@echo "Applying schema..." && $(PG) < tools/db/01_schema.sql
@@ -14,11 +14,17 @@ db-recreate:
 	docker-compose up -d postgres
 	$(MAKE) db-init
 
+mpi-init:
+	@echo "Starting ЕДИН containers..." && docker-compose up -d mnemonios mnemonios-postgres
+	@echo "Waiting for ЕДИН API (port 5010)..." && sleep 15
+	@bash tools/mpi/seed-mpi.sh http://localhost:5010 localhost admin
+	@echo "MPI seed complete"
+
 e2e-start:
-	@dotnet run --project SamorodinkaTech.Fiducia.BoardPortal --urls "http://localhost:5000" & echo $$! > /tmp/bp.pid &
+	@dotnet run --project SamorodinkaTech.Fiducia.BoardPortal --urls "http://localhost:5002" & echo $$! > /tmp/bp.pid &
 	@dotnet run --project SamorodinkaTech.Fiducia.AdminConsole --urls "http://localhost:5001" & echo $$! > /tmp/ap.pid &
 	@sleep 5
-	@curl -sI http://localhost:5000 | head -n1 || true
+	@curl -sI http://localhost:5002 | head -n1 || true
 	@curl -sI http://localhost:5001 | head -n1 || true
 
 e2e-stop:

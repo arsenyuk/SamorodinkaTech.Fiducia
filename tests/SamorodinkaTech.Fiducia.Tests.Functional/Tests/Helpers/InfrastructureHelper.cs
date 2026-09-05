@@ -93,8 +93,13 @@ public static class InfrastructureHelper
         // ═══════════════════════════════════════════════════════════════════
         if (!await IsPortOpenAsync(5001))
         {
-            await RunCommandAsync("dotnet", "run --project SamorodinkaTech.Fiducia.AdminConsole",
-                timeout: TimeSpan.FromMinutes(1), background: true);
+            var envVars = new Dictionary<string, string>
+            {
+                ["ASPNETCORE_URLS"] = "http://localhost:5001",
+                ["ASPNETCORE_ENVIRONMENT"] = "Development"
+            };
+            await RunCommandAsync("dotnet", "run --project SamorodinkaTech.Fiducia.AdminConsole --no-restore --no-launch-profile",
+                timeout: TimeSpan.FromMinutes(1), background: true, environmentVariables: envVars);
         }
 
         // ═══════════════════════════════════════════════════════════════════
@@ -102,8 +107,13 @@ public static class InfrastructureHelper
         // ═══════════════════════════════════════════════════════════════════
         if (!await IsPortOpenAsync(5002))
         {
-            await RunCommandAsync("dotnet", "run --project SamorodinkaTech.Fiducia.BoardPortal",
-                timeout: TimeSpan.FromMinutes(1), background: true);
+            var envVars = new Dictionary<string, string>
+            {
+                ["ASPNETCORE_URLS"] = "http://localhost:5002",
+                ["ASPNETCORE_ENVIRONMENT"] = "Development"
+            };
+            await RunCommandAsync("dotnet", "run --project SamorodinkaTech.Fiducia.BoardPortal --no-restore --no-launch-profile",
+                timeout: TimeSpan.FromMinutes(1), background: true, environmentVariables: envVars);
         }
     }
 
@@ -177,7 +187,8 @@ public static class InfrastructureHelper
     /// Выполнить shell-команду из корня проекта.
     /// </summary>
     private static async Task RunCommandAsync(string command, string arguments,
-        TimeSpan? timeout = null, bool background = false)
+        TimeSpan? timeout = null, bool background = false,
+        Dictionary<string, string>? environmentVariables = null)
     {
         var startInfo = new ProcessStartInfo
         {
@@ -189,6 +200,14 @@ public static class InfrastructureHelper
             UseShellExecute = false,
             CreateNoWindow = true
         };
+
+        if (environmentVariables is not null)
+        {
+            foreach (var (key, value) in environmentVariables)
+            {
+                startInfo.Environment[key] = value;
+            }
+        }
 
         using var process = Process.Start(startInfo);
         if (process is null)
@@ -209,6 +228,7 @@ public static class InfrastructureHelper
         catch (OperationCanceledException)
         {
             process.Kill();
+            process.WaitForExit(5000);
             Console.WriteLine($"  ⚠ Таймаут: {command} {arguments}");
         }
 

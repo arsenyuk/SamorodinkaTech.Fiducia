@@ -19,6 +19,7 @@ member: cn=Васильева Вера Васильевна,ou=users,dc=fiducia,
 # ── Системный администратор ─────────────────────────────────────────────────
 dn: cn=Васильева Вера Васильевна,ou=users,dc=fiducia,dc=local
 objectClass: inetOrgPerson
+objectClass: extensibleObject
 cn: Васильева Вера Васильевна
 sn: Васильева
 givenName: Вера

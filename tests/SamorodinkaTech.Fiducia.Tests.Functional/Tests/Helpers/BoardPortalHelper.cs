@@ -529,8 +529,84 @@ public static class BoardPortalHelper
     /// <summary>DTO-ответ при добавлении участника.</summary>
     private class AddParticipantResponse { public Guid Id { get; set; } }
 
+    /// <summary>DTO-ответ при получении участника.</summary>
+    internal class ParticipantResponse
+    {
+        public Guid Id { get; set; }
+        public Guid? EcosystemParticipantId { get; set; }
+        public string? FullName { get; set; }
+    }
+
     /// <summary>DTO-ответ при получении списка участников.</summary>
     private class ParticipantListResponse { public int Count { get; set; } }
+
+    /// <summary>
+    /// Добавить участника с ПДн (паспорт, ИНН) через API.
+    /// Используется для ЕДИН-тестов.
+    /// </summary>
+    public static async Task<Guid> AddParticipantWithPersonalDataAsync(
+        IPage page,
+        string fullName,
+        string? passportSeries = null,
+        string? passportNumber = null,
+        string? personInn = null,
+        string participantType = "FL",
+        decimal? sharePercent = null,
+        decimal? shareAmount = null)
+    {
+        var sharePercentJson = sharePercent?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "null";
+        var shareAmountJson = shareAmount?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "null";
+        var passportSeriesJson = passportSeries != null ? $"'{EscapeJs(passportSeries)}'" : "null";
+        var passportNumberJson = passportNumber != null ? $"'{EscapeJs(passportNumber)}'" : "null";
+        var personInnJson = personInn != null ? $"'{EscapeJs(personInn)}'" : "null";
+
+        var result = await page.EvaluateAsync<AddParticipantResponse>(
+            $@"async () => {{
+                const response = await fetch('/api/participants', {{
+                    method: 'POST',
+                    headers: {{ 'Content-Type': 'application/json' }},
+                    credentials: 'same-origin',
+                    body: JSON.stringify({{
+                        participantType: '{EscapeJs(participantType)}',
+                        fullName: '{EscapeJs(fullName)}',
+                        passportSeries: {passportSeriesJson},
+                        passportNumber: {passportNumberJson},
+                        personInn: {personInnJson},
+                        sharePercent: {sharePercentJson},
+                        shareAmount: {shareAmountJson}
+                    }})
+                }});
+                if (!response.ok) {{
+                    const body = await response.text();
+                    throw new Error(`POST /api/participants failed: ${{response.status}} ${{body}}`);
+                }}
+                return await response.json();
+            }}");
+
+        return result.Id;
+    }
+
+    /// <summary>
+    /// Получить данные участника по ID через API.
+    /// </summary>
+    internal static async Task<ParticipantResponse?> GetParticipantAsync(IPage page, Guid participantId)
+    {
+        return await page.EvaluateAsync<ParticipantResponse?>(
+            $@"async () => {{
+                const response = await fetch('/api/participants/{participantId}', {{
+                    credentials: 'same-origin'
+                }});
+                if (!response.ok) return null;
+                return await response.json();
+            }}");
+    }
+
+    /// <summary>Получить EcosystemParticipantId для участника (связь с ФЛ).</summary>
+    public static async Task<Guid?> GetEcosystemParticipantIdAsync(IPage page, Guid participantId)
+    {
+        var participant = await GetParticipantAsync(page, participantId);
+        return participant?.EcosystemParticipantId;
+    }
 
     private static string EscapeJs(string value) => value.Replace("'", "\\'").Replace("\\", "\\\\");
 }

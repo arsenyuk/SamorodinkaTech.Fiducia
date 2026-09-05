@@ -20,7 +20,7 @@ public class EdinApiClient : IEdinApiClient
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
-        PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
     };
 
@@ -55,19 +55,19 @@ public class EdinApiClient : IEdinApiClient
 
         var request = new
         {
-            last_name = lastName,
-            first_name = firstName,
-            middle_name = middleName,
+            lastName = lastName,
+            firstName = firstName,
+            middleName = middleName,
             evidence = new
             {
                 inn = inn,
                 snils = snils,
-                dul_type = dulType,
-                dul_series = dulSeries,
-                dul_number = dulNumber
+                dulType = dulType,
+                dulSeries = dulSeries,
+                dulNumber = dulNumber
             },
-            source_system_id = _sourceSystemId,
-            external_person_id = Guid.NewGuid().ToString()
+            sourceSystemId = _sourceSystemId,
+            externalPersonId = Guid.NewGuid().ToString()
         };
 
         try
@@ -96,7 +96,7 @@ public class EdinApiClient : IEdinApiClient
             return new EdinPersonResult
             {
                 MasterId = result.MasterId,
-                Status = result.Status?.ToString() ?? "",
+                Status = result.Status.ToString(),
                 HasDefects = result.HasDefects,
                 Defects = result.Defects?.Select(d => d.Description ?? "").Where(d => !string.IsNullOrEmpty(d)).ToList() ?? []
             };
@@ -153,7 +153,7 @@ public class EdinApiClient : IEdinApiClient
     /// <summary>Внутренняя модель ответа resolve от ЕДИН API.</summary>
     private sealed record EdinResolveResponse
     {
-        public string? Status { get; init; }
+        public int Status { get; init; }
         public Guid? MasterId { get; init; }
         public bool HasDefects { get; init; }
         public List<EdinDefectDto>? Defects { get; init; }

@@ -1,0 +1,74 @@
+[
+  {
+    "login": "ivanov",
+    "lastName": "Иванов",
+    "firstName": "Иван",
+    "middleName": "Иванович",
+    "inn": "770123456789",
+    "snils": "123-456-789 00",
+    "dulType": "21",
+    "dulSeries": "4515",
+    "dulNumber": "123456",
+    "ldapDn": "cn=Иванов Иван Иванович,ou=Users,dc=fiducia,dc=local"
+  },
+  {
+    "login": "petrova",
+    "lastName": "Петрова",
+    "firstName": "Мария",
+    "middleName": "Сергеевна",
+    "inn": "770234567890",
+    "snils": "234-567-890 00",
+    "dulType": "21",
+    "dulSeries": "4515",
+    "dulNumber": "234567",
+    "ldapDn": "cn=Петрова Мария Сергеевна,ou=Users,dc=fiducia,dc=local"
+  },
+  {
+    "login": "sidorov",
+    "lastName": "Сидоров",
+    "firstName": "Алексей",
+    "middleName": "Петрович",
+    "inn": "770345678901",
+    "snils": "345-678-901 00",
+    "dulType": "21",
+    "dulSeries": "4515",
+    "dulNumber": "345678",
+    "ldapDn": "cn=Сидоров Алексей Петрович,ou=Users,dc=fiducia,dc=local"
+  },
+  {
+    "login": "kozlova",
+    "lastName": "Козлова",
+    "firstName": "Елена",
+    "middleName": "Дмитриевна",
+    "inn": "770456789012",
+    "snils": "456-789-012 00",
+    "dulType": "21",
+    "dulSeries": "4515",
+    "dulNumber": "456789",
+    "ldapDn": "cn=Козлова Елена Дмитриевна,ou=Users,dc=fiducia,dc=local"
+  },
+  {
+    "login": "novikov",
+    "lastName": "Новиков",
+    "firstName": "Дмитрий",
+    "middleName": "Александрович",
+    "inn": "770567890123",
+    "snils": "567-890-123 00",
+    "dulType": "21",
+    "dulSeries": "4515",
+    "dulNumber": "567890",
+    "ldapDn": "cn=Новиков Дмитрий Александрович,ou=Users,dc=fiducia,dc=local"
+  },
+  {
+    "login": "volkov",
+    "lastName": "Волков",
+    "firstName": "Сергей",
+    "middleName": "Андреевич",
+    "inn": "770678901234",
+    "snils": "678-901-234 00",
+    "dulType": "21",
+    "dulSeries": "4515",
+    "dulNumber": "678901",
+    "ldapDn": "cn=Волков Сергей Андреевич,ou=Users,dc=fiducia,dc=local"
+  }
+]

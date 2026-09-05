@@ -1,0 +1,56 @@
+# Auto-generated MPI MasterId LDIF — 2026-09-04T16:54:22Z
+
+# ivanov: Иванов Иван Иванович
+dn: cn=Иванов Иван Иванович,ou=Users,dc=fiducia,dc=local
+changetype: modify
+add: objectClass
+objectClass: extensibleObject
+-
+add: mpiMasterId
+mpiMasterId: 459b64c4-e863-4d3d-8218-6a832817de41
+
+# petrova: Петрова Мария Сергеевна
+dn: cn=Петрова Мария Сергеевна,ou=Users,dc=fiducia,dc=local
+changetype: modify
+add: objectClass
+objectClass: extensibleObject
+-
+add: mpiMasterId
+mpiMasterId: 00e6d924-7eab-4d8c-aebe-c000e6596f77
+
+# sidorov: Сидоров Алексей Петрович
+dn: cn=Сидоров Алексей Петрович,ou=Users,dc=fiducia,dc=local
+changetype: modify
+add: objectClass
+objectClass: extensibleObject
+-
+add: mpiMasterId
+mpiMasterId: 71420a58-bcc6-4214-8721-16ef3c5020f3
+
+# kozlova: Козлова Елена Дмитриевна
+dn: cn=Козлова Елена Дмитриевна,ou=Users,dc=fiducia,dc=local
+changetype: modify
+add: objectClass
+objectClass: extensibleObject
+-
+add: mpiMasterId
+mpiMasterId: 8903bde9-74f6-4a3b-b386-b8526a6072ab
+
+# novikov: Новиков Дмитрий Александрович
+dn: cn=Новиков Дмитрий Александрович,ou=Users,dc=fiducia,dc=local
+changetype: modify
+add: objectClass
+objectClass: extensibleObject
+-
+add: mpiMasterId
+mpiMasterId: d8a7b716-774f-43db-b7c4-28f9319662ed
+
+# volkov: Волков Сергей Андреевич
+dn: cn=Волков Сергей Андреевич,ou=Users,dc=fiducia,dc=local
+changetype: modify
+add: objectClass
+objectClass: extensibleObject
+-
+add: mpiMasterId
+mpiMasterId: 56e5ef84-73bd-43a1-8ff1-46fe83f547d0
+

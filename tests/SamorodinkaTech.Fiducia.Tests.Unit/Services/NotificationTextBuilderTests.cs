@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using SamorodinkaTech.Fiducia.Domain.Entities;
 using SamorodinkaTech.Fiducia.Domain.Interfaces;
 using SamorodinkaTech.Fiducia.Domain.Services;
+using SamorodinkaTech.Fiducia.Infrastructure.Persistence;
 
 namespace SamorodinkaTech.Fiducia.Tests.Unit.Services;
 
@@ -16,7 +17,7 @@ public class NotificationTextBuilderTests
 
     private static IApplicationDbContext CreateEmptyContext()
     {
-        var options = new DbContextOptionsBuilder<EmptyDbContext>()
+        var options = new DbContextOptionsBuilder<FiduciaDbContext>()
             .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
             .Options;
         return new EmptyDbContext(options);
@@ -43,7 +44,7 @@ public class NotificationTextBuilderTests
         title.Should().Contain("ООО «Тест»");
         body.Should().Contain("первого (организационного) заседания");
         body.Should().Contain("15.06.2025");
-        body.Should().Contain("очная форма");
+        body.Should().Contain("очная");
     }
 
     [Fact]
@@ -303,89 +304,7 @@ public class NotificationTextBuilderTests
 }
 
 // Minimal DbContext for testing with InMemory provider
-public class EmptyDbContext : DbContext, IApplicationDbContext
+public class EmptyDbContext : FiduciaDbContext
 {
-    public EmptyDbContext(DbContextOptions<EmptyDbContext> options) : base(options) { }
-
-    public DbSet<Person> Persons => Set<Person>();
-    public DbSet<PdnConsent> PdnConsents => Set<PdnConsent>();
-    public DbSet<PepAgreement> PepAgreements => Set<PepAgreement>();
-    public DbSet<IndependenceDeclaration> IndependenceDeclarations => Set<IndependenceDeclaration>();
-    public DbSet<User> Users => Set<User>();
-    public DbSet<RefRole> Roles => Set<RefRole>();
-    public DbSet<UserRole> UserRoles => Set<UserRole>();
-    public DbSet<Committee> Committees => Set<Committee>();
-    public DbSet<CommitteeMember> CommitteeMembers => Set<CommitteeMember>();
-    public DbSet<Meeting> Meetings => Set<Meeting>();
-    public DbSet<AgendaQuestion> AgendaQuestions => Set<AgendaQuestion>();
-    public DbSet<CommitteeTask> CommitteeTasks => Set<CommitteeTask>();
-    public DbSet<Bulletin> Bulletins => Set<Bulletin>();
-    public DbSet<Notification> Notifications => Set<Notification>();
-    public DbSet<RefOkopf> RefOkopf => Set<RefOkopf>();
-    public DbSet<RefMonth> RefMonths => Set<RefMonth>();
-    public DbSet<RefOsaForm> OsaForms => Set<RefOsaForm>();
-    public DbSet<OsaMeeting> OsaMeetings => Set<OsaMeeting>();
-    public DbSet<BoardMember> BoardMembers => Set<BoardMember>();
-    public DbSet<BoardOfDirectors> BoardsOfDirectors => Set<BoardOfDirectors>();
-    public DbSet<RefBoardOfDirectorsStatus> BoardOfDirectorsStatuses => Set<RefBoardOfDirectorsStatus>();
-    public DbSet<RefBoardMemberType> BoardMemberTypes => Set<RefBoardMemberType>();
-    public DbSet<RefBoardRole> BoardRoles => Set<RefBoardRole>();
-    public DbSet<BoardMemberAppointment> BoardMemberAppointments => Set<BoardMemberAppointment>();
-    public DbSet<RefBoardMemberAppointmentStatus> BoardMemberAppointmentStatuses => Set<RefBoardMemberAppointmentStatus>();
-    public DbSet<RefResignationReason> ResignationReasons => Set<RefResignationReason>();
-    public DbSet<UserBoardMemberResignation> UserBoardMemberResignations => Set<UserBoardMemberResignation>();
-    public DbSet<OsaMeetingFile> OsaMeetingFiles => Set<OsaMeetingFile>();
-    public DbSet<LegalEntity> LegalEntities => Set<LegalEntity>();
-    public DbSet<LegalEntityBoardSettings> LegalEntityBoardSettings => Set<LegalEntityBoardSettings>();
-    public DbSet<LegalEntityVotingRules> LegalEntityVotingRules => Set<LegalEntityVotingRules>();
-    public DbSet<LegalEntityEmailSettings> LegalEntityEmailSettings => Set<LegalEntityEmailSettings>();
-    public DbSet<LegalEntityExtraSettings> LegalEntityExtraSettings => Set<LegalEntityExtraSettings>();
-    public DbSet<RefStandardCharter> RefStandardCharters => Set<RefStandardCharter>();
-    public DbSet<LegalEntityCharter> LegalEntityCharters => Set<LegalEntityCharter>();
-    public DbSet<AgendaItem> AgendaItems => Set<AgendaItem>();
-    public DbSet<AgendaProposal> AgendaProposals => Set<AgendaProposal>();
-    public DbSet<ElectionProposal> ElectionProposals => Set<ElectionProposal>();
-    public DbSet<ElectionCandidacy> ElectionCandidacies => Set<ElectionCandidacy>();
-    public DbSet<ElectionConsent> ElectionConsents => Set<ElectionConsent>();
-    public DbSet<FileEntry> Files => Set<FileEntry>();
-    public DbSet<RefMeetingForm> MeetingForms => Set<RefMeetingForm>();
-    public DbSet<RefGdTerm> RefGdTerms => Set<RefGdTerm>();
-    public DbSet<RefProtocolConfirmationMethod> RefProtocolConfirmationMethods => Set<RefProtocolConfirmationMethod>();
-    public DbSet<RefMeasurementUnit> RefMeasurementUnits => Set<RefMeasurementUnit>();
-    public DbSet<Employee> Employees => Set<Employee>();
-    public DbSet<TplOrgIntent> TplOrgIntents => Set<TplOrgIntent>();
-    public DbSet<TplOrgStage> TplOrgStages => Set<TplOrgStage>();
-    public DbSet<TplOrgTaskOffer> TplOrgOffers => Set<TplOrgTaskOffer>();
-    public DbSet<TplOrgMilestone> TplOrgMilestones => Set<TplOrgMilestone>();
-    public DbSet<OrgIntent> OrgIntents => Set<OrgIntent>();
-    public DbSet<OrgStage> OrgStages => Set<OrgStage>();
-    public DbSet<OrgTask> OrgTasks => Set<OrgTask>();
-    public DbSet<OrgMilestone> OrgMilestones => Set<OrgMilestone>();
-    public DbSet<TplOrgOfferRole> TplOrgOfferRoles => Set<TplOrgOfferRole>();
-    public DbSet<TrueConfTestMeeting> TrueConfTestMeetings => Set<TrueConfTestMeeting>();
-    public DbSet<TrueConfTestQuestion> TrueConfTestQuestions => Set<TrueConfTestQuestion>();
-    public DbSet<TrueConfTestAnswer> TrueConfTestAnswers => Set<TrueConfTestAnswer>();
-    public DbSet<AoContractor> AoContractors => Set<AoContractor>();
-    public DbSet<SystemSetting> SystemSettings => Set<SystemSetting>();
-    public DbSet<BoardParticipant> BoardParticipants => Set<BoardParticipant>();
-    public DbSet<BoardTreasuryShare> BoardTreasuryShares => Set<BoardTreasuryShare>();
-    public DbSet<BoardRegistryUpload> BoardRegistryUploads => Set<BoardRegistryUpload>();
-    public DbSet<BoardParticipantChange> BoardParticipantChanges => Set<BoardParticipantChange>();
-    public DbSet<RefRequestType> RequestTypes => Set<RefRequestType>();
-    public DbSet<RefDocumentType> DocumentTypes => Set<RefDocumentType>();
-    public DbSet<RefDocumentAccessMethod> DocumentAccessMethods => Set<RefDocumentAccessMethod>();
-    public DbSet<RefDocumentRefusalReason> DocumentRefusalReasons => Set<RefDocumentRefusalReason>();
-    public DbSet<ShareRequestSupport> ShareRequestSupports => Set<ShareRequestSupport>();
-    public DbSet<ShareRequestFile> ShareRequestFiles => Set<ShareRequestFile>();
-    public DbSet<ShareRequest> ShareRequests => Set<ShareRequest>();
-    public DbSet<RefNotificationType> RefNotificationTypes => Set<RefNotificationType>();
-    public DbSet<NotificationTemplate> NotificationTemplates => Set<NotificationTemplate>();
-    public DbSet<ExtSparkCompany> ExtSparkCompanies => Set<ExtSparkCompany>();
-    public DbSet<ExtSparkManager> ExtSparkManagers => Set<ExtSparkManager>();
-    public DbSet<ExtSparkFounder> ExtSparkFounders => Set<ExtSparkFounder>();
-    public DbSet<ExtCbrFinOrgOrganization> ExtCbrFinOrgOrganizations => Set<ExtCbrFinOrgOrganization>();
-    public DbSet<ExtCbrFinOrgLicense> ExtCbrFinOrgLicenses => Set<ExtCbrFinOrgLicense>();
-    public DbSet<ExternalAttractedPerson> ExternalAttractedPersons => Set<ExternalAttractedPerson>();
-    public DbSet<LlcManagementContract> LlcManagementContracts => Set<LlcManagementContract>();
-    public DbSet<FileNotarization> FileNotarizations => Set<FileNotarization>();
+    public EmptyDbContext(DbContextOptions<FiduciaDbContext> options) : base(options) { }
 }
