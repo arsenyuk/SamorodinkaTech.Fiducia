@@ -15,6 +15,14 @@ public static class BoardPortalHelper
     /// </summary>
     public static async Task NavigateToAsync(IPage page, string menuHref)
     {
+        // Раскрыть sidebar если collapsed (Bootstrap collapse на десктопе)
+        var toggler = await page.QuerySelectorAsync("button.navbar-toggler");
+        if (toggler != null && await toggler.IsVisibleAsync())
+        {
+            await toggler.ClickAsync();
+            await page.WaitForTimeoutAsync(300);
+        }
+
         var link = page.Locator($"a[href='{menuHref}']");
         if (await link.CountAsync() > 0)
         {
@@ -25,7 +33,7 @@ public static class BoardPortalHelper
             await page.ClickAsync($"a[href='{menuHref}']");
         }
         await AuthHelper.WaitForBlazorReady(page);
-        await page.WaitForTimeoutAsync(2000);
+        await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
     }
 
     /// <summary>

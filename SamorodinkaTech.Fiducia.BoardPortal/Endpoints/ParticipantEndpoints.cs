@@ -1076,43 +1076,78 @@ public static class ParticipantEndpoints
         FiduciaDbContext ctx,
         BoardParticipant entity)
     {
+        logger.LogInformation("ЕДИН: TriggerEdinBinding вызван для участника {Name}, EcosystemParticipantId={EcoId}",
+            entity.FullName, entity.EcosystemParticipantId?.ToString() ?? "NULL");
         try
         {
             var bindingService = serviceProvider.GetService<IEdinBindingService>();
             if (bindingService is null)
+            {
+                logger.LogWarning("ЕДИН: IEdinBindingService не зарегистрирован");
                 return;
+            }
 
             if (entity.ParticipantType != "FL")
+            {
+                logger.LogWarning("ЕДИН: пропуск — тип участника {Type}", entity.ParticipantType);
                 return;
+            }
 
             if (string.IsNullOrWhiteSpace(entity.FullName))
+            {
+                logger.LogWarning("ЕДИН: пропуск — ФИО пустое");
                 return;
+            }
 
             if (!entity.EcosystemParticipantId.HasValue)
+            {
+                logger.LogWarning("ЕДИН: пропуск — EcosystemParticipantId не установлен");
                 return;
+            }
 
             var ecoParticipant = await ctx.EcosystemParticipants.FindAsync(entity.EcosystemParticipantId.Value);
             if (ecoParticipant is null)
+            {
+                logger.LogWarning("ЕДИН: пропуск — EcosystemParticipant не найден");
                 return;
+            }
 
             if (ecoParticipant.MpiMasterId.HasValue)
+            {
+                logger.LogWarning("ЕДИН: пропуск — MasterId уже привязан");
                 return;
+            }
 
             var (lastName, firstName, middleName) = SplitFullName(entity.FullName);
-            var ecoId = entity.EcosystemParticipantId.Value;
+            var ecoId = ecoParticipant.Id;
+
+            // Сохраняем данные до Dispose контекста
+            var personInn = entity.PersonInn;
+            var passportSeries = entity.PassportSeries;
+            var passportNumber = entity.PassportNumber;
+
+            logger.LogDebug("ЕДИН: запуск binding для EcosystemParticipant={EcoId}, ФИО={LastName} {FirstName}", ecoId, lastName, firstName);
+
+            // Создаём новый scope для Task.Run, чтобы контекст БД не был disposed
+            var scope = serviceProvider.CreateScope();
+            var scopedBindingService = scope.ServiceProvider.GetRequiredService<IEdinBindingService>();
 
             _ = Task.Run(async () =>
             {
                 try
                 {
-                    await bindingService.ResolveAndBindAsync(
+                    await scopedBindingService.ResolveAndBindAsync(
                         ecoId, lastName, firstName, middleName,
-                        entity.PersonInn, null, null,
-                        entity.PassportSeries, entity.PassportNumber);
+                        personInn, null, null,
+                        passportSeries, passportNumber);
                 }
                 catch (Exception ex)
                 {
                     logger.LogWarning(ex, "ЕДИН: ошибка привязки для участника {Name}", entity.FullName);
+                }
+                finally
+                {
+                    scope.Dispose();
                 }
             });
         }
@@ -1168,6 +1203,7 @@ public static class ParticipantEndpoints
     private static BoardParticipant MapDtoToEntity(BoardParticipantDto dto, Guid legalEntityId) => new()
     {
         LegalEntityId = legalEntityId,
+        EcosystemParticipantId = dto.EcosystemParticipantId,
         ParticipantType = dto.ParticipantType ?? "FL",
         FullName = dto.FullName,
         PassportSeries = dto.PassportSeries,
@@ -1259,6 +1295,7 @@ public static class ParticipantEndpoints
     public record BoardParticipantDto
     {
         public string? ParticipantType { get; init; }
+        public Guid? EcosystemParticipantId { get; init; }
         public string? FullName { get; init; }
         public string? PassportSeries { get; init; }
         public string? PassportNumber { get; init; }

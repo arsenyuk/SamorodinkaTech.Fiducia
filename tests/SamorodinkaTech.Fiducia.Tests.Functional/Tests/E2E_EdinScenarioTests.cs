@@ -28,17 +28,33 @@ public class E2E_EdinScenarioTests : BrowserFixture
         {
             // ── Шаг 1: SYS_ADMIN логинится ──────────────────────────────
             await AuthHelper.LoginAsAdminAsync(adminPage, "v.vasilyeva", "1");
+            await adminPage.ScreenshotAsync(new() { Path = "/tmp/e2e-after-login.png" });
+            Console.WriteLine($"[DEBUG] After login URL: {adminPage.Url}");
 
             // ── Шаг 2: Создать ЮЛ (ООО, ОКОПФ 12300) ──────────────────
             var leName = $"ООО «ЕДИН Тест {DateTime.UtcNow:yyyyMMddHHmmss}»";
-            var leInn = $"77{Random.Shared.Next(1000000, 9999999)}";
+            var leInn = InnTestHelper.GenerateValidInn();
             await AdminConsoleHelper.CreateLegalEntityAsync(adminPage, leName, leInn);
 
             // Установить ОКОПФ = 12300 (ООО)
-            // (CreateLegalEntityAsync уже устанавливает OKOPF через SetOkopfAsync)
+            var selectedLeId = await adminPage.EvaluateAsync<string?>(
+                @"() => {
+                    const sel = document.querySelector('.card-body select.form-select');
+                    return sel ? sel.value : null;
+                }");
+            if (!string.IsNullOrEmpty(selectedLeId) && Guid.TryParse(selectedLeId, out var leGuid))
+            {
+                await AdminConsoleHelper.SetOkopfAsync(adminPage, leGuid, "12300");
+            }
 
-            // ── Шаг 3: Назначить Администратора ЮЛ (LE_ADMIN) ──────────
+            // ── Шаг 3: Создать пользователя в БД (LDAP-аутентификация: Basic) ──
             var adminLogin = $"admin_{DateTime.UtcNow:HHmmss}";
+            await AdminConsoleHelper.CreateUserViaUiAsync(
+                adminPage, adminLogin,
+                "Смирнов", "Алексей", "Петрович",
+                $"{adminLogin}@test.local");
+
+            // ── Шаг 4: Назначить Администратора ЮЛ (LE_ADMIN) ──────────
             await AdminConsoleHelper.AddEmployeeAsync(
                 adminPage,
                 "Смирнов", "Алексей", "Петрович",
@@ -110,10 +126,15 @@ public class E2E_EdinScenarioTests : BrowserFixture
             await AuthHelper.LoginAsAdminAsync(adminPage, "v.vasilyeva", "1");
 
             var leName = $"ООО «ЕДИН Дедуп {DateTime.UtcNow:yyyyMMddHHmmss}»";
-            var leInn = $"77{Random.Shared.Next(1000000, 9999999)}";
+            var leInn = InnTestHelper.GenerateValidInn();
             await AdminConsoleHelper.CreateLegalEntityAsync(adminPage, leName, leInn);
 
             var adminLogin = $"dedup_{DateTime.UtcNow:HHmmss}";
+            await AdminConsoleHelper.CreateUserViaUiAsync(
+                adminPage, adminLogin,
+                "Петрова", "Мария", "Сергеевна",
+                $"{adminLogin}@test.local");
+
             await AdminConsoleHelper.AddEmployeeAsync(
                 adminPage,
                 "Петрова", "Мария", "Сергеевна",
@@ -176,4 +197,5 @@ public class E2E_EdinScenarioTests : BrowserFixture
             await boardPage.CloseAsync();
         }
     }
+
 }

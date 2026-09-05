@@ -14,6 +14,14 @@ public static class AdminConsoleHelper
     /// </summary>
     public static async Task NavigateToAsync(IPage page, string menuHref)
     {
+        // Раскрыть sidebar если collapsed
+        var toggler = await page.QuerySelectorAsync("button.navbar-toggler");
+        if (toggler != null && await toggler.IsVisibleAsync())
+        {
+            await toggler.ClickAsync();
+            await page.WaitForTimeoutAsync(300);
+        }
+
         var link = page.Locator($"a[href='{menuHref}']");
         if (await link.CountAsync() > 0)
         {
@@ -24,7 +32,7 @@ public static class AdminConsoleHelper
             await page.ClickAsync($"a[href='{menuHref}']");
         }
         await AuthHelper.WaitForBlazorReady(page);
-        await page.WaitForTimeoutAsync(2000);
+        await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
     }
 
     /// <summary>
@@ -95,48 +103,35 @@ public static class AdminConsoleHelper
         // Дождаться кнопки "+ Создать ЮЛ"
         await page.WaitForSelectorAsync("button:has-text('Создать ЮЛ')", new PageWaitForSelectorOptions { Timeout = DefaultTimeout });
 
-        // Click "+ Создать ЮЛ" button
-        await page.ClickAsync("button:has-text('Создать ЮЛ')");
-        await page.WaitForTimeoutAsync(500);
-
-        // Wait for modal to appear
+        // Playwright DispatchEventAsync — programmatic click (Playwright docs: input#programmatic-click)
+        await page.GetByTestId("show-create-le").DispatchEventAsync("click");
         await page.WaitForSelectorAsync(".modal.show", new PageWaitForSelectorOptions { Timeout = DefaultTimeout });
 
-        // Проверяем наличие полей в модальном окне
-        var modalInputs = await page.QuerySelectorAllAsync(".modal input.form-control");
-        if (modalInputs.Count < 2)
-            throw new InvalidOperationException(
-                "Модальное окно 'Создать ЮЛ' должно содержать минимум 2 поля (Наименование + ИНН)");
-
-        var nameInput = await page.QuerySelectorAsync(".modal input.form-control");
-        if (nameInput is null)
-            throw new InvalidOperationException(
-                "Модальное окно 'Создать ЮЛ' должно содержать поле 'Наименование'");
-
-        var innInput = await page.QuerySelectorAsync(".modal input[maxlength='12']");
-        if (innInput is null)
-            throw new InvalidOperationException(
-                "Модальное окно 'Создать ЮЛ' должно содержать поле 'ИНН' (maxlength=12)");
-
-        // Fill name
+        // Fill + change event для Blazor @bind (@onchange)
+        var nameInput = page.GetByTestId("le-name");
         await nameInput.FillAsync(name);
         await nameInput.DispatchEventAsync("change");
 
-        // Fill INN — find input with maxlength=12
-        await innInput!.FillAsync(inn);
+        var innInput = page.GetByTestId("le-inn");
+        await innInput.FillAsync(inn);
         await innInput.DispatchEventAsync("change");
 
+        // Дополнительно: Tab для надёжного триггера @onchange через потерю фокуса
+        await page.Keyboard.PressAsync("Tab");
+
         // Wait for Blazor to process change events and enable the button
+        // Ожидание: кнопка «Создать» станет активной
         await page.WaitForFunctionAsync(
             @"() => {
-                const btn = document.querySelector('.modal-footer button.btn-primary');
+                const btn = document.querySelector('[data-testid=""le-create""]');
                 return btn && !btn.disabled;
             }",
             null,
             new PageWaitForFunctionOptions { Timeout = DefaultTimeout });
 
-        // Click "Создать" in modal
-        await page.ClickAsync(".modal-footer button.btn-primary");
+        // Click "Создать" — Focus + Enter (keyboard interaction триггерит Blazor @onclick)
+        await page.GetByTestId("le-create").FocusAsync();
+        await page.Keyboard.PressAsync("Enter");
 
         // Wait for modal to close
         await page.WaitForFunctionAsync(
