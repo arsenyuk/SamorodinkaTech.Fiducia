@@ -776,9 +776,11 @@ Api → Application → Domain ← Infrastructure
 - UNIQUE constraint на `users.mpi_master_id` **не применяется** (допускается несколько УЗ на одно ФЛ).
 - При ошибке в доказательствах идентичности — проблема решается через ЕДИН Steward, а не через UI Fiducia.
 
-### Сравниванире разных записей ФЛ непо ФИО (ADR-028, КРИТИЧНО)
+### Привязка BoardParticipant к EcosystemParticipant — не по ФИО (ADR-028, КРИТИЧНО)
 
-- Автопоиск по ФИО  **запрещён** — ложные срабатывания
+- Привязка `BoardParticipant` к `EcosystemParticipant` — **только** по ДУЛ (серия + номер
+  паспорта) или по идентификатору золотой записи ЕДИН (`EcosystemParticipantId`).
+- Автопоиск по ФИО (`LastName` + `FirstName`) **запрещён** — ложные срабатывания
   при однофамильцах, расхождения в записи ФИО.
 - Запрещены эвристики и приближённые сравнения (fuzzy match, Levenshtein, trigram).
 
