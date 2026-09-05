@@ -108,7 +108,8 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" @onclick="CloseModals">Отмена</button>
-                    <button type="button" class="btn btn-primary" @onclick="CreateUser">Создать</button>
+                    <button type="button" class="btn btn-primary" @onclick="CreateUser"
+                            disabled="@(_ldapNotFound || string.IsNullOrWhiteSpace(_newLogin))">Создать</button>
                 </div>
             </div>
         </div>
@@ -187,6 +188,7 @@
     private string _newPhone = string.Empty;
     private bool _newIsExternal;
     private bool _ldapSearching;
+    private bool _ldapNotFound;
     private string? _ldapWarning;
 
     // Инвайт
@@ -271,6 +273,7 @@
         _showCreateModal = false;
         _showInviteModal = false;
         _ldapWarning = null;
+        _ldapNotFound = false;
     }
 
     private async Task SearchLdapAsync()
@@ -279,11 +282,13 @@
 
         _ldapSearching = true;
         _ldapWarning = null;
+        _ldapNotFound = false;
         try
         {
             var user = await LdapService.FindUserByLoginAsync(_newLogin);
             if (user is null)
             {
+                _ldapNotFound = true;
                 _ldapWarning = $"Пользователь «{_newLogin}» не найден в LDAP.";
                 return;
             }
@@ -300,6 +305,7 @@
         }
         catch (Exception ex)
         {
+            _ldapNotFound = true;
             _ldapWarning = $"Ошибка LDAP: {ex.Message}";
         }
         finally
