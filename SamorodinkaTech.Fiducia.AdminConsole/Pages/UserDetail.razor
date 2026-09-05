@@ -149,12 +149,6 @@
                                 <dd class="col-sm-9">@_person.Phone</dd>
                             }
 
-                            @if (!string.IsNullOrWhiteSpace(_person.Inn))
-                            {
-                                <dt class="col-sm-3">ИНН</dt>
-                                <dd class="col-sm-9">@_person.Inn</dd>
-                            }
-
                             @if (_user!.IsExternal)
                             {
                                 <dt class="col-sm-3">Статус регистрации</dt>

@@ -189,7 +189,6 @@ erDiagram
 | `middle_name` | VARCHAR(150) | Отчество (nullable) |
 | `email` | VARCHAR(255) | Email (nullable) |
 | `phone` | VARCHAR(20) | Телефон (nullable) |
-| `inn` | VARCHAR(12) | ИНН (nullable) |
 | `login` | VARCHAR(100) | Логин (уникальный в пределах legal_entity_id) |
 | `user_id` | UUID | FK → users (nullable, ON DELETE SET NULL) |
 | `mpi_master_id` | UUID | Идентификатор мастер-записи MPI из ЕДИН API (nullable) |

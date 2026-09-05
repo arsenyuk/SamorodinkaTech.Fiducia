@@ -19,7 +19,6 @@ public class EcosystemParticipantConfiguration : IEntityTypeConfiguration<Ecosys
         builder.Property(x => x.MiddleName).HasColumnName("middle_name").HasMaxLength(150);
         builder.Property(x => x.Email).HasColumnName("email").HasMaxLength(255);
         builder.Property(x => x.Phone).HasColumnName("phone").HasMaxLength(20);
-        builder.Property(x => x.Inn).HasColumnName("inn").HasMaxLength(12);
         builder.Property(x => x.Login).HasColumnName("login").HasMaxLength(100).IsRequired();
         builder.Property(x => x.UserId).HasColumnName("user_id");
 

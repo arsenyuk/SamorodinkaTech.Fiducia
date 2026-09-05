@@ -426,7 +426,6 @@ CREATE TABLE IF NOT EXISTS ecosystem_participants (
     middle_name varchar(150),
     email varchar(255),
     phone varchar(20),
-    inn varchar(12),
     login varchar(100) NOT NULL,
     user_id uuid REFERENCES users(id) ON DELETE SET NULL,
     -- MPI: идентификатор мастер-записи (источник: ЕДИН API)

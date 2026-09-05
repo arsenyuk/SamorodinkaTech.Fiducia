@@ -28,9 +28,6 @@ public class EcosystemParticipant
     /// <summary>Телефон (phone).</summary>
     public string? Phone { get; set; }
 
-    /// <summary>ИНН (inn).</summary>
-    public string? Inn { get; set; }
-
     /// <summary>Логин (login). Уникальный в рамках ЮЛ.</summary>
     public string Login { get; set; } = string.Empty;
 

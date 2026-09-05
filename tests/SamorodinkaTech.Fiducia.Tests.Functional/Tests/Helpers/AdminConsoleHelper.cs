@@ -37,6 +37,7 @@ public static class AdminConsoleHelper
 
     /// <summary>
     /// Создать пользователя на странице /users через UI.
+    /// Использует LDAP-поиск: логин вводится в поле поиска, остальные поля заполняются автоматически.
     /// </summary>
     public static async Task CreateUserViaUiAsync(IPage page, string login, string lastName, string firstName, string middleName, string email)
     {
@@ -49,32 +50,32 @@ public static class AdminConsoleHelper
         // Дождаться модального окна
         await page.WaitForSelectorAsync(".modal.show", new PageWaitForSelectorOptions { Timeout = DefaultTimeout });
 
-        // Заполнить поле Логин
-        var loginInput = await page.QuerySelectorAsync(".modal .input-group input.form-control");
-        if (loginInput is not null)
+        // Ввести логин в поле поиска и нажать 🔍
+        var searchInput = await page.QuerySelectorAsync(".modal .input-group input.form-control");
+        if (searchInput is not null)
         {
-            await loginInput.FillAsync(login);
-            await loginInput.DispatchEventAsync("change");
+            await searchInput.FillAsync(login);
+            await searchInput.DispatchEventAsync("change");
         }
 
-        // Заполнить остальные поля (пропуская уже заполненное поле логина в input-group)
-        var allInputs = await page.QuerySelectorAllAsync(".modal .modal-body input.form-control");
-        var phone = $"+7{login.GetHashCode() % 10000000000:D10}"; // Уникальный телефон на основе логина
-        var values = new[] { lastName, firstName, middleName, email, phone };
-        var valueIndex = 0;
-        foreach (var input in allInputs)
-        {
-            var parentHtml = await input.EvaluateAsync<string>("el => el.parentElement?.className ?? ''");
-            if (parentHtml.Contains("input-group"))
-                continue; // поле логина уже заполнено — пропускаем
+        // Нажать кнопку поиска
+        await page.ClickAsync(".modal .input-group button.btn-outline-secondary");
 
-            if (input is not null && valueIndex < values.Length && !string.IsNullOrEmpty(values[valueIndex]))
-            {
-                await input.FillAsync(values[valueIndex]);
-                await input.DispatchEventAsync("change");
-            }
-            valueIndex++;
-        }
+        // Дождаться автозаполнения полей (поле Логин станет readonly и заполненным)
+        await page.WaitForFunctionAsync(
+            @"() => {
+                const inputs = document.querySelectorAll('.modal .modal-body input.form-control[readonly]');
+                for (const input of inputs) {
+                    if (input.value.length > 0) return true;
+                }
+                return false;
+            }",
+            null,
+            new PageWaitForFunctionOptions { Timeout = DefaultTimeout });
+
+        // Выбрать роль "Секретарь" (доступна для всех тестовых сценариев)
+        await page.SelectOptionAsync(".modal .modal-body select.form-select", "SECRETARY");
+        await page.WaitForTimeoutAsync(500);
 
         await page.WaitForTimeoutAsync(500);
 
