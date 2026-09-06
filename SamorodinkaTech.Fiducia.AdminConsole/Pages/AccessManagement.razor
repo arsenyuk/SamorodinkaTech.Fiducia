@@ -309,7 +309,7 @@
     private List<EmployeeRow> _employees = new();
 
     // ── Поля формы «Сотрудники» ──
-    private string _empLastName = "", _empFirstName = "", _empMiddleName = "", _empPosition = "", _empLogin = "", _empRoleCode = "";
+    private string _empLastName = "", _empFirstName = "", _empMiddleName = "", _empPosition = "", _empLogin = "", _empRoleCode = "", _empEmail = "";
     private bool _addEmpLoading;
     private string? _empError;
     private bool _ldapSearching;
@@ -534,6 +534,7 @@
                 _empMiddleName = nameParts.Length >= 3 ? nameParts[2] : string.Empty;
             }
             _empPosition = user.Title ?? string.Empty;
+            _empEmail = user.Email ?? $"{_ldapSearchLogin}@ldap.local";
             _ldapFound = true;
         }
         catch (Exception ex)
@@ -558,6 +559,7 @@
         _empPosition = "";
         _empLogin = "";
         _empRoleCode = "";
+        _empEmail = "";
         _empError = null;
         _ldapWarning = null;
         _showAddEmpModal = true;
@@ -610,6 +612,26 @@
             }
 
             var existingUser = await ctx.Users.FirstOrDefaultAsync(u => u.Login == _empLogin);
+
+            // Если пользователь не найден — создать из LDAP-данных
+            if (existingUser is null)
+            {
+                existingUser = new User
+                {
+                    Id = Guid.NewGuid(),
+                    Login = _empLogin,
+                    LastName = _empLastName,
+                    FirstName = _empFirstName,
+                    MiddleName = _empMiddleName,
+                    Email = _empEmail,
+                    Phone = "",
+                    IsExternal = false,
+                    CreatedAt = DateTime.UtcNow,
+                    CreatedBy = Guid.Empty
+                };
+                ctx.Users.Add(existingUser);
+                await ctx.SaveChangesAsync();
+            }
 
             var pid = Guid.NewGuid();
             ctx.EcosystemParticipants.Add(new()

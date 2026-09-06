@@ -8,6 +8,7 @@ namespace SamorodinkaTech.Fiducia.Tests.Functional;
 /// E2E-тесты интеграции ЕДИН (MPI) — проверка UI-элементов.
 /// Правила: ADR-027 (навигация через UI, проверка контента, аудит, логи).
 /// </summary>
+[Collection("E2ETests")]
 public class E2E_EdinIntegrationTests : BrowserFixture
 {
     public E2E_EdinIntegrationTests(GlobalFixture globalFixture) : base(globalFixture)
@@ -20,6 +21,7 @@ public class E2E_EdinIntegrationTests : BrowserFixture
     [Fact]
     public async Task UsersList_ShouldHaveEdinColumn()
     {
+        SkipIfPreviousFailed();
         var testStartTime = DateTimeOffset.UtcNow;
         var page = await CreateAdminConsolePageAsync("/login");
 
@@ -42,6 +44,11 @@ public class E2E_EdinIntegrationTests : BrowserFixture
                 Assert.Fail($"Столбец ЕДИН не найден. URL: {url}. Body: {bodyText}");
             }
         }
+        catch
+        {
+            GlobalFixture.MarkFailed();
+            throw;
+        }
         finally
         {
             var testEndTime = DateTimeOffset.UtcNow;
@@ -56,6 +63,7 @@ public class E2E_EdinIntegrationTests : BrowserFixture
     [Fact]
     public async Task UserDetail_ShouldHaveEdinTab()
     {
+        SkipIfPreviousFailed();
         var testStartTime = DateTimeOffset.UtcNow;
         var page = await CreateAdminConsolePageAsync("/login");
 
@@ -79,6 +87,11 @@ public class E2E_EdinIntegrationTests : BrowserFixture
             var edinTab = await page.QuerySelectorAsync("button:text('ЕДИН')");
             edinTab.Should().NotBeNull("вкладка ЕДИН должна присутствовать на странице пользователя");
         }
+        catch
+        {
+            GlobalFixture.MarkFailed();
+            throw;
+        }
         finally
         {
             var testEndTime = DateTimeOffset.UtcNow;
@@ -93,6 +106,7 @@ public class E2E_EdinIntegrationTests : BrowserFixture
     [Fact]
     public async Task EdinTab_ShouldShowMpiMasterIdOrNotLinked()
     {
+        SkipIfPreviousFailed();
         var testStartTime = DateTimeOffset.UtcNow;
         var page = await CreateAdminConsolePageAsync("/login");
 
@@ -120,6 +134,11 @@ public class E2E_EdinIntegrationTests : BrowserFixture
             content.Should().Match(
                 c => c.Contains("MPI MasterId") || c.Contains("Не привязан"),
                 "вкладка ЕДИН должна содержать MPI MasterId или статус «Не привязан»");
+        }
+        catch
+        {
+            GlobalFixture.MarkFailed();
+            throw;
         }
         finally
         {

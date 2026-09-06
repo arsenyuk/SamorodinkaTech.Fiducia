@@ -170,13 +170,13 @@
             }
 
             var role = result.Claims.GetValueOrDefault("role", "MEMBER_BOARD");
-            Logger.LogDebug("[LOGIN] Роль из Claims: {RefRole}, проверка на SYS_ADMIN", role);
-            if (role != "SYS_ADMIN")
+            Logger.LogDebug("[LOGIN] Роль из Claims: {RefRole}, проверка на SYS_ADMIN/LE_ADMIN", role);
+            if (role != "SYS_ADMIN" && role != "LE_ADMIN")
             {
-                _errorMessage = "Доступ только для системных администраторов";
-                Logger.LogDebug("[LOGIN] Доступ запрещён: роль {RefRole} != SYS_ADMIN", role);
+                _errorMessage = "Доступ только для системных администраторов и администраторов ЮЛ";
+                Logger.LogDebug("[LOGIN] Доступ запрещён: роль {RefRole} != SYS_ADMIN/LE_ADMIN", role);
                 await SecurityAuditService.LogEventAsync("ACCESS_DENIED", userIp,
-                    $"Попытка входа с ролью {role} (требуется SYS_ADMIN)",
+                    $"Попытка входа с ролью {role} (требуется SYS_ADMIN или LE_ADMIN)",
                     userId: result.UserId, login: result.Login, entityName: "User", cancellationToken: default);
                 return;
             }

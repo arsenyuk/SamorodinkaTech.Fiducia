@@ -50,6 +50,8 @@ public class E2E_NonStandardCharterTests : BrowserFixture
     [Fact]
     public async Task NonStandardCharter_ExitAllowed_ShouldSaveWithoutErrors()
     {
+        SkipIfPreviousFailed();
+
         var testStartTime = DateTimeOffset.UtcNow;
         var testName = "NonStandardCharter_ExitAllowed";
 
@@ -66,6 +68,11 @@ public class E2E_NonStandardCharterTests : BrowserFixture
 
             await AssertAuditForNonStandardCharterAsync(login, participantsAdded: true);
         }
+        catch
+        {
+            GlobalFixture.MarkFailed();
+            throw;
+        }
         finally
         {
             var testEndTime = DateTimeOffset.UtcNow;
@@ -77,6 +84,8 @@ public class E2E_NonStandardCharterTests : BrowserFixture
     [Fact]
     public async Task NonStandardCharter_ExitMinSharePercent_ShouldSaveWithoutErrors()
     {
+        SkipIfPreviousFailed();
+
         var testStartTime = DateTimeOffset.UtcNow;
         var testName = "NonStandardCharter_ExitMinSharePercent";
 
@@ -92,6 +101,11 @@ public class E2E_NonStandardCharterTests : BrowserFixture
 
             await AssertAuditForNonStandardCharterAsync(login, participantsAdded: true);
         }
+        catch
+        {
+            GlobalFixture.MarkFailed();
+            throw;
+        }
         finally
         {
             var testEndTime = DateTimeOffset.UtcNow;
@@ -103,6 +117,8 @@ public class E2E_NonStandardCharterTests : BrowserFixture
     [Fact]
     public async Task NonStandardCharter_ExitMaxSharePercent_ShouldSaveWithoutErrors()
     {
+        SkipIfPreviousFailed();
+
         var testStartTime = DateTimeOffset.UtcNow;
         var testName = "NonStandardCharter_ExitMaxSharePercent";
 
@@ -118,6 +134,11 @@ public class E2E_NonStandardCharterTests : BrowserFixture
 
             await AssertAuditForNonStandardCharterAsync(login, participantsAdded: true);
         }
+        catch
+        {
+            GlobalFixture.MarkFailed();
+            throw;
+        }
         finally
         {
             var testEndTime = DateTimeOffset.UtcNow;
@@ -129,6 +150,8 @@ public class E2E_NonStandardCharterTests : BrowserFixture
     [Fact]
     public async Task NonStandardCharter_ExitConditionDescription_ShouldSaveWithoutErrors()
     {
+        SkipIfPreviousFailed();
+
         var testStartTime = DateTimeOffset.UtcNow;
         var testName = "NonStandardCharter_ExitConditionDescription";
 
@@ -144,6 +167,11 @@ public class E2E_NonStandardCharterTests : BrowserFixture
 
             await AssertAuditForNonStandardCharterAsync(login, participantsAdded: true);
         }
+        catch
+        {
+            GlobalFixture.MarkFailed();
+            throw;
+        }
         finally
         {
             var testEndTime = DateTimeOffset.UtcNow;
@@ -155,6 +183,8 @@ public class E2E_NonStandardCharterTests : BrowserFixture
     [Fact]
     public async Task NonStandardCharter_ExitRequiresUnanimousOsu_ShouldSaveWithoutErrors()
     {
+        SkipIfPreviousFailed();
+
         var testStartTime = DateTimeOffset.UtcNow;
         var testName = "NonStandardCharter_ExitRequiresUnanimousOsu";
 
@@ -170,6 +200,11 @@ public class E2E_NonStandardCharterTests : BrowserFixture
 
             await AssertAuditForNonStandardCharterAsync(login, participantsAdded: true);
         }
+        catch
+        {
+            GlobalFixture.MarkFailed();
+            throw;
+        }
         finally
         {
             var testEndTime = DateTimeOffset.UtcNow;
@@ -181,6 +216,8 @@ public class E2E_NonStandardCharterTests : BrowserFixture
     [Fact]
     public async Task NonStandardCharter_TransferToParticipants_ShouldSaveWithoutErrors()
     {
+        SkipIfPreviousFailed();
+
         var testStartTime = DateTimeOffset.UtcNow;
         var testName = "NonStandardCharter_TransferToParticipants";
 
@@ -195,6 +232,11 @@ public class E2E_NonStandardCharterTests : BrowserFixture
 
             await AssertAuditForNonStandardCharterAsync(login, participantsAdded: true);
         }
+        catch
+        {
+            GlobalFixture.MarkFailed();
+            throw;
+        }
         finally
         {
             var testEndTime = DateTimeOffset.UtcNow;
@@ -206,6 +248,8 @@ public class E2E_NonStandardCharterTests : BrowserFixture
     [Fact]
     public async Task NonStandardCharter_TransferToThirdParties_ShouldSaveWithoutErrors()
     {
+        SkipIfPreviousFailed();
+
         var testStartTime = DateTimeOffset.UtcNow;
         var testName = "NonStandardCharter_TransferToThirdParties";
 
@@ -220,6 +264,11 @@ public class E2E_NonStandardCharterTests : BrowserFixture
 
             await AssertAuditForNonStandardCharterAsync(login, participantsAdded: true);
         }
+        catch
+        {
+            GlobalFixture.MarkFailed();
+            throw;
+        }
         finally
         {
             var testEndTime = DateTimeOffset.UtcNow;
@@ -231,6 +280,8 @@ public class E2E_NonStandardCharterTests : BrowserFixture
     [Fact]
     public async Task NonStandardCharter_PreemptiveRight_ShouldSaveWithoutErrors()
     {
+        SkipIfPreviousFailed();
+
         var testStartTime = DateTimeOffset.UtcNow;
         var testName = "NonStandardCharter_PreemptiveRight";
 
@@ -245,6 +296,11 @@ public class E2E_NonStandardCharterTests : BrowserFixture
 
             await AssertAuditForNonStandardCharterAsync(login, participantsAdded: true);
         }
+        catch
+        {
+            GlobalFixture.MarkFailed();
+            throw;
+        }
         finally
         {
             var testEndTime = DateTimeOffset.UtcNow;
@@ -256,6 +312,8 @@ public class E2E_NonStandardCharterTests : BrowserFixture
     [Fact]
     public async Task NonStandardCharter_InheritanceWithoutConsent_ShouldSaveWithoutErrors()
     {
+        SkipIfPreviousFailed();
+
         var testStartTime = DateTimeOffset.UtcNow;
         var testName = "NonStandardCharter_InheritanceWithoutConsent";
 
@@ -270,6 +328,11 @@ public class E2E_NonStandardCharterTests : BrowserFixture
 
             await AssertAuditForNonStandardCharterAsync(login, participantsAdded: true);
         }
+        catch
+        {
+            GlobalFixture.MarkFailed();
+            throw;
+        }
         finally
         {
             var testEndTime = DateTimeOffset.UtcNow;
@@ -281,6 +344,8 @@ public class E2E_NonStandardCharterTests : BrowserFixture
     [Fact]
     public async Task NonStandardCharter_ExecutiveBody_ShouldSaveWithoutErrors()
     {
+        SkipIfPreviousFailed();
+
         var testStartTime = DateTimeOffset.UtcNow;
         var testName = "NonStandardCharter_ExecutiveBody";
 
@@ -294,6 +359,11 @@ public class E2E_NonStandardCharterTests : BrowserFixture
             await VerifyPagesAsync(boardPage, adminPage, testStartTime);
 
             await AssertAuditForNonStandardCharterAsync(login, participantsAdded: true);
+        }
+        catch
+        {
+            GlobalFixture.MarkFailed();
+            throw;
         }
         finally
         {
@@ -321,6 +391,11 @@ public class E2E_NonStandardCharterTests : BrowserFixture
 
             await AssertAuditForNonStandardCharterAsync(login, participantsAdded: true);
         }
+        catch
+        {
+            GlobalFixture.MarkFailed();
+            throw;
+        }
         finally
         {
             var testEndTime = DateTimeOffset.UtcNow;
@@ -332,6 +407,8 @@ public class E2E_NonStandardCharterTests : BrowserFixture
     [Fact]
     public async Task NonStandardCharter_BoardDecidesConveningOsu_ShouldSaveWithoutErrors()
     {
+        SkipIfPreviousFailed();
+
         var testStartTime = DateTimeOffset.UtcNow;
         var testName = "NonStandardCharter_BoardDecidesConveningOsu";
 
@@ -347,6 +424,11 @@ public class E2E_NonStandardCharterTests : BrowserFixture
 
             await AssertAuditForNonStandardCharterAsync(login, participantsAdded: true);
         }
+        catch
+        {
+            GlobalFixture.MarkFailed();
+            throw;
+        }
         finally
         {
             var testEndTime = DateTimeOffset.UtcNow;
@@ -358,6 +440,8 @@ public class E2E_NonStandardCharterTests : BrowserFixture
     [Fact]
     public async Task NonStandardCharter_VosuThresholdPercent_ShouldSaveWithoutErrors()
     {
+        SkipIfPreviousFailed();
+
         var testStartTime = DateTimeOffset.UtcNow;
         var testName = "NonStandardCharter_VosuThresholdPercent";
 
@@ -373,6 +457,11 @@ public class E2E_NonStandardCharterTests : BrowserFixture
 
             await AssertAuditForNonStandardCharterAsync(login, participantsAdded: true);
         }
+        catch
+        {
+            GlobalFixture.MarkFailed();
+            throw;
+        }
         finally
         {
             var testEndTime = DateTimeOffset.UtcNow;
@@ -384,6 +473,8 @@ public class E2E_NonStandardCharterTests : BrowserFixture
     [Fact]
     public async Task NonStandardCharter_AllParameters_ShouldSaveWithoutErrors()
     {
+        SkipIfPreviousFailed();
+
         var testStartTime = DateTimeOffset.UtcNow;
         var testName = "NonStandardCharter_AllParameters";
 
@@ -414,6 +505,11 @@ public class E2E_NonStandardCharterTests : BrowserFixture
 
             await AssertAuditForNonStandardCharterAsync(login, participantsAdded: true);
         }
+        catch
+        {
+            GlobalFixture.MarkFailed();
+            throw;
+        }
         finally
         {
             var testEndTime = DateTimeOffset.UtcNow;
@@ -433,6 +529,8 @@ public class E2E_NonStandardCharterTests : BrowserFixture
     [Fact]
     public async Task NonStandardCharter_Model1_HiredCeo_ShouldSaveWithoutErrors()
     {
+        SkipIfPreviousFailed();
+
         var testStartTime = DateTimeOffset.UtcNow;
         var testName = "NonStandardCharter_Model1_HiredCeo";
 
@@ -446,6 +544,11 @@ public class E2E_NonStandardCharterTests : BrowserFixture
             await VerifyPagesAsync(boardPage, adminPage, testStartTime);
 
             await AssertAuditForNonStandardCharterAsync(login, participantsAdded: true);
+        }
+        catch
+        {
+            GlobalFixture.MarkFailed();
+            throw;
         }
         finally
         {
@@ -462,6 +565,8 @@ public class E2E_NonStandardCharterTests : BrowserFixture
     [Fact]
     public async Task NonStandardCharter_Model2_CeoParticipant_ShouldSaveWithoutErrors()
     {
+        SkipIfPreviousFailed();
+
         var testStartTime = DateTimeOffset.UtcNow;
         var testName = "NonStandardCharter_Model2_CeoParticipant";
 
@@ -475,6 +580,11 @@ public class E2E_NonStandardCharterTests : BrowserFixture
             await VerifyPagesAsync(boardPage, adminPage, testStartTime);
 
             await AssertAuditForNonStandardCharterAsync(login, participantsAdded: true);
+        }
+        catch
+        {
+            GlobalFixture.MarkFailed();
+            throw;
         }
         finally
         {
@@ -491,6 +601,8 @@ public class E2E_NonStandardCharterTests : BrowserFixture
     [Fact]
     public async Task NonStandardCharter_Model3_ManagerIp_ShouldSaveWithoutErrors()
     {
+        SkipIfPreviousFailed();
+
         var testStartTime = DateTimeOffset.UtcNow;
         var testName = "NonStandardCharter_Model3_ManagerIp";
 
@@ -504,6 +616,11 @@ public class E2E_NonStandardCharterTests : BrowserFixture
             await VerifyPagesAsync(boardPage, adminPage, testStartTime);
 
             await AssertAuditForNonStandardCharterAsync(login, participantsAdded: true);
+        }
+        catch
+        {
+            GlobalFixture.MarkFailed();
+            throw;
         }
         finally
         {
@@ -520,6 +637,8 @@ public class E2E_NonStandardCharterTests : BrowserFixture
     [Fact]
     public async Task NonStandardCharter_Model4_ManagingOrg_ShouldSaveWithoutErrors()
     {
+        SkipIfPreviousFailed();
+
         var testStartTime = DateTimeOffset.UtcNow;
         var testName = "NonStandardCharter_Model4_ManagingOrg";
 
@@ -533,6 +652,11 @@ public class E2E_NonStandardCharterTests : BrowserFixture
             await VerifyPagesAsync(boardPage, adminPage, testStartTime);
 
             await AssertAuditForNonStandardCharterAsync(login, participantsAdded: true);
+        }
+        catch
+        {
+            GlobalFixture.MarkFailed();
+            throw;
         }
         finally
         {
@@ -549,6 +673,8 @@ public class E2E_NonStandardCharterTests : BrowserFixture
     [Fact]
     public async Task NonStandardCharter_Model5_AllParticipantsDirectors_ShouldSaveWithoutErrors()
     {
+        SkipIfPreviousFailed();
+
         var testStartTime = DateTimeOffset.UtcNow;
         var testName = "NonStandardCharter_Model5_AllParticipantsDirectors";
 
@@ -562,6 +688,11 @@ public class E2E_NonStandardCharterTests : BrowserFixture
             await VerifyPagesAsync(boardPage, adminPage, testStartTime);
 
             await AssertAuditForNonStandardCharterAsync(login, participantsAdded: true);
+        }
+        catch
+        {
+            GlobalFixture.MarkFailed();
+            throw;
         }
         finally
         {
@@ -578,6 +709,8 @@ public class E2E_NonStandardCharterTests : BrowserFixture
     [Fact]
     public async Task NonStandardCharter_Model6_AllParticipantsJoint_ShouldSaveWithoutErrors()
     {
+        SkipIfPreviousFailed();
+
         var testStartTime = DateTimeOffset.UtcNow;
         var testName = "NonStandardCharter_Model6_AllParticipantsJoint";
 
@@ -591,6 +724,11 @@ public class E2E_NonStandardCharterTests : BrowserFixture
             await VerifyPagesAsync(boardPage, adminPage, testStartTime);
 
             await AssertAuditForNonStandardCharterAsync(login, participantsAdded: true);
+        }
+        catch
+        {
+            GlobalFixture.MarkFailed();
+            throw;
         }
         finally
         {
@@ -607,6 +745,8 @@ public class E2E_NonStandardCharterTests : BrowserFixture
     [Fact]
     public async Task NonStandardCharter_Model7_MultipleEio_ShouldSaveWithoutErrors()
     {
+        SkipIfPreviousFailed();
+
         var testStartTime = DateTimeOffset.UtcNow;
         var testName = "NonStandardCharter_Model7_MultipleEio";
 
@@ -620,6 +760,11 @@ public class E2E_NonStandardCharterTests : BrowserFixture
             await VerifyPagesAsync(boardPage, adminPage, testStartTime);
 
             await AssertAuditForNonStandardCharterAsync(login, participantsAdded: true);
+        }
+        catch
+        {
+            GlobalFixture.MarkFailed();
+            throw;
         }
         finally
         {

@@ -22,6 +22,7 @@ public class E2E_StandardCharterTests : BrowserFixture
     /// Флаг: хотя бы один тест завершился ошибкой.
     /// После установки все последующие тесты прерываются (SkipIfPreviousTestFailed).
     /// volatile — для видимости между потоками xUnit.
+    /// Использует GlobalFixture.HasFailed для общего флага между всеми тестами.
     /// </summary>
     private static volatile bool _anyTestFailed;
 
@@ -115,6 +116,7 @@ public class E2E_StandardCharterTests : BrowserFixture
         {
             // При ошибке: фиксируем и пробрасываем — xUnit пометит тест как FAILED
             _anyTestFailed = true;
+            GlobalFixture.MarkFailed();
             Console.WriteLine($"[FAIL] {testName}: {ex.Message}");
             throw;
         }
@@ -128,13 +130,13 @@ public class E2E_StandardCharterTests : BrowserFixture
     }
 
     /// <summary>
-    /// Канарейка: если предыдущий тест упал (_anyTestFailed = true),
+    /// Канарейка: если предыдущий тест упал (_anyTestFailed = true или GlobalFixture.HasFailed),
     /// текущий тест прерывается без выполнения.
     /// Исключение ловится xUnit и тест помечается как SKIPPED/FAILED.
     /// </summary>
     private static void SkipIfPreviousTestFailed()
     {
-        if (_anyTestFailed)
+        if (_anyTestFailed || GlobalFixture.HasFailed)
         {
             throw new InvalidOperationException(
                 "Предыдущий тест завершился ошибкой — прогон прерван.");

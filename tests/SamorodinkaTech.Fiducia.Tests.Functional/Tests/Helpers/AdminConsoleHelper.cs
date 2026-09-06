@@ -198,6 +198,15 @@ public static class AdminConsoleHelper
     /// </summary>
     private static async Task EnsureEntitySelectedAsync(IPage page)
     {
+        // Дождаться загрузки select с ЮЛ (>1 option)
+        await page.WaitForFunctionAsync(
+            @"() => {
+                const sel = document.querySelector('.card-body select.form-select');
+                return sel && sel.options.length > 1;
+            }",
+            null,
+            new PageWaitForFunctionOptions { Timeout = DefaultTimeout });
+
         var isSelected = await page.EvaluateAsync<bool>(
             @"() => {
                 const sel = document.querySelector('.card-body select.form-select');
@@ -206,16 +215,18 @@ public static class AdminConsoleHelper
 
         if (!isSelected)
         {
-            // Выбрать первое доступное ЮЛ
-            await page.EvaluateAsync(
+            // Выбрать первое доступное ЮЛ через Playwright SelectOption
+            var firstOptionValue = await page.EvaluateAsync<string>(
                 @"() => {
                     const sel = document.querySelector('.card-body select.form-select');
-                    if (sel && sel.options.length > 1) {
-                        sel.value = sel.options[1].value;
-                        sel.dispatchEvent(new Event('change', { bubbles: true }));
-                    }
+                    return sel && sel.options.length > 1 ? sel.options[1].value : null;
                 }");
-            await page.WaitForTimeoutAsync(1000);
+
+            if (!string.IsNullOrEmpty(firstOptionValue))
+            {
+                await page.SelectOptionAsync(".card-body select.form-select", firstOptionValue);
+                await page.WaitForTimeoutAsync(1000);
+            }
         }
     }
 

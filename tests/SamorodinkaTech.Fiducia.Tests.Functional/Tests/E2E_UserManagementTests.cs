@@ -7,6 +7,7 @@ namespace SamorodinkaTech.Fiducia.Tests.Functional;
 /// <summary>
 /// E2E-тесты добавления сотрудника через /access-management.
 /// </summary>
+[Collection("E2ETests")]
 public class E2E_UserManagementTests : BrowserFixture
 {
     private const int DefaultTimeout = 15_000;
@@ -21,6 +22,9 @@ public class E2E_UserManagementTests : BrowserFixture
     [Fact]
     public async Task AddEmployee_LdapNotFound_ShowsWarningAndButtonDisabled()
     {
+        SkipIfPreviousFailed();
+        try
+        {
         var page = await CreateAdminConsolePageAsync();
         await AuthHelper.LoginAsAdminAsync(page, "v.vasilyeva", "1");
 
@@ -48,6 +52,12 @@ public class E2E_UserManagementTests : BrowserFixture
         var createButton = page.Locator(".modal-footer button.btn-primary");
         var isDisabled = await createButton.GetAttributeAsync("disabled");
         isDisabled.Should().NotBeNull("Кнопка «Добавить» должна быть disabled при ненайденном LDAP-пользователе");
+        }
+        catch
+        {
+            GlobalFixture.MarkFailed();
+            throw;
+        }
     }
 
     /// <summary>
@@ -56,6 +66,9 @@ public class E2E_UserManagementTests : BrowserFixture
     [Fact]
     public async Task AddEmployee_LdapFoundButNoRole_ButtonDisabled()
     {
+        SkipIfPreviousFailed();
+        try
+        {
         var page = await CreateAdminConsolePageAsync();
         await AuthHelper.LoginAsAdminAsync(page, "v.vasilyeva", "1");
 
@@ -93,6 +106,12 @@ public class E2E_UserManagementTests : BrowserFixture
         var createButton = page.Locator(".modal-footer button.btn-primary");
         var isDisabled = await createButton.GetAttributeAsync("disabled");
         isDisabled.Should().NotBeNull("Кнопка «Добавить» должна быть disabled без выбранной роли");
+        }
+        catch
+        {
+            GlobalFixture.MarkFailed();
+            throw;
+        }
     }
 
     /// <summary>
@@ -101,6 +120,9 @@ public class E2E_UserManagementTests : BrowserFixture
     [Fact]
     public async Task AddEmployee_LdapFoundAndRoleSelected_ButtonEnabled()
     {
+        SkipIfPreviousFailed();
+        try
+        {
         var page = await CreateAdminConsolePageAsync();
         await AuthHelper.LoginAsAdminAsync(page, "v.vasilyeva", "1");
 
@@ -138,5 +160,11 @@ public class E2E_UserManagementTests : BrowserFixture
         var createButton = page.Locator(".modal-footer button.btn-primary");
         var isDisabled = await createButton.GetAttributeAsync("disabled");
         isDisabled.Should().BeNull("Кнопка «Добавить» должна быть активной при LDAP-найденном пользователе и выбранной роли");
+        }
+        catch
+        {
+            GlobalFixture.MarkFailed();
+            throw;
+        }
     }
 }

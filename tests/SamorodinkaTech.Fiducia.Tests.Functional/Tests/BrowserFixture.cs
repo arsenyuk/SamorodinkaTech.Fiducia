@@ -35,4 +35,11 @@ public class BrowserFixture
     /// <summary>Короткая алиас-перегрузка: создать страницу Admin Console.</summary>
     public Task<IPage> CreateAdminConsolePageAsync(string path = "/") =>
         CreatePageAsync(Portal.AdminConsole, path);
+
+    /// <summary>Проверить, не было ли ошибки в предыдущих тестах. Если да — пропустить текущий.</summary>
+    protected static void SkipIfPreviousFailed()
+    {
+        if (GlobalFixture.HasFailed)
+            Assert.Skip("Предыдущий тест завершился с ошибкой — пропуск");
+    }
 }

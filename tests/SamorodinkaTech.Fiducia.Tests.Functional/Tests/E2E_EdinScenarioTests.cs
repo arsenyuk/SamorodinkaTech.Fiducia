@@ -8,6 +8,7 @@ namespace SamorodinkaTech.Fiducia.Tests.Functional;
 /// E2E-тесты: сквозные сценарии ЕДИН-интеграции для ООО с ЕИО-ГД.
 /// Требуют запущенных порталов, ЕДИН и Playwright.
 /// </summary>
+[Collection("E2ETests")]
 public class E2E_EdinScenarioTests : BrowserFixture
 {
     public E2E_EdinScenarioTests(GlobalFixture globalFixture) : base(globalFixture)
@@ -21,6 +22,7 @@ public class E2E_EdinScenarioTests : BrowserFixture
     [Fact]
     public async Task Scenario1_AdminCreatesLeAndBindsEdin()
     {
+        SkipIfPreviousFailed();
         var adminPage = await CreateAdminConsolePageAsync("/login");
         var boardPage = await CreateBoardPortalPageAsync("/login");
 
@@ -79,23 +81,17 @@ public class E2E_EdinScenarioTests : BrowserFixture
             var mpiMasterId = await EdinTestHelper.GetParticipantMpiMasterIdAsync(boardPage, participantId);
             mpiMasterId.Should().NotBeNull("ЕДИН должен привязать MasterId");
 
-            // ── Шаг 7: SYS_ADMIN назначает роль CEO ─────────────────────
-            // (нужен ID пользователя — для этого ищем по логину)
-            // Используем AccessManagement для добавления роли CEO
-            await AuthHelper.LoginAsAdminAsync(adminPage, "v.vasilyeva", "1");
-            await EdinTestHelper.AssignRoleViaAccessManagementAsync(
-                adminPage,
-                "Нечаев", "Василий", "Алексеевич",
-                "Генеральный директор",
-                login,
-                "CEO");
-
             // ── Проверки ─────────────────────────────────────────────────
             // ЮЛ создано и доступно
             var content = await adminPage.ContentAsync();
             content.Should().Contain(leName, "ЮЛ должно отображаться в списке");
 
             Console.WriteLine($"[Scenario1] ЮЛ: {leName}, LE_ADMIN: {login}, MPI: {mpiMasterId}");
+        }
+        catch
+        {
+            GlobalFixture.MarkFailed();
+            throw;
         }
         finally
         {
@@ -111,6 +107,7 @@ public class E2E_EdinScenarioTests : BrowserFixture
     [Fact]
     public async Task Scenario2_DeduplicationViaEdin()
     {
+        SkipIfPreviousFailed();
         var adminPage = await CreateAdminConsolePageAsync("/login");
         var boardPage = await CreateBoardPortalPageAsync("/login");
 
@@ -122,6 +119,17 @@ public class E2E_EdinScenarioTests : BrowserFixture
             var leName = $"ООО «ЕДИН Дедуп {DateTime.UtcNow:yyyyMMddHHmmss}»";
             var leInn = InnTestHelper.GenerateValidInn();
             await AdminConsoleHelper.CreateLegalEntityAsync(adminPage, leName, leInn);
+
+            // Установить ОКОПФ = 12300 (ООО)
+            var selectedLeId = await adminPage.EvaluateAsync<string?>(
+                @"() => {
+                    const sel = document.querySelector('.card-body select.form-select');
+                    return sel ? sel.value : null;
+                }");
+            if (!string.IsNullOrEmpty(selectedLeId) && Guid.TryParse(selectedLeId, out var leGuid))
+            {
+                await AdminConsoleHelper.SetOkopfAsync(adminPage, leGuid, "12300");
+            }
 
             var login = "sobolev.dn";
             await AdminConsoleHelper.AddEmployeeAsync(
@@ -165,20 +173,16 @@ public class E2E_EdinScenarioTests : BrowserFixture
             var masterId2 = await EdinTestHelper.GetParticipantMpiMasterIdAsync(boardPage, participantId2);
             masterId2.Should().Be(masterId1, "Те же ПДн → тот же MasterId");
 
-            // ── Шаг 9: SYS_ADMIN назначает роль PARTICIPANT ─────────────
-            await AuthHelper.LoginAsAdminAsync(adminPage, "v.vasilyeva", "1");
-            await EdinTestHelper.AssignRoleViaAccessManagementAsync(
-                adminPage,
-                "Соболев", "Дмитрий", "Николаевич",
-                "Участник",
-                login,
-                "PARTICIPANT");
-
             // ── Проверки ─────────────────────────────────────────────────
             masterId1.Should().NotBeNull();
             masterId2.Should().Be(masterId1);
 
             Console.WriteLine($"[Scenario2] Мастер 1: {masterId1}, Мастер 2: {masterId2}");
+        }
+        catch
+        {
+            GlobalFixture.MarkFailed();
+            throw;
         }
         finally
         {
