@@ -22,7 +22,7 @@ public class E2E_UserManagementTests : BrowserFixture
     public async Task CreateUser_LdapNotFound_ShowsWarningAndButtonDisabled()
     {
         var page = await CreateAdminConsolePageAsync();
-        await AuthHelper.LoginAsAdminAsync(page, "admin", "1");
+        await AuthHelper.LoginAsAdminAsync(page, "v.vasilyeva", "1");
         await AdminConsoleHelper.NavigateToAsync(page, "/users");
 
         // Открыть модальное окно
@@ -55,7 +55,7 @@ public class E2E_UserManagementTests : BrowserFixture
     public async Task CreateUser_LdapFoundButNoRole_ButtonDisabled()
     {
         var page = await CreateAdminConsolePageAsync();
-        await AuthHelper.LoginAsAdminAsync(page, "admin", "1");
+        await AuthHelper.LoginAsAdminAsync(page, "v.vasilyeva", "1");
         await AdminConsoleHelper.NavigateToAsync(page, "/users");
 
         await page.ClickAsync("button.btn-primary:has-text('Добавить')");
@@ -63,7 +63,7 @@ public class E2E_UserManagementTests : BrowserFixture
 
         // Ввести существующий логин
         var searchInput = page.Locator(".modal .input-group input.form-control");
-        await searchInput.FillAsync("admin");
+        await searchInput.FillAsync("nechaev.va");
         await searchInput.DispatchEventAsync("change");
 
         await page.ClickAsync(".modal .input-group button.btn-outline-secondary");
@@ -97,7 +97,7 @@ public class E2E_UserManagementTests : BrowserFixture
     public async Task CreateUser_LdapFoundAndRoleSelected_ButtonEnabled()
     {
         var page = await CreateAdminConsolePageAsync();
-        await AuthHelper.LoginAsAdminAsync(page, "admin", "1");
+        await AuthHelper.LoginAsAdminAsync(page, "v.vasilyeva", "1");
         await AdminConsoleHelper.NavigateToAsync(page, "/users");
 
         await page.ClickAsync("button.btn-primary:has-text('Добавить')");
@@ -105,7 +105,7 @@ public class E2E_UserManagementTests : BrowserFixture
 
         // Ввести существующий логин
         var searchInput = page.Locator(".modal .input-group input.form-control");
-        await searchInput.FillAsync("admin");
+        await searchInput.FillAsync("nechaev.va");
         await searchInput.DispatchEventAsync("change");
 
         await page.ClickAsync(".modal .input-group button.btn-outline-secondary");

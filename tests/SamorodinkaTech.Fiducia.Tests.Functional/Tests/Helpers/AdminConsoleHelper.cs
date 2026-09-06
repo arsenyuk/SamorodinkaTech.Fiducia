@@ -173,7 +173,7 @@ public static class AdminConsoleHelper
 
     /// <summary>
     /// Добавить сотрудника в ЮЛ на странице /access-management.
-    /// Гарантирует, что ЮЛ выбрано в dropdown перед добавлением.
+    /// Использует модальный диалог: поиск по логину → LDAP → выбор роли → «Добавить».
     /// </summary>
     public static async Task AddEmployeeAsync(
         IPage page,
@@ -184,66 +184,49 @@ public static class AdminConsoleHelper
         string login,
         string roleCode)
     {
-        // Ensure we're on the access management page
         if (!page.Url.Contains("/access-management"))
         {
             await NavigateToAsync(page, "/access-management");
         }
 
-        // Гарантируем, что ЮЛ выбрано (после LoadEmployeesAsync выбор может сброситься)
         await EnsureEntitySelectedAsync(page);
 
-        // Wait for employee form to be visible (depends on _selectedLegalEntityId)
-        try
-        {
-            await page.WaitForSelectorAsync(".card-body input.form-control-sm, .card-body .input-group .form-control", new PageWaitForSelectorOptions { Timeout = DefaultTimeout });
-        }
-        catch (TimeoutException)
-        {
-            // Диагностика: вывести состояние страницы
-            var url = page.Url;
-            var bodyText = await page.EvaluateAsync<string>("() => document.body?.innerText?.substring(0, 500) ?? 'empty'");
-            throw new InvalidOperationException(
-                $"[AddEmployeeAsync] Форма сотрудника не найдена. URL: {url}. Body: {bodyText}");
-        }
+        // Click "+ Добавить сотрудника"
+        await page.ClickAsync("button.btn-primary.btn-sm:has-text('Добавить сотрудника')");
+        await page.WaitForSelectorAsync(".modal.show", new PageWaitForSelectorOptions { Timeout = DefaultTimeout });
 
-        // Fill fields — LastName, FirstName, MiddleName, Position have form-control-sm; Login has form-control inside input-group
-        var nameInputs = await page.QuerySelectorAllAsync(".card-body input.form-control-sm");
-        var nameValues = new[] { lastName, firstName, middleName, position };
-        for (int i = 0; i < Math.Min(nameInputs.Count, nameValues.Length); i++)
-        {
-            if (nameInputs[i] is not null)
-            {
-                await nameInputs[i].FillAsync(nameValues[i]);
-                await nameInputs[i].DispatchEventAsync("change");
-            }
-        }
+        // Enter login in search field and click 🔍
+        var searchInput = page.Locator(".modal .input-group input.form-control");
+        await searchInput.FillAsync(login);
+        await searchInput.DispatchEventAsync("change");
 
-        // Login is in .input-group with class "form-control" (not form-control-sm)
-        var loginInput = await page.QuerySelectorAsync(".card-body .input-group .form-control");
-        if (loginInput is not null)
-        {
-            await loginInput.FillAsync(login);
-            await loginInput.DispatchEventAsync("change");
-        }
+        await page.ClickAsync(".modal .input-group button.btn-outline-secondary");
 
-        // Select role — last .form-select-sm on the page
-        await page.SelectOptionAsync(".card-body .form-select-sm", roleCode);
-        await page.WaitForTimeoutAsync(500);
-
-        // Wait for Blazor to process all change events and enable the button
+        // Wait for LDAP to populate readonly fields
         await page.WaitForFunctionAsync(
             @"() => {
-                const btn = document.querySelector('button.btn-primary.btn-sm');
-                return btn && !btn.disabled;
+                const inputs = document.querySelectorAll('.modal .modal-body input.form-control[readonly]');
+                for (const input of inputs) {
+                    if (input.value.length > 0) return true;
+                }
+                return false;
             }",
             null,
             new PageWaitForFunctionOptions { Timeout = DefaultTimeout });
 
-        // Click "Добавить" button
-        await page.ClickAsync("button.btn-primary.btn-sm");
+        // Select role
+        await page.SelectOptionAsync(".modal .modal-body select.form-select", roleCode);
+        await page.WaitForTimeoutAsync(500);
 
-        // Wait for processing
+        // Click "Добавить" in modal footer
+        await page.ClickAsync(".modal-footer button.btn-primary");
+
+        // Wait for modal to close
+        await page.WaitForFunctionAsync(
+            "() => document.querySelector('.modal.show') === null",
+            null,
+            new PageWaitForFunctionOptions { Timeout = DefaultTimeout });
+
         await page.WaitForTimeoutAsync(1000);
     }
 
