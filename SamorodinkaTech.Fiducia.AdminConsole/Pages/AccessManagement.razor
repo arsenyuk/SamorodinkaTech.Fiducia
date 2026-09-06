@@ -9,7 +9,8 @@
 @inject ILdapService LdapService
 @inject ISecurityAuditService SecurityAuditService
 @inject IClientIpProvider ClientIpProvider
-@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "SYS_ADMIN")]
+@inject IHttpContextAccessor HttpContextAccessor
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "SYS_ADMIN,LE_ADMIN")]
 
 <h3>Сотрудники и доступ</h3>
 
@@ -20,10 +21,13 @@
                 <label class="form-label small fw-bold">Юридическое лицо</label>
                 <div class="input-group input-group-sm">
                     <select class="form-select" @onchange="OnLeChanged">
-                        <option value="">— выбрать ЮЛ —</option>
+                        @if (_isSysAdmin)
+                        {
+                            <option value="">— выбрать ЮЛ —</option>
+                        }
                         @foreach (var le in _legalEntities)
                         {
-                            <option value="@le.Id">@le.Name (@le.Inn)</option>
+                            <option value="@le.Id" selected="@(le.Id.ToString() == _selectedLegalEntityId)">@le.Name (@le.Inn)</option>
                         }
                     </select>
                     <button class="btn btn-outline-success" @onclick="ShowCreateLeModal" data-testid="show-create-le">+ Создать ЮЛ</button>
@@ -222,47 +226,57 @@
                     <button class="btn-close" @onclick="CloseAddEmployeeModal"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label">Поиск по логину *</label>
-                        <div class="input-group">
-                            <input type="text" class="form-control" @bind="_ldapSearchLogin">
-                            <button class="btn btn-outline-secondary" @onclick="SearchLdapAsync" disabled="@_ldapSearching">
-                                @if (_ldapSearching) { <span class="spinner-border spinner-border-sm"></span> } else { <span>🔍</span> }
-                            </button>
+                    <div class="mb-3 row">
+                        <label class="col-sm-4 col-form-label">Юридическое лицо *</label>
+                        <div class="col-sm-8">
+                            <input type="text" class="form-control" value="@_selectedLegalEntityName" readonly>
                         </div>
-                        @if (!string.IsNullOrEmpty(_ldapWarning)) { <div class="text-warning small mt-1">@_ldapWarning</div> }
+                    </div>
+                    <div class="mb-3 row">
+                        <label class="col-sm-4 col-form-label">Поиск по логину *</label>
+                        <div class="col-sm-8">
+                            <div class="input-group">
+                                <input type="text" class="form-control" @bind="_ldapSearchLogin">
+                                <button class="btn btn-outline-secondary" @onclick="SearchLdapAsync" disabled="@_ldapSearching">
+                                    @if (_ldapSearching) { <span class="spinner-border spinner-border-sm"></span> } else { <span>🔍</span> }
+                                </button>
+                            </div>
+                            @if (!string.IsNullOrEmpty(_ldapWarning)) { <div class="text-warning small mt-1">@_ldapWarning</div> }
+                        </div>
                     </div>
                     @if (_ldapFound)
                     {
-                        <div class="mb-3">
-                            <label class="form-label">Логин *</label>
-                            <input type="text" class="form-control" value="@_empLogin" readonly>
+                        <div class="mb-3 row">
+                            <label class="col-sm-4 col-form-label">Логин</label>
+                            <div class="col-sm-8"><input type="text" class="form-control" value="@_empLogin" readonly></div>
                         </div>
-                        <div class="mb-3">
-                            <label class="form-label">Фамилия *</label>
-                            <input type="text" class="form-control" value="@_empLastName" readonly>
+                        <div class="mb-3 row">
+                            <label class="col-sm-4 col-form-label">Фамилия</label>
+                            <div class="col-sm-8"><input type="text" class="form-control" value="@_empLastName" readonly></div>
                         </div>
-                        <div class="mb-3">
-                            <label class="form-label">Имя *</label>
-                            <input type="text" class="form-control" value="@_empFirstName" readonly>
+                        <div class="mb-3 row">
+                            <label class="col-sm-4 col-form-label">Имя</label>
+                            <div class="col-sm-8"><input type="text" class="form-control" value="@_empFirstName" readonly></div>
                         </div>
-                        <div class="mb-3">
-                            <label class="form-label">Отчество</label>
-                            <input type="text" class="form-control" value="@_empMiddleName" readonly>
+                        <div class="mb-3 row">
+                            <label class="col-sm-4 col-form-label">Отчество</label>
+                            <div class="col-sm-8"><input type="text" class="form-control" value="@_empMiddleName" readonly></div>
                         </div>
-                        <div class="mb-3">
-                            <label class="form-label">Должность *</label>
-                            <input type="text" class="form-control" value="@_empPosition" readonly>
+                        <div class="mb-3 row">
+                            <label class="col-sm-4 col-form-label">Должность</label>
+                            <div class="col-sm-8"><input type="text" class="form-control" value="@_empPosition" readonly></div>
                         </div>
-                        <div class="mb-3">
-                            <label class="form-label">Роль *</label>
-                            <select class="form-select" @bind="_empRoleCode">
-                                <option value="">— Выберите роль —</option>
-                                @foreach (var r in _assignableRoles)
-                                {
-                                    <option value="@r.Code">@r.Name</option>
-                                }
-                            </select>
+                        <div class="mb-3 row">
+                            <label class="col-sm-4 col-form-label">Роль *</label>
+                            <div class="col-sm-8">
+                                <select class="form-select" @bind="_empRoleCode">
+                                    <option value="">— Выберите роль —</option>
+                                    @foreach (var r in _assignableRoles)
+                                    {
+                                        <option value="@r.Code">@r.Name</option>
+                                    }
+                                </select>
+                            </div>
                         </div>
                     }
                     @if (!string.IsNullOrEmpty(_empError))
@@ -285,7 +299,9 @@
 
     private int _activeTab;
     private string _selectedLegalEntityId = "";
+    private string _selectedLegalEntityName = "";
     private string? _leError;
+    private bool _isSysAdmin;
 
     private List<RefRole> _assignableRoles = new();
     private List<RefRole> _extAvailableRoles = new();
@@ -339,7 +355,40 @@
         {
             await using var ctx = await DbFactory.CreateDbContextAsync();
             _assignableRoles = await ctx.Roles.Where(r => r.IsAssignable).OrderBy(r => r.Name).ToListAsync();
-            _legalEntities = await ctx.LegalEntities.OrderBy(le => le.Name).ToListAsync();
+
+            var role = HttpContextAccessor.HttpContext?.User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
+            _isSysAdmin = role == "SYS_ADMIN";
+
+            if (_isSysAdmin)
+            {
+                _legalEntities = await ctx.LegalEntities.OrderBy(le => le.Name).ToListAsync();
+            }
+            else
+            {
+                var login = HttpContextAccessor.HttpContext?.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                if (Guid.TryParse(login, out var userId))
+                {
+                    var user = await ctx.Users.FindAsync(userId);
+                    login = user?.Login;
+                }
+                if (!string.IsNullOrEmpty(login))
+                {
+                    _legalEntities = await ctx.LegalEntities
+                        .Where(le => ctx.EcosystemParticipants.Any(ep =>
+                            ep.LegalEntityId == le.Id && ep.Login == login))
+                        .OrderBy(le => le.Name).ToListAsync();
+                }
+                else
+                {
+                    _legalEntities = new();
+                }
+
+                if (_legalEntities.Count == 1)
+                {
+                    _selectedLegalEntityId = _legalEntities[0].Id.ToString();
+                    _selectedLegalEntityName = _legalEntities[0].Name;
+                }
+            }
         }
         catch (Exception ex)
         {
@@ -351,6 +400,7 @@
     private async Task OnLeChanged(ChangeEventArgs e)
     {
         _selectedLegalEntityId = e.Value?.ToString() ?? "";
+        _selectedLegalEntityName = _legalEntities.FirstOrDefault(le => le.Id.ToString() == _selectedLegalEntityId)?.Name ?? "";
         _leError = null;
         _empError = null;
         _extError = null;
@@ -525,6 +575,13 @@
 
         try
         {
+            var userRole = HttpContextAccessor.HttpContext?.User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
+            if (userRole != "SYS_ADMIN" && userRole != "LE_ADMIN")
+            {
+                _empError = "Недостаточно прав.";
+                return;
+            }
+
             if (_empRoleCode == "SYS_ADMIN")
             {
                 _empError = "Нельзя «Системный администратор».";
@@ -825,6 +882,7 @@
 
             _legalEntities.Add(le);
             _selectedLegalEntityId = le.Id.ToString();
+            _selectedLegalEntityName = le.Name;
             _showCreateLeModal = false;
         }
         catch (Exception ex)

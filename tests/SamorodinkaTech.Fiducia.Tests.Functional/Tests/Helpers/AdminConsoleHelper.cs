@@ -36,62 +36,6 @@ public static class AdminConsoleHelper
     }
 
     /// <summary>
-    /// Создать пользователя на странице /users через UI.
-    /// Использует LDAP-поиск: логин вводится в поле поиска, остальные поля заполняются автоматически.
-    /// </summary>
-    public static async Task CreateUserViaUiAsync(IPage page, string login, string lastName, string firstName, string middleName, string email)
-    {
-        await NavigateToAsync(page, "/users");
-
-        // Клик "+ Добавить"
-        await page.ClickAsync("button.btn-primary:has-text('Добавить')");
-        await page.WaitForTimeoutAsync(500);
-
-        // Дождаться модального окна
-        await page.WaitForSelectorAsync(".modal.show", new PageWaitForSelectorOptions { Timeout = DefaultTimeout });
-
-        // Ввести логин в поле поиска и нажать 🔍
-        var searchInput = await page.QuerySelectorAsync(".modal .input-group input.form-control");
-        if (searchInput is not null)
-        {
-            await searchInput.FillAsync(login);
-            await searchInput.DispatchEventAsync("change");
-        }
-
-        // Нажать кнопку поиска
-        await page.ClickAsync(".modal .input-group button.btn-outline-secondary");
-
-        // Дождаться автозаполнения полей (поле Логин станет readonly и заполненным)
-        await page.WaitForFunctionAsync(
-            @"() => {
-                const inputs = document.querySelectorAll('.modal .modal-body input.form-control[readonly]');
-                for (const input of inputs) {
-                    if (input.value.length > 0) return true;
-                }
-                return false;
-            }",
-            null,
-            new PageWaitForFunctionOptions { Timeout = DefaultTimeout });
-
-        // Выбрать роль "Секретарь" (доступна для всех тестовых сценариев)
-        await page.SelectOptionAsync(".modal .modal-body select.form-select", "SECRETARY");
-        await page.WaitForTimeoutAsync(500);
-
-        await page.WaitForTimeoutAsync(500);
-
-        // Клик "Создать"
-        await page.ClickAsync(".modal-footer button.btn-primary");
-
-        // Дождаться закрытия модального окна
-        await page.WaitForFunctionAsync(
-            "() => document.querySelector('.modal.show') === null",
-            null,
-            new PageWaitForFunctionOptions { Timeout = DefaultTimeout });
-
-        await page.WaitForTimeoutAsync(1000);
-    }
-
-    /// <summary>
     /// Создать юридическое лицо на странице /access-management.
     /// </summary>
     public static async Task CreateLegalEntityAsync(IPage page, string name, string inn)

@@ -47,29 +47,22 @@ public class E2E_EdinScenarioTests : BrowserFixture
                 await AdminConsoleHelper.SetOkopfAsync(adminPage, leGuid, "12300");
             }
 
-            // ── Шаг 3: Создать пользователя в БД (LDAP-аутентификация: Basic) ──
-            var userLogin = "nechaev.va";
-            await AdminConsoleHelper.CreateUserViaUiAsync(
-                adminPage, userLogin,
-                "Нечаев", "Василий", "Алексеевич",
-                $"{userLogin}@test.local");
-
-            // ── Шаг 4: Назначить Администратора ЮЛ (LE_ADMIN) ──────────
-            var adminLogin = "sobolev.dn";
+            // ── Шаг 3: Добавить сотрудника (LE_ADMIN) ───────────────────
+            var login = "nechaev.va";
             await AdminConsoleHelper.AddEmployeeAsync(
                 adminPage,
-                "Соболев", "Дмитрий", "Николаевич",
+                "Нечаев", "Василий", "Алексеевич",
                 "Администратор ЮЛ",
-                adminLogin,
+                login,
                 "LE_ADMIN");
 
             // ── Шаг 4: LE_ADMIN логинится в Board Portal ────────────────
-            await AuthHelper.LoginAsBoardUserAsync(boardPage, adminLogin, "1");
+            await AuthHelper.LoginAsBoardUserAsync(boardPage, login, "1");
 
             // ── Шаг 5: LE_ADMIN вводит ПДн для ГД (участник с паспортом) ──
             var participantId = await BoardPortalHelper.AddParticipantWithPersonalDataAsync(
                 boardPage,
-                fullName: "Соболев Дмитрий Николаевич",
+                fullName: "Нечаев Василий Алексеевич",
                 passportSeries: "4515",
                 passportNumber: "111222",
                 personInn: "770888999000",
@@ -92,9 +85,9 @@ public class E2E_EdinScenarioTests : BrowserFixture
             await AuthHelper.LoginAsAdminAsync(adminPage, "v.vasilyeva", "1");
             await EdinTestHelper.AssignRoleViaAccessManagementAsync(
                 adminPage,
-                "Соболев", "Дмитрий", "Николаевич",
+                "Нечаев", "Василий", "Алексеевич",
                 "Генеральный директор",
-                adminLogin,
+                login,
                 "CEO");
 
             // ── Проверки ─────────────────────────────────────────────────
@@ -102,7 +95,7 @@ public class E2E_EdinScenarioTests : BrowserFixture
             var content = await adminPage.ContentAsync();
             content.Should().Contain(leName, "ЮЛ должно отображаться в списке");
 
-            Console.WriteLine($"[Scenario1] ЮЛ: {leName}, LE_ADMIN: {adminLogin}, MPI: {mpiMasterId}");
+            Console.WriteLine($"[Scenario1] ЮЛ: {leName}, LE_ADMIN: {login}, MPI: {mpiMasterId}");
         }
         finally
         {
@@ -130,21 +123,15 @@ public class E2E_EdinScenarioTests : BrowserFixture
             var leInn = InnTestHelper.GenerateValidInn();
             await AdminConsoleHelper.CreateLegalEntityAsync(adminPage, leName, leInn);
 
-            var userLogin = "tokarev.as";
-            await AdminConsoleHelper.CreateUserViaUiAsync(
-                adminPage, userLogin,
-                "Токарев", "Андрей", "Сергеевич",
-                $"{userLogin}@test.local");
-
-            var adminLogin = "sobolev.dn";
+            var login = "sobolev.dn";
             await AdminConsoleHelper.AddEmployeeAsync(
                 adminPage,
                 "Соболев", "Дмитрий", "Николаевич",
                 "Администратор ЮЛ",
-                adminLogin,
+                login,
                 "LE_ADMIN");
 
-            await AuthHelper.LoginAsBoardUserAsync(boardPage, adminLogin, "1");
+            await AuthHelper.LoginAsBoardUserAsync(boardPage, login, "1");
 
             // Добавляем ГД как участника с ПДн
             var participantId1 = await BoardPortalHelper.AddParticipantWithPersonalDataAsync(
@@ -184,7 +171,7 @@ public class E2E_EdinScenarioTests : BrowserFixture
                 adminPage,
                 "Соболев", "Дмитрий", "Николаевич",
                 "Участник",
-                adminLogin,
+                login,
                 "PARTICIPANT");
 
             // ── Проверки ─────────────────────────────────────────────────

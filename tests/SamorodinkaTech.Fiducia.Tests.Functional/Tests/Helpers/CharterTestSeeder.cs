@@ -61,44 +61,14 @@ public static class CharterTestSeeder
         var entity = CharterTestDataFixed.LegalEntities[charterNumber - 1];
         var persons = CharterTestDataFixed.PersonsByEntity[charterNumber];
 
-        // ── Создание пользователей в БД ──────────────────────────────
-        Console.WriteLine($"[Seeder] ЮЛ {charterNumber}: создание пользователей...");
-
-        // Администратор
-        var adminEmail = $"{entity.AdminUser.Login}@test.local";
-        await AdminConsoleHelper.CreateUserViaUiAsync(
-            adminPage, entity.AdminUser.Login,
-            entity.AdminUser.LastName, entity.AdminUser.FirstName, entity.AdminUser.MiddleName, adminEmail);
-
-        // ГД (или первый участник для типов B/C)
-        if (persons.Gd is not null)
-        {
-            var email = $"{persons.Gd.Login}@test.local";
-            await AdminConsoleHelper.CreateUserViaUiAsync(
-                adminPage, persons.Gd.Login,
-                persons.Gd.LastName, persons.Gd.FirstName, persons.Gd.MiddleName, email);
-        }
-        else if (persons.Participants.Count > 0)
-        {
-            var p = persons.Participants[0];
-            var nameParts = p.FullName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-            if (nameParts.Length >= 3)
-            {
-                var email = $"{p.Login}@test.local";
-                await AdminConsoleHelper.CreateUserViaUiAsync(
-                    adminPage, p.Login, nameParts[0], nameParts[1], nameParts[2], email);
-            }
-        }
-
         // ── Создание ЮЛ + назначение ролей ───────────────────────────
-        Console.WriteLine($"[Seeder] ЮЛ {charterNumber}: создание ЮЛ и назначение ролей...");
+        Console.WriteLine($"[Seeder] ЮЛ {charterNumber}: создание ЮЛ...");
         await AdminConsoleHelper.NavigateToAsync(adminPage, "/access-management");
 
         Console.WriteLine($"[Seeder] ЮЛ {charterNumber}: {entity.Name} (ИНН {entity.Inn})...");
         await AdminConsoleHelper.CreateLegalEntityAsync(adminPage, entity.Name, entity.Inn);
 
         // ── Установка ОКОПФ (ООО = 12300) ──────────────────────────
-        // Получаем ID выбранного ЮЛ из dropdown
         var selectedLeId = await adminPage.EvaluateAsync<string?>(
             @"() => {
                 const sel = document.querySelector('.card-body select.form-select');
@@ -110,21 +80,24 @@ public static class CharterTestSeeder
             await AdminConsoleHelper.SetOkopfAsync(adminPage, leGuid, "12300");
         }
 
-        // Роли администратору (EcosystemParticipant + Employee + UserRole через UI)
-        await AdminConsoleHelper.AssignRolesAsync(
+        // ── Добавление сотрудников (User + EcosystemParticipant + Employee) ──
+        Console.WriteLine($"[Seeder] ЮЛ {charterNumber}: добавление сотрудников...");
+
+        // Администратор
+        await AdminConsoleHelper.AddEmployeeAsync(
             adminPage,
             entity.AdminUser.LastName, entity.AdminUser.FirstName, entity.AdminUser.MiddleName,
             entity.AdminUser.Position, entity.AdminUser.Login,
-            [CharterTestDataFixed.RoleLeAdmin]);
+            CharterTestDataFixed.RoleLeAdmin);
 
-        // Роли ГД (или первому участнику)
+        // ГД (или первый участник для типов B/C)
         if (persons.Gd is not null)
         {
-            await AdminConsoleHelper.AssignRolesAsync(
+            await AdminConsoleHelper.AddEmployeeAsync(
                 adminPage,
                 persons.Gd.LastName, persons.Gd.FirstName, persons.Gd.MiddleName,
                 persons.Gd.Position, persons.Gd.Login,
-                [CharterTestDataFixed.RoleLeAdmin, CharterTestDataFixed.RoleCeo]);
+                CharterTestDataFixed.RoleCeo);
         }
         else if (persons.Participants.Count > 0)
         {
@@ -132,11 +105,11 @@ public static class CharterTestSeeder
             var nameParts = p.FullName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
             if (nameParts.Length >= 3)
             {
-                await AdminConsoleHelper.AssignRolesAsync(
+                await AdminConsoleHelper.AddEmployeeAsync(
                     adminPage,
                     nameParts[0], nameParts[1], nameParts[2],
                     "Директор", p.Login,
-                    [CharterTestDataFixed.RoleLeAdmin, CharterTestDataFixed.RoleCeo]);
+                    CharterTestDataFixed.RoleCeo);
             }
         }
 

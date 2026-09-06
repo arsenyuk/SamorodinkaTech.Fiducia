@@ -7,9 +7,6 @@
 @inject NavigationManager Navigation
 @inject IConfiguration Configuration
 @inject IHttpContextAccessor HttpContextAccessor
-@inject ILdapService LdapService
-@inject ISecurityAuditService SecurityAuditService
-@inject IClientIpProvider ClientIpProvider
 
 <PageTitle>Fiducia — Пользователи</PageTitle>
 
@@ -17,10 +14,9 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h3>Пользователи</h3>
         <div>
-            <button class="btn btn-outline-primary me-2" @onclick="ShowInviteModal">
+            <button class="btn btn-outline-primary" @onclick="ShowInviteModal">
                 Пригласить внешнего директора
             </button>
-            <button class="btn btn-primary" @onclick="ShowCreateModal">+ Добавить</button>
         </div>
     </div>
 
@@ -61,76 +57,6 @@
         </div>
     </div>
 </div>
-
-<!-- Модальное окно создания пользователя -->
-@if (_showCreateModal)
-{
-    <div class="modal show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Добавить пользователя</h5>
-                    <button type="button" class="btn-close" @onclick="CloseModals"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label">Поиск по логину *</label>
-                        <div class="input-group">
-                            <input type="text" class="form-control" @bind="_ldapSearchLogin">
-                            <button class="btn btn-outline-secondary" @onclick="SearchLdapAsync" disabled="@_ldapSearching">
-                                @if (_ldapSearching) { <span class="spinner-border spinner-border-sm"></span> } else { <span>🔍</span> }
-                            </button>
-                        </div>
-                        @if (!string.IsNullOrEmpty(_ldapWarning)) { <div class="text-warning small mt-1">@_ldapWarning</div> }
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Логин *</label>
-                        <input type="text" class="form-control" value="@_newLogin" readonly>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Фамилия *</label>
-                        <input type="text" class="form-control" value="@_newLastName" readonly>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Имя *</label>
-                        <input type="text" class="form-control" value="@_newFirstName" readonly>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Отчество</label>
-                        <input type="text" class="form-control" value="@_newMiddleName" readonly>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Email *</label>
-                        <input type="email" class="form-control" value="@_newEmail" readonly>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Телефон *</label>
-                        <input type="tel" class="form-control" value="@_newPhone" readonly>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Роль *</label>
-                        <select class="form-select" @bind="_newRoleCode">
-                            <option value="">— Выберите роль —</option>
-                            @foreach (var role in _allowedRoles)
-                            {
-                                <option value="@role.Code">@role.Name</option>
-                            }
-                        </select>
-                    </div>
-                    <div class="form-check mb-3">
-                        <input class="form-check-input" type="checkbox" @bind="_newIsExternal">
-                        <label class="form-check-label">Внешний директор</label>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" @onclick="CloseModals">Отмена</button>
-                    <button type="button" class="btn btn-primary" @onclick="CreateUser"
-                            disabled="@(_ldapNotFound || string.IsNullOrWhiteSpace(_newLogin) || string.IsNullOrWhiteSpace(_newRoleCode))">Создать</button>
-                </div>
-            </div>
-        </div>
-    </div>
-}
 
 <!-- Модальное окно инвайта -->
 @if (_showInviteModal)
@@ -193,28 +119,6 @@
 
 @code {
     private List<UserRow> _userRows = new();
-
-    private static readonly (string Code, string Name)[] _allowedRoles = new[]
-    {
-        ("LE_ADMIN", "Администратор ЮЛ"),
-        ("LAWYER", "Юрист"),
-        ("SECRETARY", "Секретарь"),
-    };
-
-    // Создание пользователя
-    private bool _showCreateModal;
-    private string _ldapSearchLogin = string.Empty;
-    private string _newLogin = string.Empty;
-    private string _newLastName = string.Empty;
-    private string _newFirstName = string.Empty;
-    private string _newMiddleName = string.Empty;
-    private string _newEmail = string.Empty;
-    private string _newPhone = string.Empty;
-    private string _newRoleCode = string.Empty;
-    private bool _newIsExternal;
-    private bool _ldapSearching;
-    private bool _ldapNotFound;
-    private string? _ldapWarning;
 
     // Инвайт
     private bool _showInviteModal;
@@ -280,111 +184,15 @@
         Navigation.NavigateTo($"/users/{userId}");
     }
 
-    private void ShowCreateModal()
-    {
-        _showCreateModal = true;
-        _showInviteModal = false;
-    }
-
     private void ShowInviteModal()
     {
         _showInviteModal = true;
-        _showCreateModal = false;
         _inviteLink = string.Empty;
     }
 
     private void CloseModals()
     {
-        _showCreateModal = false;
         _showInviteModal = false;
-        _ldapWarning = null;
-        _ldapNotFound = false;
-        _ldapSearchLogin = string.Empty;
-        _newLogin = string.Empty;
-        _newLastName = string.Empty;
-        _newFirstName = string.Empty;
-        _newMiddleName = string.Empty;
-        _newEmail = string.Empty;
-        _newPhone = string.Empty;
-        _newRoleCode = string.Empty;
-        _newIsExternal = false;
-    }
-
-    private async Task SearchLdapAsync()
-    {
-        if (string.IsNullOrWhiteSpace(_ldapSearchLogin)) { _ldapWarning = "Введите логин."; return; }
-
-        _ldapSearching = true;
-        _ldapWarning = null;
-        _ldapNotFound = false;
-        try
-        {
-            var user = await LdapService.FindUserByLoginAsync(_ldapSearchLogin);
-            if (user is null)
-            {
-                _ldapNotFound = true;
-                _ldapWarning = $"Пользователь «{_ldapSearchLogin}» не найден в LDAP.";
-                var userIp = ClientIpProvider.GetClientIp();
-                await SecurityAuditService.LogEventAsync("EXTERNAL:LDAP:NotFound", userIp,
-                    $"Пользователь «{_ldapSearchLogin}» не найден в LDAP-каталоге",
-                    login: _ldapSearchLogin, entityName: "User");
-                return;
-            }
-            _newLogin = _ldapSearchLogin;
-            var nameParts = user.DisplayName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-            if (nameParts.Length >= 2)
-            {
-                _newLastName = nameParts[0];
-                _newFirstName = nameParts[1];
-                _newMiddleName = nameParts.Length >= 3 ? nameParts[2] : string.Empty;
-            }
-            _newEmail = user.Email ?? $"{_ldapSearchLogin}@ldap.local";
-            _newPhone = user.Phone ?? string.Empty;
-        }
-        catch (Exception ex)
-        {
-            _ldapNotFound = true;
-            _ldapWarning = $"Ошибка LDAP: {ex.Message}";
-        }
-        finally
-        {
-            _ldapSearching = false;
-        }
-    }
-
-    private async Task CreateUser()
-    {
-        if (string.IsNullOrWhiteSpace(_newLogin) || string.IsNullOrWhiteSpace(_newRoleCode)) { return; }
-
-        var user = new User
-        {
-            Login = _newLogin,
-            LastName = _newLastName,
-            FirstName = _newFirstName,
-            MiddleName = _newMiddleName,
-            Email = _newEmail,
-            Phone = _newPhone,
-            IsExternal = _newIsExternal,
-            CreatedAt = DateTime.UtcNow,
-            CreatedBy = await GetCurrentUserAsync()
-        };
-
-        DbContext.Users.Add(user);
-        await DbContext.SaveChangesAsync();
-
-        var role = await DbContext.Roles.FirstOrDefaultAsync(r => r.Code == _newRoleCode);
-        if (role is not null)
-        {
-            DbContext.UserRoles.Add(new UserRole
-            {
-                UserId = user.Id,
-                RoleId = role.Id
-            });
-            await DbContext.SaveChangesAsync();
-        }
-
-        CloseModals();
-        await OnInitializedAsync();
     }
 
     private async Task<Guid?> GetCurrentUserAsync()
