@@ -466,6 +466,11 @@
                     ep.LegalEntityId == Guid.Parse(_selectedLegalEntityId) && ep.Login == _ldapSearchLogin))
                 {
                     _ldapWarning = $"Логин «{_ldapSearchLogin}» уже используется в этом ЮЛ.";
+                    Logger.LogWarning("Дубль логина при поиске: {Login} уже используется в ЮЛ {LeId}", _ldapSearchLogin, _selectedLegalEntityId);
+                    var userIp = ClientIpProvider.GetClientIp();
+                    await SecurityAuditService.LogEventAsync("ACCESS:DUPLICATE_LOGIN", userIp,
+                        $"Попытка добавить сотрудника с логином «{_ldapSearchLogin}» — логин уже используется в ЮЛ",
+                        login: _ldapSearchLogin, entityName: "EcosystemParticipant");
                     return;
                 }
             }
@@ -539,6 +544,11 @@
                 ep.LegalEntityId == leId && ep.Login == _empLogin))
             {
                 _empError = $"Логин «{_empLogin}» уже используется.";
+                Logger.LogWarning("Дубль логина при добавлении сотрудника: {Login} уже используется в ЮЛ {LeId}", _empLogin, _selectedLegalEntityId);
+                var userIp = ClientIpProvider.GetClientIp();
+                await SecurityAuditService.LogEventAsync("ACCESS:DUPLICATE_LOGIN", userIp,
+                    $"Попытка добавить сотрудника с логином «{_empLogin}» — логин уже используется в ЮЛ",
+                    login: _empLogin, entityName: "EcosystemParticipant");
                 return;
             }
 
@@ -681,6 +691,11 @@
                 ep.LegalEntityId == leId && ep.Login == extLogin))
             {
                 _extError = $"Логин «{extLogin}» уже используется в этом ЮЛ.";
+                Logger.LogWarning("Дубль логина при добавлении внешнего лица: {Login} уже используется в ЮЛ {LeId}", extLogin, _selectedLegalEntityId);
+                var userIp = ClientIpProvider.GetClientIp();
+                await SecurityAuditService.LogEventAsync("ACCESS:DUPLICATE_LOGIN", userIp,
+                    $"Попытка добавить внешнее лицо с логином «{extLogin}» — логин уже используется в ЮЛ",
+                    login: extLogin, entityName: "EcosystemParticipant");
                 return;
             }
 

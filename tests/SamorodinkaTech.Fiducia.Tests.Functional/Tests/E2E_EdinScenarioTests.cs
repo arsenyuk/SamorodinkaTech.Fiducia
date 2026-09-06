@@ -48,16 +48,17 @@ public class E2E_EdinScenarioTests : BrowserFixture
             }
 
             // ── Шаг 3: Создать пользователя в БД (LDAP-аутентификация: Basic) ──
-            var adminLogin = "nechaev.va";
+            var userLogin = "nechaev.va";
             await AdminConsoleHelper.CreateUserViaUiAsync(
-                adminPage, adminLogin,
+                adminPage, userLogin,
                 "Нечаев", "Василий", "Алексеевич",
-                $"{adminLogin}@test.local");
+                $"{userLogin}@test.local");
 
             // ── Шаг 4: Назначить Администратора ЮЛ (LE_ADMIN) ──────────
+            var adminLogin = "sobolev.dn";
             await AdminConsoleHelper.AddEmployeeAsync(
                 adminPage,
-                "Нечаев", "Василий", "Алексеевич",
+                "Соболев", "Дмитрий", "Николаевич",
                 "Администратор ЮЛ",
                 adminLogin,
                 "LE_ADMIN");
@@ -68,7 +69,7 @@ public class E2E_EdinScenarioTests : BrowserFixture
             // ── Шаг 5: LE_ADMIN вводит ПДн для ГД (участник с паспортом) ──
             var participantId = await BoardPortalHelper.AddParticipantWithPersonalDataAsync(
                 boardPage,
-                fullName: "Нечаев Василий Алексеевич",
+                fullName: "Соболев Дмитрий Николаевич",
                 passportSeries: "4515",
                 passportNumber: "111222",
                 personInn: "770888999000",
@@ -91,7 +92,7 @@ public class E2E_EdinScenarioTests : BrowserFixture
             await AuthHelper.LoginAsAdminAsync(adminPage, "v.vasilyeva", "1");
             await EdinTestHelper.AssignRoleViaAccessManagementAsync(
                 adminPage,
-                "Нечаев", "Василий", "Алексеевич",
+                "Соболев", "Дмитрий", "Николаевич",
                 "Генеральный директор",
                 adminLogin,
                 "CEO");
@@ -129,12 +130,13 @@ public class E2E_EdinScenarioTests : BrowserFixture
             var leInn = InnTestHelper.GenerateValidInn();
             await AdminConsoleHelper.CreateLegalEntityAsync(adminPage, leName, leInn);
 
-            var adminLogin = "sobolev.dn";
+            var userLogin = "tokarev.as";
             await AdminConsoleHelper.CreateUserViaUiAsync(
-                adminPage, adminLogin,
-                "Соболев", "Дмитрий", "Николаевич",
-                $"{adminLogin}@test.local");
+                adminPage, userLogin,
+                "Токарев", "Андрей", "Сергеевич",
+                $"{userLogin}@test.local");
 
+            var adminLogin = "sobolev.dn";
             await AdminConsoleHelper.AddEmployeeAsync(
                 adminPage,
                 "Соболев", "Дмитрий", "Николаевич",

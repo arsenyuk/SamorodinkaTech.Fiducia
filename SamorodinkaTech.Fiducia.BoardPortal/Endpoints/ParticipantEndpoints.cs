@@ -48,6 +48,7 @@ public static class ParticipantEndpoints
                 return Results.Ok(Array.Empty<object>());
 
             var items = await ctx.BoardParticipants
+                .Include(p => p.EcosystemParticipant)
                 .Where(p => p.LegalEntityId == leId.Value)
                 .OrderBy(p => p.SortOrder)
                 .ToListAsync();
@@ -91,7 +92,7 @@ public static class ParticipantEndpoints
         participants.MapGet("/{id}", async (Guid id, IDbContextFactory<FiduciaDbContext> dbFactory) =>
         {
             await using var ctx = await dbFactory.CreateDbContextAsync();
-            var p = await ctx.BoardParticipants.FindAsync(id);
+            var p = await ctx.BoardParticipants.Include(x => x.EcosystemParticipant).FirstOrDefaultAsync(x => x.Id == id);
             if (p is null) return Results.NotFound();
             return Results.Ok(MapParticipantToDto(p));
         });
@@ -122,6 +123,7 @@ public static class ParticipantEndpoints
                     .MaxAsync(p => (int?)p.SortOrder) ?? 0;
 
                 var entity = MapDtoToEntity(dto, leId);
+                entity.EcosystemParticipantId = participant?.Id;
                 entity.Id = Guid.NewGuid();
                 entity.SortOrder = maxSort + 1;
                 entity.CreatedAt = DateTime.UtcNow;
@@ -1174,8 +1176,10 @@ public static class ParticipantEndpoints
     {
         p.Id,
         p.LegalEntityId,
+        p.EcosystemParticipantId,
         p.ParticipantType,
         p.FullName,
+        MpiMasterId = p.EcosystemParticipant?.MpiMasterId,
         p.PassportSeries,
         p.PassportNumber,
         p.PassportIssuedBy,
