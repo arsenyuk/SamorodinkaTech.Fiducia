@@ -1,10 +1,12 @@
 @page "/access-management"
 @using Microsoft.EntityFrameworkCore
 @using SamorodinkaTech.Fiducia.Domain.Entities
+@using SamorodinkaTech.Fiducia.Domain.Interfaces
 @using SamorodinkaTech.Fiducia.Domain.Validation
 @using SamorodinkaTech.Fiducia.Infrastructure.Persistence
 @inject IDbContextFactory<FiduciaDbContext> DbFactory
 @inject ILogger<AccessManagement> Logger
+@inject ILdapService LdapService
 @attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "SYS_ADMIN")]
 
 <h3>Сотрудники и доступ</h3>
@@ -218,45 +220,49 @@
                     <button class="btn-close" @onclick="CloseAddEmployeeModal"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="row g-3">
-                        <div class="col-md-4">
-                            <label class="form-label">Фамилия *</label>
-                            <input class="form-control" @bind="_empLastName" />
+                    <div class="mb-3">
+                        <label class="form-label">Поиск по логину *</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control" @bind="_ldapSearchLogin">
+                            <button class="btn btn-outline-secondary" @onclick="SearchLdapAsync" disabled="@_ldapSearching">
+                                @if (_ldapSearching) { <span class="spinner-border spinner-border-sm"></span> } else { <span>🔍</span> }
+                            </button>
                         </div>
-                        <div class="col-md-4">
-                            <label class="form-label">Имя *</label>
-                            <input class="form-control" @bind="_empFirstName" />
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label">Отчество</label>
-                            <input class="form-control" @bind="_empMiddleName" />
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Должность *</label>
-                            <input class="form-control" @bind="_empPosition" />
-                        </div>
-                        <div class="col-md-6">
+                        @if (!string.IsNullOrEmpty(_ldapWarning)) { <div class="text-warning small mt-1">@_ldapWarning</div> }
+                    </div>
+                    @if (_ldapFound)
+                    {
+                        <div class="mb-3">
                             <label class="form-label">Логин *</label>
-                            <div class="input-group">
-                                <input class="form-control" @bind="_empLogin" />
-                                <button class="btn btn-outline-secondary" @onclick="SearchLdapAsync" disabled="@_ldapSearching">🔍</button>
-                            </div>
-                            @if (!string.IsNullOrEmpty(_ldapWarning))
-                            {
-                                <div class="text-warning small mt-1">@_ldapWarning</div>
-                            }
+                            <input type="text" class="form-control" value="@_empLogin" readonly>
                         </div>
-                        <div class="col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label">Фамилия *</label>
+                            <input type="text" class="form-control" value="@_empLastName" readonly>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Имя *</label>
+                            <input type="text" class="form-control" value="@_empFirstName" readonly>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Отчество</label>
+                            <input type="text" class="form-control" value="@_empMiddleName" readonly>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Должность *</label>
+                            <input type="text" class="form-control" value="@_empPosition" readonly>
+                        </div>
+                        <div class="mb-3">
                             <label class="form-label">Роль *</label>
                             <select class="form-select" @bind="_empRoleCode">
-                                <option value="">— выбрать —</option>
+                                <option value="">— Выберите роль —</option>
                                 @foreach (var r in _assignableRoles)
                                 {
                                     <option value="@r.Code">@r.Name</option>
                                 }
                             </select>
                         </div>
-                    </div>
+                    }
                     @if (!string.IsNullOrEmpty(_empError))
                     {
                         <div class="alert alert-danger py-1 px-2 mt-3 mb-0 small">@_empError</div>
@@ -290,6 +296,8 @@
     private string? _empError;
     private bool _ldapSearching;
     private string? _ldapWarning;
+    private string _ldapSearchLogin = "";
+    private bool _ldapFound;
 
     // ── Поля формы «Внешние лица» ──
     private List<ExternalPersonRow> _externalPersons = new();
@@ -310,10 +318,7 @@
 
     // ── Вычисляемые свойства ──
     private bool _canAddEmployee => !_addEmpLoading
-        && !string.IsNullOrWhiteSpace(_empLastName)
-        && !string.IsNullOrWhiteSpace(_empFirstName)
-        && !string.IsNullOrWhiteSpace(_empPosition)
-        && !string.IsNullOrWhiteSpace(_empLogin)
+        && _ldapFound
         && !string.IsNullOrWhiteSpace(_empRoleCode)
         && !string.IsNullOrWhiteSpace(_selectedLegalEntityId);
 
@@ -431,31 +436,49 @@
 
     private async Task SearchLdapAsync()
     {
-        if (string.IsNullOrWhiteSpace(_empLogin)) return;
+        if (string.IsNullOrWhiteSpace(_ldapSearchLogin)) { _ldapWarning = "Введите логин."; return; }
 
         _ldapSearching = true;
         _ldapWarning = null;
+        _ldapFound = false;
         StateHasChanged();
 
         try
         {
+            var user = await LdapService.FindUserByLoginAsync(_ldapSearchLogin);
+            if (user is null)
+            {
+                _ldapWarning = $"Пользователь «{_ldapSearchLogin}» не найден в LDAP.";
+                return;
+            }
+
             if (!string.IsNullOrWhiteSpace(_selectedLegalEntityId))
             {
                 await using var ctx = await DbFactory.CreateDbContextAsync();
 
                 if (await ctx.EcosystemParticipants.AnyAsync(ep =>
-                    ep.LegalEntityId == Guid.Parse(_selectedLegalEntityId) && ep.Login == _empLogin))
+                    ep.LegalEntityId == Guid.Parse(_selectedLegalEntityId) && ep.Login == _ldapSearchLogin))
                 {
-                    _ldapWarning = $"Логин «{_empLogin}» уже используется.";
+                    _ldapWarning = $"Логин «{_ldapSearchLogin}» уже используется в этом ЮЛ.";
                     return;
                 }
             }
 
-            _ldapWarning = $"Пользователь «{_empLogin}» — проверьте вручную.";
+            _empLogin = _ldapSearchLogin;
+            var nameParts = user.DisplayName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (nameParts.Length >= 2)
+            {
+                _empLastName = nameParts[0];
+                _empFirstName = nameParts[1];
+                _empMiddleName = nameParts.Length >= 3 ? nameParts[2] : string.Empty;
+            }
+            _empPosition = user.Title ?? string.Empty;
+            _ldapFound = true;
         }
-        catch
+        catch (Exception ex)
         {
-            _ldapWarning = "Ошибка LDAP.";
+            Logger.LogWarning(ex, "Ошибка LDAP-поиска для логина {Login}", _ldapSearchLogin);
+            _ldapWarning = $"Ошибка LDAP: {ex.Message}";
         }
         finally
         {
@@ -466,6 +489,8 @@
 
     private void ShowAddEmployeeModal()
     {
+        _ldapSearchLogin = "";
+        _ldapFound = false;
         _empLastName = "";
         _empFirstName = "";
         _empMiddleName = "";
@@ -498,30 +523,6 @@
             if (string.IsNullOrWhiteSpace(_selectedLegalEntityId))
             {
                 _empError = "Выберите ЮЛ.";
-                return;
-            }
-
-            if (string.IsNullOrWhiteSpace(_empLastName))
-            {
-                _empError = "Фамилия обязательна.";
-                return;
-            }
-
-            if (string.IsNullOrWhiteSpace(_empFirstName))
-            {
-                _empError = "Имя обязательно.";
-                return;
-            }
-
-            if (string.IsNullOrWhiteSpace(_empPosition))
-            {
-                _empError = "Должность обязательна.";
-                return;
-            }
-
-            if (string.IsNullOrWhiteSpace(_empLogin))
-            {
-                _empError = "Логин обязателен.";
                 return;
             }
 
