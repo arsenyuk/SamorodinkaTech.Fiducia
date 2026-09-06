@@ -7,6 +7,8 @@
 @inject SamorodinkaTech.Fiducia.Domain.Interfaces.ILegalEntityGosaIntervalService GosaSvc
 @inject ILogger<LegalEntities> Logger
 @inject SamorodinkaTech.Fiducia.Domain.Interfaces.IFileStorage FileStorage
+@inject SamorodinkaTech.Fiducia.Domain.Interfaces.IEdinApiClient EdinClient
+@inject IServiceScopeFactory ScopeFactory
 @inject IHttpContextAccessor HttpContextAccessor
 @inject HttpClient Http
 @inject IJSRuntime JS
@@ -105,6 +107,12 @@
                     </li>
                     <li class="nav-item">
                         <button class="nav-link @(_activeTab == 8 ? "active" : "")" @onclick="OnDocumentAccessTabClick">Доступ к документам</button>
+                    </li>
+                }
+                @if (_orgType == OrgType.LLC && _customExecutiveBody == 'A')
+                {
+                    <li class="nav-item">
+                        <button class="nav-link @(_activeTab == 9 ? "active" : "")" @onclick="OnGdTabClick">ГД</button>
                     </li>
                 }
             </ul>
@@ -568,6 +576,72 @@
                 </div>
             }
 
+            @if (_activeTab == 9)
+            {
+                <div class="mb-3">
+                    <h6>Генеральный директор</h6>
+                    @if (_gdParticipants.Count == 0)
+                    {
+                        <div class="alert alert-info py-2">
+                            Добавьте участников-физлиц на вкладке «Участники» (раздел «Карточка ЮЛ»), затем назначьте одного из них генеральным директором.
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Участник — генеральный директор <span class="text-danger">*</span></label>
+                                <select class="form-select" @bind="_selectedGdParticipantIdStr">
+                                    <option value="">— не выбран —</option>
+                                    @foreach (var p in _gdParticipants)
+                                    {
+                                        <option value="@p.Id">@p.FullName</option>
+                                    }
+                                </select>
+                            </div>
+                        </div>
+                        @if (_selectedGdParticipant is not null)
+                        {
+                            <h6 class="mt-3">Данные участника (только чтение)</h6>
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <label class="form-label text-muted">Фамилия</label>
+                                    <input type="text" class="form-control" value="@_selectedGdParticipant.FullName" readonly />
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label text-muted">Тип документа</label>
+                                    <input type="text" class="form-control" value="@(_selectedGdParticipant.DulType?.Name ?? "—")" readonly />
+                                </div>
+                                @if (_selectedGdParticipant.DulType?.HasSeries == true)
+                                {
+                                    <div class="col-md-2">
+                                        <label class="form-label text-muted">Серия</label>
+                                        <input type="text" class="form-control" value="@_selectedGdParticipant.PassportSeries" readonly />
+                                    </div>
+                                }
+                                <div class="col-md-2">
+                                    <label class="form-label text-muted">Номер</label>
+                                    <input type="text" class="form-control" value="@_selectedGdParticipant.PassportNumber" readonly />
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label text-muted">ИНН</label>
+                                    <input type="text" class="form-control" value="@_selectedGdParticipant.PersonInn" readonly />
+                                </div>
+                            </div>
+                            <h6 class="mt-3">СНИЛС</h6>
+                            <div class="row g-3">
+                                <div class="col-md-3">
+                                    <label class="form-label">СНИЛС</label>
+                                    <input type="text" class="form-control" @bind="_gdSnils"
+                                           maxlength="14" placeholder="123-456-789 00" />
+                                    <div class="form-text">Формат: XXX-XXX-XXX XX</div>
+                                </div>
+                            </div>
+                        }
+                    }
+                </div>
+            }
+
             @if (_activeTab == 4)
             {
                 <div class="mb-3">
@@ -1019,6 +1093,57 @@
     private decimal? _customVosuThresholdPercent;
     private List<SamorodinkaTech.Fiducia.Domain.Entities.RefGdTerm> _gdTerms = new();
 
+    // ── ГД (персональные данные) ──
+    private List<SamorodinkaTech.Fiducia.Domain.Entities.BoardParticipant> _gdParticipants = new();
+    private Guid? _selectedGdParticipantId;
+    private string? _gdSnils;
+
+    private string _selectedGdParticipantIdStr
+    {
+        get => _selectedGdParticipantId?.ToString() ?? "";
+        set
+        {
+            _selectedGdParticipantId = string.IsNullOrEmpty(value) ? null : Guid.Parse(value);
+            _gdSnils = _selectedGdParticipant?.Snils;
+        }
+    }
+
+    private SamorodinkaTech.Fiducia.Domain.Entities.BoardParticipant? _selectedGdParticipant
+        => _gdParticipants.FirstOrDefault(p => p.Id == _selectedGdParticipantId);
+
+    private async Task OnGdTabClick()
+    {
+        _activeTab = 9;
+        if (selectedEntity is not null)
+            await LoadGeneralDirectorAsync(selectedEntity.Id);
+    }
+
+    private async Task LoadGeneralDirectorAsync(Guid legalEntityId)
+    {
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+            _gdParticipants = await ctx.BoardParticipants
+                .Include(p => p.DulType)
+                .Where(p => p.LegalEntityId == legalEntityId
+                            && p.ParticipantType == "FL"
+                            && p.IsActive)
+                .OrderBy(p => p.SortOrder)
+                .ToListAsync();
+
+            var currentGd = _gdParticipants.FirstOrDefault(p => p.IsGeneralDirector);
+            _selectedGdParticipantId = currentGd?.Id;
+            _gdSnils = currentGd?.Snils;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Ошибка загрузки данных ГД для ЮЛ {LegalEntityId}", legalEntityId);
+            _gdParticipants = new();
+            _selectedGdParticipantId = null;
+            _gdSnils = null;
+        }
+    }
+
     private string _gdTermStr
     {
         get => _customGdTermId?.ToString() ?? "";
@@ -1282,6 +1407,9 @@
         // Загружаем доп. настройки (нотариальное ведение реестра)
         await LoadExtraSettingsAsync(le.Id);
 
+        // Загружаем данные ГД (участники с флагом is_general_director)
+        await LoadGeneralDirectorAsync(le.Id);
+
         // Для ООО — наличие СД определяется уставом
         if (_orgType == OrgType.LLC)
             editHasBoardOfDirectors = string.IsNullOrEmpty(_editCharterNumber) && _customHasBoardOfDirectors;
@@ -1357,6 +1485,25 @@
                 selectedEntity.Id, selectedEntity.Name, string.Join("; ", validation.Errors));
             saveError = string.Join(" ", validation.Errors);
             return;
+        }
+
+        // Валидация данных ГД (только для ООО с executive_body = 'A')
+        if (_orgType == OrgType.LLC && _customExecutiveBody == 'A')
+        {
+            if (_selectedGdParticipantId is null)
+            {
+                saveError = "Выберите участника — генерального директора";
+                return;
+            }
+            if (!string.IsNullOrWhiteSpace(_gdSnils))
+            {
+                var digitsOnly = new string(_gdSnils.Where(c => char.IsDigit(c)).ToArray());
+                if (digitsOnly.Length != 11)
+                {
+                    saveError = "СНИЛС должен содержать 11 цифр (формат XXX-XXX-XXX XX)";
+                    return;
+                }
+            }
         }
 
         try
@@ -1538,9 +1685,119 @@
                 }
             }
 
+            // Сохраняем данные ГД (только для ООО с executive_body = 'A')
+            if (_orgType == OrgType.LLC && _customExecutiveBody == 'A' && _selectedGdParticipantId.HasValue)
+            {
+                // Снимаем флаг is_general_director со всех участников этого ЮЛ
+                var allParticipants = await ctx.BoardParticipants
+                    .Where(p => p.LegalEntityId == selectedEntity.Id && p.IsGeneralDirector)
+                    .ToListAsync();
+                foreach (var p in allParticipants)
+                    p.IsGeneralDirector = false;
+
+                // Устанавливаем флаг на выбранного участника
+                var gdParticipant = await ctx.BoardParticipants
+                    .FirstOrDefaultAsync(p => p.Id == _selectedGdParticipantId.Value);
+                if (gdParticipant is not null)
+                {
+                    gdParticipant.IsGeneralDirector = true;
+                    gdParticipant.Snils = _gdSnils;
+                    gdParticipant.UpdatedAt = DateTime.UtcNow;
+                }
+            }
+
             await ctx.SaveChangesAsync();
             saveSuccess = "Изменения сохранены.";
             Logger.LogDebug("[Save] SaveChangesAsync completed successfully");
+
+            // ЕДИН-интеграция для ГД (fire-and-forget)
+            if (_orgType == OrgType.LLC && _customExecutiveBody == 'A' && _selectedGdParticipantId.HasValue)
+            {
+                var gdPid = _selectedGdParticipantId.Value;
+                var gdLeId = selectedEntity.Id;
+                var gdSnilsVal = _gdSnils;
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        using var scope = ScopeFactory.CreateScope();
+                        var edinClient = scope.ServiceProvider.GetRequiredService<IEdinApiClient>();
+                        var scopedCtx = scope.ServiceProvider.GetRequiredService<SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext>();
+
+                        var bp = await scopedCtx.BoardParticipants.FindAsync(gdPid);
+                        if (bp is null) return;
+
+                        var fullNameParts = (bp.FullName ?? "").Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                        var lastName = fullNameParts.ElementAtOrDefault(0);
+                        var firstName = fullNameParts.ElementAtOrDefault(1);
+                        var middleName = fullNameParts.ElementAtOrDefault(2);
+
+                        if (string.IsNullOrEmpty(lastName) || string.IsNullOrEmpty(firstName)) return;
+
+                        // Получаем код типа ДУЛ
+                        string? dulTypeCode = null;
+                        if (bp.DulTypeId.HasValue)
+                        {
+                            var dulType = await scopedCtx.RefDulTypes.FindAsync(bp.DulTypeId.Value);
+                            dulTypeCode = dulType?.Code;
+                        }
+
+                        var result = await edinClient.ResolvePersonAsync(
+                            lastName, firstName, middleName,
+                            bp.PersonInn, gdSnilsVal,
+                            dulTypeCode, bp.PassportSeries, bp.PassportNumber);
+
+                        if (result?.MasterId is null) return;
+
+                        // Ищем ecosystem_participant по MasterId + LegalEntityId
+                        var ep = await scopedCtx.EcosystemParticipants
+                            .FirstOrDefaultAsync(x => x.MpiMasterId == result.MasterId
+                                                   && x.LegalEntityId == gdLeId);
+
+                        if (ep is null)
+                        {
+                            Logger.LogDebug("ЕДИН: не найден ecosystem_participant для MasterId={MasterId} в ЮЛ {LeId}", result.MasterId, gdLeId);
+                            return;
+                        }
+
+                        // Привязываем board_participant к ecosystem_participant
+                        bp.EcosystemParticipantId = ep.Id;
+
+                        // Устанавливаем MasterId если не был установлен
+                        if (ep.MpiMasterId is null)
+                            ep.MpiMasterId = result.MasterId;
+
+                        // Назначаем роль CEO если есть user
+                        if (ep.UserId.HasValue)
+                        {
+                            var ceoRole = await scopedCtx.Roles.FirstOrDefaultAsync(r => r.Code == "CEO");
+                            if (ceoRole is not null)
+                            {
+                                var hasCeo = await scopedCtx.UserRoles
+                                    .AnyAsync(ur => ur.UserId == ep.UserId.Value
+                                                 && ur.RoleId == ceoRole.Id);
+                                if (!hasCeo)
+                                {
+                                    scopedCtx.UserRoles.Add(new UserRole
+                                    {
+                                        Id = Guid.NewGuid(),
+                                        UserId = ep.UserId.Value,
+                                        RoleId = ceoRole.Id
+                                    });
+                                    Logger.LogInformation("ЕДИН: назначена роль CEO для User={UserId} в ЮЛ {LeId}", ep.UserId.Value, gdLeId);
+                                }
+                            }
+                        }
+
+                        await scopedCtx.SaveChangesAsync();
+                        Logger.LogInformation("ЕДИН: привязка ГД завершена, MasterId={MasterId}, EP={EPId}", result.MasterId, ep.Id);
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.LogWarning(ex, "Ошибка ЕДИН-интеграции для ГД ParticipantId={ParticipantId}", gdPid);
+                    }
+                });
+            }
 
             // Обновляем видимость вкладки «Совет директоров» для ООО после сохранения устава
             if (_orgType == OrgType.LLC)
@@ -1602,6 +1859,11 @@
                 .Where(x => x.LegalEntityId == id)
                 .ExecuteDeleteAsync();
 
+            // Снимаем флаг is_general_director у участников
+            await ctx.BoardParticipants
+                .Where(p => p.LegalEntityId == id && p.IsGeneralDirector)
+                .ExecuteUpdateAsync(s => s.SetProperty(p => p.IsGeneralDirector, false));
+
             Logger.LogInformation("Конфигурация ЮЛ {LegalEntityId} ({LegalEntityName}) очищена", id, name);
             saveSuccess = $"Конфигурация «{name}» очищена.";
 
@@ -1611,6 +1873,9 @@
             _activeTab = 0;
             _editCharterNumber = null;
             _charterSettings = null;
+            _selectedGdParticipantId = null;
+            _gdSnils = null;
+            _gdParticipants = new();
         }
         catch (Exception ex)
         {

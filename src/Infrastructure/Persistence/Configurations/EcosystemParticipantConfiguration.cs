@@ -26,6 +26,8 @@ public class EcosystemParticipantConfiguration : IEntityTypeConfiguration<Ecosys
         builder.Property(x => x.MpiMasterId).HasColumnName("mpi_master_id");
         builder.HasIndex(x => x.MpiMasterId).HasDatabaseName("ix_ecosystem_participant_mpi_master_id");
 
+        builder.Property(x => x.IsActive).HasColumnName("is_active").IsRequired().HasDefaultValue(true);
+
         builder.Property(x => x.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("CURRENT_TIMESTAMP");
         builder.Property(x => x.CreatedBy).HasColumnName("created_by");
 

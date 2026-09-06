@@ -29,6 +29,9 @@ public class BoardParticipant
     /// <summary>Идентификатор вида документа, удостоверяющего личность (dul_type_id).</summary>
     public Guid? DulTypeId { get; set; }
 
+    /// <summary>Вид документа, удостоверяющего личность.</summary>
+    public RefDulType? DulType { get; set; }
+
     /// <summary>Серия паспорта (passport_series).</summary>
     public string? PassportSeries { get; set; }
 
@@ -113,4 +116,10 @@ public class BoardParticipant
 
     /// <summary>Идентификатор создателя записи (created_by).</summary>
     public Guid? CreatedBy { get; set; }
+
+    /// <summary>Генеральный директор ООО (is_general_director).</summary>
+    public bool IsGeneralDirector { get; set; }
+
+    /// <summary>СНИЛС (snils) — формат XXX-XXX-XXX XX, 14 символов.</summary>
+    public string? Snils { get; set; }
 }

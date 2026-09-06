@@ -72,17 +72,32 @@
                 <th>Должность</th>
                 <th>Логин</th>
                 <th>Роль</th>
-                <th style="width:60px"></th>
+                <th>Статус</th>
+                <th style="width:80px"></th>
             </tr>
         </thead>
         <tbody>
             @foreach (var e in _employees)
             {
                 <tr>
-                    <td>@e.FullName</td>
+                    <td>
+                        @if (e.UserId.HasValue)
+                        {
+                            <a href="/users/@e.UserId" title="Карточка пользователя">@e.FullName</a>
+                        }
+                        else
+                        {
+                            @e.FullName
+                        }
+                    </td>
                     <td>@(e.Position ?? "—")</td>
                     <td>@e.Login</td>
                     <td><span class="badge bg-info">@e.RoleName</span></td>
+                    <td>
+                        <span class="badge @(e.IsActive ? "bg-success" : "bg-secondary")">
+                            @(e.IsActive ? "Активен" : "Неактивен")
+                        </span>
+                    </td>
                     <td><button class="btn btn-sm btn-outline-danger" @onclick="() => RemoveEmployee(e.Id)">✕</button></td>
                 </tr>
             }
@@ -447,7 +462,9 @@
                         : "—",
                     Position = e.Position,
                     Login = login,
-                    RoleName = roleName
+                    RoleName = roleName,
+                    IsActive = e.EcosystemParticipant?.IsActive ?? true,
+                    UserId = userId
                 };
             }).ToList();
         }
@@ -928,6 +945,8 @@
         public string? Position { get; init; }
         public string Login { get; init; } = "";
         public string RoleName { get; init; } = "";
+        public bool IsActive { get; init; }
+        public Guid? UserId { get; init; }
     }
 
     private record ExternalPersonRow

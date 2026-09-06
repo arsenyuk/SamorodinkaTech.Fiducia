@@ -37,6 +37,9 @@ public class EcosystemParticipant
     /// <summary>Идентификатор мастер-записи MPI (mpi_master_id). Источник: ЕДИН API.</summary>
     public Guid? MpiMasterId { get; set; }
 
+    /// <summary>Признак активности участника экосистемы (is_active).</summary>
+    public bool IsActive { get; set; } = true;
+
     /// <summary>Дата создания записи (created_at).</summary>
     public DateTime CreatedAt { get; set; }
 

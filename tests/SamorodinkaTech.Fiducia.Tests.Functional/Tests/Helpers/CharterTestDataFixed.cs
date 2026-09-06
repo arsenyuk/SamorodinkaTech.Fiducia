@@ -119,6 +119,20 @@ public static class CharterTestDataFixed
         new(56,  "Общество с ограниченной ответственностью «Шестаков Финанс»", "7820987654", "2209876543212", "ООО «ШФ»",  ExecutiveBodyC, PersonData.CreateAdmin("shestakov.vi", "Шестаков Виктор Игоревич", "Шестаков", "Виктор", "Игоревич", "shestakov.vi")),
         // Модель 7: Несколько ЕИО (Type F)
         new(57,  "Общество с ограниченной ответственностью «Щербаков Консалтинг»", "7821987654", "2219876543212", "ООО «ЩК»",  'F', PersonData.CreateAdmin("shcherbakov.am", "Щербаков Артём Максимович", "Щербаков", "Артём", "Максимович", "shcherbakov.am")),
+
+        // ── Вкладка «ГД»: тесты назначения генерального директора (58–63) ────
+        // ГД — участник общества (Type A, нетиповой устав)
+        new(58,  "Общество с ограниченной ответственностью «Якушев Технолоджиз»", "7822987654", "2229876543212", "ООО «ЯТ»",  ExecutiveBodyA, PersonData.CreateAdmin("yakushev.di", "Якушев Денис Игоревич", "Якушев", "Денис", "Игоревич", "yakushev.di")),
+        // ГД — участник общества (Type A, нетиповой устав, 2 участника)
+        new(59,  "Общество с ограниченной ответственностью «Абрамов Финанс»", "7823987654", "2239876543212", "ООО «АФ»",  ExecutiveBodyA, PersonData.CreateAdmin("abramov.sa", "Абрамов Сергей Александрович", "Абрамов", "Сергей", "Александрович", "abramov.sa")),
+        // ГД — нетиповой устав, ExecBody=A, сохранение с СНИЛС
+        new(60,  "Общество с ограниченной ответственностью «Баранов Лабс»", "7824987654", "2249876543212", "ООО «БЛ»",  ExecutiveBodyA, PersonData.CreateAdmin("baranov.pk", "Баранов Пётр Кириллович", "Баранов", "Пётр", "Кириллович", "baranov.pk")),
+        // ГД — ExecBody=B (не A), вкладка ГД НЕ должна отображаться
+        new(61,  "Общество с ограниченной ответственностью «Виноградов Сервис»", "7825987654", "2259876543212", "ООО «ВС»",  ExecutiveBodyB, PersonData.CreateAdmin("vinogradov.ma", "Виноградов Максим Андреевич", "Виноградов", "Максим", "Андреевич", "vinogradov.ma")),
+        // ГД — ExecBody=C (не A), вкладка ГД НЕ должна отображаться
+        new(62,  "Общество с ограниченной ответственностью «Громов Инвест»", "7826987654", "2269876543212", "ООО «ГИ»",  ExecutiveBodyC, PersonData.CreateAdmin("gromov.nv", "Громов Никита Владимирович", "Громов", "Никита", "Владимирович", "gromov.nv")),
+        // ГД — типовой устав с ExecBody=A, вкладка ГД должна отображаться
+        new(63,  "Общество с ограниченной ответственностью «Демидов Продакшн»", "7827987654", "2279876543212", "ООО «ДП»",  ExecutiveBodyA, PersonData.CreateAdmin("demidov.oi", "Демидов Олег Игоревич", "Демидов", "Олег", "Игоревич", "demidov.oi")),
     ];
 
     /// <summary>
@@ -579,6 +593,53 @@ public static class CharterTestDataFixed
             [
                 PersonData.CreateParticipant("Жданов Илья Павлович", 50m, isDirector: true, login: "zhdanov.ip57") with { Uid = "zhdanov.ip57" },
                 PersonData.CreateParticipant("Жданова Мария Павловна", 50m, isDirector: true, login: "zhdanova.mp57") with { Uid = "zhdanova.mp57" },
+            ]),
+
+        // ── Вкладка «ГД»: тесты назначения генерального директора (58–63) ────
+        // ГД — участник общества (1 участник)
+        [58] = new(
+            Gd: null,
+            Participants:
+            [
+                PersonData.CreateParticipant("Якушев Денис Игоревич", 100m, login: "yakushev.di58"),
+            ]),
+        // ГД — участник общества (2 участника)
+        [59] = new(
+            Gd: null,
+            Participants:
+            [
+                PersonData.CreateParticipant("Абрамов Сергей Александрович", 60m, login: "abramov.sa59"),
+                PersonData.CreateParticipant("Абрамова Елена Петровна", 40m, login: "abramova.ep59"),
+            ]),
+        // ГД — сохранение с СНИЛС
+        [60] = new(
+            Gd: null,
+            Participants:
+            [
+                PersonData.CreateParticipant("Баранов Пётр Кириллович", 100m, login: "baranov.pk60"),
+            ]),
+        // ExecBody=B — вкладка ГД НЕ отображается
+        [61] = new(
+            Gd: null,
+            Participants:
+            [
+                PersonData.CreateParticipant("Виноградов Максим Андреевич", 50m, login: "vinogradov.ma61"),
+                PersonData.CreateParticipant("Виноградова Ольга Игоревна", 50m, login: "vinogradova.oi61"),
+            ]),
+        // ExecBody=C — вкладка ГД НЕ отображается
+        [62] = new(
+            Gd: null,
+            Participants:
+            [
+                PersonData.CreateParticipant("Громов Никита Владимирович", 50m, login: "gromov.nv62"),
+                PersonData.CreateParticipant("Громова Анна Сергеевна", 50m, login: "gromova.as62"),
+            ]),
+        // Типовой устав с ExecBody=A — вкладка ГД отображается
+        [63] = new(
+            Gd: null,
+            Participants:
+            [
+                PersonData.CreateParticipant("Демидов Олег Игоревич", 100m, login: "demidov.oi63"),
             ]),
     };
 

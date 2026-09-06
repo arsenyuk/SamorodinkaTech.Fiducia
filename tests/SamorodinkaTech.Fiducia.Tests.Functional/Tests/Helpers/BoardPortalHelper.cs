@@ -616,5 +616,118 @@ public static class BoardPortalHelper
         return participant?.EcosystemParticipantId;
     }
 
+    // ══════════════════════════════════════════════════════════════════════
+    // Вкладка «ГД» — генеральный директор
+    // ══════════════════════════════════════════════════════════════════════
+
+    /// <summary>
+    /// Проверить, что вкладка «ГД» видна на странице.
+    /// </summary>
+    public static async Task AssertGeneralDirectorTabVisibleAsync(IPage page)
+    {
+        var gdTab = page.Locator("button.nav-link", new() { HasText = "ГД" });
+        await gdTab.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = DefaultTimeout });
+        var isVisible = await gdTab.IsVisibleAsync();
+        isVisible.Should().BeTrue("Вкладка «ГД» должна быть видна для ООО с executive_body = 'A'");
+    }
+
+    /// <summary>
+    /// Проверить, что вкладка «ГД» НЕ видна на странице.
+    /// </summary>
+    public static async Task AssertGeneralDirectorTabNotVisibleAsync(IPage page)
+    {
+        var gdTabs = await page.Locator("button.nav-link", new() { HasText = "ГД" }).AllAsync();
+        gdTabs.Should().BeEmpty("Вкладка «ГД» не должна быть видна");
+    }
+
+    /// <summary>
+    /// Перейти на вкладку «ГД».
+    /// </summary>
+    public static async Task ClickGeneralDirectorTabAsync(IPage page)
+    {
+        var gdTab = page.Locator("button.nav-link", new() { HasText = "ГД" });
+        await gdTab.ClickAsync();
+        await page.WaitForTimeoutAsync(500);
+    }
+
+    /// <summary>
+    /// Выбрать участника в качестве генерального директора (dropdown).
+    /// </summary>
+    public static async Task SelectGeneralDirectorAsync(IPage page, string participantFullName)
+    {
+        // Ищем select внутри вкладки ГД
+        await page.EvaluateAsync(
+            $@"() => {{
+                const selects = document.querySelectorAll('select');
+                for (const sel of selects) {{
+                    const opts = sel.querySelectorAll('option');
+                    for (const opt of opts) {{
+                        if (opt.textContent.includes('{EscapeJs(participantFullName)}')) {{
+                            sel.value = opt.value;
+                            sel.dispatchEvent(new Event('change', {{ bubbles: true }}));
+                            return;
+                        }}
+                    }}
+                }}
+            }}");
+        await page.WaitForTimeoutAsync(500);
+    }
+
+    /// <summary>
+    /// Установить СНИЛС для генерального директора.
+    /// </summary>
+    public static async Task SetGeneralDirectorSnilsAsync(IPage page, string snils)
+    {
+        // Ищем input для СНИЛС внутри вкладки ГД
+        await page.EvaluateAsync(
+            $@"() => {{
+                const inputs = document.querySelectorAll('input[type=""text""]');
+                for (const inp of inputs) {{
+                    const ph = inp.getAttribute('placeholder') || '';
+                    if (ph.includes('123-456-789')) {{
+                        inp.value = '{EscapeJs(snils)}';
+                        inp.dispatchEvent(new Event('input', {{ bubbles: true }}));
+                        inp.dispatchEvent(new Event('change', {{ bubbles: true }}));
+                        return;
+                    }}
+                }}
+            }}");
+        await page.WaitForTimeoutAsync(300);
+    }
+
+    /// <summary>
+    /// Проверить, что данные ГД отображаются (ФИО участника,readonly-поля).
+    /// </summary>
+    public static async Task AssertGeneralDirectorDataVisibleAsync(IPage page, string expectedFullName)
+    {
+        var content = await page.ContentAsync();
+        content.Should().Contain("Генеральный директор",
+            "Вкладка ГД должна содержать заголовок «Генеральный директор»");
+        content.Should().Contain(expectedFullName,
+            $"Данные ГД должны содержать ФИО «{expectedFullName}»");
+    }
+
+    /// <summary>
+    /// Проверить, что отображается сообщение об отсутствии участников.
+    /// </summary>
+    public static async Task AssertNoParticipantsForGdMessageAsync(IPage page)
+    {
+        var content = await page.ContentAsync();
+        content.Should().Contain("Добавьте участников-физлиц",
+            "При отсутствии FL-участников должно отображаться сообщение-инструкция");
+    }
+
+    /// <summary>
+    /// Проверить, что вкладка «ГД» содержит readonly-поля с данными участника.
+    /// </summary>
+    public static async Task AssertGeneralDirectorReadonlyFieldsAsync(IPage page)
+    {
+        var content = await page.ContentAsync();
+        content.Should().Contain("Данные участника (только чтение)",
+            "Данные участника-ГД должны отображаться в режиме «только чтение»");
+        content.Should().Contain("СНИЛС",
+            "Должно быть поле для ввода СНИЛС");
+    }
+
     private static string EscapeJs(string value) => value.Replace("'", "\\'").Replace("\\", "\\\\");
 }

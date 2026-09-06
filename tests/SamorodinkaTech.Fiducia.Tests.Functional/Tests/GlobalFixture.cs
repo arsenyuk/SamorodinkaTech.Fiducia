@@ -12,12 +12,19 @@ public class GlobalFixture : IAsyncLifetime
 {
     private IPlaywright _playwright = null!;
     private IBrowser _browser = null!;
+    private static volatile bool _hasFailed;
 
     /// <summary>Публичный доступ к Playwright для тестов.</summary>
     public IPlaywright Playwright => _playwright;
 
     /// <summary>Публичный доступ к браузеру для тестов.</summary>
     public IBrowser Browser => _browser;
+
+    /// <summary>Флаг: хотя бы один тест завершился с ошибкой.</summary>
+    public static bool HasFailed => _hasFailed;
+
+    /// <summary>Установить флаг ошибки.</summary>
+    public static void MarkFailed() => _hasFailed = true;
 
     public ValueTask InitializeAsync()
     {

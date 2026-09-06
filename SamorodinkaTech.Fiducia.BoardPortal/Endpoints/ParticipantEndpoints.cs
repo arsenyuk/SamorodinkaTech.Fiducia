@@ -227,6 +227,37 @@ public static class ParticipantEndpoints
                 var entity = await ctx.BoardParticipants.FindAsync(id);
                 if (entity is null) return Results.NotFound();
 
+                // Если участник был ГД — удаляем роль CEO и деактивируем участника экосистемы
+                if (entity.IsGeneralDirector && entity.EcosystemParticipantId.HasValue)
+                {
+                    var ep = await ctx.EcosystemParticipants
+                        .FirstOrDefaultAsync(x => x.Id == entity.EcosystemParticipantId.Value);
+
+                    if (ep?.UserId.HasValue == true)
+                    {
+                        var ceoRole = await ctx.Roles.FirstOrDefaultAsync(r => r.Code == "CEO");
+                        if (ceoRole is not null)
+                        {
+                            var ceoUserRole = await ctx.UserRoles
+                                .FirstOrDefaultAsync(ur => ur.UserId == ep.UserId.Value
+                                                       && ur.RoleId == ceoRole.Id);
+                            if (ceoUserRole is not null)
+                                ctx.UserRoles.Remove(ceoUserRole);
+                        }
+
+                        // Проверяем, остались ли роли у пользователя
+                        var remainingRoles = await ctx.UserRoles
+                            .CountAsync(ur => ur.UserId == ep.UserId.Value);
+
+                        // Если CEO была единственной ролью — деактивируем участника экосистемы
+                        if (remainingRoles <= 1) // <= 1 потому что CEO ещё не удалена на момент подсчёта
+                        {
+                            ep.IsActive = false;
+                            logger.LogInformation("Участник экосистемы {EPId} деактивирован — нет оставшихся ролей", ep.Id);
+                        }
+                    }
+                }
+
                 ctx.BoardParticipants.Remove(entity);
                 await ctx.SaveChangesAsync();
 
@@ -279,6 +310,35 @@ public static class ParticipantEndpoints
                 var existing = await ctx.BoardParticipants
                     .Where(p => p.LegalEntityId == leId)
                     .ToListAsync();
+
+                // Очищаем роли CEO у участников-ГД перед удалением
+                var gdParticipants = existing.Where(p => p.IsGeneralDirector && p.EcosystemParticipantId.HasValue).ToList();
+                if (gdParticipants.Count > 0)
+                {
+                    var ceoRole = await ctx.Roles.FirstOrDefaultAsync(r => r.Code == "CEO");
+                    if (ceoRole is not null)
+                    {
+                        foreach (var gd in gdParticipants)
+                        {
+                            var ep = await ctx.EcosystemParticipants
+                                .FirstOrDefaultAsync(x => x.Id == gd.EcosystemParticipantId!.Value);
+                            if (ep?.UserId.HasValue == true)
+                            {
+                                var ceoUserRole = await ctx.UserRoles
+                                    .FirstOrDefaultAsync(ur => ur.UserId == ep.UserId.Value
+                                                           && ur.RoleId == ceoRole.Id);
+                                if (ceoUserRole is not null)
+                                    ctx.UserRoles.Remove(ceoUserRole);
+
+                                var remainingRoles = await ctx.UserRoles
+                                    .CountAsync(ur => ur.UserId == ep.UserId.Value);
+                                if (remainingRoles <= 1)
+                                    ep.IsActive = false;
+                            }
+                        }
+                    }
+                }
+
                 ctx.BoardParticipants.RemoveRange(existing);
 
                 var maxSort = 0;

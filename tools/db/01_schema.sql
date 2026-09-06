@@ -430,6 +430,7 @@ CREATE TABLE IF NOT EXISTS ecosystem_participants (
     user_id uuid REFERENCES users(id) ON DELETE SET NULL,
     -- MPI: идентификатор мастер-записи (источник: ЕДИН API)
     mpi_master_id uuid,
+    is_active boolean NOT NULL DEFAULT true,
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     created_by uuid REFERENCES users(id)
 );
@@ -779,7 +780,9 @@ CREATE TABLE IF NOT EXISTS board_participant (
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     created_by uuid,
-    ecosystem_participant_id uuid REFERENCES ecosystem_participants(id) ON DELETE SET NULL
+    ecosystem_participant_id uuid REFERENCES ecosystem_participants(id) ON DELETE SET NULL,
+    is_general_director boolean NOT NULL DEFAULT false,
+    snils varchar(14)
 );
 
 CREATE INDEX IF NOT EXISTS ix_board_participant_legal_entity ON board_participant(legal_entity_id);
