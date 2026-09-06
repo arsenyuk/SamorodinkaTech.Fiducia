@@ -48,16 +48,16 @@ public class E2E_EdinScenarioTests : BrowserFixture
             }
 
             // ── Шаг 3: Создать пользователя в БД (LDAP-аутентификация: Basic) ──
-            var adminLogin = $"admin_{DateTime.UtcNow:HHmmss}";
+            var adminLogin = "nechaev.va";
             await AdminConsoleHelper.CreateUserViaUiAsync(
                 adminPage, adminLogin,
-                "Смирнов", "Алексей", "Петрович",
+                "Нечаев", "Василий", "Алексеевич",
                 $"{adminLogin}@test.local");
 
             // ── Шаг 4: Назначить Администратора ЮЛ (LE_ADMIN) ──────────
             await AdminConsoleHelper.AddEmployeeAsync(
                 adminPage,
-                "Смирнов", "Алексей", "Петрович",
+                "Нечаев", "Василий", "Алексеевич",
                 "Администратор ЮЛ",
                 adminLogin,
                 "LE_ADMIN");
@@ -68,7 +68,7 @@ public class E2E_EdinScenarioTests : BrowserFixture
             // ── Шаг 5: LE_ADMIN вводит ПДн для ГД (участник с паспортом) ──
             var participantId = await BoardPortalHelper.AddParticipantWithPersonalDataAsync(
                 boardPage,
-                fullName: "Смирнов Алексей Петрович",
+                fullName: "Нечаев Василий Алексеевич",
                 passportSeries: "4515",
                 passportNumber: "111222",
                 personInn: "770888999000",
@@ -91,7 +91,7 @@ public class E2E_EdinScenarioTests : BrowserFixture
             await AuthHelper.LoginAsAdminAsync(adminPage, "v.vasilyeva", "1");
             await EdinTestHelper.AssignRoleViaAccessManagementAsync(
                 adminPage,
-                "Смирнов", "Алексей", "Петрович",
+                "Нечаев", "Василий", "Алексеевич",
                 "Генеральный директор",
                 adminLogin,
                 "CEO");
@@ -129,15 +129,15 @@ public class E2E_EdinScenarioTests : BrowserFixture
             var leInn = InnTestHelper.GenerateValidInn();
             await AdminConsoleHelper.CreateLegalEntityAsync(adminPage, leName, leInn);
 
-            var adminLogin = $"dedup_{DateTime.UtcNow:HHmmss}";
+            var adminLogin = "sobolev.dn";
             await AdminConsoleHelper.CreateUserViaUiAsync(
                 adminPage, adminLogin,
-                "Петрова", "Мария", "Сергеевна",
+                "Соболев", "Дмитрий", "Николаевич",
                 $"{adminLogin}@test.local");
 
             await AdminConsoleHelper.AddEmployeeAsync(
                 adminPage,
-                "Петрова", "Мария", "Сергеевна",
+                "Соболев", "Дмитрий", "Николаевич",
                 "Администратор ЮЛ",
                 adminLogin,
                 "LE_ADMIN");
@@ -147,7 +147,7 @@ public class E2E_EdinScenarioTests : BrowserFixture
             // Добавляем ГД как участника с ПДн
             var participantId1 = await BoardPortalHelper.AddParticipantWithPersonalDataAsync(
                 boardPage,
-                fullName: "Петрова Мария Сергеевна",
+                fullName: "Соболев Дмитрий Николаевич",
                 passportSeries: "4516",
                 passportNumber: "222333",
                 personInn: "770999111000",
@@ -162,7 +162,7 @@ public class E2E_EdinScenarioTests : BrowserFixture
             // ── Шаг 7: Добавляем участника с ТЕМИ ЖЕ ПДн ────────────────
             var participantId2 = await BoardPortalHelper.AddParticipantWithPersonalDataAsync(
                 boardPage,
-                fullName: "Петрова Мария Сергеевна",
+                fullName: "Соболев Дмитрий Николаевич",
                 passportSeries: "4516",
                 passportNumber: "222333",
                 personInn: "770999111000",
@@ -180,7 +180,7 @@ public class E2E_EdinScenarioTests : BrowserFixture
             await AuthHelper.LoginAsAdminAsync(adminPage, "v.vasilyeva", "1");
             await EdinTestHelper.AssignRoleViaAccessManagementAsync(
                 adminPage,
-                "Петрова", "Мария", "Сергеевна",
+                "Соболев", "Дмитрий", "Николаевич",
                 "Участник",
                 adminLogin,
                 "PARTICIPANT");

@@ -7,6 +7,8 @@
 @inject IDbContextFactory<FiduciaDbContext> DbFactory
 @inject ILogger<AccessManagement> Logger
 @inject ILdapService LdapService
+@inject ISecurityAuditService SecurityAuditService
+@inject IClientIpProvider ClientIpProvider
 @attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "SYS_ADMIN")]
 
 <h3>Сотрудники и доступ</h3>
@@ -449,6 +451,10 @@
             if (user is null)
             {
                 _ldapWarning = $"Пользователь «{_ldapSearchLogin}» не найден в LDAP.";
+                var userIp = ClientIpProvider.GetClientIp();
+                await SecurityAuditService.LogEventAsync("EXTERNAL:LDAP:NotFound", userIp,
+                    $"Пользователь «{_ldapSearchLogin}» не найден в LDAP-каталоге",
+                    login: _ldapSearchLogin, entityName: "User");
                 return;
             }
 

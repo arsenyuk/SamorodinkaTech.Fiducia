@@ -8,6 +8,8 @@
 @inject IConfiguration Configuration
 @inject IHttpContextAccessor HttpContextAccessor
 @inject ILdapService LdapService
+@inject ISecurityAuditService SecurityAuditService
+@inject IClientIpProvider ClientIpProvider
 
 <PageTitle>Fiducia — Пользователи</PageTitle>
 
@@ -322,6 +324,10 @@
             {
                 _ldapNotFound = true;
                 _ldapWarning = $"Пользователь «{_ldapSearchLogin}» не найден в LDAP.";
+                var userIp = ClientIpProvider.GetClientIp();
+                await SecurityAuditService.LogEventAsync("EXTERNAL:LDAP:NotFound", userIp,
+                    $"Пользователь «{_ldapSearchLogin}» не найден в LDAP-каталоге",
+                    login: _ldapSearchLogin, entityName: "User");
                 return;
             }
             _newLogin = _ldapSearchLogin;
