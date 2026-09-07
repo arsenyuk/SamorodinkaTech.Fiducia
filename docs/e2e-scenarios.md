@@ -26,7 +26,8 @@
 | 7 | Нетиповой устав: ExitMaxSharePercent | `E2E_NonStandardCharterTests::NonStandardCharter_ExitMaxSharePercent` | ✅ Пройден 07.09 | — |
 | 8 | Нетиповой устав: ExitConditionDescription | `E2E_NonStandardCharterTests::NonStandardCharter_ExitConditionDescription` | ✅ Пройден 07.09 | — |
 | 9 | Нетиповой устав: TransferToParticipants | `E2E_NonStandardCharterTests::NonStandardCharter_TransferToParticipants` | ✅ Пройден 07.09 | — |
-| 10 | Нетиповой устав: прочие (11 тестов) | `E2E_NonStandardCharterTests` | ⏳ Не запущен | — |
+| 10 | Нетиповой устав: ExitRequiresUnanimousOsu | `E2E_NonStandardCharterTests::NonStandardCharter_ExitRequiresUnanimousOsu` | ✅ Пройден 07.09 | — |
+| 11 | Нетиповой устав: прочие (10 тестов) | `E2E_NonStandardCharterTests` | ⏳ Не запущен | — |
 | 11 | ЕИО: ГД — наёмный | `E2E_NonStandardCharterTests::Model1_HiredCeo` | ⏳ Не запущен | — |
 | 12 | ЕИО: ГД — участник | `E2E_NonStandardCharterTests::Model2_CeoParticipant` | ⏳ Не запущен | — |
 | 13 | ЕИО: Управляющий ИП | `E2E_NonStandardCharterTests::Model3_ManagerIp` | ⏳ Не запущен | — |
