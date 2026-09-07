@@ -128,8 +128,10 @@ public static class AdminConsoleHelper
         string login,
         string roleCode)
     {
-        // Always navigate to ensure fresh data (roles may not be loaded after DB reset)
-        await NavigateToAsync(page, "/access-management");
+        // Force full page load to ensure fresh data after DB reset
+        await page.GotoAsync(PortalUrls.GetUrl(Portal.AdminConsole, "/access-management"));
+        await AuthHelper.WaitForBlazorReady(page);
+        await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
 
         await EnsureEntitySelectedAsync(page);
 
