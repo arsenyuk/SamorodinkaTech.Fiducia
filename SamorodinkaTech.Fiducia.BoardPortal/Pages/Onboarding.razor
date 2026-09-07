@@ -84,26 +84,9 @@
                         </div>
                     </div>
 
-                    <div class="mb-3">
-                        <label class="form-label">Судимость (отсутствие)</label>
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" @bind="_noCriminalRecord">
-                            <label class="form-check-label">Подтверждаю отсутствие судимости</label>
-                        </div>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">Банкротство (отсутствие)</label>
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" @bind="_noBankruptcy">
-                            <label class="form-check-label">Подтверждаю отсутствие фактов банкротства</label>
-                        </div>
-                    </div>
-
                     <div class="d-flex gap-2">
                         <button class="btn btn-outline-secondary" @onclick="PrevStep">Назад</button>
-                        <button class="btn btn-primary" @onclick="SaveDeclaration"
-                                disabled="@(!_noCriminalRecord || !_noBankruptcy)">Далее</button>
+                        <button class="btn btn-primary" @onclick="SaveDeclaration">Далее</button>
                     </div>
                 }
                 else if (_currentStep == 3)
@@ -219,8 +202,6 @@
     private string _hiddenShares = string.Empty;
     private string _familyConnections = string.Empty;
     private string _otherBoards = string.Empty;
-    private bool _noCriminalRecord;
-    private bool _noBankruptcy;
 
     // ПДн
     private bool _pdnConsentGiven;
@@ -286,8 +267,6 @@
             HiddenShares = _hiddenShares,
             FamilyConnections = _familyConnections,
             OtherBoards = _otherBoards,
-            NoCriminalRecord = _noCriminalRecord,
-            NoBankruptcy = _noBankruptcy,
             Completed = true,
             CompletedAt = DateTime.UtcNow,
             CreatedAt = DateTime.UtcNow
