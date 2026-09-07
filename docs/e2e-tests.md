@@ -59,7 +59,7 @@
 | Бизнес-процесс | US | E2E-тест | Статус |
 |----------------|-----|----------|--------|
 | Настройка ЮЛ | US-001 | `US001_AuthorizationTests` (admin console) | ✅ Реализован |
-| Справочники | US-012 (admin) | `US004_CommitteeTests` (dictionaries) | ✅ Реализован |
+| Справочники (все 20 страниц) | US-012 (admin) | `PageVerificationHelper.VerifyAdminConsolePagesAsync` | ✅ Реализован |
 | Пользователи | — | `US004_CommitteeTests` (users, roles) | ✅ Реализован |
 | Шаблоны орг-планов | — | `US004_CommitteeTests` (org-templates) | ✅ Реализован |
 | Настройки | — | `US002_MeetingTests` (settings) | ✅ Реализован |

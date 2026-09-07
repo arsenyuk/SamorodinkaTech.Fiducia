@@ -1,0 +1,65 @@
+@page "/meeting-forms"
+@using Microsoft.EntityFrameworkCore
+@inject IDbContextFactory<SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext> DbFactory
+@inject ILogger<MeetingForms> Logger
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "SYS_ADMIN")]
+
+<h3>Формы проведения заседаний СД</h3>
+
+@if (_items is null)
+{
+    <p><em>Загрузка...</em></p>
+}
+else if (_items.Count == 0)
+{
+    <p class="text-muted">Нет записей.</p>
+}
+else
+{
+    <table class="table table-sm">
+        <thead>
+            <tr>
+                <th>Код</th>
+                <th>Наименование</th>
+                <th>Краткое</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in _items)
+            {
+                <tr>
+                    <td><code>@item.Code</code></td>
+                    <td>@item.Name</td>
+                    <td>@item.ShortName</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<MeetingFormVm>? _items;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+            _items = await ctx.MeetingForms
+                .OrderBy(f => f.Code)
+                .Select(f => new MeetingFormVm { Code = f.Code, Name = f.Name, ShortName = f.ShortName })
+                .ToListAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Ошибка загрузки справочника форм проведения заседаний");
+        }
+    }
+
+    private class MeetingFormVm
+    {
+        public string Code { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+        public string? ShortName { get; set; }
+    }
+}

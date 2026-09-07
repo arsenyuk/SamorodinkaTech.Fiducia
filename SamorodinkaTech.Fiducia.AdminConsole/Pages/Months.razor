@@ -1,0 +1,62 @@
+@page "/months"
+@using Microsoft.EntityFrameworkCore
+@inject IDbContextFactory<SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext> DbFactory
+@inject ILogger<Months> Logger
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "SYS_ADMIN")]
+
+<h3>Месяцы</h3>
+
+@if (_items is null)
+{
+    <p><em>Загрузка...</em></p>
+}
+else if (_items.Count == 0)
+{
+    <p class="text-muted">Нет записей.</p>
+}
+else
+{
+    <table class="table table-sm">
+        <thead>
+            <tr>
+                <th>Код</th>
+                <th>Наименование</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in _items)
+            {
+                <tr>
+                    <td><code>@item.Code</code></td>
+                    <td>@item.Name</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<MonthVm>? _items;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+            _items = await ctx.RefMonths
+                .OrderBy(m => m.Code)
+                .Select(m => new MonthVm { Code = m.Code, Name = m.Name })
+                .ToListAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Ошибка загрузки справочника месяцев");
+        }
+    }
+
+    private class MonthVm
+    {
+        public string Code { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+    }
+}

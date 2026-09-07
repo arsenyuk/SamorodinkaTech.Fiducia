@@ -148,6 +148,40 @@ public static class PageVerificationHelper
         await VerifyPageAsync(adminPage, "/measurement-units",
             "_framework/blazor.server.js", "Admin Console: MeasurementUnits");
 
+        // Справочники (новые)
+        await VerifyPageAsync(adminPage, "/meeting-forms",
+            "_framework/blazor.server.js", "Admin Console: MeetingForms");
+
+        await VerifyPageAsync(adminPage, "/okopf",
+            "_framework/blazor.server.js", "Admin Console: Okopf");
+
+        await VerifyPageAsync(adminPage, "/protocol-confirmation-methods",
+            "_framework/blazor.server.js", "Admin Console: ProtocolConfirmationMethods");
+
+        await VerifyPageAsync(adminPage, "/months",
+            "_framework/blazor.server.js", "Admin Console: Months");
+
+        await VerifyPageAsync(adminPage, "/osa-forms",
+            "_framework/blazor.server.js", "Admin Console: OsaForms");
+
+        await VerifyPageAsync(adminPage, "/board-member-types",
+            "_framework/blazor.server.js", "Admin Console: BoardMemberTypes");
+
+        await VerifyPageAsync(adminPage, "/board-roles",
+            "_framework/blazor.server.js", "Admin Console: BoardRoles");
+
+        await VerifyPageAsync(adminPage, "/request-types",
+            "_framework/blazor.server.js", "Admin Console: RequestTypes");
+
+        await VerifyPageAsync(adminPage, "/document-types",
+            "_framework/blazor.server.js", "Admin Console: DocumentTypes");
+
+        await VerifyPageAsync(adminPage, "/document-access-methods",
+            "_framework/blazor.server.js", "Admin Console: DocumentAccessMethods");
+
+        await VerifyPageAsync(adminPage, "/document-refusal-reasons",
+            "_framework/blazor.server.js", "Admin Console: DocumentRefusalReasons");
+
         // Email
         await VerifyPageAsync(adminPage, "/email-settings",
             "_framework/blazor.server.js", "Admin Console: EmailSettings");

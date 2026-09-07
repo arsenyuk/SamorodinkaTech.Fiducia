@@ -1,0 +1,65 @@
+@page "/protocol-confirmation-methods"
+@using Microsoft.EntityFrameworkCore
+@inject IDbContextFactory<SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext> DbFactory
+@inject ILogger<ProtocolConfirmationMethods> Logger
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "SYS_ADMIN")]
+
+<h3>Способы подтверждения протоколов ОСУ</h3>
+
+@if (_items is null)
+{
+    <p><em>Загрузка...</em></p>
+}
+else if (_items.Count == 0)
+{
+    <p class="text-muted">Нет записей.</p>
+}
+else
+{
+    <table class="table table-sm">
+        <thead>
+            <tr>
+                <th>Код</th>
+                <th>Наименование</th>
+                <th>Порядок</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in _items)
+            {
+                <tr>
+                    <td><code>@item.Code</code></td>
+                    <td>@item.Name</td>
+                    <td>@item.SortOrder</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<ProtocolMethodVm>? _items;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+            _items = await ctx.RefProtocolConfirmationMethods
+                .OrderBy(m => m.SortOrder)
+                .Select(m => new ProtocolMethodVm { Code = m.Code, Name = m.Name, SortOrder = m.SortOrder })
+                .ToListAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Ошибка загрузки справочника способов подтверждения протоколов");
+        }
+    }
+
+    private class ProtocolMethodVm
+    {
+        public string Code { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+        public int SortOrder { get; set; }
+    }
+}
