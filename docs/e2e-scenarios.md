@@ -17,29 +17,37 @@
 
 | # | Сценарий / Класс | E2E-класс | Статус | Причина (если не пройден) |
 |---|------------------|-----------|--------|---------------------------|
-| 1 | Типовой устав (36 вариантов) | `E2E_StandardCharterTests` | ✅ Пройден | Исправлены: `AddEmployeeAsync` навигация + текст "Подтверждение решений" |
-| 2 | Нетиповой устав | `E2E_NonStandardCharterTests` | ✅ Пройден | Исправлены: `AddEmployeeAsync` навигация + текст "Переход доли наследникам" |
-| 3 | ЕИО: ГД — наёмный | `E2E_NonStandardCharterTests::Model1_HiredCeo` | ✅ Пройден | — |
-| 4 | ЕИО: ГД — участник | `E2E_NonStandardCharterTests::Model2_CeoParticipant` | ✅ Пройден | — |
-| 5 | ЕИО: Управляющий ИП | `E2E_NonStandardCharterTests::Model3_ManagerIp` | ✅ Пройден | — |
-| 6 | ЕИО: Упр. организация | `E2E_NonStandardCharterTests::Model4_ManagingOrg` | ✅ Пройден | — |
-| 7 | ЕИО: Все — директора | `E2E_NonStandardCharterTests::Model5_AllParticipantsDirectors` | ✅ Пройден | — |
-| 8 | ЕИО: Все совместно | `E2E_NonStandardCharterTests::Model6_AllParticipantsJoint` | ✅ Пройден | — |
-| 9 | ЕИО: Несколько ЕИО | `E2E_NonStandardCharterTests::Model7_MultipleEio` | ✅ Пройден | — |
-| 10 | Авторизация | `US001_AuthorizationTests` | ✅ Пройден | — |
-| 11 | Заседания СД | `US002_MeetingTests` | ✅ Пройден | — |
-| 12 | Комитеты | `US004_CommitteeTests` | ✅ Пройден | — |
-| 13 | Голосование | `US005_VotingTests` | ✅ Пройден | — |
-| 14 | Оповещения | `US010_NotificationTests` | ✅ Пройден | — |
-| 15 | Требования участника | `US020_ShareRequestTests` | ✅ Пройден | — |
-| 16 | Каталог документов | `US021_DocumentCatalogTests` | ✅ Пройден | — |
-| 17 | ОСУ | `US022_OsuMeetingTests` | ✅ Пройден | — |
-| 18 | Участники ООО | `US023_ParticipantTests` | ✅ Пройден | — |
-| 19 | Договоры | `US024_ContractTests` | ✅ Пройден | — |
-| 20 | Ген. директор (таб) | `E2E_GeneralDirectorTests` | ✅ Пройден | — |
-| 21 | Управление пользователями | `E2E_UserManagementTests` | ✅ Пройден | — |
-| 22 | ЕДИН-интеграция | `E2E_EdinIntegrationTests` | ✅ Пройден | — |
-| 23 | ЕДИН-сценарии | `E2E_EdinScenarioTests` | ✅ Пройден | — |
+| 1 | Типовой устав (01) | `E2E_StandardCharterTests::StandardCharter01_CompleteFlow` | ✅ Пройден 07.09 | Исправлены: `AddEmployeeAsync` + текст "Подтверждение решений" |
+| 2 | Типовой устав (02) | `E2E_StandardCharterTests::StandardCharter02_CompleteFlow` | ✅ Пройден 07.09 | — |
+| 3 | Типовой устав (03) | `E2E_StandardCharterTests::StandardCharter03_CompleteFlow` | ✅ Пройден 07.09 | — |
+| 4 | Типовой устав (04–36) | `E2E_StandardCharterTests` | ⏳ Не запущен | — |
+| 5 | Нетиповой устав: ExitAllowed | `E2E_NonStandardCharterTests::NonStandardCharter_ExitAllowed` | ✅ Пройден 07.09 | Исправлены: `AddEmployeeAsync` + текст "Переход доли наследникам" |
+| 6 | Нетиповой устав: ExitMinSharePercent | `E2E_NonStandardCharterTests::NonStandardCharter_ExitMinSharePercent` | ✅ Пройден 07.09 | — |
+| 7 | Нетиповой устав: ExitMaxSharePercent | `E2E_NonStandardCharterTests::NonStandardCharter_ExitMaxSharePercent` | ✅ Пройден 07.09 | — |
+| 8 | Нетиповой устав: ExitConditionDescription | `E2E_NonStandardCharterTests::NonStandardCharter_ExitConditionDescription` | ✅ Пройден 07.09 | — |
+| 9 | Нетиповой устав: TransferToParticipants | `E2E_NonStandardCharterTests::NonStandardCharter_TransferToParticipants` | ✅ Пройден 07.09 | — |
+| 10 | Нетиповой устав: прочие (11 тестов) | `E2E_NonStandardCharterTests` | ⏳ Не запущен | — |
+| 11 | ЕИО: ГД — наёмный | `E2E_NonStandardCharterTests::Model1_HiredCeo` | ⏳ Не запущен | — |
+| 12 | ЕИО: ГД — участник | `E2E_NonStandardCharterTests::Model2_CeoParticipant` | ⏳ Не запущен | — |
+| 13 | ЕИО: Управляющий ИП | `E2E_NonStandardCharterTests::Model3_ManagerIp` | ⏳ Не запущен | — |
+| 14 | ЕИО: Упр. организация | `E2E_NonStandardCharterTests::Model4_ManagingOrg` | ⏳ Не запущен | — |
+| 15 | ЕИО: Все — директора | `E2E_NonStandardCharterTests::Model5_AllParticipantsDirectors` | ⏳ Не запущен | — |
+| 16 | ЕИО: Все совместно | `E2E_NonStandardCharterTests::Model6_AllParticipantsJoint` | ⏳ Не запущен | — |
+| 17 | ЕИО: Несколько ЕИО | `E2E_NonStandardCharterTests::Model7_MultipleEio` | ⏳ Не запущен | — |
+| 18 | Авторизация | `US001_AuthorizationTests` | ⏳ Не запущен | — |
+| 19 | Заседания СД | `US002_MeetingTests` | ⏳ Не запущен | — |
+| 20 | Комитеты | `US004_CommitteeTests` | ⏳ Не запущен | — |
+| 21 | Голосование | `US005_VotingTests` | ⏳ Не запущен | — |
+| 22 | Оповещения | `US010_NotificationTests` | ⏳ Не запущен | — |
+| 23 | Требования участника | `US020_ShareRequestTests` | ⏳ Не запущен | — |
+| 24 | Каталог документов | `US021_DocumentCatalogTests` | ⏳ Не запущен | — |
+| 25 | ОСУ | `US022_OsuMeetingTests` | ⏳ Не запущен | — |
+| 26 | Участники ООО | `US023_ParticipantTests` | ⏳ Не запущен | — |
+| 27 | Договоры | `US024_ContractTests` | ⏳ Не запущен | — |
+| 28 | Ген. директор (таб) | `E2E_GeneralDirectorTests` | ⏳ Не запущен | — |
+| 29 | Управление пользователями | `E2E_UserManagementTests` | ⏳ Не запущен | — |
+| 30 | ЕДИН-интеграция | `E2E_EdinIntegrationTests` | ⏳ Не запущен | — |
+| 31 | ЕДИН-сценарии | `E2E_EdinScenarioTests` | ⏳ Не запущен | — |
 
 ### Легенда статусов
 
