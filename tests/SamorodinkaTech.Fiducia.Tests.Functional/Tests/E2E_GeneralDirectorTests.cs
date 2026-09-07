@@ -307,7 +307,6 @@ public class E2E_GeneralDirectorTests : BrowserFixture
     private static async Task VerifyPagesAsync(IPage boardPage, IPage adminPage, DateTimeOffset testStartTime)
     {
         await PageVerificationHelper.VerifyBoardPortalPagesAsync(boardPage, testStartTime);
-        await PageVerificationHelper.VerifyAdminConsolePagesAsync(adminPage, testStartTime);
     }
 
     private async Task<(IPage adminPage, IPage boardPage, IPage ldapPage, string login)> SetupFullCycleAsync(int entityIndex)

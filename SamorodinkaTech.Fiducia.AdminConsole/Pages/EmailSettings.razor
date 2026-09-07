@@ -5,13 +5,18 @@
 @inject IJSRuntime JS
 @inject IDbContextFactory<SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext> DbFactory
 @inject ILogger<EmailSettings> Logger
-@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "SYS_ADMIN")]
+@inject IHttpContextAccessor HttpContextAccessor
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "SYS_ADMIN,LE_ADMIN")]
 
 <h3>Оформление email-писем (header / footer)</h3>
 
-@if (_legalEntity is null)
+@if (!string.IsNullOrEmpty(_formError))
 {
-    <div class="alert alert-warning">Юридическое лицо не выбрано. Перейдите на страницу <a href="/legal-entities">ЮЛ</a> и выберите организацию.</div>
+    <div class="alert alert-danger">@_formError</div>
+}
+else if (_legalEntity is null)
+{
+    <div class="alert alert-info">Загрузка...</div>
 }
 else
 {
@@ -95,6 +100,7 @@ else
 @code {
     private Domain.Entities.LegalEntity? _legalEntity;
     private Guid? _settingsId;
+    private string? _formError;
 
     private bool _headerEnabled;
     private string _headerMarkdown = string.Empty;
@@ -110,28 +116,27 @@ else
     protected override async Task OnInitializedAsync()
     {
         await using var ctx = await DbFactory.CreateDbContextAsync();
-        var login = await JS.InvokeAsync<string?>("eval", "localStorage.getItem('userLogin')");
-        if (string.IsNullOrEmpty(login))
+
+        var http = HttpContextAccessor.HttpContext;
+        if (http is null) return;
+
+        var leId = await Infrastructure.Common.UserContextHelper.GetLegalEntityIdAsync(ctx, http);
+        if (leId is null)
         {
-            Logger.LogWarning("EmailSettings: login не найден в localStorage");
+            var role = http.User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
+            Logger.LogError("EmailSettings: пользователь с ролью {Role} не привязан к ЮЛ — нарушение целостности данных", role);
+            _formError = "Пользователь не привязан к юридическому лицу. Обратитесь к администратору.";
             return;
         }
 
-        var ep = await ctx.EcosystemParticipants
-            .Include(x => x.LegalEntity)
-            .FirstOrDefaultAsync(x => x.User.Login == login);
-
-        if (ep?.LegalEntity is null)
-        {
-            Logger.LogWarning("EmailSettings: для пользователя {Login} нет привязки к ЮЛ", login);
-            return;
-        }
+        var le = await ctx.LegalEntities.FindAsync(leId.Value);
+        if (le is null) return;
 
         _legalEntity = new Domain.Entities.LegalEntity
         {
-            Id = ep.LegalEntity.Id,
-            Name = ep.LegalEntity.Name,
-            Inn = ep.LegalEntity.Inn
+            Id = le.Id,
+            Name = le.Name,
+            Inn = le.Inn
         };
 
         if (_legalEntity is null)
