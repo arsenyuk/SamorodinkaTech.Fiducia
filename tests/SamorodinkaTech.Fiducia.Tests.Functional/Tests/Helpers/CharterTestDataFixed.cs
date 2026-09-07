@@ -524,8 +524,8 @@ public static class CharterTestDataFixed
             Gd: new() { Uid = "savelyev.ro", Login = "savelyev.ro", FullName = "Савельев Ринат Олегович", LastName = "Савельев", FirstName = "Ринат", MiddleName = "Олегович", Position = "Генеральный директор" },
             Participants:
             [
-                PersonData.CreateParticipant("Уваров Пётр Вадимович", 60m, login: "uvarov.pv50"),
-                PersonData.CreateParticipant("Уварова Наталья Вадимовна", 40m, login: "uvarova.nv50"),
+                PersonData.CreateParticipant("Уваров Пётр Вадимович", 60m, login: "uvarov.pv50") with { Uid = "uvarov.pv50" },
+                PersonData.CreateParticipant("Уварова Наталья Вадимовна", 40m, login: "uvarova.nv50") with { Uid = "uvarova.nv50" },
             ]),
 
         // ════════════════════════════════════════════════════════════════
@@ -537,8 +537,8 @@ public static class CharterTestDataFixed
             Gd: new() { Uid = "tarasov.ev", Login = "tarasov.ev", FullName = "Тарасов Евгений Владимирович", LastName = "Тарасов", FirstName = "Евгений", MiddleName = "Владимирович", Position = "Генеральный директор" },
             Participants:
             [
-                PersonData.CreateParticipant("Андреев Павел Сергеевич", 60m, login: "andreev.ps51"),
-                PersonData.CreateParticipant("Андреева Ольга Сергеевна", 40m, login: "andreeva.os51"),
+                PersonData.CreateParticipant("Андреев Павел Сергеевич", 60m, login: "andreev.ps51") with { Uid = "andreev.ps51" },
+                PersonData.CreateParticipant("Андреева Ольга Сергеевна", 40m, login: "andreeva.os51") with { Uid = "andreeva.os51" },
             ]),
 
         // Модель 2: ГД — участник общества (Type A, ГД = участник)
@@ -546,8 +546,8 @@ public static class CharterTestDataFixed
             Gd: new() { Uid = "uvarov.di", Login = "uvarov.di", FullName = "Уваров Дмитрий Игоревич", LastName = "Уваров", FirstName = "Дмитрий", MiddleName = "Игоревич", Position = "Генеральный директор" },
             Participants:
             [
-                PersonData.CreateParticipant("Борисов Алексей Николаевич", 50m, login: "borisov.an52"),
-                PersonData.CreateParticipant("Борисова Елена Николаевна", 50m, login: "borisova.en52"),
+                PersonData.CreateParticipant("Борисов Алексей Николаевич", 50m, login: "borisov.an52") with { Uid = "borisov.an52" },
+                PersonData.CreateParticipant("Борисова Елена Николаевна", 50m, login: "borisova.en52") with { Uid = "borisova.en52" },
             ]),
 
         // Модель 3: Управляющий — ИП (Type D)
@@ -555,8 +555,8 @@ public static class CharterTestDataFixed
             Gd: null,
             Participants:
             [
-                PersonData.CreateParticipant("Волков Максим Андреевич", 60m, login: "volkov.ma53"),
-                PersonData.CreateParticipant("Волкова Ирина Андреевна", 40m, login: "volkova.ia53"),
+                PersonData.CreateParticipant("Волков Максим Андреевич", 60m, login: "volkov.ma53") with { Uid = "volkov.ma53" },
+                PersonData.CreateParticipant("Волкова Ирина Андреевна", 40m, login: "volkova.ia53") with { Uid = "volkova.ia53" },
             ]),
 
         // Модель 4: Управляющая организация (Type E)
@@ -564,8 +564,8 @@ public static class CharterTestDataFixed
             Gd: null,
             Participants:
             [
-                PersonData.CreateParticipant("Григорьев Денис Викторович", 50m, login: "grigoriev.dv54"),
-                PersonData.CreateParticipant("Григорьева Анна Викторовна", 50m, login: "grigorieva.av54"),
+                PersonData.CreateParticipant("Григорьев Денис Викторович", 50m, login: "grigoriev.dv54") with { Uid = "grigoriev.dv54" },
+                PersonData.CreateParticipant("Григорьева Анна Викторовна", 50m, login: "grigorieva.av54") with { Uid = "grigorieva.av54" },
             ]),
 
         // Модель 5: Все участники — директора (Type B)

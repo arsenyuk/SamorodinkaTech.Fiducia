@@ -30,12 +30,12 @@
 | 8 | Нетиповой устав: ExitConditionDescription | `E2E_NonStandardCharterTests::NonStandardCharter_ExitConditionDescription` | ✅ Пройден 07.09 | — |
 | 9 | Нетиповой устав: TransferToParticipants | `E2E_NonStandardCharterTests::NonStandardCharter_TransferToParticipants` | ✅ Пройден 07.09 | — |
 | 10 | Нетиповой устав: ExitRequiresUnanimousOsu | `E2E_NonStandardCharterTests::NonStandardCharter_ExitRequiresUnanimousOsu` | ✅ Пройден 07.09 | — |
-| 11 | Нетиповой устав: прочие (10 тестов) | `E2E_NonStandardCharterTests` | ⏳ Не запущен | — |
-| 11 | ЕИО: ГД — наёмный | `E2E_NonStandardCharterTests::Model1_HiredCeo` | ⏳ Не запущен | — |
-| 12 | ЕИО: ГД — участник | `E2E_NonStandardCharterTests::Model2_CeoParticipant` | ⏳ Не запущен | — |
-| 13 | ЕИО: Управляющий ИП | `E2E_NonStandardCharterTests::Model3_ManagerIp` | ⏳ Не запущен | — |
-| 14 | ЕИО: Упр. организация | `E2E_NonStandardCharterTests::Model4_ManagingOrg` | ⏳ Не запущен | — |
-| 15 | ЕИО: Все — директора | `E2E_NonStandardCharterTests::Model5_AllParticipantsDirectors` | ⏳ Не запущен | — |
+| 11 | Нетиповой устав: прочие (8 тестов) | `E2E_NonStandardCharterTests` | ✅ Пройден 5 из 8 (07.09) | ExecutiveBody, HasBoardOfDirectors, BoardDecidesConveningOsu, VosuThresholdPercent, AllParameters |
+| 11 | ЕИО: ГД — наёмный | `E2E_NonStandardCharterTests::Model1_HiredCeo` | ✅ Пройден 07.09 | — |
+| 12 | ЕИО: ГД — участник | `E2E_NonStandardCharterTests::Model2_CeoParticipant` | ✅ Пройден 07.09 | — |
+| 13 | ЕИО: Управляющий ИП | `E2E_NonStandardCharterTests::Model3_ManagerIp` | ✅ Пройден 07.09 | — |
+| 14 | ЕИО: Упр. организация | `E2E_NonStandardCharterTests::Model4_ManagingOrg` | ✅ Пройден 07.09 | — |
+| 15 | ЕИО: Все — директора | `E2E_NonStandardCharterTests::Model5_AllParticipantsDirectors` | ✅ Пройден 07.09 | — |
 | 16 | ЕИО: Все совместно | `E2E_NonStandardCharterTests::Model6_AllParticipantsJoint` | ⏳ Не запущен | — |
 | 17 | ЕИО: Несколько ЕИО | `E2E_NonStandardCharterTests::Model7_MultipleEio` | ⏳ Не запущен | — |
 | 18 | Авторизация | `US001_AuthorizationTests` | ⏳ Не запущен | — |

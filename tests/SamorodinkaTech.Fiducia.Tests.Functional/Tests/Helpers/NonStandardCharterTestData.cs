@@ -64,7 +64,7 @@ public static class NonStandardCharterTestData
     public const string BoardDecidesConveningOsu = "true";
 
     /// <summary>Порог доли участника для требования о созыве ВОСУ (%).</summary>
-    public const string VosuThresholdPercent = "15";
+    public const string VosuThresholdPercent = "5";
 
     // ══════════════════════════════════════════════════════════════════════
     // Имена параметров (соответствуют UI-элементам на вкладке «Устав»)

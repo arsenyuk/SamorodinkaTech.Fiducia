@@ -41,7 +41,7 @@ public class E2E_NonStandardCharterTests : BrowserFixture
     private const string ExecutiveBody = "A";
     private const string HasBoardOfDirectors = "true";
     private const string BoardDecidesConveningOsu = "true";
-    private const string VosuThresholdPercent = "15";
+    private const string VosuThresholdPercent = "5";
 
     // ══════════════════════════════════════════════════════════════════════
     // Тесты
