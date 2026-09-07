@@ -737,13 +737,12 @@
                                             Общие
                                         </button>
                                     </h2>
-                                    <div id="charterGeneral" class="accordion-collapse collapse show"
-                                         data-bs-parent="#charterAccordion">
+                                    <div id="charterGeneral" class="accordion-collapse collapse show">
                                         <div class="accordion-body">
                                             <div class="row g-3">
                                                 <div class="col-md-4">
                                                     <label class="form-label fw-bold">Исполнительный орган</label>
-                                                    <select class="form-select" @bind="_executiveBodyStr">
+                                                    <select class="form-select" @bind="_executiveBodyStr" data-testid="executive-body">
                                                         <option value="A">A — Генеральный директор</option>
                                                         <option value="B">B — Каждый участник — директор</option>
                                                         <option value="C">C — Все участники совместно</option>
@@ -771,7 +770,7 @@
                                             <div class="row g-3 mt-2">
                                                 <div class="col-md-4">
                                                     <label class="form-label">Выход участника из общества</label>
-                                                    <select class="form-select" @bind="_exitAllowedStr">
+                                                    <select class="form-select" @bind="_exitAllowedStr" data-testid="exit-allowed">
                                                         <option value="False">Запрещён</option>
                                                         <option value="True">Разрешён</option>
                                                     </select>
@@ -781,25 +780,25 @@
                                                     <div class="col-md-3">
                                                         <label class="form-label">Мин. доля для выхода, %</label>
                                                         <input type="number" class="form-control" @bind="_customExitAllowedMinSharePercent"
-                                                               min="0" max="100" step="0.01" placeholder="Без ограничения" />
+                                                               min="0" max="100" step="0.01" placeholder="Без ограничения" data-testid="exit-min-share" />
                                                         <div class="form-text">Минимальная доля участника для права на выход. Пусто = без минимального порога.</div>
                                                     </div>
                                                     <div class="col-md-3">
                                                         <label class="form-label">Макс. доля для выхода, %</label>
                                                         <input type="number" class="form-control" @bind="_customExitAllowedMaxSharePercent"
-                                                               min="0" max="100" step="0.01" placeholder="Без ограничения" />
+                                                               min="0" max="100" step="0.01" placeholder="Без ограничения" data-testid="exit-max-share" />
                                                         <div class="form-text">Максимальная доля участника для права на выход. Пусто = без максимального порога.</div>
                                                     </div>
                                                     <div class="col-md-6">
                                                         <label class="form-label">Условия выхода</label>
                                                         <input type="text" class="form-control" @bind="_customExitConditionDescription"
-                                                               placeholder="Например: по истечении 2 лет с момента вступления" />
+                                                               placeholder="Например: по истечении 2 лет с момента вступления" data-testid="exit-condition" />
                                                         <div class="form-text">Условия выхода из общества (свободный текст). Пусто = без дополнительных условий.</div>
                                                     </div>
                                                     <div class="col-md-4">
                                                         <div class="form-check mt-2">
                                                             <input class="form-check-input" type="checkbox" id="exitRequiresUnanimousOsu"
-                                                                   @bind="_customExitRequiresUnanimousOsu">
+                                                                   @bind="_customExitRequiresUnanimousOsu" data-testid="exit-unanimous">
                                                             <label class="form-check-label fw-bold" for="exitRequiresUnanimousOsu">
                                                                 Требуется единогласное решение ОСУ
                                                             </label>
@@ -812,7 +811,7 @@
                                             <div class="row g-3 mt-2">
                                                 <div class="col-md-4">
                                                     <label class="form-label fw-bold">Преимущественное право покупки</label>
-                                                    <select class="form-select" @bind="_preemptiveStr">
+                                                    <select class="form-select" @bind="_preemptiveStr" data-testid="preemptive-right">
                                                         <option value="True">Есть</option>
                                                         <option value="False">Нет</option>
                                                     </select>
@@ -849,7 +848,7 @@
                                                 </div>
                                                 <div class="col-md-4">
                                                     <label class="form-label fw-bold">Совет директоров</label>
-                                                    <select class="form-select" @bind="_hasBoardOfDirectorsStr">
+                                                    <select class="form-select" @bind="_hasBoardOfDirectorsStr" data-testid="has-board">
                                                         <option value="False">Нет</option>
                                                         <option value="True">Да</option>
                                                     </select>
@@ -864,7 +863,7 @@
                                                         <label class="form-label fw-bold">СД принимает решение о созыве ОСУ</label>
                                                         <div class="form-check">
                                                             <input class="form-check-input" type="checkbox" id="boardDecidesConveningOsu"
-                                                                   @bind="_boardDecidesConveningOsu">
+                                                                   @bind="_boardDecidesConveningOsu" data-testid="board-convenes-osu">
                                                             <label class="form-check-label" for="boardDecidesConveningOsu">
                                                                 Требования участников рассматривает СД
                                                             </label>
@@ -880,7 +879,7 @@
                                                     <div class="col-md-4">
                                                         <label class="form-label fw-bold">Порог для требования ВОСУ, %</label>
                                                         <input type="number" class="form-control" @bind="_customVosuThresholdPercent"
-                                                               min="0.01" max="10" step="0.01" placeholder="10 (по умолчанию)" />
+                                                               min="0.01" max="10" step="0.01" placeholder="10 (по умолчанию)" data-testid="vosu-threshold" />
                                                         <div class="form-text">Порог доли участника для требования о созыве ВОСУ. По умолчанию 10% (одна десятая от общего числа голосов, ст. 35 14-ФЗ). Устав может установить пониженный порог (не более 10%).</div>
                                                     </div>
                                                 </div>
@@ -892,18 +891,17 @@
                                 @* --- Секция 2: Требуется согласие участников --- *@
                                 <div class="accordion-item">
                                     <h2 class="accordion-header">
-                                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
-                                                data-bs-target="#charterConsent">
+                                        <button class="accordion-button" type="button" data-bs-toggle="collapse"
+                                                data-bs-target="#charterConsent" aria-expanded="true">
                                             Требуется согласие участников
                                         </button>
                                     </h2>
-                                    <div id="charterConsent" class="accordion-collapse collapse"
-                                         data-bs-parent="#charterAccordion">
+                                    <div id="charterConsent" class="accordion-collapse collapse show">
                                         <div class="accordion-body">
                                             <div class="row g-3">
                                                 <div class="col-md-4">
                                                     <label class="form-label fw-bold">Переход доли к участникам</label>
-                                                    <select class="form-select" @bind="_transferParticipantsStr">
+                                                    <select class="form-select" @bind="_transferParticipantsStr" data-testid="transfer-participants">
                                                         <option value="False">С согласия участников</option>
                                                         <option value="True">Без согласия участников</option>
                                                     </select>
@@ -911,7 +909,7 @@
                                                 </div>
                                                 <div class="col-md-4">
                                                     <label class="form-label fw-bold">Переход доли к третьим лицам</label>
-                                                    <select class="form-select" @bind="_transferThirdStr">
+                                                    <select class="form-select" @bind="_transferThirdStr" data-testid="transfer-third-parties">
                                                         <option value="False">С согласия участников</option>
                                                         <option value="True">Без согласия участников</option>
                                                         <option value="FORBIDDEN">Запрещён</option>
@@ -920,7 +918,7 @@
                                                 </div>
                                                 <div class="col-md-4">
                                                     <label class="form-label fw-bold">Переход доли наследникам</label>
-                                                    <select class="form-select" @bind="_inheritanceStr">
+                                                    <select class="form-select" @bind="_inheritanceStr" data-testid="inheritance">
                                                         <option value="False">С согласия участников</option>
                                                         <option value="True">Без согласия участников</option>
                                                     </select>
@@ -1487,14 +1485,9 @@
             return;
         }
 
-        // Валидация данных ГД (только для ООО с executive_body = 'A')
-        if (_orgType == OrgType.LLC && _customExecutiveBody == 'A')
+        // Валидация данных ГД (только если ГД выбран)
+        if (_selectedGdParticipantId.HasValue)
         {
-            if (_selectedGdParticipantId is null)
-            {
-                saveError = "Выберите участника — генерального директора";
-                return;
-            }
             if (!string.IsNullOrWhiteSpace(_gdSnils))
             {
                 var digitsOnly = new string(_gdSnils.Where(c => char.IsDigit(c)).ToArray());

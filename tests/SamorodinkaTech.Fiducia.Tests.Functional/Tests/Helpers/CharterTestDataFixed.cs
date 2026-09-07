@@ -601,45 +601,54 @@ public static class CharterTestDataFixed
             Gd: null,
             Participants:
             [
-                PersonData.CreateParticipant("Якушев Денис Игоревич", 100m, login: "yakushev.di58"),
+                PersonData.CreateParticipantWithDul("Якушев Денис Игоревич", 100m,
+                    "21", "4510", "123456", login: "yakushev.di") with { Uid = "yakushev.di" },
             ]),
         // ГД — участник общества (2 участника)
         [59] = new(
             Gd: null,
             Participants:
             [
-                PersonData.CreateParticipant("Абрамов Сергей Александрович", 60m, login: "abramov.sa59"),
-                PersonData.CreateParticipant("Абрамова Елена Петровна", 40m, login: "abramova.ep59"),
+                PersonData.CreateParticipantWithDul("Абрамов Сергей Александрович", 60m,
+                    "21", "4520", "234567", login: "abramov.sa") with { Uid = "abramov.sa" },
+                PersonData.CreateParticipantWithDul("Абрамова Елена Петровна", 40m,
+                    "21", "4530", "345678", login: "abramova.ep59") with { Uid = "abramova.ep59" },
             ]),
         // ГД — сохранение с СНИЛС
         [60] = new(
             Gd: null,
             Participants:
             [
-                PersonData.CreateParticipant("Баранов Пётр Кириллович", 100m, login: "baranov.pk60"),
+                PersonData.CreateParticipantWithDul("Баранов Пётр Кириллович", 100m,
+                    "21", "4540", "456789", login: "baranov.pk") with { Uid = "baranov.pk" },
             ]),
         // ExecBody=B — вкладка ГД НЕ отображается
         [61] = new(
             Gd: null,
             Participants:
             [
-                PersonData.CreateParticipant("Виноградов Максим Андреевич", 50m, login: "vinogradov.ma61"),
-                PersonData.CreateParticipant("Виноградова Ольга Игоревна", 50m, login: "vinogradova.oi61"),
+                PersonData.CreateParticipantWithDul("Виноградов Максим Андреевич", 50m,
+                    "21", "4550", "567890", login: "vinogradov.ma") with { Uid = "vinogradov.ma" },
+                PersonData.CreateParticipantWithDul("Виноградова Ольга Игоревна", 50m,
+                    "21", "4560", "678901", login: "vinogradova.oi61") with { Uid = "vinogradova.oi61" },
             ]),
         // ExecBody=C — вкладка ГД НЕ отображается
         [62] = new(
             Gd: null,
             Participants:
             [
-                PersonData.CreateParticipant("Громов Никита Владимирович", 50m, login: "gromov.nv62"),
-                PersonData.CreateParticipant("Громова Анна Сергеевна", 50m, login: "gromova.as62"),
+                PersonData.CreateParticipantWithDul("Громов Никита Владимирович", 50m,
+                    "21", "4570", "789012", login: "gromov.nv") with { Uid = "gromov.nv" },
+                PersonData.CreateParticipantWithDul("Громова Анна Сергеевна", 50m,
+                    "21", "4580", "890123", login: "gromova.as62") with { Uid = "gromova.as62" },
             ]),
         // Типовой устав с ExecBody=A — вкладка ГД отображается
         [63] = new(
             Gd: null,
             Participants:
             [
-                PersonData.CreateParticipant("Демидов Олег Игоревич", 100m, login: "demidov.oi63"),
+                PersonData.CreateParticipantWithDul("Демидов Олег Игоревич", 100m,
+                    "21", "4590", "901234", login: "demidov.oi") with { Uid = "demidov.oi" },
             ]),
     };
 
@@ -687,6 +696,15 @@ public static class CharterTestDataFixed
         /// <summary>Участник является ЕИО (для типов B/C).</summary>
         public bool IsDirector { get; init; }
 
+        /// <summary>Код типа ДУЛ (21 = паспорт РФ).</summary>
+        public string? DulTypeCode { get; init; }
+
+        /// <summary>Серия ДУЛ.</summary>
+        public string? DulSeries { get; init; }
+
+        /// <summary>Номер ДУЛ.</summary>
+        public string? DulNumber { get; init; }
+
         /// <summary>Создать участника (без LDAP, только ФИО + доля + логин).</summary>
         public static PersonData CreateParticipant(string fullName, decimal sharePercent, bool isDirector = false, string login = "")
         {
@@ -700,6 +718,28 @@ public static class CharterTestDataFixed
                 LastName = parts.Length > 0 ? parts[0] : string.Empty,
                 FirstName = parts.Length > 1 ? parts[1] : string.Empty,
                 MiddleName = parts.Length > 2 ? parts[2] : string.Empty,
+            };
+        }
+
+        /// <summary>Создать участника с данными ДУЛ (паспорт).</summary>
+        public static PersonData CreateParticipantWithDul(
+            string fullName, decimal sharePercent,
+            string dulTypeCode, string dulSeries, string dulNumber,
+            bool isDirector = false, string login = "")
+        {
+            var parts = fullName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            return new()
+            {
+                FullName = fullName,
+                SharePercent = sharePercent,
+                IsDirector = isDirector,
+                Login = login,
+                LastName = parts.Length > 0 ? parts[0] : string.Empty,
+                FirstName = parts.Length > 1 ? parts[1] : string.Empty,
+                MiddleName = parts.Length > 2 ? parts[2] : string.Empty,
+                DulTypeCode = dulTypeCode,
+                DulSeries = dulSeries,
+                DulNumber = dulNumber,
             };
         }
 

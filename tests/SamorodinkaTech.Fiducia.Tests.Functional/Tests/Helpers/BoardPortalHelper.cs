@@ -252,28 +252,20 @@ public static class BoardPortalHelper
             }");
         await page.WaitForTimeoutAsync(500);
 
-        // Select "Нетиповой" option in the charter type dropdown
-        await page.EvaluateAsync(
-            @"() => {
-                const selects = document.querySelectorAll('select');
-                for (const sel of selects) {
-                    const opts = sel.querySelectorAll('option');
-                    if (opts.length >= 2) {
-                        for (const opt of opts) {
-                            const txt = (opt.textContent || '').toLowerCase();
-                            if (txt.includes('нетиповой') || txt.includes('индивидуальн') || txt.includes('custom')) {
-                                sel.value = opt.value;
-                                sel.dispatchEvent(new Event('change', { bubbles: true }));
-                                return;
-                            }
-                        }
-                        if (opts.length > 0) {
-                            sel.value = opts[0].value;
-                            sel.dispatchEvent(new Event('change', { bubbles: true }));
-                        }
-                    }
-                }
-            }");
+        // Select "Нетиповой" option — первый option в charter type select
+        var charterSelect = page.Locator("select.form-select-sm.flex-grow-1");
+        if (await charterSelect.CountAsync() > 0)
+        {
+            // Устанавливаем через JS — SelectOptionAsync не триггерит Blazor @bind:set
+            var emptyValue = await charterSelect.EvaluateAsync<string>(
+                "el => el.options[0]?.value ?? ''");
+            await charterSelect.EvaluateAsync(
+                $@"(el, val) => {{
+                    el.value = val;
+                    el.dispatchEvent(new Event('change', {{ bubbles: true }}));
+                }}", emptyValue);
+        }
+        await AuthHelper.WaitForBlazorReady(page);
         await page.WaitForTimeoutAsync(1000); // Ждём появления полей нетипового устава
     }
 
@@ -314,14 +306,13 @@ public static class BoardPortalHelper
                 break;
 
             case "select":
-                await page.EvaluateAsync(
-                    $@"() => {{
-                        const sel = document.querySelector('[data-testid=""{testId}""]');
-                        if (sel) {{
-                            sel.value = '{EscapeJs(value)}';
-                            sel.dispatchEvent(new Event('change', {{ bubbles: true }}));
-                        }}
-                    }}");
+                // Нормализуем регистр: "true"/"false" → "True"/"False" (для bool-селектов Blazor)
+                var normalizedValue = value.Equals("true", StringComparison.OrdinalIgnoreCase)
+                    ? "True"
+                    : value.Equals("false", StringComparison.OrdinalIgnoreCase)
+                        ? "False"
+                        : value;
+                await page.SelectOptionAsync($"[data-testid=\"{testId}\"]", normalizedValue);
                 break;
 
             case "input":
@@ -354,6 +345,16 @@ public static class BoardPortalHelper
     /// </summary>
     public static async Task AssertNonStandardCharterFieldsVisibleAsync(IPage page)
     {
+        // Раскрываем все секции аккордеона, чтобы проверить содержимое
+        await page.EvaluateAsync(
+            @"() => {
+                const buttons = document.querySelectorAll('.accordion-button');
+                buttons.forEach(btn => {
+                    if (btn.classList.contains('collapsed')) btn.click();
+                });
+            }");
+        await page.WaitForTimeoutAsync(500);
+
         var content = await page.ContentAsync();
 
         // Все 17 параметров нетипового устава
@@ -443,10 +444,16 @@ public static class BoardPortalHelper
         IPage page,
         string fullName,
         decimal? sharePercent = null,
-        decimal? shareAmount = null)
+        decimal? shareAmount = null,
+        string? dulTypeCode = null,
+        string? dulSeries = null,
+        string? dulNumber = null)
     {
         var sharePercentJson = sharePercent?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "null";
         var shareAmountJson = shareAmount?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "null";
+        var dulTypeCodeJson = dulTypeCode != null ? $"'{EscapeJs(dulTypeCode)}'" : "null";
+        var dulSeriesJson = dulSeries != null ? $"'{EscapeJs(dulSeries)}'" : "null";
+        var dulNumberJson = dulNumber != null ? $"'{EscapeJs(dulNumber)}'" : "null";
 
         var result = await page.EvaluateAsync<AddParticipantResponse>(
             $@"async () => {{
@@ -458,7 +465,10 @@ public static class BoardPortalHelper
                         participantType: 'FL',
                         fullName: '{EscapeJs(fullName)}',
                         sharePercent: {sharePercentJson},
-                        shareAmount: {shareAmountJson}
+                        shareAmount: {shareAmountJson},
+                        dulTypeCode: {dulTypeCodeJson},
+                        dulSeries: {dulSeriesJson},
+                        dulNumber: {dulNumberJson}
                     }})
                 }});
                 if (!response.ok) {{

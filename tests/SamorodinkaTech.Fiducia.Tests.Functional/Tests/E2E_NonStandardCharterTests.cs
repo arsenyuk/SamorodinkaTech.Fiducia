@@ -321,6 +321,7 @@ public class E2E_NonStandardCharterTests : BrowserFixture
         try
         {
             await BoardPortalHelper.SelectNonStandardCharterAsync(boardPage);
+            await BoardPortalHelper.ConfigureCharterParameterAsync(boardPage, "exit-allowed", ExitAllowed);
             await BoardPortalHelper.ConfigureCharterParameterAsync(boardPage, "inheritance", InheritanceWithoutConsent);
             await AddParticipantsAsync(boardPage, 45);
             await BoardPortalHelper.SaveAndVerifyAsync(boardPage);

@@ -93,23 +93,31 @@ public static class CharterTestSeeder
         // ГД (или первый участник для типов B/C)
         if (persons.Gd is not null)
         {
-            await AdminConsoleHelper.AddEmployeeAsync(
-                adminPage,
-                persons.Gd.LastName, persons.Gd.FirstName, persons.Gd.MiddleName,
-                persons.Gd.Position, persons.Gd.Login,
-                CharterTestDataFixed.RoleCeo);
+            // Пропускаем если ГД = администратор (тот же login — один человек)
+            if (persons.Gd.Login != entity.AdminUser.Login)
+            {
+                await AdminConsoleHelper.AddEmployeeAsync(
+                    adminPage,
+                    persons.Gd.LastName, persons.Gd.FirstName, persons.Gd.MiddleName,
+                    persons.Gd.Position, persons.Gd.Login,
+                    CharterTestDataFixed.RoleCeo);
+            }
         }
         else if (persons.Participants.Count > 0)
         {
             var p = persons.Participants[0];
-            var nameParts = p.FullName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-            if (nameParts.Length >= 3)
+            // Пропускаем если участник = администратор (тот же login — один человек)
+            if (p.Login != entity.AdminUser.Login)
             {
-                await AdminConsoleHelper.AddEmployeeAsync(
-                    adminPage,
-                    nameParts[0], nameParts[1], nameParts[2],
-                    "Директор", p.Login,
-                    CharterTestDataFixed.RoleCeo);
+                var nameParts = p.FullName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                if (nameParts.Length >= 3)
+                {
+                    await AdminConsoleHelper.AddEmployeeAsync(
+                        adminPage,
+                        nameParts[0], nameParts[1], nameParts[2],
+                        "Директор", p.Login,
+                        CharterTestDataFixed.RoleCeo);
+                }
             }
         }
 

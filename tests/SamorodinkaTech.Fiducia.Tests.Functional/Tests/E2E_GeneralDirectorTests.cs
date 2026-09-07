@@ -345,7 +345,10 @@ public class E2E_GeneralDirectorTests : BrowserFixture
             await BoardPortalHelper.AddParticipantAsync(
                 boardPage,
                 p.FullName,
-                sharePercent: p.SharePercent);
+                sharePercent: p.SharePercent,
+                dulTypeCode: p.DulTypeCode,
+                dulSeries: p.DulSeries,
+                dulNumber: p.DulNumber);
         }
 
         await BoardPortalHelper.AssertParticipantCountAsync(
