@@ -128,10 +128,8 @@ public static class AdminConsoleHelper
         string login,
         string roleCode)
     {
-        if (!page.Url.Contains("/access-management"))
-        {
-            await NavigateToAsync(page, "/access-management");
-        }
+        // Always navigate to ensure fresh data (roles may not be loaded after DB reset)
+        await NavigateToAsync(page, "/access-management");
 
         await EnsureEntitySelectedAsync(page);
 
@@ -154,6 +152,15 @@ public static class AdminConsoleHelper
                     if (input.value.length > 0) return true;
                 }
                 return false;
+            }",
+            null,
+            new PageWaitForFunctionOptions { Timeout = DefaultTimeout });
+
+        // Wait for role dropdown to be populated (options loaded from DB)
+        await page.WaitForFunctionAsync(
+            @"() => {
+                const sel = document.querySelector('.modal .modal-body select.form-select');
+                return sel && sel.options.length > 1;
             }",
             null,
             new PageWaitForFunctionOptions { Timeout = DefaultTimeout });

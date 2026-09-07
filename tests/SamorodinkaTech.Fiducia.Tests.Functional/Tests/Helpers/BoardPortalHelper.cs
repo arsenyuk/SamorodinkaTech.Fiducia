@@ -374,8 +374,8 @@ public static class BoardPortalHelper
             "Нетиповой устав: 'Ревизионная комиссия'");
         content.Should().Contain("Срок полномочий",
             "Нетиповой устав: 'Срок полномочий'");
-        content.Should().Contain("Переход доли к наследникам",
-            "Нетиповой устав: 'Переход доли к наследникам'");
+        content.Should().Contain("Переход доли наследникам",
+            "Нетиповой устав: 'Переход доли наследникам'");
 
         // Проверяем наличие select-элементов (минимум 6: ExecutiveBody, Exit, Preemptive, Board, Audit, Revision)
         var selects = page.Locator("select.form-select");

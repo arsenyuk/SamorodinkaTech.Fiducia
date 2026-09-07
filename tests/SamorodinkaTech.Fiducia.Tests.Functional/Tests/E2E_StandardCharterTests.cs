@@ -235,8 +235,8 @@ public class E2E_StandardCharterTests : BrowserFixture
                 $"Устав №{charterNumber}: параметр 'Преимущественное право'");
             charterContent.Should().Contain("Переход доли наследникам",
                 $"Устав №{charterNumber}: параметр 'Переход доли наследникам'");
-            charterContent.Should().Contain("Подтверждение протокола",
-                $"Устав №{charterNumber}: параметр 'Подтверждение протокола'");
+            charterContent.Should().Contain("Подтверждение решений",
+                $"Устав №{charterNumber}: параметр 'Подтверждение решений'");
         }
 
         // Шаг 3: Переход на ОСУ — страница должна загрузиться после настройки ЮЛ
