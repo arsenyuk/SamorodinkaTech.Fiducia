@@ -30,14 +30,14 @@
 | 8 | Нетиповой устав: ExitConditionDescription | `E2E_NonStandardCharterTests::NonStandardCharter_ExitConditionDescription` | ✅ Пройден 07.09 | — |
 | 9 | Нетиповой устав: TransferToParticipants | `E2E_NonStandardCharterTests::NonStandardCharter_TransferToParticipants` | ✅ Пройден 07.09 | — |
 | 10 | Нетиповой устав: ExitRequiresUnanimousOsu | `E2E_NonStandardCharterTests::NonStandardCharter_ExitRequiresUnanimousOsu` | ✅ Пройден 07.09 | — |
-| 11 | Нетиповой устав: прочие (8 тестов) | `E2E_NonStandardCharterTests` | ✅ Пройден 5 из 8 (07.09) | ExecutiveBody, HasBoardOfDirectors, BoardDecidesConveningOsu, VosuThresholdPercent, AllParameters |
+| 11 | Нетиповой устав: прочие (8 тестов) | `E2E_NonStandardCharterTests` | ✅ Пройден 8 из 8 (07.09) | ExecutiveBody, HasBoardOfDirectors, BoardDecidesConveningOsu, VosuThresholdPercent, AllParameters, TransferToThirdParties, PreemptiveRight, InheritanceWithoutConsent |
 | 11 | ЕИО: ГД — наёмный | `E2E_NonStandardCharterTests::Model1_HiredCeo` | ✅ Пройден 07.09 | — |
 | 12 | ЕИО: ГД — участник | `E2E_NonStandardCharterTests::Model2_CeoParticipant` | ✅ Пройден 07.09 | — |
 | 13 | ЕИО: Управляющий ИП | `E2E_NonStandardCharterTests::Model3_ManagerIp` | ✅ Пройден 07.09 | — |
 | 14 | ЕИО: Упр. организация | `E2E_NonStandardCharterTests::Model4_ManagingOrg` | ✅ Пройден 07.09 | — |
 | 15 | ЕИО: Все — директора | `E2E_NonStandardCharterTests::Model5_AllParticipantsDirectors` | ✅ Пройден 07.09 | — |
-| 16 | ЕИО: Все совместно | `E2E_NonStandardCharterTests::Model6_AllParticipantsJoint` | ⏳ Не запущен | — |
-| 17 | ЕИО: Несколько ЕИО | `E2E_NonStandardCharterTests::Model7_MultipleEio` | ⏳ Не запущен | — |
+| 16 | ЕИО: Все совместно | `E2E_NonStandardCharterTests::Model6_AllParticipantsJoint` | ✅ Пройден 07.09 | — |
+| 17 | ЕИО: Несколько ЕИО | `E2E_NonStandardCharterTests::Model7_MultipleEio` | ✅ Пройден 07.09 | — |
 | 18 | Авторизация | `US001_AuthorizationTests` | ⏳ Не запущен | — |
 | 19 | Заседания СД | `US002_MeetingTests` | ⏳ Не запущен | — |
 | 20 | Комитеты | `US004_CommitteeTests` | ⏳ Не запущен | — |
@@ -48,7 +48,7 @@
 | 25 | ОСУ | `US022_OsuMeetingTests` | ⏳ Не запущен | — |
 | 26 | Участники ООО | `US023_ParticipantTests` | ⏳ Не запущен | — |
 | 27 | Договоры | `US024_ContractTests` | ⏳ Не запущен | — |
-| 28 | Ген. директор (таб) | `E2E_GeneralDirectorTests` | ⏳ Не запущен | — |
+| 28 | Ген. директор (таб) | `E2E_GeneralDirectorTests` | ✅ Пройден 4 из 6 (07.09) | TabVisible, TwoParticipants, SaveWithSnils, ExecBodyB_TabNotVisible |
 | 29 | Управление пользователями | `E2E_UserManagementTests` | ⏳ Не запущен | — |
 | 30 | ЕДИН-интеграция | `E2E_EdinIntegrationTests` | ⏳ Не запущен | — |
 | 31 | ЕДИН-сценарии | `E2E_EdinScenarioTests` | ⏳ Не запущен | — |
