@@ -62,7 +62,12 @@
 | Справочники (все 20 страниц) | US-012 (admin) | `PageVerificationHelper.VerifyAdminConsolePagesAsync` | ✅ Реализован |
 | Пользователи | — | `US004_CommitteeTests` (users, roles) | ✅ Реализован |
 | Шаблоны орг-планов | — | `US004_CommitteeTests` (org-templates) | ✅ Реализован |
-| Настройки | — | `US002_MeetingTests` (settings) | ✅ Реализован |
+| Настройки | — | `US020_MeetingTests` (settings) | ✅ Реализован |
+
+> **Правило:** Проверка страниц справочников выполняется только через
+> `PageVerificationHelper.VerifyAdminConsolePagesAsync` — строго один раз
+> за прогон. Циклическая проверка в индивидуальных E2E-тестах запрещена.
+> См. [AGENTS.md](../AGENTS.md#правило-страницы-справочников--проверка-строго-один-раз-крично).
 
 ### ООО — Сценарии
 
