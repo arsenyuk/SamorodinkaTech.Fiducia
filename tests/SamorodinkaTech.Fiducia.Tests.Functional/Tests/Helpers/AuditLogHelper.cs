@@ -282,6 +282,25 @@ public static partial class AuditLogHelper
     }
 
     /// <summary>
+    /// Проверить отсутствие 404 (NotFound) в логе аудита за период теста.
+    /// 403 (PAGE_DENIED) допустимы для пользователей без нужных ролей.
+    /// Chrome DevTools probe (/.well-known/appspecific/com.chrome.devtools.json) исключается.
+    /// </summary>
+    public static async Task AssertNoNotFoundAsync(DateTimeOffset? from = null, DateTimeOffset? to = null)
+    {
+        var notFoundEntries = await FindEntriesByActionCodeAsync("ACCESS:PAGE_NOT_FOUND",
+            from ?? DateTimeOffset.MinValue, to ?? DateTimeOffset.UtcNow);
+
+        // Исключаем Chrome DevTools probe — это шум от браузера, не от приложения
+        var appNotFoundEntries = notFoundEntries
+            .Where(e => !e.Contains("com.chrome.devtools.json"))
+            .ToList();
+
+        appNotFoundEntries.Should().BeEmpty(
+            $"В логе аудита не должно быть записей 'страница не найдена' (404). Найдено: {string.Join("; ", appNotFoundEntries)}");
+    }
+
+    /// <summary>
     /// Получить количество записей аудита с указанным actionCode.
     /// </summary>
     public static async Task<int> CountEntriesByActionCodeAsync(string actionCode)

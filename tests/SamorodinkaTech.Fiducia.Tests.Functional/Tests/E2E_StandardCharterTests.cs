@@ -110,7 +110,7 @@ public class E2E_StandardCharterTests : BrowserFixture
             await ExecuteCharterFlowAsync(boardPage, adminPage, charterNumber, testStartTime);
 
             // Проверка аудита: вход, изменение данных, создание участников
-            await AssertAuditAsync(login, entityHasExecutiveBodyA);
+            await AssertAuditAsync(login, entityHasExecutiveBodyA, testStartTime);
         }
         catch (Exception ex)
         {
@@ -313,7 +313,7 @@ public class E2E_StandardCharterTests : BrowserFixture
     /// 3. Создание участников (DATA:CREATE participants) — только для ExecutiveBody A
     /// 4. Отсутствие ошибок доступа (ACCESS:PAGE_DENIED) — все переходы разрешены
     /// </summary>
-    private static async Task AssertAuditAsync(string login, bool entityHasExecutiveBodyA)
+    private static async Task AssertAuditAsync(string login, bool entityHasExecutiveBodyA, DateTimeOffset testStartTime)
     {
         // Вход в систему должен быть залогирован в аудите
         await AuditLogHelper.AssertLoginLoggedAsync(login);
@@ -335,9 +335,9 @@ public class E2E_StandardCharterTests : BrowserFixture
             await AuditLogHelper.AssertDataCreateLoggedAsync("participants");
         }
 
-        // Не должно быть ошибок доступа к страницам, доступным для ГД
-        // (пропускаем проверку — ГД не имеет роли PARTICIPANT,一些 страницы вернут 403)
-        // await AuditLogHelper.AssertNoAccessDeniedAsync();
+        // Не должно быть 404 (NotFound) в логе аудита за время теста
+        // 403 допустимы — ГД не имеет роли PARTICIPANT
+        await AuditLogHelper.AssertNoNotFoundAsync(from: testStartTime);
     }
 
     /// <summary>

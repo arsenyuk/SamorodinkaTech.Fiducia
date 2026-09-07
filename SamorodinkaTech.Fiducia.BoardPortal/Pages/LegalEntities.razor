@@ -728,17 +728,10 @@
                             <div class="alert alert-info small py-2">
                                 <strong>Насыщенным шрифтом</strong> выделены заголовки параметров, влияющих на бизнес-процессы системы. Подробнее — в <a href="/docs/business-processes/standard-charter-impact.html" target="_blank">документации</a>.
                             </div>
-                            <div class="accordion" id="charterAccordion">
+                            <div class="mb-3">
                                 @* --- Секция 1: Общие --- *@
-                                <div class="accordion-item">
-                                    <h2 class="accordion-header">
-                                        <button class="accordion-button" type="button" data-bs-toggle="collapse"
-                                                data-bs-target="#charterGeneral" aria-expanded="true">
-                                            Общие
-                                        </button>
-                                    </h2>
-                                    <div id="charterGeneral" class="accordion-collapse collapse show">
-                                        <div class="accordion-body">
+                                <h6 class="text-uppercase text-muted border-bottom pb-1 mb-3">Общие</h6>
+                                    <div>
                                             <div class="row g-3">
                                                 <div class="col-md-4">
                                                     <label class="form-label fw-bold">Исполнительный орган</label>
@@ -889,15 +882,7 @@
                                 </div>
 
                                 @* --- Секция 2: Требуется согласие участников --- *@
-                                <div class="accordion-item">
-                                    <h2 class="accordion-header">
-                                        <button class="accordion-button" type="button" data-bs-toggle="collapse"
-                                                data-bs-target="#charterConsent" aria-expanded="true">
-                                            Требуется согласие участников
-                                        </button>
-                                    </h2>
-                                    <div id="charterConsent" class="accordion-collapse collapse show">
-                                        <div class="accordion-body">
+                                <h6 class="text-uppercase text-muted border-bottom pb-1 mb-3">Требуется согласие участников</h6>
                                             <div class="row g-3">
                                                 <div class="col-md-4">
                                                     <label class="form-label fw-bold">Переход доли к участникам</label>
@@ -925,11 +910,8 @@
                                                     <div class="form-text">Требуется ли согласие участников при переходе доли наследникам. Влияет на голосование ОСУ.</div>
                                                 </div>
                                             </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                             </div>
+                             <div data-testid="page-loaded" style="display:none"></div>
                     }
                 </div>
             }  @* end of _activeTab == 4 *@

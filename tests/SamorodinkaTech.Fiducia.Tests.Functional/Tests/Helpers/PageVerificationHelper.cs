@@ -41,13 +41,12 @@ public static class PageVerificationHelper
         await VerifyContentAnyAsync(boardPage, "/committees",
             new[] { "Защитный", "Стратегический" }, "Board Portal: Committees");
 
-        // US-004: Документы
-        await VerifyPageAsync(boardPage, "/documents",
-            "_framework/blazor.server.js", "Board Portal: Documents");
+        // US-004: Документы (каталог)
+        await VerifyPageAsync(boardPage, "/documents/catalog",
+            "_framework/blazor.server.js", "Board Portal: DocumentsCatalog");
 
-        // US-004: Печатные формы
-        await VerifyPageAsync(boardPage, "/print-forms",
-            "_framework/blazor.server.js", "Board Portal: PrintForms");
+        // US-004: Печатные формы (требует MeetingId — пропускаем)
+        // Реальный маршрут: /print/{MeetingId:int}
 
         // US-021: Каталог документов — требует роль PARTICIPANT (ГД не имеет)
         // Проверка пропускается для данного сценария
@@ -194,6 +193,10 @@ public static class PageVerificationHelper
         await NavigateToPageAsync(page, path);
 
         var content = await page.ContentAsync();
+
+        // Если страница показывает Blazor Router NotFound (App.razor) — страница не существует
+        content.Should().NotContain("Sorry, there's nothing at this address.",
+            $"{label}: страница {path} вернула Blazor Router NotFound (404)");
 
         // Если страница показывает ошибку авторизации или редирект — пропускаем проверку
         if (content.Contains("Unauthorized") || content.Contains("Доступ запрещён") ||
