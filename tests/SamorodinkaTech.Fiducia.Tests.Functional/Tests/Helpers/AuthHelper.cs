@@ -89,6 +89,31 @@ public static class AuthHelper
         // Клик "Войти"
         await page.ClickAsync("button.btn-primary");
 
+        // Ждём 2 сек — либо редирект, либо появится ошибка
+        await page.WaitForTimeoutAsync(2000);
+
+        // Проверяем, появилась ли ошибка на странице
+        var errorAlert = await page.QuerySelectorAsync("div.alert-danger");
+        if (errorAlert is not null)
+        {
+            var errorText = await errorAlert.TextContentAsync();
+            Console.WriteLine($"[AuthHelper] Login ERROR on page: {errorText}");
+        }
+
+        // Проверяем текущий URL
+        var currentUrl = page.Url;
+        Console.WriteLine($"[AuthHelper] URL after login click: {currentUrl}");
+
+        if (!currentUrl.Contains("/main"))
+        {
+            // Читаем всё содержимое страницы для диагностики
+            var pageContent = await page.ContentAsync();
+            var errorMatch = System.Text.RegularExpressions.Regex.Match(
+                pageContent, @"alert-danger[^>]*>([^<]+)<");
+            if (errorMatch.Success)
+                Console.WriteLine($"[AuthHelper] Error from page HTML: {errorMatch.Groups[1].Value}");
+        }
+
         // Ждём редиректа на /main
         await page.WaitForFunctionAsync(
             "() => window.location.pathname === '/main'",

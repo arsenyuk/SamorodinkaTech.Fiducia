@@ -124,6 +124,25 @@ public static class CharterTestSeeder
             }
         }
 
+        // Назначить роль PARTICIPANT первому участнику (для доступа к каталогу документов и т.д.)
+        if (persons.Participants.Count > 0)
+        {
+            var p = persons.Participants[0];
+            if (p.Login != entity.AdminUser.Login)
+            {
+                var nameParts = p.FullName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                if (nameParts.Length >= 3)
+                {
+                    await AdminConsoleHelper.AddEmployeeAsync(
+                        adminPage,
+                        nameParts[0], nameParts[1], nameParts[2],
+                        "Участник", p.Login,
+                        CharterTestDataFixed.RoleParticipant,
+                        entity.Name);
+                }
+            }
+        }
+
         Console.WriteLine($"[Seeder] ЮЛ {charterNumber}: сидирование завершено.");
     }
 }

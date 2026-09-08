@@ -32,6 +32,7 @@ public static class CharterTestDataFixed
 
     public const string RoleLeAdmin = "LE_ADMIN";
     public const string RoleCeo = "CEO";
+    public const string RoleParticipant = "PARTICIPANT";
 
     // ══════════════════════════════════════════════════════════════════════
     // Данные записей

@@ -44,7 +44,7 @@
 | 21 | Голосование | `US005_VotingTests` | ⏳ Не запущен | — |
 | 22 | Оповещения | `US010_NotificationTests` | ⏳ Не запущен | — |
 | 23 | Требования участника | `US020_ShareRequestTests` | ⏳ Не запущен | — |
-| 24 | Каталог документов | `US021_DocumentCatalogTests` | ⏳ Не запущен | — |
+| 24 | Каталог документов | `US021_DocumentCatalogTests` | ✅ Пройден 5 из 5 (08.09) | ShouldLoadWithExpectedContent, ShouldHaveAccordionOrEmptyState, ShouldNotShowNotFound, ApiShouldReturn200, ApiShouldReturnGroups |
 | 25 | ОСУ | `US022_OsuMeetingTests` | ⏳ Не запущен | — |
 | 26 | Участники ООО | `US023_ParticipantTests` | ⏳ Не запущен | — |
 | 27 | Договоры | `US024_ContractTests` | ⏳ Не запущен | — |
