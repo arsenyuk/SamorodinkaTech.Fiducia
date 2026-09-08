@@ -46,7 +46,7 @@
 | 23 | Требования участника | `US020_ShareRequestTests` | ✅ Пройден 5 из 5 (08.09) | ShouldLoadWithExpectedContent, ShouldHaveCreateButton, ShouldNotShowNotFound, ApiShouldReturn200, ShareRequestTypes_ApiShouldReturn200 |
 | 24 | Каталог документов | `US021_DocumentCatalogTests` | ✅ Пройден 5 из 5 (08.09) | ShouldLoadWithExpectedContent, ShouldHaveAccordionOrEmptyState, ShouldNotShowNotFound, ApiShouldReturn200, ApiShouldReturnGroups |
 | 25 | ОСУ | `US022_OsuMeetingTests` | ⏳ Не запущен | — |
-| 26 | Участники ООО | `US023_ParticipantTests` | ⏳ Не запущен | — |
+| 26 | Участники ООО | `US023_ParticipantTests` | ✅ Пройден 5 из 5 (08.09) | ShouldLoadWithExpectedContent, ShouldHaveTabsForLLC, ShouldNotShowNotFound, ApiShouldReturn200, ApiShouldReturnArray |
 | 27 | Договоры | `US024_ContractTests` | ⏳ Не запущен | — |
 | 28 | Ген. директор (таб) | `E2E_GeneralDirectorTests` | ✅ Пройден 6 из 6 (07.09) | TabVisible, TwoParticipants, SaveWithSnils, ExecBodyB_TabNotVisible, ExecBodyC_TabNotVisible, StandardCharter_ExecBodyA_TabVisible |
 | 29 | Управление пользователями | `E2E_UserManagementTests` | ✅ Пройден 3 из 3 (07.09) | AddEmployee_LdapNotFound, AddEmployee_LdapFoundButNoRole, AddEmployee_LdapFoundAndRoleSelected |
