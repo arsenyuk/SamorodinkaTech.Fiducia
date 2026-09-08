@@ -88,7 +88,8 @@ public static class CharterTestSeeder
             adminPage,
             entity.AdminUser.LastName, entity.AdminUser.FirstName, entity.AdminUser.MiddleName,
             entity.AdminUser.Position, entity.AdminUser.Login,
-            CharterTestDataFixed.RoleLeAdmin);
+            CharterTestDataFixed.RoleLeAdmin,
+            entity.Name);
 
         // ГД (или первый участник для типов B/C)
         if (persons.Gd is not null)
@@ -100,7 +101,8 @@ public static class CharterTestSeeder
                     adminPage,
                     persons.Gd.LastName, persons.Gd.FirstName, persons.Gd.MiddleName,
                     persons.Gd.Position, persons.Gd.Login,
-                    CharterTestDataFixed.RoleCeo);
+                    CharterTestDataFixed.RoleCeo,
+                    entity.Name);
             }
         }
         else if (persons.Participants.Count > 0)
@@ -116,7 +118,8 @@ public static class CharterTestSeeder
                         adminPage,
                         nameParts[0], nameParts[1], nameParts[2],
                         "Директор", p.Login,
-                        CharterTestDataFixed.RoleCeo);
+                        CharterTestDataFixed.RoleCeo,
+                        entity.Name);
                 }
             }
         }

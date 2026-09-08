@@ -126,14 +126,15 @@ public static class AdminConsoleHelper
         string middleName,
         string position,
         string login,
-        string roleCode)
+        string roleCode,
+        string? legalEntityName = null)
     {
         // Force full page load to ensure fresh data after DB reset
         await page.GotoAsync(PortalUrls.GetUrl(Portal.AdminConsole, "/access-management"));
         await AuthHelper.WaitForBlazorReady(page);
         await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
 
-        await EnsureEntitySelectedAsync(page);
+        await EnsureEntitySelectedAsync(page, legalEntityName);
 
         // Click "+ Добавить сотрудника"
         await page.ClickAsync("button.btn-primary.btn-sm:has-text('Добавить сотрудника')");
@@ -205,7 +206,7 @@ public static class AdminConsoleHelper
     /// Гарантировать, что ЮЛ выбрано в dropdown на странице /access-management.
     /// Если уже выбрано — no-op. Если нет — выбрать первое доступное.
     /// </summary>
-    private static async Task EnsureEntitySelectedAsync(IPage page)
+    private static async Task EnsureEntitySelectedAsync(IPage page, string? legalEntityName = null)
     {
         // Дождаться загрузки select с ЮЛ (>1 option)
         await page.WaitForFunctionAsync(
@@ -216,6 +217,31 @@ public static class AdminConsoleHelper
             null,
             new PageWaitForFunctionOptions { Timeout = DefaultTimeout });
 
+        // Если передано имя ЮЛ — выбрать его по тексту
+        if (!string.IsNullOrEmpty(legalEntityName))
+        {
+            var found = await page.EvaluateAsync<bool>(
+                $@"() => {{
+                    const sel = document.querySelector('.card-body select.form-select');
+                    if (!sel) return false;
+                    for (const opt of sel.options) {{
+                        if (opt.text.includes('{EscapeJs(legalEntityName)}')) {{
+                            sel.value = opt.value;
+                            sel.dispatchEvent(new Event('change', {{ bubbles: true }}));
+                            return true;
+                        }}
+                    }}
+                    return false;
+                }}");
+
+            if (found)
+            {
+                await page.WaitForTimeoutAsync(1000);
+                return;
+            }
+        }
+
+        // Fallback: выбрать первое доступное ЮЛ
         var isSelected = await page.EvaluateAsync<bool>(
             @"() => {
                 const sel = document.querySelector('.card-body select.form-select');
@@ -224,7 +250,6 @@ public static class AdminConsoleHelper
 
         if (!isSelected)
         {
-            // Выбрать первое доступное ЮЛ через Playwright SelectOption
             var firstOptionValue = await page.EvaluateAsync<string>(
                 @"() => {
                     const sel = document.querySelector('.card-body select.form-select');

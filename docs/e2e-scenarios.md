@@ -23,7 +23,7 @@
 | 4 | Типовой устав (04) | `E2E_StandardCharterTests::StandardCharter04_CompleteFlow` | ✅ Пройден 07.09 | — |
 | 5 | Типовой устав (05) | `E2E_StandardCharterTests::StandardCharter05_CompleteFlow` | ✅ Пройден 07.09 | — |
 | 6 | Типовой устав (06) | `E2E_StandardCharterTests::StandardCharter06_CompleteFlow` | ✅ Пройден 07.09 | — |
-| 7 | Типовой устав (07–36) | `E2E_StandardCharterTests` | ⏳ Не запущен | — |
+| 7 | Типовой устав (07–36) | `E2E_StandardCharterTests` | ✅ Пройден 07.09 | Исправлено: `EnsureEntitySelectedAsync` выбор нужного ЮЛ |
 | 5 | Нетиповой устав: ExitAllowed | `E2E_NonStandardCharterTests::NonStandardCharter_ExitAllowed` | ✅ Пройден 07.09 | Исправлены: `AddEmployeeAsync` + текст "Переход доли наследникам" |
 | 6 | Нетиповой устав: ExitMinSharePercent | `E2E_NonStandardCharterTests::NonStandardCharter_ExitMinSharePercent` | ✅ Пройден 07.09 | — |
 | 7 | Нетиповой устав: ExitMaxSharePercent | `E2E_NonStandardCharterTests::NonStandardCharter_ExitMaxSharePercent` | ✅ Пройден 07.09 | — |

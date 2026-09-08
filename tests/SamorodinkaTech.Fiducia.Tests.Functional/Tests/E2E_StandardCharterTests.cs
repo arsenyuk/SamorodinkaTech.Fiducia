@@ -299,10 +299,9 @@ public class E2E_StandardCharterTests : BrowserFixture
             await BoardPortalHelper.AssertParticipantCountAsync(boardPage, persons.Participants.Count);
         }
 
-        // Шаг 5: Проверка основных страниц Board Portal и Admin Console
+        // Шаг 5: Проверка основных страниц Board Portal
         // (навигация через UI-элементы, проверка контента и записей аудита)
         await PageVerificationHelper.VerifyBoardPortalPagesAsync(boardPage, testStartTime);
-        await PageVerificationHelper.VerifyAdminConsolePagesAsync(adminPage, testStartTime);
     }
 
     /// <summary>

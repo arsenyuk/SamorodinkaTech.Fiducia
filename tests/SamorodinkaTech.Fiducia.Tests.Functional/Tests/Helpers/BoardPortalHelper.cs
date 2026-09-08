@@ -537,11 +537,13 @@ public static class BoardPortalHelper
                     throw new Error(`GET /api/participants failed: ${response.status}`);
                 }
                 const data = await response.json();
-                return { count: Array.isArray(data) ? data.length : 0 };
+                const names = Array.isArray(data) ? data.map(p => p.fullName || p.login || 'unknown') : [];
+                return { count: names.length, names: names.join(', ') };
             }");
 
+        Console.WriteLine($"[ParticipantCount] Ожидалось: {expectedCount}, Получено: {result.Count}, Участники: {result.Names}");
         result.Count.Should().Be(expectedCount,
-            $"Ожидалось {expectedCount} участников, получено {result.Count}");
+            $"Ожидалось {expectedCount} участников, получено {result.Count} ({result.Names})");
     }
 
     /// <summary>DTO-ответ при добавлении участника.</summary>
@@ -556,7 +558,7 @@ public static class BoardPortalHelper
     }
 
     /// <summary>DTO-ответ при получении списка участников.</summary>
-    private class ParticipantListResponse { public int Count { get; set; } }
+    private class ParticipantListResponse { public int Count { get; set; } public string Names { get; set; } = ""; }
 
     /// <summary>
     /// Добавить участника с ПДн (паспорт, ИНН) через API.
