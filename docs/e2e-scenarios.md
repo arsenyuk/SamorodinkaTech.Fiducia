@@ -38,7 +38,7 @@
 | 15 | ЕИО: Все — директора | `E2E_NonStandardCharterTests::Model5_AllParticipantsDirectors` | ✅ Пройден 07.09 | — |
 | 16 | ЕИО: Все совместно | `E2E_NonStandardCharterTests::Model6_AllParticipantsJoint` | ✅ Пройден 07.09 | — |
 | 17 | ЕИО: Несколько ЕИО | `E2E_NonStandardCharterTests::Model7_MultipleEio` | ✅ Пройден 07.09 | — |
-| 18 | Авторизация | `US001_AuthorizationTests` | ⏳ Не запущен | — |
+| 18 | Авторизация | `US001_AuthorizationTests` | ✅ Пройден 6 из 6 (07.09) | LoginPage_ShowsSelectDropdown, AdminConsoleLoginPage_LoadsBlazorShell, LoginPage_ShowsNoSidebar, PublicLanding_Present, OnboardingPage_Rendered, ProposalPage_RenderedForAnonymousUsers |
 | 19 | Заседания СД | `US002_MeetingTests` | ⏳ Не запущен | — |
 | 20 | Комитеты | `US004_CommitteeTests` | ⏳ Не запущен | — |
 | 21 | Голосование | `US005_VotingTests` | ⏳ Не запущен | — |
@@ -48,10 +48,10 @@
 | 25 | ОСУ | `US022_OsuMeetingTests` | ⏳ Не запущен | — |
 | 26 | Участники ООО | `US023_ParticipantTests` | ⏳ Не запущен | — |
 | 27 | Договоры | `US024_ContractTests` | ⏳ Не запущен | — |
-| 28 | Ген. директор (таб) | `E2E_GeneralDirectorTests` | ✅ Пройден 4 из 6 (07.09) | TabVisible, TwoParticipants, SaveWithSnils, ExecBodyB_TabNotVisible |
-| 29 | Управление пользователями | `E2E_UserManagementTests` | ⏳ Не запущен | — |
-| 30 | ЕДИН-интеграция | `E2E_EdinIntegrationTests` | ⏳ Не запущен | — |
-| 31 | ЕДИН-сценарии | `E2E_EdinScenarioTests` | ⏳ Не запущен | — |
+| 28 | Ген. директор (таб) | `E2E_GeneralDirectorTests` | ✅ Пройден 6 из 6 (07.09) | TabVisible, TwoParticipants, SaveWithSnils, ExecBodyB_TabNotVisible, ExecBodyC_TabNotVisible, StandardCharter_ExecBodyA_TabVisible |
+| 29 | Управление пользователями | `E2E_UserManagementTests` | ✅ Пройден 3 из 3 (07.09) | AddEmployee_LdapNotFound, AddEmployee_LdapFoundButNoRole, AddEmployee_LdapFoundAndRoleSelected |
+| 30 | ЕДИН-интеграция | `E2E_EdinIntegrationTests` | ✅ Пройден 3 из 3 (07.09) | UsersList_ShouldHaveEdinColumn, UserDetail_ShouldHaveEdinTab, EdinTab_ShouldShowMpiMasterIdOrNotLinked |
+| 31 | ЕДИН-сценарии | `E2E_EdinScenarioTests` | ✅ Пройден 2 из 2 (07.09) | Scenario1_AdminCreatesLeAndBindsEdin, Scenario2_DeduplicationViaEdin |
 
 ### Легенда статусов
 
