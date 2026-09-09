@@ -584,6 +584,9 @@ app.MapContractEndpoints();
 // ── Participants API (Реестр участников общества) ──────────────────────
 app.MapParticipantEndpoints();
 
+// ── Board Setup API (Первичный ввод состава СД) ──────────────────────
+app.MapBoardSetupEndpoints();
+
 // ── Share Requests API (Запросы участника в общество + коллективные) ───
 app.MapShareRequestEndpoints();
 

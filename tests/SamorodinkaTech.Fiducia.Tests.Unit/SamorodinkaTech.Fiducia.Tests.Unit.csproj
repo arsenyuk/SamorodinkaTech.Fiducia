@@ -29,6 +29,7 @@
     <ProjectReference Include="..\..\src\Domain\SamorodinkaTech.Fiducia.Domain.csproj" />
     <ProjectReference Include="..\..\src\Infrastructure\SamorodinkaTech.Fiducia.Infrastructure.csproj" />
     <ProjectReference Include="..\..\src\Timeline\SamorodinkaTech.Fiducia.Timeline.csproj" />
+    <ProjectReference Include="..\..\SamorodinkaTech.Fiducia.BoardPortal\SamorodinkaTech.Fiducia.BoardPortal.csproj" />
   </ItemGroup>
 
   <ItemGroup>

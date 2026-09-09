@@ -88,6 +88,7 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
     public DbSet<SystemSetting> SystemSettings => Set<SystemSetting>();
 
     public DbSet<BoardParticipant> BoardParticipants => Set<BoardParticipant>();
+    public DbSet<BoardParticipantRole> BoardParticipantRoles => Set<BoardParticipantRole>();
     public DbSet<BoardTreasuryShare> BoardTreasuryShares => Set<BoardTreasuryShare>();
     public DbSet<BoardRegistryUpload> BoardRegistryUploads => Set<BoardRegistryUpload>();
     public DbSet<BoardParticipantChange> BoardParticipantChanges => Set<BoardParticipantChange>();
@@ -626,6 +627,21 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.Property(x => x.IsGeneralDirector).HasColumnName("is_general_director").IsRequired().HasDefaultValue(false);
             b.Property(x => x.Snils).HasColumnName("snils").HasMaxLength(14);
             b.HasIndex(x => x.LegalEntityId).HasDatabaseName("ix_board_participant_legal_entity");
+        });
+
+        modelBuilder.Entity<BoardParticipantRole>(b =>
+        {
+            b.ToTable("board_participant_role");
+            b.HasKey(x => x.Id);
+            b.Property(x => x.Id).HasColumnName("id");
+            b.Property(x => x.ParticipantId).HasColumnName("participant_id").IsRequired();
+            b.Property(x => x.RoleId).HasColumnName("role_id").IsRequired();
+            b.Property(x => x.AssignedAt).HasColumnName("assigned_at").IsRequired();
+            b.Property(x => x.AssignedBy).HasColumnName("assigned_by");
+            b.HasOne(x => x.Participant).WithMany().HasForeignKey(x => x.ParticipantId);
+            b.HasOne(x => x.Role).WithMany().HasForeignKey(x => x.RoleId);
+            b.HasIndex(x => x.ParticipantId).HasDatabaseName("ix_bpr_participant");
+            b.HasIndex(x => x.RoleId).HasDatabaseName("ix_bpr_role");
         });
 
         modelBuilder.Entity<BoardTreasuryShare>(b =>

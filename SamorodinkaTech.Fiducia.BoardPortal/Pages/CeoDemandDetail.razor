@@ -1,0 +1,281 @@
+@page "/ceo-demands/{Id:guid}"
+@using System.Net.Http.Json
+@using System.Text.Json
+@inject HttpClient Http
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+@inject ILogger<CeoDemandDetail> Logger
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "CEO")]
+
+<PageTitle>Fiducia — Рассмотрение требования</PageTitle>
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3>Рассмотрение требования</h3>
+        <a href="/ceo-demands" class="btn btn-outline-secondary btn-sm">← Назад к списку</a>
+    </div>
+
+    @if (_error is not null)
+    {
+        <div class="alert alert-danger">@_error</div>
+    }
+
+    @if (_loading)
+    {
+        <div class="text-center py-4">
+            <div class="spinner-border text-primary" role="status"></div>
+        </div>
+    }
+    else if (_demand is null)
+    {
+        <div class="alert alert-warning">Требование не найдено.</div>
+    }
+    else
+    {
+        @* ── Индикатор дедлайна ────────────────────────────────────── *@
+        @if (_demand.CollectiveStatus == "SUBMITTED_TO_CEO" && _demand.SubmittedToCeoAt.HasValue)
+        {
+            var daysElapsed = (DateTime.UtcNow - _demand.SubmittedToCeoAt.Value).TotalDays;
+            var daysRemaining = 5 - daysElapsed;
+            string bgClass; string icon; string deadlineText;
+            if (daysElapsed < 3)
+            {
+                bgClass = "bg-success"; icon = "✓";
+                deadlineText = $"Осталось {Math.Ceiling(daysRemaining)} дн. из 5";
+            }
+            else if (daysElapsed <= 5)
+            {
+                bgClass = "bg-warning text-dark"; icon = "⚠";
+                deadlineText = $"Осталось {Math.Ceiling(daysRemaining)} дн. из 5";
+            }
+            else
+            {
+                bgClass = "bg-danger"; icon = "✕";
+                deadlineText = $"Просрочено {Math.Floor(daysElapsed - 5)} дн. (дедлайн 5 дней)";
+            }
+            <div class="alert @bgClass py-3 mb-4">
+                <strong>@icon Дедлайн решения (п. 2 ст. 35 14-ФЗ):</strong> @deadlineText
+                <br />
+                <small>Дата поступления: @_demand.SubmittedToCeoAt.Value.ToString("dd.MM.yyyy HH:mm")</small>
+            </div>
+        }
+
+        @* ── Основная информация ──────────────────────────────────────── *@
+        <div class="card mb-4">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h5>@_demand.RequestTypeName</h5>
+                        <p><strong>Инициатор:</strong> @(_demand.InitiatorName ?? "—")</p>
+                        <p><strong>Доля инициатора:</strong> @_demand.TotalSupportPercent.ToString("F1")% голосов</p>
+                    </div>
+                    <div class="col-md-6 text-end">
+                        @GetStatusBadge(_demand.CollectiveStatus)
+                    </div>
+                </div>
+                <hr />
+                @if (!string.IsNullOrEmpty(_demand.Payload))
+                {
+                    <div class="mb-3">
+                        <strong>Текст требования:</strong>
+                        <div class="mt-1 p-3 bg-light rounded">
+                            @if (TryParsePayloadText(_demand.Payload, out var text))
+                            {
+                                <p class="mb-0">@text</p>
+                            }
+                            else
+                            {
+                                <p class="mb-0">@_demand.Payload</p>
+                            }
+                        </div>
+                    </div>
+                }
+                @if (!string.IsNullOrEmpty(_demand.Payload) && TryParsePayloadReason(_demand.Payload, out var reason) && !string.IsNullOrEmpty(reason))
+                {
+                    <div class="mb-3">
+                        <strong>Основание:</strong>
+                        <p class="mt-1 mb-0">@reason</p>
+                    </div>
+                }
+                <div>
+                    <strong>Дата создания:</strong> @_demand.CreatedAt.ToString("dd.MM.yyyy HH:mm")
+                </div>
+            </div>
+        </div>
+
+        @* ── Панель решения CEO ──────────────────────────────────────── *@
+        @if (_demand.CollectiveStatus == "SUBMITTED_TO_CEO")
+        {
+            <div class="card mb-4 border-primary">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Решение Генерального директора</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Комментарий к решению</label>
+                        <textarea class="form-control" @bind="_ceoComment" rows="3"
+                                  placeholder="Причина принятия/отклонения (необязательно)"></textarea>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-success" @onclick="@(() => DecideAsync("ACCEPTED"))" disabled="@_isDeciding">
+                            @if (_isDeciding)
+                            {
+                                <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                            }
+                            Принять требование
+                        </button>
+                        <button class="btn btn-danger" @onclick="@(() => DecideAsync("REJECTED"))" disabled="@_isDeciding">
+                            Отклонить
+                        </button>
+                    </div>
+                </div>
+            </div>
+        }
+
+        @* ── Решение уже принято ────────────────────────────────────── *@
+        @if (_demand.CollectiveStatus == "ACCEPTED" || _demand.CollectiveStatus == "REJECTED")
+        {
+            var isAccepted = _demand.CollectiveStatus == "ACCEPTED";
+            <div class="card mb-4 @(isAccepted ? "border-success" : "border-danger")">
+                <div class="card-body">
+                    <h5>@(isAccepted ? "Требование принято" : "Требование отклонено")</h5>
+                    @if (!string.IsNullOrEmpty(_demand.CeoComment))
+                    {
+                        <p><strong>Комментарий:</strong></p>
+                        <blockquote class="blockquote">
+                            <p class="mb-0">@_demand.CeoComment</p>
+                        </blockquote>
+                    }
+                    @if (_demand.CeoDecisionAt.HasValue)
+                    {
+                        <p><strong>Дата решения:</strong> @_demand.CeoDecisionAt.Value.ToString("dd.MM.yyyy HH:mm")</p>
+                    }
+                    @if (isAccepted && _demand.OrgIntentId.HasValue)
+                    {
+                        <a href="/org-plan" class="btn btn-success mt-2">
+                            Перейти к плану ВОСУ
+                        </a>
+                    }
+                </div>
+            </div>
+        }
+    }
+</div>
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+
+    private DemandDetailDto? _demand;
+    private bool _loading = true;
+    private bool _isDeciding;
+    private string? _error;
+    private string? _ceoComment;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _demand = await Http.GetFromJsonAsync<DemandDetailDto>($"/api/share-requests/ceo/{Id}");
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Ошибка загрузки требования {Id}", Id);
+            _error = "Ошибка загрузки данных";
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task DecideAsync(string decision)
+    {
+        var actionText = decision == "ACCEPTED" ? "принять" : "отклонить";
+        var confirmed = await JS.InvokeAsync<bool>("confirm", $"Вы уверены, что хотите {actionText} требование?");
+        if (!confirmed) return;
+
+        _isDeciding = true;
+        _error = null;
+
+        try
+        {
+            var dto = new { Decision = decision, Comment = _ceoComment };
+            var response = await Http.PostAsJsonAsync($"/api/share-requests/{Id}/decide", dto);
+            if (response.IsSuccessStatusCode)
+            {
+                Nav.NavigateTo($"/ceo-demands/{Id}", forceLoad: true);
+            }
+            else
+            {
+                var body = await response.Content.ReadAsStringAsync();
+                _error = $"Ошибка: {body}";
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Ошибка решения по требованию {Id}", Id);
+            _error = $"Ошибка сохранения: {ex.Message}";
+        }
+        finally
+        {
+            _isDeciding = false;
+        }
+    }
+
+    private static bool TryParsePayloadText(string payload, out string? text)
+    {
+        text = null;
+        try
+        {
+            var json = JsonSerializer.Deserialize<JsonElement>(payload);
+            if (json.TryGetProperty("text", out var textProp))
+            {
+                text = textProp.GetString();
+                return text is not null;
+            }
+        }
+        catch { /* не JSON */ }
+        return false;
+    }
+
+    private static bool TryParsePayloadReason(string payload, out string? reason)
+    {
+        reason = null;
+        try
+        {
+            var json = JsonSerializer.Deserialize<JsonElement>(payload);
+            if (json.TryGetProperty("reason", out var reasonProp))
+            {
+                reason = reasonProp.GetString();
+                return reason is not null;
+            }
+        }
+        catch { /* не JSON */ }
+        return false;
+    }
+
+    private static MarkupString GetStatusBadge(string? status) => status switch
+    {
+        "SUBMITTED_TO_CEO" => new("<span class='badge bg-warning fs-6'>Требует решения</span>"),
+        "ACCEPTED" => new("<span class='badge bg-success fs-6'>Принято</span>"),
+        "REJECTED" => new("<span class='badge bg-danger fs-6'>Отклонено</span>"),
+        _ => new($"<span class='badge bg-secondary fs-6'>{status}</span>")
+    };
+
+    private record DemandDetailDto(
+        Guid Id,
+        string? RequestTypeName,
+        string? RequestTypeCode,
+        string? InitiatorName,
+        string? Payload,
+        string? Status,
+        string? CollectiveStatus,
+        decimal? ThresholdPercent,
+        decimal TotalSupportPercent,
+        int SupporterCount,
+        DateTime CreatedAt,
+        DateTime? SubmittedToCeoAt,
+        DateTime? CeoDecisionAt,
+        string? CeoComment,
+        Guid? OrgIntentId);
+}

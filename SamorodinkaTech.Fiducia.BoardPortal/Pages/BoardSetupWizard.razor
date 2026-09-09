@@ -1,0 +1,400 @@
+@page "/board-setup"
+@using Microsoft.EntityFrameworkCore
+@inject IDbContextFactory<FiduciaDbContext> DbFactory
+@inject HttpClient Http
+@inject ILogger<BoardSetupWizard> Logger
+@inject NavigationManager Navigation
+
+<h3>Совет директоров — настройка состава</h3>
+
+@if (_loading)
+{
+    <div class="text-center py-5">
+        <span class="spinner-border"></span> Загрузка...
+    </div>
+}
+else if (!string.IsNullOrEmpty(_loadError))
+{
+    <div class="alert alert-danger">@_loadError</div>
+}
+else
+{
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Структура СД</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-4">
+                    <strong>Председатель СД</strong> <span class="badge bg-success">✓ Обязательно</span>
+                </div>
+                <div class="col-md-4">
+                    <strong>Зам. председателя</strong>
+                    @if (_deputyChairProvided)
+                    {
+                        <span class="badge bg-success">✓ Предусмотрен</span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-secondary">Не предусмотрен</span>
+                    }
+                </div>
+                <div class="col-md-4">
+                    <strong>Секретарь СД</strong>
+                    @if (_secretaryProvided)
+                    {
+                        <span class="badge bg-success">✓ Предусмотрен</span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-secondary">Не предусмотрен</span>
+                    }
+                </div>
+            </div>
+            @if (_secretarySignsProtocols)
+            {
+                <div class="text-muted small mt-2">Секретарь СД подписывает протоколы</div>
+            }
+        </div>
+    </div>
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="mb-0">Состав Совета директоров</h5>
+        <div class="d-flex gap-2">
+            <button class="btn btn-primary btn-sm" @onclick="OpenAddDialog">
+                Добавить участника СД
+            </button>
+            <button class="btn btn-outline-primary btn-sm" @onclick="OpenSearchDialog">
+                Найти среди участников/сотрудников
+            </button>
+        </div>
+    </div>
+
+    @if (_validationErrors.Count > 0)
+    {
+        <div class="alert alert-warning py-2">
+            @foreach (var err in _validationErrors)
+            {
+                <div>@err</div>
+            }
+        </div>
+    }
+
+    @if (_assignments.Count == 0)
+    {
+        <div class="alert alert-info">
+            Состав СД пока не заполнен. Нажмите «Добавить участника СД» или «Найти среди участников/сотрудников».
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-bordered table-hover">
+                <thead class="table-light">
+                    <tr>
+                        <th>Роль</th>
+                        <th>ФИО</th>
+                        <th>ИНН</th>
+                        <th>Ecosystem</th>
+                        <th style="width:150px">Действия</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var a in _assignments)
+                    {
+                        <tr>
+                            <td>
+                                <select class="form-select form-select-sm" value="@a.RoleCode" @onchange="e => ChangeRole(a, e)">
+                                    <option value="CHAIR">Председатель СД</option>
+                                    @if (_deputyChairProvided) { <option value="DEPUTY_CHAIR">Зам. председателя</option> }
+                                    @if (_secretaryProvided) { <option value="SECRETARY">Секретарь СД</option> }
+                                    <option value="MEMBER">Член СД</option>
+                                </select>
+                            </td>
+                            <td>@a.FullName</td>
+                            <td>@a.PersonInn</td>
+                            <td>
+                                @if (a.EcosystemBound)
+                                {
+                                    <span class="badge bg-success">✓ Привязан</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-warning text-dark">✗ Не привязан</span>
+                                }
+                            </td>
+                            <td>
+                                <button class="btn btn-outline-danger btn-sm" @onclick="() => RemoveAssignment(a)">
+                                    Удалить
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <div class="mt-3 d-flex gap-2">
+            <button class="btn btn-success" @onclick="SaveAsync" disabled="@(_saving || _assignments.Count == 0)">
+                @if (_saving) { <span class="spinner-border spinner-border-sm"></span> }
+                Сохранить состав СД
+            </button>
+            <button class="btn btn-secondary" @onclick="GoBack">Назад</button>
+        </div>
+
+        @if (!string.IsNullOrEmpty(_saveResult))
+        {
+            <div class="alert @(_saveSuccess ? "alert-success" : "alert-danger") mt-3 py-2">@_saveResult</div>
+        }
+    }
+}
+
+<AddBoardMemberDialog Visible="@_showAddDialog"
+                      LegalEntityId="@_legalEntityId"
+                      DeputyChairProvided="@_deputyChairProvided"
+                      SecretaryProvided="@_secretaryProvided"
+                      OnSaved="OnAddSaved"
+                      OnClose="() => _showAddDialog = false" />
+
+<SearchParticipantsDialog Visible="@_showSearchDialog"
+                          LegalEntityId="@_legalEntityId"
+                          DeputyChairProvided="@_deputyChairProvided"
+                          SecretaryProvided="@_secretaryProvided"
+                          ExistingRoleParticipantIds="@_assignments.Select(a => a.ParticipantId).ToList()"
+                          OnSelected="OnSearchSelected"
+                          OnClose="() => _showSearchDialog = false" />
+
+@code {
+    [SupplyParameterFromQuery] public Guid? LeId { get; set; }
+
+    private Guid _legalEntityId;
+    private bool _loading = true;
+    private string? _loadError;
+
+    private bool _deputyChairProvided;
+    private bool _secretaryProvided;
+    private bool _secretarySignsProtocols;
+
+    private List<BoardAssignmentRow> _assignments = new();
+    private List<string> _validationErrors = new();
+
+    private bool _showAddDialog;
+    private bool _showSearchDialog;
+    private bool _saving;
+    private string? _saveResult;
+    private bool _saveSuccess;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _legalEntityId = LeId ?? Guid.Empty;
+        if (_legalEntityId == Guid.Empty)
+        {
+            _loadError = "Не указано юридическое лицо (параметр leId)";
+            _loading = false;
+            return;
+        }
+
+        await LoadDataAsync();
+    }
+
+    private async Task LoadDataAsync()
+    {
+        _loading = true;
+        _loadError = null;
+
+        try
+        {
+            var response = await Http.GetFromJsonAsync<BoardSetupLoadResult>(
+                $"/api/v1/board-setup?legalEntityId={_legalEntityId}");
+
+            if (response is null)
+            {
+                _loadError = "Не удалось загрузить данные";
+                return;
+            }
+
+            _deputyChairProvided = response.DeputyChairProvided;
+            _secretaryProvided = response.SecretaryProvided;
+            _secretarySignsProtocols = response.SecretarySignsProtocols;
+
+            _assignments = response.Assignments?.Select(a => new BoardAssignmentRow
+            {
+                ParticipantId = a.ParticipantId,
+                FullName = a.FullName,
+                PersonInn = a.PersonInn,
+                RoleCode = a.RoleCode,
+                RoleName = a.RoleName,
+                EcosystemBound = a.EcosystemBound
+            }).ToList() ?? new();
+        }
+        catch (Exception ex)
+        {
+            _loadError = ex.Message;
+            Logger.LogWarning(ex, "Ошибка загрузки состава СД для ЮЛ {LeId}", _legalEntityId);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private void OpenAddDialog() => _showAddDialog = true;
+    private void OpenSearchDialog() => _showSearchDialog = true;
+
+    private void OnAddSaved(AddBoardMemberDialog.BoardSetupResult result)
+    {
+        _assignments.Add(new BoardAssignmentRow
+        {
+            ParticipantId = result.ParticipantId,
+            FullName = result.FullName,
+            RoleCode = result.RoleCode,
+            RoleName = result.RoleName,
+            EcosystemBound = false
+        });
+        _showAddDialog = false;
+        Validate();
+    }
+
+    private void OnSearchSelected(SearchParticipantsDialog.SearchParticipantResult result)
+    {
+        // Проверяем, нет ли уже этого участника в списке
+        if (_assignments.Any(a => a.ParticipantId == result.ParticipantId))
+        {
+            _validationErrors.Add($"Участник {result.FullName} уже в списке СД");
+            return;
+        }
+
+        _assignments.Add(new BoardAssignmentRow
+        {
+            ParticipantId = result.ParticipantId,
+            FullName = result.FullName,
+            RoleCode = result.RoleCode,
+            RoleName = result.RoleName,
+            EcosystemBound = false // будет обновлено при сохранении
+        });
+        _showSearchDialog = false;
+        Validate();
+    }
+
+    private void ChangeRole(BoardAssignmentRow assignment, ChangeEventArgs e)
+    {
+        var newRoleCode = e.Value?.ToString() ?? "";
+        var roleNames = new Dictionary<string, string>
+        {
+            ["CHAIR"] = "Председатель СД",
+            ["DEPUTY_CHAIR"] = "Зам. председателя",
+            ["SECRETARY"] = "Секретарь СД",
+            ["MEMBER"] = "Член СД"
+        };
+
+        assignment.RoleCode = newRoleCode;
+        assignment.RoleName = roleNames.GetValueOrDefault(newRoleCode, newRoleCode);
+        Validate();
+    }
+
+    private void RemoveAssignment(BoardAssignmentRow assignment)
+    {
+        _assignments.Remove(assignment);
+        Validate();
+    }
+
+    private void Validate()
+    {
+        _validationErrors = new();
+
+        var chairs = _assignments.Count(a => a.RoleCode == "CHAIR");
+        if (chairs == 0)
+            _validationErrors.Add("Необходимо назначить Председателя СД");
+        else if (chairs > 1)
+            _validationErrors.Add("Должен быть ровно 1 Председатель СД");
+
+        var deputies = _assignments.Count(a => a.RoleCode == "DEPUTY_CHAIR");
+        if (deputies > 1)
+            _validationErrors.Add("Не более 1 Зам. председателя СД");
+
+        var secretaries = _assignments.Count(a => a.RoleCode == "SECRETARY");
+        if (secretaries > 1)
+            _validationErrors.Add("Не более 1 Секретаря СД");
+    }
+
+    private async Task SaveAsync()
+    {
+        Validate();
+        if (_validationErrors.Count > 0) return;
+
+        _saving = true;
+        _saveResult = null;
+
+        try
+        {
+            var request = new
+            {
+                LegalEntityId = _legalEntityId,
+                Assignments = _assignments.Select(a => new
+                {
+                    ParticipantId = a.ParticipantId,
+                    RoleCode = a.RoleCode
+                }).ToList()
+            };
+
+            var response = await Http.PostAsJsonAsync("/api/v1/board-setup/save", request);
+
+            if (response.IsSuccessStatusCode)
+            {
+                _saveSuccess = true;
+                _saveResult = "Состав Совета директоров успешно сохранён";
+            }
+            else
+            {
+                var body = await response.Content.ReadAsStringAsync();
+                _saveSuccess = false;
+                _saveResult = $"Ошибка ({(int)response.StatusCode}): {body}";
+            }
+        }
+        catch (Exception ex)
+        {
+            _saveSuccess = false;
+            _saveResult = ex.Message;
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private void GoBack()
+    {
+        Navigation.NavigateTo($"/legal-entities");
+    }
+
+    // ── Модели ──
+
+    private class BoardAssignmentRow
+    {
+        public Guid ParticipantId { get; set; }
+        public string? FullName { get; set; }
+        public string? PersonInn { get; set; }
+        public string RoleCode { get; set; } = "";
+        public string RoleName { get; set; } = "";
+        public bool EcosystemBound { get; set; }
+    }
+
+    private class BoardSetupLoadResult
+    {
+        public bool DeputyChairProvided { get; set; }
+        public bool SecretaryProvided { get; set; }
+        public bool SecretarySignsProtocols { get; set; }
+        public bool HasBoardOfDirectors { get; set; }
+        public List<BoardSetupAssignmentDto>? Assignments { get; set; }
+    }
+
+    private class BoardSetupAssignmentDto
+    {
+        public Guid ParticipantId { get; set; }
+        public string? FullName { get; set; }
+        public string? PersonInn { get; set; }
+        public string? RoleCode { get; set; }
+        public string? RoleName { get; set; }
+        public bool EcosystemBound { get; set; }
+    }
+}

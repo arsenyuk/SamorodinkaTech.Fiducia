@@ -1,0 +1,237 @@
+@inject IDbContextFactory<FiduciaDbContext> DbFactory
+@inject HttpClient Http
+
+@if (Visible)
+{
+    <div class="modal show d-block" tabindex="-1" style="background-color:rgba(0,0,0,.5)">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Найти среди участников/сотрудников ЮЛ</h5>
+                    <button class="btn-close" @onclick="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <div class="input-group">
+                            <input type="text" class="form-control" @bind="_searchQuery" placeholder="ФИО, ИНН, серия/номер паспорта"
+                                   @onkeydown="OnSearchKeydown">
+                            <button class="btn btn-outline-secondary" @onclick="SearchAsync" disabled="@_searching">
+                                @if (_searching) { <span class="spinner-border spinner-border-sm"></span> } else { <span>🔍</span> }
+                            </button>
+                        </div>
+                    </div>
+
+                    @if (_searchResults.Count > 0)
+                    {
+                        <div class="table-responsive" style="max-height:300px;overflow-y:auto">
+                            <table class="table table-hover table-sm mb-0">
+                                <thead class="sticky-top bg-white">
+                                    <tr>
+                                        <th>ФИО</th>
+                                        <th>ИНН</th>
+                                        <th>Ecosystem</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var p in _searchResults)
+                                    {
+                                        <tr>
+                                            <td>@p.FullName</td>
+                                            <td>@p.PersonInn</td>
+                                            <td>
+                                                @if (p.EcosystemBound)
+                                                {
+                                                    <span class="badge bg-success">✓</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-secondary">✗</span>
+                                                }
+                                            </td>
+                                            <td>
+                                                <button class="btn btn-sm btn-outline-primary" @onclick="() => SelectParticipantAsync(p)">Выбрать</button>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else if (!string.IsNullOrEmpty(_searchQuery) && !_searching && _hasSearched)
+                    {
+                        <div class="text-muted text-center py-3">Ничего не найдено</div>
+                    }
+
+                    @if (_selectedParticipant is not null)
+                    {
+                        <hr />
+                        <h6>Назначение роли: @_selectedParticipant.FullName</h6>
+                        <div class="mb-3">
+                            <label class="form-label">Роль в СД *</label>
+                            <select class="form-select" @bind="_roleCode">
+                                <option value="">— Выберите роль —</option>
+                                @foreach (var r in _availableRoles)
+                                {
+                                    <option value="@r.Code">@r.Name</option>
+                                }
+                            </select>
+                        </div>
+
+                        @if (!string.IsNullOrEmpty(_assignError))
+                        {
+                            <div class="alert alert-danger py-1 px-2 mb-2">@_assignError</div>
+                        }
+
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-primary btn-sm" @onclick="AssignRoleAsync" disabled="@(_assigning || string.IsNullOrWhiteSpace(_roleCode))">
+                                @if (_assigning) { <span class="spinner-border spinner-border-sm"></span> } else { @("Назначить") }
+                            </button>
+                            <button class="btn btn-secondary btn-sm" @onclick="() => _selectedParticipant = null">Отмена</button>
+                        </div>
+                    }
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" @onclick="Close">Закрыть</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public bool Visible { get; set; }
+    [Parameter] public Guid LegalEntityId { get; set; }
+    [Parameter] public bool DeputyChairProvided { get; set; }
+    [Parameter] public bool SecretaryProvided { get; set; }
+    [Parameter] public List<Guid>? ExistingRoleParticipantIds { get; set; }
+    [Parameter] public EventCallback<SearchParticipantResult> OnSelected { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+
+    private string _searchQuery = "";
+    private bool _searching;
+    private bool _hasSearched;
+    private List<SearchParticipantDto> _searchResults = new();
+    private SearchParticipantDto? _selectedParticipant;
+    private string _roleCode = "";
+    private bool _assigning;
+    private string? _assignError;
+
+    private List<RefBoardRole> _availableRoles = new();
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (!Visible) return;
+
+        await using var ctx = await DbFactory.CreateDbContextAsync();
+
+        var allRoles = await ctx.BoardRoles.OrderBy(r => r.SortOrder).ToListAsync();
+        _availableRoles = allRoles.Where(r =>
+            r.Code == "CHAIR"
+            || (r.Code == "DEPUTY_CHAIR" && DeputyChairProvided)
+            || (r.Code == "SECRETARY" && SecretaryProvided)
+            || r.Code == "MEMBER"
+        ).ToList();
+    }
+
+    private async Task SearchAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_searchQuery)) return;
+
+        _searching = true;
+        _hasSearched = true;
+        _selectedParticipant = null;
+        _assignError = null;
+
+        try
+        {
+            var url = $"/api/v1/board-setup/search-participants?legalEntityId={LegalEntityId}&query={Uri.EscapeDataString(_searchQuery.Trim())}";
+            _searchResults = await Http.GetFromJsonAsync<List<SearchParticipantDto>>(url) ?? new();
+        }
+        catch
+        {
+            _searchResults = new();
+        }
+        finally
+        {
+            _searching = false;
+        }
+    }
+
+    private async Task OnSearchKeydown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+            await SearchAsync();
+    }
+
+    private void SelectParticipantAsync(SearchParticipantDto participant)
+    {
+        _selectedParticipant = participant;
+        _roleCode = "";
+        _assignError = null;
+    }
+
+    private async Task AssignRoleAsync()
+    {
+        if (_selectedParticipant is null || string.IsNullOrWhiteSpace(_roleCode)) return;
+
+        _assigning = true;
+        _assignError = null;
+
+        try
+        {
+            var role = _availableRoles.FirstOrDefault(r => r.Code == _roleCode);
+            if (role is null)
+            {
+                _assignError = "Неизвестная роль";
+                return;
+            }
+
+            await OnSelected.InvokeAsync(new SearchParticipantResult
+            {
+                ParticipantId = _selectedParticipant.ParticipantId,
+                FullName = _selectedParticipant.FullName,
+                RoleCode = _roleCode,
+                RoleName = role.Name
+            });
+
+            _selectedParticipant = null;
+            _roleCode = "";
+        }
+        catch (Exception ex)
+        {
+            _assignError = ex.Message;
+        }
+        finally
+        {
+            _assigning = false;
+        }
+    }
+
+    private async Task Close()
+    {
+        _searchQuery = "";
+        _searchResults = new();
+        _selectedParticipant = null;
+        _roleCode = "";
+        _assignError = null;
+        _hasSearched = false;
+        await OnClose.InvokeAsync();
+    }
+
+    public class SearchParticipantDto
+    {
+        public Guid ParticipantId { get; set; }
+        public string? FullName { get; set; }
+        public string? PersonInn { get; set; }
+        public bool EcosystemBound { get; set; }
+    }
+
+    public class SearchParticipantResult
+    {
+        public Guid ParticipantId { get; set; }
+        public string? FullName { get; set; }
+        public string RoleCode { get; set; } = "";
+        public string RoleName { get; set; } = "";
+    }
+}

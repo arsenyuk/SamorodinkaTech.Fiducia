@@ -1805,30 +1805,58 @@
                 }
                 else
                 {
-                    // Новый состав: строки по количеству участников СД (секретарь — дополнительно)
-                    var memberCount = editBoardMemberNumber ?? (editBoardMinNumber ?? 3);
-                    var membRoleId = memberRoleId;
+                    // Пытаемся заполнить из board_participant_role (первичный ввод СД)
+                    if (editLegalEntityId.HasValue)
+                    {
+                        var participantRoles = await ctx.BoardParticipantRoles
+                            .Include(pr => pr.Participant)
+                            .Include(pr => pr.Role)
+                            .Where(pr => pr.Participant != null
+                                      && pr.Participant.LegalEntityId == editLegalEntityId.Value
+                                      && pr.Participant.IsActive)
+                            .ToListAsync();
 
-                    for (int i = 0; i < memberCount; i++)
-                    {
-                        boardMemberRows.Add(new BoardMemberRow
+                        if (participantRoles.Count > 0)
                         {
-                            Name = "",
-                            RoleId = membRoleId,
-                            StartedAt = DateTime.Today.ToString("yyyy-MM-dd")
-                        });
+                            foreach (var pr in participantRoles.OrderBy(pr => pr.Role?.SortOrder))
+                            {
+                                boardMemberRows.Add(new BoardMemberRow
+                                {
+                                    Name = pr.Participant?.FullName ?? "",
+                                    RoleId = pr.RoleId,
+                                    StartedAt = DateTime.Today.ToString("yyyy-MM-dd")
+                                });
+                            }
+                        }
                     }
-                    // Секретарь — дополнительный состав, не входит в editBoardMemberNumber
-                    if (editSecretaryProvided)
+
+                    // Если из board_participant_role ничего не получилось — пустые строки
+                    if (boardMemberRows.Count == 0)
                     {
-                        var secRoleId = boardRoles.FirstOrDefault(r => r.Code == "SECRETARY")?.Id;
-                        boardMemberRows.Add(new BoardMemberRow
+                        var memberCount = editBoardMemberNumber ?? (editBoardMinNumber ?? 3);
+                        var membRoleId = memberRoleId;
+
+                        for (int i = 0; i < memberCount; i++)
                         {
-                            Name = "",
-                            RoleId = secRoleId ?? membRoleId,
-                            MemberTypeId = staffMemberTypeId,
-                            StartedAt = DateTime.Today.ToString("yyyy-MM-dd")
-                        });
+                            boardMemberRows.Add(new BoardMemberRow
+                            {
+                                Name = "",
+                                RoleId = membRoleId,
+                                StartedAt = DateTime.Today.ToString("yyyy-MM-dd")
+                            });
+                        }
+                        // Секретарь — дополнительный состав, не входит в editBoardMemberNumber
+                        if (editSecretaryProvided)
+                        {
+                            var secRoleId = boardRoles.FirstOrDefault(r => r.Code == "SECRETARY")?.Id;
+                            boardMemberRows.Add(new BoardMemberRow
+                            {
+                                Name = "",
+                                RoleId = secRoleId ?? membRoleId,
+                                MemberTypeId = staffMemberTypeId,
+                                StartedAt = DateTime.Today.ToString("yyyy-MM-dd")
+                            });
+                        }
                     }
                 }
                 ComputeBoardMemberNumber();

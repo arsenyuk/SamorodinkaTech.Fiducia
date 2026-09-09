@@ -80,6 +80,7 @@ public interface IApplicationDbContext
     DbSet<SystemSetting> SystemSettings { get; }
 
     DbSet<BoardParticipant> BoardParticipants { get; }
+    DbSet<BoardParticipantRole> BoardParticipantRoles { get; }
     DbSet<BoardTreasuryShare> BoardTreasuryShares { get; }
     DbSet<BoardRegistryUpload> BoardRegistryUploads { get; }
     DbSet<BoardParticipantChange> BoardParticipantChanges { get; }

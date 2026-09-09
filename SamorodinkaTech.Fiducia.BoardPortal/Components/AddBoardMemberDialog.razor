@@ -1,0 +1,292 @@
+@inject IDbContextFactory<FiduciaDbContext> DbFactory
+@inject IEdinApiClient EdinApi
+
+@if (Visible)
+{
+    <div class="modal show d-block" tabindex="-1" style="background-color:rgba(0,0,0,.5)">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Добавить участника СД</h5>
+                    <button class="btn-close" @onclick="Close"></button>
+                </div>
+                <div class="modal-body">
+                    @if (!string.IsNullOrEmpty(_error))
+                    {
+                        <div class="alert alert-danger py-1 px-2 mb-3">@_error</div>
+                    }
+
+                    <div class="mb-3 row">
+                        <label class="col-sm-4 col-form-label">Роль в СД *</label>
+                        <div class="col-sm-8">
+                            <select class="form-select" @bind="_roleCode">
+                                <option value="">— Выберите роль —</option>
+                                @foreach (var r in _availableRoles)
+                                {
+                                    <option value="@r.Code">@r.Name</option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+
+                    <hr />
+                    <h6 class="mb-3">Личные данные</h6>
+
+                    <div class="mb-3 row">
+                        <label class="col-sm-4 col-form-label">ФИО *</label>
+                        <div class="col-sm-8">
+                            <input type="text" class="form-control" @bind="_fullName" placeholder="Фамилия Имя Отчество">
+                        </div>
+                    </div>
+
+                    <div class="mb-3 row">
+                        <label class="col-sm-4 col-form-label">Вид ДУЛ</label>
+                        <div class="col-sm-8">
+                            <select class="form-select" @bind="_dulTypeId">
+                                <option value="">— Не выбрано —</option>
+                                @foreach (var d in _dulTypes)
+                                {
+                                    <option value="@d.Id">@d.Name</option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="mb-3 row">
+                        <label class="col-sm-4 col-form-label">Серия паспорта</label>
+                        <div class="col-sm-8">
+                            <input type="text" class="form-control" @bind="_passportSeries" maxlength="10">
+                        </div>
+                    </div>
+
+                    <div class="mb-3 row">
+                        <label class="col-sm-4 col-form-label">Номер паспорта</label>
+                        <div class="col-sm-8">
+                            <input type="text" class="form-control" @bind="_passportNumber" maxlength="10">
+                        </div>
+                    </div>
+
+                    <div class="mb-3 row">
+                        <label class="col-sm-4 col-form-label">ИНН</label>
+                        <div class="col-sm-8">
+                            <input type="text" class="form-control" @bind="_personInn" maxlength="12">
+                        </div>
+                    </div>
+
+                    <div class="mb-3 row">
+                        <label class="col-sm-4 col-form-label">СНИЛС</label>
+                        <div class="col-sm-8">
+                            <input type="text" class="form-control" @bind="_snils" maxlength="14" placeholder="XXX-XXX-XXX XX">
+                        </div>
+                    </div>
+
+                    <div class="mb-3 row">
+                        <label class="col-sm-4 col-form-label">Эл. почта</label>
+                        <div class="col-sm-8">
+                            <input type="email" class="form-control" @bind="_email">
+                        </div>
+                    </div>
+
+                    @if (_saving)
+                    {
+                        <div class="text-center mt-3">
+                            <span class="spinner-border spinner-border-sm"></span> Сохранение...
+                        </div>
+                    }
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" @onclick="Close" disabled="@_saving">Отмена</button>
+                    <button class="btn btn-primary" @onclick="SaveAsync" disabled="@(_saving || !CanSave)">
+                        Добавить
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public bool Visible { get; set; }
+    [Parameter] public Guid LegalEntityId { get; set; }
+    [Parameter] public bool DeputyChairProvided { get; set; }
+    [Parameter] public bool SecretaryProvided { get; set; }
+    [Parameter] public EventCallback<BoardSetupResult> OnSaved { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+
+    private string _roleCode = "";
+    private string _fullName = "";
+    private Guid? _dulTypeId;
+    private string _passportSeries = "";
+    private string _passportNumber = "";
+    private string _personInn = "";
+    private string _snils = "";
+    private string _email = "";
+    private bool _saving;
+    private string? _error;
+
+    private List<RefBoardRole> _availableRoles = new();
+    private List<RefDulType> _dulTypes = new();
+
+    private bool CanSave => !string.IsNullOrWhiteSpace(_roleCode)
+        && !string.IsNullOrWhiteSpace(_fullName);
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (!Visible) return;
+
+        await using var ctx = await DbFactory.CreateDbContextAsync();
+
+        var allRoles = await ctx.BoardRoles.OrderBy(r => r.SortOrder).ToListAsync();
+        _availableRoles = allRoles.Where(r =>
+            r.Code == "CHAIR"
+            || (r.Code == "DEPUTY_CHAIR" && DeputyChairProvided)
+            || (r.Code == "SECRETARY" && SecretaryProvided)
+            || r.Code == "MEMBER"
+        ).ToList();
+
+        _dulTypes = await ctx.RefDulTypes.OrderBy(d => d.Name).ToListAsync();
+    }
+
+    private async Task SaveAsync()
+    {
+        _error = null;
+        _saving = true;
+
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+
+            // Определяем participant_type
+            var participantType = "FL";
+
+            var maxSort = await ctx.BoardParticipants
+                .Where(p => p.LegalEntityId == LegalEntityId)
+                .MaxAsync(p => (int?)p.SortOrder) ?? 0;
+
+            var participant = new BoardParticipant
+            {
+                Id = Guid.NewGuid(),
+                LegalEntityId = LegalEntityId,
+                ParticipantType = participantType,
+                FullName = _fullName.Trim(),
+                DulTypeId = _dulTypeId,
+                PassportSeries = _passportSeries,
+                PassportNumber = _passportNumber,
+                PersonInn = _personInn,
+                Snils = _snils,
+                IsActive = true,
+                SortOrder = maxSort + 1,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+
+            ctx.BoardParticipants.Add(participant);
+
+            // Назначаем роль
+            var role = await ctx.BoardRoles.FirstOrDefaultAsync(r => r.Code == _roleCode);
+            if (role is null)
+            {
+                _error = $"Неизвестная роль: {_roleCode}";
+                _saving = false;
+                return;
+            }
+
+            var participantRole = new BoardParticipantRole
+            {
+                Id = Guid.NewGuid(),
+                ParticipantId = participant.Id,
+                RoleId = role.Id,
+                AssignedAt = DateTime.UtcNow
+            };
+
+            ctx.BoardParticipantRoles.Add(participantRole);
+            await ctx.SaveChangesAsync();
+
+            // ЕДИН: попытка привязки (fire-and-forget)
+            _ = TryEdinBindingAsync(ctx, participant);
+
+            await OnSaved.InvokeAsync(new BoardSetupResult
+            {
+                ParticipantId = participant.Id,
+                FullName = participant.FullName,
+                RoleCode = _roleCode,
+                RoleName = role.Name
+            });
+
+            Reset();
+        }
+        catch (Exception ex)
+        {
+            _error = ex.InnerException?.Message ?? ex.Message;
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private async Task TryEdinBindingAsync(FiduciaDbContext ctx, BoardParticipant participant)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(participant.FullName)) return;
+            if (!string.IsNullOrWhiteSpace(participant.EcosystemParticipantId?.ToString())) return;
+
+            var nameParts = participant.FullName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (nameParts.Length < 2) return;
+
+            var lastName = nameParts[0];
+            var firstName = nameParts[1];
+            var middleName = nameParts.Length > 2 ? nameParts[2] : null;
+
+            var result = await EdinApi.ResolvePersonAsync(
+                lastName, firstName, middleName,
+                participant.PersonInn, participant.Snils,
+                null, participant.PassportSeries, participant.PassportNumber);
+
+            if (result?.MasterId.HasValue == true)
+            {
+                var ep = await ctx.EcosystemParticipants
+                    .FirstOrDefaultAsync(e => e.MpiMasterId == result.MasterId.Value
+                                           && e.LegalEntityId == participant.LegalEntityId);
+
+                if (ep is not null)
+                {
+                    participant.EcosystemParticipantId = ep.Id;
+                    await ctx.SaveChangesAsync();
+                }
+            }
+        }
+        catch
+        {
+            // ЕДИН недоступен — процесс продолжается
+        }
+    }
+
+    private void Reset()
+    {
+        _roleCode = "";
+        _fullName = "";
+        _dulTypeId = null;
+        _passportSeries = "";
+        _passportNumber = "";
+        _personInn = "";
+        _snils = "";
+        _email = "";
+        _error = null;
+    }
+
+    private async Task Close()
+    {
+        Reset();
+        await OnClose.InvokeAsync();
+    }
+
+    public class BoardSetupResult
+    {
+        public Guid ParticipantId { get; set; }
+        public string? FullName { get; set; }
+        public string RoleCode { get; set; } = "";
+        public string RoleName { get; set; } = "";
+    }
+}

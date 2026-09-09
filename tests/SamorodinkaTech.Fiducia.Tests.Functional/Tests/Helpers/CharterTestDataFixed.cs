@@ -134,6 +134,15 @@ public static class CharterTestDataFixed
         new(62,  "Общество с ограниченной ответственностью «Громов Инвест»", "7826987654", "2269876543212", "ООО «ГИ»",  ExecutiveBodyC, PersonData.CreateAdmin("gromov.nv", "Громов Никита Владимирович", "Громов", "Никита", "Владимирович", "gromov.nv")),
         // ГД — типовой устав с ExecBody=A, вкладка ГД должна отображаться
         new(63,  "Общество с ограниченной ответственностью «Демидов Продакшн»", "7827987654", "2279876543212", "ООО «ДП»",  ExecutiveBodyA, PersonData.CreateAdmin("demidov.oi", "Демидов Олег Игоревич", "Демидов", "Олег", "Игоревич", "demidov.oi")),
+
+        // ── Первичный ввод состава СД: Вариант 1 — только Председатель (64) ────
+        new(64,  "Общество с ограниченной ответственностью «Ершов Технолоджиз»", "7828987654", "2289876543212", "ООО «ЕТ»",  ExecutiveBodyA, PersonData.CreateAdmin("ershov.di", "Ершов Денис Игоревич", "Ершов", "Денис", "Игоревич", "ershov.di")),
+        // ── Первичный ввод состава СД: Вариант 2 — Председатель + Зам. председателя (65) ────
+        new(65,  "Общество с ограниченной ответственностью «Жуков Консалтинг»", "7829987654", "2299876543212", "ООО «ЖК»",  ExecutiveBodyA, PersonData.CreateAdmin("zhukov.sa", "Жуков Станислав Андреевич", "Жуков", "Станислав", "Андреевич", "zhukov.sa")),
+        // ── Первичный ввод состава СД: Вариант 3 — Председатель + Секретарь (66) ────
+        new(66,  "Общество с ограниченной ответственностью «Зимин Финанс»", "7830987654", "2309876543212", "ООО «ЗФ»",  ExecutiveBodyA, PersonData.CreateAdmin("zimin.pk", "Зимин Пётр Кириллович", "Зимин", "Пётр", "Кириллович", "zimin.pk")),
+        // ── Требование участника о созыве ВОСУ (67) ────
+        new(67,  "Общество с ограниченной ответственностью «Иванов Трейд»", "7831987654", "2319876543212", "ООО «ИТ»",  ExecutiveBodyA, PersonData.CreateAdmin("ivanov.tr", "Иванов Тимур Романович", "Иванов", "Тимур", "Романович", "ivanov.tr")),
     ];
 
     /// <summary>
@@ -650,6 +659,53 @@ public static class CharterTestDataFixed
             [
                 PersonData.CreateParticipantWithDul("Демидов Олег Игоревич", 100m,
                     "21", "4590", "901234", login: "demidov.oi") with { Uid = "demidov.oi" },
+            ]),
+
+        // ════════════════════════════════════════════════════════════════
+        // Первичный ввод состава СД (64–66): нетиповый устав, ExecBody A
+        // ════════════════════════════════════════════════════════════════
+
+        // Вариант 1: только Председатель СД (2 участника)
+        [64] = new(
+            Gd: new() { Uid = "ershov.di", Login = "ershov.di", FullName = "Ершов Денис Игоревич", LastName = "Ершов", FirstName = "Денис", MiddleName = "Игоревич", Position = "Генеральный директор" },
+            Participants:
+            [
+                PersonData.CreateParticipantWithDul("Ершов Денис Игоревич", 60m,
+                    "21", "4610", "111111", login: "ershov.di") with { Uid = "ershov.di" },
+                PersonData.CreateParticipantWithDul("Ершова Анна Сергеевна", 40m,
+                    "21", "4620", "222222", login: "ershova.as64") with { Uid = "ershova.as64" },
+            ]),
+        // Вариант 2: Председатель + Зам. председателя (3 участника)
+        [65] = new(
+            Gd: new() { Uid = "zhukov.sa", Login = "zhukov.sa", FullName = "Жуков Станислав Андреевич", LastName = "Жуков", FirstName = "Станислав", MiddleName = "Андреевич", Position = "Генеральный директор" },
+            Participants:
+            [
+                PersonData.CreateParticipantWithDul("Жуков Станислав Андреевич", 50m,
+                    "21", "4630", "333333", login: "zhukov.sa") with { Uid = "zhukov.sa" },
+                PersonData.CreateParticipantWithDul("Жукова Мария Петровна", 30m,
+                    "21", "4640", "444444", login: "zhukova.mp65") with { Uid = "zhukova.mp65" },
+                PersonData.CreateParticipantWithDul("Жуков Алексей Иванович", 20m,
+                    "21", "4650", "555555", login: "zhukov.ai65") with { Uid = "zhukov.ai65" },
+            ]),
+        // Вариант 3: Председатель + Секретарь (2 участника)
+        [66] = new(
+            Gd: new() { Uid = "zimin.pk", Login = "zimin.pk", FullName = "Зимин Пётр Кириллович", LastName = "Зимин", FirstName = "Пётр", MiddleName = "Кириллович", Position = "Генеральный директор" },
+            Participants:
+            [
+                PersonData.CreateParticipantWithDul("Зимин Пётр Кириллович", 70m,
+                    "21", "4660", "666666", login: "zimin.pk") with { Uid = "zimin.pk" },
+                PersonData.CreateParticipantWithDul("Зимина Ольга Дмитриевна", 30m,
+                    "21", "4670", "777777", login: "zimina.od66") with { Uid = "zimina.od66" },
+            ]),
+        // ── Требование участника о созыве ВОСУ (67) ────
+        [67] = new(
+            Gd: new() { Uid = "ivanov.tr", Login = "ivanov.tr", FullName = "Иванов Тимур Романович", LastName = "Иванов", FirstName = "Тимур", MiddleName = "Романович", Position = "Генеральный директор" },
+            Participants:
+            [
+                PersonData.CreateParticipantWithDul("Иванов Тимур Романович", 60m,
+                    "21", "4680", "888888", login: "ivanov.tr") with { Uid = "ivanov.tr" },
+                PersonData.CreateParticipantWithDul("Петрова Мария Сергеевна", 40m,
+                    "21", "4690", "999999", login: "petrova.ms67") with { Uid = "petrova.ms67" },
             ]),
     };
 

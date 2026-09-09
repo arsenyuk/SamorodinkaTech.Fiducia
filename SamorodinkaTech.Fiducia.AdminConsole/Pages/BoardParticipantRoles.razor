@@ -1,0 +1,136 @@
+@page "/board-participant-roles"
+@using Microsoft.EntityFrameworkCore
+@inject IDbContextFactory<SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext> DbFactory
+@inject ILogger<BoardParticipantRoles> Logger
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "SYS_ADMIN")]
+@using SamorodinkaTech.Fiducia.Domain.Entities
+
+<h3>Назначения ролей в СД</h3>
+<p class="text-muted">Текущие назначения участников в Совет директоров (первичный ввод)</p>
+
+@if (_loading)
+{
+    <p><em>Загрузка...</em></p>
+}
+else if (_groups.Count == 0)
+{
+    <p class="text-muted">Нет назначенных ролей в СД.</p>
+}
+else
+{
+    @foreach (var group in _groups)
+    {
+        <div class="card mb-3">
+            <div class="card-header">
+                <strong>@group.LegalEntityName</strong>
+                <span class="text-muted ms-2">(ИНН: @group.LegalEntityInn)</span>
+            </div>
+            <div class="card-body p-0">
+                <table class="table table-sm mb-0">
+                    <thead>
+                        <tr>
+                            <th>Роль</th>
+                            <th>ФИО</th>
+                            <th>ИНН</th>
+                            <th>Ecosystem</th>
+                            <th>Дата назначения</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var r in group.Roles.OrderBy(r => r.SortOrder))
+                        {
+                            <tr>
+                                <td><span class="badge bg-primary">@r.RoleName</span></td>
+                                <td>@r.FullName</td>
+                                <td>@(r.PersonInn ?? "—")</td>
+                                <td>
+                                    @if (r.EcosystemBound)
+                                    {
+                                        <span class="badge bg-success">✓</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary">✗</span>
+                                    }
+                                </td>
+                                <td>@r.AssignedAt.ToString("dd.MM.yyyy HH:mm")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+}
+
+<a href="/board-of-directors-list" class="btn btn-secondary mt-3">← Назад к списку</a>
+
+@code {
+    private bool _loading = true;
+    private List<LegalEntityRolesGroup> _groups = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+
+            var roles = await ctx.BoardParticipantRoles
+                .Include(r => r.Participant)
+                .Include(r => r.Role)
+                .Where(r => r.Participant != null && r.Participant.IsActive)
+                .ToListAsync();
+
+            // Загружаем ЮЛ отдельно (BoardParticipant не имеет навигационного свойства LegalEntity)
+            var leIds = roles.Where(r => r.Participant != null).Select(r => r.Participant!.LegalEntityId).Distinct().ToList();
+            var legalEntities = await ctx.LegalEntities
+                .Where(le => leIds.Contains(le.Id))
+                .ToDictionaryAsync(le => le.Id);
+
+            _groups = roles
+                .Where(r => r.Participant != null && legalEntities.ContainsKey(r.Participant!.LegalEntityId))
+                .GroupBy(r => r.Participant!.LegalEntityId)
+                .Select(g => new LegalEntityRolesGroup
+                {
+                    LegalEntityName = legalEntities[g.Key].Name ?? "—",
+                    LegalEntityInn = legalEntities[g.Key].Inn ?? "—",
+                    Roles = g.Select(r => new RoleView
+                    {
+                        RoleName = r.Role?.Name ?? "—",
+                        SortOrder = r.Role?.SortOrder ?? 0,
+                        FullName = r.Participant?.FullName ?? "—",
+                        PersonInn = r.Participant?.PersonInn,
+                        EcosystemBound = r.Participant?.EcosystemParticipantId.HasValue ?? false,
+                        AssignedAt = r.AssignedAt
+                    }).ToList()
+                })
+                .OrderBy(g => g.LegalEntityName)
+                .ToList();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Ошибка загрузки назначений ролей в СД");
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private class LegalEntityRolesGroup
+    {
+        public string LegalEntityName { get; set; } = "";
+        public string LegalEntityInn { get; set; } = "";
+        public List<RoleView> Roles { get; set; } = new();
+    }
+
+    private class RoleView
+    {
+        public string RoleName { get; set; } = "";
+        public int SortOrder { get; set; }
+        public string FullName { get; set; } = "";
+        public string? PersonInn { get; set; }
+        public bool EcosystemBound { get; set; }
+        public DateTime AssignedAt { get; set; }
+    }
+}

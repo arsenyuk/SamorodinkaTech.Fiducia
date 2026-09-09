@@ -789,6 +789,21 @@ CREATE INDEX IF NOT EXISTS ix_board_participant_legal_entity ON board_participan
 CREATE UNIQUE INDEX IF NOT EXISTS ux_board_participant_le_sort ON board_participant(legal_entity_id, sort_order);
 
 -- ============================================================================
+-- Роли участников в СД (board_participant_role)
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS board_participant_role (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    participant_id uuid NOT NULL REFERENCES board_participant(id) ON DELETE RESTRICT,
+    role_id uuid NOT NULL REFERENCES ref_board_roles(id) ON DELETE RESTRICT,
+    assigned_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    assigned_by uuid,
+    CONSTRAINT ux_board_participant_role UNIQUE (participant_id, role_id)
+);
+CREATE INDEX IF NOT EXISTS ix_bpr_participant ON board_participant_role(participant_id);
+CREATE INDEX IF NOT EXISTS ix_bpr_role ON board_participant_role(role_id);
+
+-- ============================================================================
 -- Нотариальные удостоверения (notarization)
 -- ============================================================================
 

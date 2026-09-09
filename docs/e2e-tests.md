@@ -88,6 +88,9 @@
 | Модель ЕИО: Все участники — директора | — | `E2E_NonStandardCharterTests::Model5_AllParticipantsDirectors` | ✅ Реализован |
 | Модель ЕИО: Все участники совместно | — | `E2E_NonStandardCharterTests::Model6_AllParticipantsJoint` | ✅ Реализован |
 | Модель ЕИО: Несколько ЕИО (п. 3 ст. 65.3 ГК РФ) | — | `E2E_NonStandardCharterTests::Model7_MultipleEio` | ✅ Реализован |
+| Первичный ввод состава СД: Вариант 1 (только Председатель) | — | `E2E_BoardSetupTests::BoardSetup_Variant1_ChairOnly` | ✅ Реализован |
+| Первичный ввод состава СД: Вариант 2 (Председатель + Зам.) | — | `E2E_BoardSetupTests::BoardSetup_Variant2_ChairAndDeputy` | ✅ Реализован |
+| Первичный ввод состава СД: Вариант 3 (Председатель + Секретарь) | — | `E2E_BoardSetupTests::BoardSetup_Variant3_ChairAndSecretary` | ✅ Реализован |
 | Коллективное требование (ВОСУ) | — | — | ❌ Нет теста |
 
 ---
@@ -148,6 +151,8 @@ public class US0XX_FeatureTests : BrowserFixture
 | US-024 | `US024_ContractTests` | `Tests/US024_ContractTests.cs` |
 | — | `E2E_StandardCharterTests` | `Tests/E2E_StandardCharterTests.cs` |
 | — | `E2E_NonStandardCharterTests` | `Tests/E2E_NonStandardCharterTests.cs` |
+| — | `E2E_BoardSetupTests` | `Tests/E2E_BoardSetupTests.cs` |
+| — | `E2E_VosuDemandTests` | `Tests/E2E_VosuDemandTests.cs` |
 
 ---
 

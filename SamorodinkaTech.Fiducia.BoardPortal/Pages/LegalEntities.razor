@@ -346,6 +346,23 @@
                         }
                     </div>
                 </div>
+
+                @* Первичный ввод состава СД (ООО с нетиповым уставом) *@
+                @if (_orgType == OrgType.LLC && string.IsNullOrEmpty(_editCharterNumber) && _customHasBoardOfDirectors && selectedEntity?.Id is not null)
+                {
+                    <div class="border rounded p-3 mb-3 bg-light">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>Первичный ввод состава Совета директоров</strong>
+                                <div class="text-muted small">Назначьте Председателя, Зам. председателя и/или Секретаря СД из участников общества</div>
+                            </div>
+                            <a href="/board-setup?leId=@selectedEntity.Id" class="btn btn-outline-primary btn-sm">
+                                Открыть →
+                            </a>
+                        </div>
+                    </div>
+                }
+
             }  @* end of _activeTab == 5 *@
 
             @if (_activeTab == 6)

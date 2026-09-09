@@ -6,7 +6,7 @@
 @inject HttpClient Http
 @inject NavigationManager Nav
 @inject ILogger<ShareRequestCreate> Logger
-@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "PARTICIPANT")]
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "PARTICIPANT,CEO")]
 
 <PageTitle>Fiducia — @(IsEditMode ? "Редактирование требования" : "Подать требование или запрос")</PageTitle>
 

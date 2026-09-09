@@ -37,7 +37,7 @@ public class GlobalFixture : IAsyncLifetime
 
             // 2. Создание Playwright и браузера
             _playwright = await Microsoft.Playwright.Playwright.CreateAsync();
-            _browser = await _playwright.Chromium.LaunchAsync(new() { Headless = true });
+            _browser = await _playwright.Chromium.LaunchAsync(new() { Headless = false });
 
             // 3. Сброс БД + пересоздание LDAP-пользователей (один раз)
             var adminPage = await _browser.NewPageAsync(new() { IgnoreHTTPSErrors = true });

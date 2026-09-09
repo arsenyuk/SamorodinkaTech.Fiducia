@@ -678,6 +678,10 @@ public static class ShareRequestEndpoints
                 bool isForBoard = charter?.BoardDecidesConveningOsu == true
                     && requestType.ConsideredByOsu;
 
+                // Определяем: хватает ли доли участнику для прямого направления
+                var participantShare = participant.SharePercent ?? 0m;
+                var hasEnoughShare = threshold.HasValue && participantShare >= threshold.Value;
+
                 // Создаём запрос
                 var entity = new ShareRequest
                 {
@@ -690,11 +694,13 @@ public static class ShareRequestEndpoints
                     CreatedBy = createdBy,
                     IsCollective = true,
                     ThresholdPercent = threshold,
-                    TotalSupportPercent = participant.SharePercent ?? 0m,
+                    TotalSupportPercent = participantShare,
                     SupporterCount = 1,
-                    CollectiveStatus = threshold.HasValue
-                        ? "COLLECTING"
-                        : isForBoard ? "BOARD_REVIEW" : "SUBMITTED_TO_CEO"
+                    CollectiveStatus = hasEnoughShare
+                        ? (isForBoard ? "BOARD_REVIEW" : "SUBMITTED_TO_CEO")
+                        : threshold.HasValue
+                            ? "COLLECTING"
+                            : isForBoard ? "BOARD_REVIEW" : "SUBMITTED_TO_CEO"
                 };
 
                 // Автоматически добавляем поддержку инициатора
@@ -713,6 +719,15 @@ public static class ShareRequestEndpoints
                 ctx.ShareRequests.Add(entity);
                 ctx.ShareRequestSupports.Add(initiatorSupport);
                 await ctx.SaveChangesAsync();
+
+                // Если требование сразу направлено ГД (достаточная доля) — уведомляем CEO и инициатора
+                if (entity.CollectiveStatus == "SUBMITTED_TO_CEO")
+                {
+                    entity.SubmittedToCeoAt ??= DateTime.UtcNow;
+                    await ctx.SaveChangesAsync();
+                    await NotifyCeoAsync(ctx, entity, logger);
+                    await NotifyInitiatorAsync(ctx, entity, logger);
+                }
 
                 // Если требование направлено СД — создаём пункт повестки заседания СД
                 if (entity.CollectiveStatus == "BOARD_REVIEW")
@@ -1191,6 +1206,47 @@ public static class ShareRequestEndpoints
             }
         });
 
+        // GET: детали конкретного требования для ГД (с ролью CEO)
+        shareRequests.MapGet("/ceo/{id:guid}", async (
+            Guid id,
+            IDbContextFactory<FiduciaDbContext> dbFactory,
+            ISecurityAuditService audit,
+            ILoggerFactory loggerFactory,
+            HttpContext http) =>
+        {
+            var logger = loggerFactory.CreateLogger("ShareRequests.CeoDetail");
+            try
+            {
+                await using var ctx = await dbFactory.CreateDbContextAsync();
+                var (leId, error) = await ValidateAccessAsync(ctx, http, audit, logger);
+                if (error is not null) return error;
+
+                // Проверяем роль CEO
+                var userIdStr = http.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                var userId = Guid.TryParse(userIdStr, out var uid) ? uid : Guid.Empty;
+                var user = await ctx.Users
+                    .Include(u => u.UserRoles).ThenInclude(ur => ur.Role)
+                    .FirstOrDefaultAsync(u => u.Id == userId);
+                var isCeo = user?.UserRoles?.Any(ur => ur.Role?.Code == "CEO") ?? false;
+                if (!isCeo)
+                    return Results.Forbid();
+
+                var request = await ctx.ShareRequests
+                    .Include(r => r.RequestType)
+                    .Include(r => r.Participant)
+                    .FirstOrDefaultAsync(r => r.Id == id && r.LegalEntityId == leId);
+
+                return request is null
+                    ? Results.NotFound()
+                    : Results.Ok(MapToCollectiveDto(request));
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Ошибка получения деталей требования для ГД {Id}", id);
+                return Results.BadRequest(new { error = ex.Message });
+            }
+        });
+
         // GET: требования на рассмотрении СД
         shareRequests.MapGet("/board-review", async (
             IDbContextFactory<FiduciaDbContext> dbFactory,
@@ -1451,6 +1507,9 @@ public static class ShareRequestEndpoints
             .Select(ur => ur.User!)
             .ToListAsync();
 
+        var isDirectDemand = !request.IsCollective
+            || request.CollectiveStatus == "SUBMITTED_TO_CEO";
+
         foreach (var ceo in ceoUsers)
         {
             ctx.Notifications.Add(new Notification
@@ -1458,8 +1517,13 @@ public static class ShareRequestEndpoints
                 Id = Guid.NewGuid(),
                 UserId = ceo.Id,
                 NotificationType = "COLLECTIVE_DEMAND_THRESHOLD",
-                Title = "Коллективное требование набрало порог",
-                Body = $"Коллективное требование набрало {request.TotalSupportPercent}% (порог: {request.ThresholdPercent}%). Требуется рассмотрение.",
+                Title = isDirectDemand
+                    ? "Требование участника о созыве ВОСУ"
+                    : "Коллективное требование набрало порог",
+                Body = isDirectDemand
+                    ? $"Участник подал требование о созыве ВОСУ ({request.TotalSupportPercent}% голосов). Требуется рассмотрение в течение 5 дней."
+                    : $"Коллективное требование набрало {request.TotalSupportPercent}% (порог: {request.ThresholdPercent}%). Требуется рассмотрение.",
+                Url = $"/ceo-demands/{request.Id}",
                 CreatedAt = DateTime.UtcNow
             });
         }
@@ -1483,10 +1547,11 @@ public static class ShareRequestEndpoints
             .ToListAsync();
 
         var decisionText = request.CollectiveStatus == "ACCEPTED" ? "принято" : "отклонено";
+        var isCeoDecision = request.CollectiveStatus == "ACCEPTED" || request.CollectiveStatus == "REJECTED";
         var decisionBy = request.CollectiveStatus == "BOARD_REVIEW"
             ? "Совет директоров"
             : "Генеральный директор";
-        var notificationTitle = $"Решение СД: {decisionText}";
+        var notificationTitle = isCeoDecision ? $"Решение ГД: {decisionText}" : $"Решение СД: {decisionText}";
         foreach (var userId in userIds)
         {
             ctx.Notifications.Add(new Notification
@@ -1498,6 +1563,36 @@ public static class ShareRequestEndpoints
                 Body = $"{decisionBy} {decisionText} коллективное требование.",
                 CreatedAt = DateTime.UtcNow
             });
+        }
+    }
+
+    /// <summary>Уведомление инициатора о направлении требования ГД.</summary>
+    private static async Task NotifyInitiatorAsync(FiduciaDbContext ctx, ShareRequest request, ILogger logger)
+    {
+        try
+        {
+            var initiatorUserId = await ctx.BoardParticipants
+                .Where(p => p.Id == request.ParticipantId && p.EcosystemParticipantId != null)
+                .Select(p => p.EcosystemParticipant!.UserId)
+                .FirstOrDefaultAsync();
+
+            if (!initiatorUserId.HasValue)
+                return;
+
+            ctx.Notifications.Add(new Notification
+            {
+                Id = Guid.NewGuid(),
+                UserId = initiatorUserId.Value,
+                NotificationType = "SHARE_REQUEST_VISIBLE_TO_ALL",
+                Title = "Требование направлено ГД",
+                Body = "Ваше требование о созыве ВОСУ направлено Генеральному директору на рассмотрение.",
+                Url = $"/share-requests/{request.Id}/collective",
+                CreatedAt = DateTime.UtcNow
+            });
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Ошибка уведомления инициатора требования {RequestId}", request.Id);
         }
     }
 
