@@ -54,8 +54,8 @@ public static class BoardSetupEndpoints
                 assignments = roles.Select(r => new
                 {
                     participantId = r.ParticipantId,
-                    fullName = r.Participant?.FullName,
-                    personInn = r.Participant?.PersonInn,
+                    fullName = r.Participant?.Person?.FullName,
+                    personInn = r.Participant?.Person?.Inn,
                     roleCode = r.Role?.Code,
                     roleName = r.Role?.Name,
                     ecosystemBound = r.Participant?.EcosystemParticipantId.HasValue ?? false,
@@ -84,31 +84,32 @@ public static class BoardSetupEndpoints
             {
                 var search = query.Trim().ToLower();
                 q = q.Where(p =>
-                    (p.FullName != null && p.FullName.ToLower().Contains(search)) ||
-                    (p.PersonInn != null && p.PersonInn.Contains(search)) ||
-                    p.IdentityDocuments.Any(d =>
-                        (d.Series != null && d.Series.Contains(search)) ||
-                        (d.Number != null && d.Number.Contains(search))));
+                    (p.Person != null && p.Person.FullName.ToLower().Contains(search)) ||
+                    (p.Person != null && p.Person.Inn != null && p.Person.Inn.Contains(search)) ||
+                    ctx.IdentityDocuments.Any(d =>
+                        d.PersonId == p.PersonId &&
+                        ((d.Series != null && d.Series.Contains(search)) ||
+                         (d.Number != null && d.Number.Contains(search)))));
             }
 
             var items = await q
-                .OrderBy(p => p.FullName)
+                .OrderBy(p => p.Person != null ? p.Person.FullName : null)
                 .Take(50)
-                .Include(p => p.IdentityDocuments)
+                .Include(p => p.Person)
                 .ToListAsync();
 
             return Results.Ok(items.Select(p =>
             {
-                var primaryDoc = p.IdentityDocuments.FirstOrDefault(x => x.IsActive);
+                var primaryDoc = ctx.IdentityDocuments.FirstOrDefault(x => x.PersonId == p.PersonId && x.IsActive);
                 return new
                 {
                     participantId = p.Id,
-                    fullName = p.FullName,
-                    personInn = p.PersonInn,
+                    fullName = p.Person?.FullName,
+                    personInn = p.Person?.Inn,
                     dulTypeId = primaryDoc?.DulTypeId,
                     passportSeries = primaryDoc?.Series,
                     passportNumber = primaryDoc?.Number,
-                    snils = p.Snils,
+                    snils = p.Person?.Snils,
                     ecosystemBound = p.EcosystemParticipantId.HasValue
                 };
             }));

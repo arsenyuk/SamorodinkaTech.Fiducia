@@ -1,19 +1,19 @@
 namespace SamorodinkaTech.Fiducia.Domain.Entities;
 
 /// <summary>
-/// Документ, удостоверяющий личность участника (identity_documents).
-/// Хранит данные ДУЛ (паспорт, загранпаспорт и т.д.) в связии один-ко-многим с board_participant.
+/// Документ, удостоверяющий личность (identity_documents).
+/// Хранит данные ДУЛ (паспорт, загранпаспорт и т.д.) в связии один-ко-многим с person.
 /// </summary>
 public class IdentityDocument
 {
     /// <summary>Первичный ключ (id).</summary>
     public Guid Id { get; set; }
 
-    /// <summary>Идентификатор участника (participant_id).</summary>
-    public Guid ParticipantId { get; set; }
+    /// <summary>Идентификатор физического лица (person_id).</summary>
+    public Guid PersonId { get; set; }
 
-    /// <summary>Участник.</summary>
-    public BoardParticipant? Participant { get; set; }
+    /// <summary>Физическое лицо.</summary>
+    public Person? Person { get; set; }
 
     /// <summary>Идентификатор вида документа (dul_type_id).</summary>
     public Guid DulTypeId { get; set; }

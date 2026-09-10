@@ -2,7 +2,8 @@ namespace SamorodinkaTech.Fiducia.Domain.Entities;
 
 /// <summary>
 /// Участник общества — реестр (board_participant).
-/// Хранит актуальный состав участников. Данные ДУЛ — в таблице identity_documents.
+/// Хранит актуальный состав участников.
+/// Данные ФЛ/ИП — в таблице person. Данные ДУЛ — в таблице identity_documents.
 /// </summary>
 public class BoardParticipant
 {
@@ -21,16 +22,11 @@ public class BoardParticipant
     /// <summary>Тип участника: FL — физлицо, UL — юрлицо, IP — ИП (participant_type).</summary>
     public string ParticipantType { get; set; } = "FL";
 
-    // ── ФЛ ────────────────────────────────────────────────────────
+    /// <summary>Идентификатор физического лица (person_id). Nullable для ЮЛ.</summary>
+    public Guid? PersonId { get; set; }
 
-    /// <summary>ФИО участника-ФЛ (full_name).</summary>
-    public string? FullName { get; set; }
-
-    /// <summary>ИНН физического лица (person_inn).</summary>
-    public string? PersonInn { get; set; }
-
-    /// <summary>Гражданство (citizenship).</summary>
-    public string? Citizenship { get; set; }
+    /// <summary>Физическое лицо.</summary>
+    public Person? Person { get; set; }
 
     // ── ЮЛ ────────────────────────────────────────────────────────
 
@@ -48,11 +44,6 @@ public class BoardParticipant
 
     /// <summary>Адрес юридического лица (company_address).</summary>
     public string? CompanyAddress { get; set; }
-
-    // ── ИП ────────────────────────────────────────────────────────
-
-    /// <summary>ОГРНИП (ogrnip).</summary>
-    public string? Ogrnip { get; set; }
 
     // ── Доля ──────────────────────────────────────────────────────
 
@@ -95,10 +86,4 @@ public class BoardParticipant
 
     /// <summary>Генеральный директор ООО (is_general_director).</summary>
     public bool IsGeneralDirector { get; set; }
-
-    /// <summary>СНИЛС (snils) — формат XXX-XXX-XXX XX, 14 символов.</summary>
-    public string? Snils { get; set; }
-
-    /// <summary>Документы, удостоверяющие личность (identity_documents).</summary>
-    public ICollection<IdentityDocument> IdentityDocuments { get; set; } = new List<IdentityDocument>();
 }

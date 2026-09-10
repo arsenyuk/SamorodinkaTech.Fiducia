@@ -53,7 +53,7 @@ public static class ParticipantEndpoints
                 .OrderBy(p => p.SortOrder)
                 .ToListAsync();
 
-            return Results.Ok(items.Select(MapParticipantToDto));
+            return Results.Ok(items.Select(p => MapParticipantToDto(p)));
         });
 
         // GET: текущий участник (по пользователю)
@@ -85,14 +85,14 @@ public static class ParticipantEndpoints
             if (participant is null)
                 return Results.Ok(new { Id = (Guid?)null, FullName = (string?)null, SharePercent = (decimal?)null });
 
-            return Results.Ok(new { participant.Id, participant.FullName, participant.SharePercent });
+            return Results.Ok(new { participant.Id, FullName = participant.Person?.FullName, participant.SharePercent });
         });
 
         // GET: один участник по ID
         participants.MapGet("/{id}", async (Guid id, IDbContextFactory<FiduciaDbContext> dbFactory) =>
         {
             await using var ctx = await dbFactory.CreateDbContextAsync();
-            var p = await ctx.BoardParticipants.Include(x => x.EcosystemParticipant).FirstOrDefaultAsync(x => x.Id == id);
+            var p = await ctx.BoardParticipants.Include(x => x.EcosystemParticipant).Include(x => x.Person).FirstOrDefaultAsync(x => x.Id == id);
             if (p is null) return Results.NotFound();
             return Results.Ok(MapParticipantToDto(p));
         });
@@ -137,7 +137,7 @@ public static class ParticipantEndpoints
                 await ctx.SaveChangesAsync();
 
                 logger.LogInformation("[{Ip}] Добавлен участник: {Name}, доля={Share}%, ЮЛ={LeId}",
-                    ClientIpHelper.GetClientIp(http), entity.FullName ?? entity.CompanyName, entity.SharePercent, leId);
+                    ClientIpHelper.GetClientIp(http), entity.Person?.FullName ?? entity.CompanyName, entity.SharePercent, leId);
 
                 // ЕДИН: автоматическая привязка MasterId при наличии ПДн
                 _ = TriggerEdinBindingAsync(serviceProvider, logger, ctx, entity);
@@ -172,15 +172,11 @@ public static class ParticipantEndpoints
                 if (entity is null) return Results.NotFound();
 
                 entity.ParticipantType = dto.ParticipantType ?? entity.ParticipantType;
-                entity.FullName = dto.FullName;
-                entity.PersonInn = dto.PersonInn;
-                entity.Citizenship = dto.Citizenship;
                 entity.CompanyName = dto.CompanyName;
                 entity.CompanyInn = dto.CompanyInn;
                 entity.CompanyOgrn = dto.CompanyOgrn;
                 entity.CompanyKpp = dto.CompanyKpp;
                 entity.CompanyAddress = dto.CompanyAddress;
-                entity.Ogrnip = dto.Ogrnip;
                 entity.SharePercent = dto.SharePercent;
                 entity.ShareAmount = dto.ShareAmount;
                 entity.PaymentInfo = dto.PaymentInfo;
@@ -201,7 +197,7 @@ public static class ParticipantEndpoints
                 await ctx.SaveChangesAsync();
 
                 logger.LogInformation("[{Ip}] Обновлён участник: {Name}, id={Id}",
-                    ClientIpHelper.GetClientIp(http), entity.FullName ?? entity.CompanyName, id);
+                    ClientIpHelper.GetClientIp(http), entity.Person?.FullName ?? entity.CompanyName, id);
 
                 // ЕДИН: автоматическая привязка MasterId при наличии ПДн
                 _ = TriggerEdinBindingAsync(serviceProvider, logger, ctx, entity);
@@ -268,7 +264,7 @@ public static class ParticipantEndpoints
                 await ctx.SaveChangesAsync();
 
                 logger.LogInformation("[{Ip}] Удалён участник: {Name}, id={Id}",
-                    ClientIpHelper.GetClientIp(http), entity.FullName ?? entity.CompanyName, id);
+                    ClientIpHelper.GetClientIp(http), entity.Person?.FullName ?? entity.CompanyName, id);
 
                 return Results.Ok();
             }
@@ -352,18 +348,38 @@ public static class ParticipantEndpoints
 
                 foreach (var f in sparkFounders.OrderByDescending(f => f.SharePercent))
                 {
+                    var isFl = !string.IsNullOrEmpty(f.Name) && !f.IsEntrepreneur;
+                    var isIp = f.IsEntrepreneur;
+
+                    Guid? personId = null;
+                    if (isFl || isIp)
+                    {
+                        var nameParts = (f.FullName ?? f.Name ?? "").Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                        var person = new Person
+                        {
+                            Id = Guid.NewGuid(),
+                            LastName = nameParts.ElementAtOrDefault(0) ?? "",
+                            FirstName = nameParts.ElementAtOrDefault(1) ?? "",
+                            MiddleName = nameParts.ElementAtOrDefault(2),
+                            Inn = f.PersonInn ?? (isIp ? f.Ogrnip : null),
+                            Citizenship = f.Citizenship,
+                            Ogrnip = isIp ? f.Ogrnip : null,
+                            CreatedAt = DateTime.UtcNow,
+                            UpdatedAt = DateTime.UtcNow
+                        };
+                        ctx.Persons.Add(person);
+                        personId = person.Id;
+                    }
+
                     var entity = new BoardParticipant
                     {
                         Id = Guid.NewGuid(),
                         LegalEntityId = leId,
-                        ParticipantType = !string.IsNullOrEmpty(f.Name) ? "FL" : (f.IsEntrepreneur ? "IP" : "FL"),
-                        FullName = f.FullName,
-                        PersonInn = f.PersonInn,
-                        Citizenship = f.Citizenship,
+                        ParticipantType = isFl ? "FL" : (isIp ? "IP" : "UL"),
+                        PersonId = personId,
                         CompanyName = f.Name,
                         CompanyInn = f.FounderInn,
                         CompanyOgrn = f.FounderOgrn,
-                        Ogrnip = f.Ogrnip,
                         SharePercent = f.SharePercent,
                         ShareAmount = f.ShareAmount,
                         EntryDate = f.EntryDate.HasValue ? DateOnly.FromDateTime(f.EntryDate.Value) : null,
@@ -1145,7 +1161,7 @@ public static class ParticipantEndpoints
         BoardParticipant entity)
     {
         logger.LogInformation("ЕДИН: TriggerEdinBinding вызван для участника {Name}, EcosystemParticipantId={EcoId}",
-            entity.FullName, entity.EcosystemParticipantId?.ToString() ?? "NULL");
+            entity.Person?.FullName, entity.EcosystemParticipantId?.ToString() ?? "NULL");
         try
         {
             var bindingService = serviceProvider.GetService<IEdinBindingService>();
@@ -1161,7 +1177,7 @@ public static class ParticipantEndpoints
                 return;
             }
 
-            if (string.IsNullOrWhiteSpace(entity.FullName))
+            if (string.IsNullOrWhiteSpace(entity.Person?.FullName))
             {
                 logger.LogWarning("ЕДИН: пропуск — ФИО пустое");
                 return;
@@ -1186,12 +1202,16 @@ public static class ParticipantEndpoints
                 return;
             }
 
-            var (lastName, firstName, middleName) = SplitFullName(entity.FullName);
+            var (lastName, firstName, middleName) = SplitFullName(entity.Person?.FullName ?? "");
             var ecoId = ecoParticipant.Id;
 
             // Сохраняем данные до Dispose контекста
-            var personInn = entity.PersonInn;
-            var primaryDoc = entity.IdentityDocuments?.FirstOrDefault(x => x.IsActive);
+            var personInn = entity.Person?.Inn;
+            var personId = entity.PersonId;
+            Guid? personIdForQuery = personId;
+            var primaryDoc = personIdForQuery.HasValue
+                ? ctx.IdentityDocuments.FirstOrDefault(x => x.PersonId == personIdForQuery.Value && x.IsActive)
+                : null;
             var passportSeries = primaryDoc?.Series;
             var passportNumber = primaryDoc?.Number;
 
@@ -1212,7 +1232,7 @@ public static class ParticipantEndpoints
                 }
                 catch (Exception ex)
                 {
-                    logger.LogWarning(ex, "ЕДИН: ошибка привязки для участника {Name}", entity.FullName);
+                    logger.LogWarning(ex, "ЕДИН: ошибка привязки для участника {Name}", entity.Person?.FullName);
                 }
                 finally
                 {
@@ -1222,7 +1242,7 @@ public static class ParticipantEndpoints
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "ЕДИН: ошибка запуска привязки для участника {Name}", entity.FullName);
+            logger.LogWarning(ex, "ЕДИН: ошибка запуска привязки для участника {Name}", entity.Person?.FullName);
         }
     }
 
@@ -1239,16 +1259,16 @@ public static class ParticipantEndpoints
         };
     }
 
-    private static object MapParticipantToDto(BoardParticipant p)
+    private static object MapParticipantToDto(BoardParticipant p, IdentityDocument? primaryDoc = null)
     {
-        var primaryDoc = p.IdentityDocuments?.FirstOrDefault(x => x.IsActive);
         return new
         {
             p.Id,
             p.LegalEntityId,
             p.EcosystemParticipantId,
             p.ParticipantType,
-            p.FullName,
+            p.PersonId,
+            FullName = p.Person?.FullName,
             MpiMasterId = p.EcosystemParticipant?.MpiMasterId,
             DulTypeId = primaryDoc?.DulTypeId,
             PassportSeries = primaryDoc?.Series,
@@ -1257,14 +1277,14 @@ public static class ParticipantEndpoints
             PassportIssueDate = primaryDoc?.IssueDate?.ToString("dd.MM.yyyy"),
             PassportDepartmentCode = primaryDoc?.DepartmentCode,
             PassportRegistrationAddress = primaryDoc?.RegistrationAddress,
-            p.PersonInn,
-            p.Citizenship,
+            PersonInn = p.Person?.Inn,
+            Citizenship = p.Person?.Citizenship,
             p.CompanyName,
             p.CompanyInn,
             p.CompanyOgrn,
             p.CompanyKpp,
             p.CompanyAddress,
-            p.Ogrnip,
+            Ogrnip = p.Person?.Ogrnip,
             p.SharePercent,
             p.ShareAmount,
             p.PaymentInfo,
@@ -1281,15 +1301,11 @@ public static class ParticipantEndpoints
         LegalEntityId = legalEntityId,
         EcosystemParticipantId = dto.EcosystemParticipantId,
         ParticipantType = dto.ParticipantType ?? "FL",
-        FullName = dto.FullName,
-        PersonInn = dto.PersonInn,
-        Citizenship = dto.Citizenship,
         CompanyName = dto.CompanyName,
         CompanyInn = dto.CompanyInn,
         CompanyOgrn = dto.CompanyOgrn,
         CompanyKpp = dto.CompanyKpp,
         CompanyAddress = dto.CompanyAddress,
-        Ogrnip = dto.Ogrnip,
         SharePercent = dto.SharePercent,
         ShareAmount = dto.ShareAmount,
         PaymentInfo = dto.PaymentInfo,
@@ -1452,27 +1468,33 @@ public static class ParticipantEndpoints
                      && p.Id != (excludeId ?? Guid.Empty));
 
         // Проверка по поисковому ключу ДУЛ (нормализованная строка)
-        var primaryDoc = entity.IdentityDocuments?.FirstOrDefault(x => x.IsActive);
-        if (primaryDoc is not null)
+        var personId = entity.PersonId;
+        if (personId.HasValue)
         {
-            var searchKey = ComputeDulSearchKey(primaryDoc);
-            if (!string.IsNullOrEmpty(searchKey))
+            var primaryDoc = await ctx.IdentityDocuments
+                .FirstOrDefaultAsync(x => x.PersonId == personId.Value && x.IsActive);
+            if (primaryDoc is not null)
             {
-                var existingDoc = await ctx.IdentityDocuments
-                    .AnyAsync(d => d.ParticipantId != (excludeId ?? Guid.Empty)
-                        && d.IsActive
-                        && d.Series == primaryDoc.Series
-                        && d.Number == primaryDoc.Number
-                        && d.DulTypeId == primaryDoc.DulTypeId);
-                if (existingDoc)
-                    return "Участник с таким документом уже добавлен";
+                var searchKey = ComputeDulSearchKey(primaryDoc);
+                if (!string.IsNullOrEmpty(searchKey))
+                {
+                    var existingDoc = await ctx.IdentityDocuments
+                        .AnyAsync(d => d.PersonId != personId.Value
+                            && d.IsActive
+                            && d.Series == primaryDoc.Series
+                            && d.Number == primaryDoc.Number
+                            && d.DulTypeId == primaryDoc.DulTypeId);
+                    if (existingDoc)
+                        return "Участник с таким документом уже добавлен";
+                }
             }
         }
 
         // Проверка по ИНН (ФЛ)
-        if (entity.ParticipantType == "FL" && !string.IsNullOrEmpty(entity.PersonInn))
+        var personInn = entity.Person?.Inn;
+        if (entity.ParticipantType == "FL" && !string.IsNullOrEmpty(personInn))
         {
-            if (await query.AnyAsync(p => p.PersonInn == entity.PersonInn))
+            if (await query.AnyAsync(p => p.Person != null && p.Person.Inn == personInn))
                 return "Участник с таким ИНН уже добавлен";
         }
 

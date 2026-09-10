@@ -98,8 +98,8 @@ else
                     {
                         RoleName = r.Role?.Name ?? "—",
                         SortOrder = r.Role?.SortOrder ?? 0,
-                        FullName = r.Participant?.FullName ?? "—",
-                        PersonInn = r.Participant?.PersonInn,
+                        FullName = r.Participant?.Person?.FullName ?? "—",
+                        PersonInn = r.Participant?.Person?.Inn,
                         EcosystemBound = r.Participant?.EcosystemParticipantId.HasValue ?? false,
                         AssignedAt = r.AssignedAt
                     }).ToList()

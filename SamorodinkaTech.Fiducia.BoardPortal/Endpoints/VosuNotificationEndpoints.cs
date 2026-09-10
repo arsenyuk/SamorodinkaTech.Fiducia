@@ -85,8 +85,8 @@ public static class VosuNotificationEndpoints
                 foreach (var participant in participants)
                 {
                     var participantName = participant.ParticipantType == "FL"
-                        ? participant.FullName ?? "Участник"
-                        : participant.CompanyName ?? "Участник";
+                        ? participant.Person?.FullName
+                        : participant.CompanyName;
 
                     // Формируем текст уведомления
                     var (title, body) = await textBuilder.BuildVosuAgendaChangeAsync(
@@ -113,7 +113,9 @@ public static class VosuNotificationEndpoints
                         LegalEntityInn = legalEntity.Inn,
                         ParticipantFullName = participantName,
                         ParticipantAddress = participant.ParticipantType == "FL"
-                            ? participant.IdentityDocuments.FirstOrDefault(x => x.IsActive)?.RegistrationAddress
+                            ? (participant.PersonId.HasValue
+                                ? ctx.IdentityDocuments.FirstOrDefault(x => x.PersonId == participant.PersonId.Value && x.IsActive)?.RegistrationAddress
+                                : null)
                             : participant.CompanyAddress,
                         MeetingDate = request.MeetingDate,
                         MeetingStartTime = request.MeetingStartTime,
@@ -303,8 +305,8 @@ public static class VosuNotificationEndpoints
                 foreach (var participant in participants)
                 {
                     var participantName = participant.ParticipantType == "FL"
-                        ? participant.FullName ?? "Участник"
-                        : participant.CompanyName ?? "Участник";
+                        ? participant.Person?.FullName
+                        : participant.CompanyName;
 
                     var (title, body) = await textBuilder.BuildOosuMeetingNotificationAsync(
                         legalEntity.Name, participantName,
@@ -328,7 +330,9 @@ public static class VosuNotificationEndpoints
                         LegalEntityInn = legalEntity.Inn,
                         ParticipantFullName = participantName,
                         ParticipantAddress = participant.ParticipantType == "FL"
-                            ? participant.IdentityDocuments.FirstOrDefault(x => x.IsActive)?.RegistrationAddress
+                            ? (participant.PersonId.HasValue
+                                ? ctx.IdentityDocuments.FirstOrDefault(x => x.PersonId == participant.PersonId.Value && x.IsActive)?.RegistrationAddress
+                                : null)
                             : participant.CompanyAddress,
                         MeetingDate = request.MeetingDate,
                         MeetingStartTime = request.MeetingStartTime,

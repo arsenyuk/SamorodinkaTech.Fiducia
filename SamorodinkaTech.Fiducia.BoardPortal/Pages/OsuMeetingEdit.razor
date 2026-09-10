@@ -1849,7 +1849,7 @@
                             {
                                 boardMemberRows.Add(new BoardMemberRow
                                 {
-                                    Name = pr.Participant?.FullName ?? "",
+                                    Name = pr.Participant?.Person?.FullName ?? "",
                                     RoleId = pr.RoleId,
                                     StartedAt = DateTime.Today.ToString("yyyy-MM-dd")
                                 });

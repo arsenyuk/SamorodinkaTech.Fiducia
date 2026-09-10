@@ -123,3 +123,47 @@
 5. Пересобрать и убедиться, что все тесты проходят
 
 **Оценка объёма:** ~300–500 строк изменений в 3 файлах `.csproj` + N файлов тестов. Миграция автоматизируема через IDE (Rider/VS Find & Replace по regex).
+
+---
+
+## 8. Замена полей реквизитов ЮЛ-участника на архитектуру медленно меняющихся записей (SCD)
+
+**Описание:** В таблице `board_participant` хранятся реквизиты участника-юрлица (когда `participant_type = 'UL'`): `company_name`, `company_inn`, `company_ogrn`, `company_kpp`, `company_address`. Это **снимок данных на момент добавления** участника, но проблема: реквизиты юрлица могут измениться (переезд, смена КПП, ребрендинг), а старый снимок теряет актуальность.
+
+**Текущие поля:**
+- `company_name` — наименование юрлица-участника
+- `company_inn` — ИНН юрлица-участника
+- `company_ogrn` — ОГРН юрлица-участника
+- `company_kpp` — КПП юрлица-участника
+- `company_address` — юридический адрес юрлица-участника
+
+**Аналогия с ДУЛ:** Как данные паспорта вынесены в `identity_documents` (связь один-ко-многим), реквизиты ЮЛ нужно вынести в отдельную таблицу `participant_legal_entity_data` с поддержкой версионирования.
+
+**Цель:** Архитектура медленно меняющихся записей (Slowly Changing Dimensions, тип 2):
+1. История реквизитов: каждый снимок — отдельная запись с `valid_from`/`valid_to`
+2. Актуальная запись: `is_current = true`
+3. При изменении реквизитов: старая запись закрывается (`valid_to = now`, `is_current = false`), создаётся новая (`valid_from = now`, `is_current = true`)
+
+**Требуемые изменения:**
+1. Новая таблица `participant_legal_entity_data`:
+   - `participant_id` (FK → board_participant)
+   - `company_name`, `company_inn`, `company_ogrn`, `company_kpp`, `company_address`
+   - `valid_from` (timestamp) — дата начала действия
+   - `valid_to` (timestamp, nullable) — дата окончания (null = актуальная)
+   - `is_current` (boolean) — признак текущей записи
+   - `created_at`, `created_by`
+2. Убрать `company_*` поля из `board_participant`
+3. Миграция данных: существующие значения → запись с `is_current = true`, `valid_from = created_at`
+4. Обновить UI: при просмотре участника-ЮЛ показывать актуальные реквизиты; при редактировании — создавать новую версию
+5. Обновить endpoints: CRUD работает через `participant_legal_entity_data`
+
+**Где затронуто:**
+- `board_participant` (таблица)
+- `BoardParticipant.cs` (сущность)
+- `ParticipantEndpoints.cs` (CRUD)
+- `BoardSetupEndpoints.cs` (поиск)
+- `LegalEntities.razor` (отображение данных участника-ЮЛ)
+- `AddBoardMemberDialog.razor` (добавление участника-ЮЛ)
+- `VosuNotificationEndpoints.cs`, `CeoResignationEndpoints.cs` (адрес для уведомлений)
+
+**Приоритет:** Средний — не блокирует функциональность, но влияет на историческую точность данных.

@@ -66,7 +66,7 @@ public static class CeoResignationEndpoints
                 var ceoFullName = ceoUser is not null
                     ? string.Join(" ", new[] { ceoUser.LastName, ceoUser.FirstName, ceoUser.MiddleName }
                         .Where(x => !string.IsNullOrWhiteSpace(x)))
-                    : ceoParticipant.FullName ?? "Генеральный директор";
+                    : ceoParticipant.Person?.FullName ?? throw new InvalidOperationException("У ГД не заполнены данные ФЛ (Person)");
 
                 // Валидация: до даты увольнения не менее 30 дней (ст. 280 ТК РФ)
                 var today = DateOnly.FromDateTime(DateTime.UtcNow);
@@ -102,8 +102,8 @@ public static class CeoResignationEndpoints
                 foreach (var participant in participants)
                 {
                     var participantName = participant.ParticipantType == "FL"
-                        ? participant.FullName ?? "Участник"
-                        : participant.CompanyName ?? "Участник";
+                        ? participant.Person?.FullName
+                        : participant.CompanyName;
 
                     // Формируем текст уведомления
                     var (title, body) = await textBuilder.BuildCeoResignationAsync(
@@ -128,7 +128,9 @@ public static class CeoResignationEndpoints
                         LegalEntityInn = legalEntity.Inn,
                         ParticipantFullName = participantName,
                         ParticipantAddress = participant.ParticipantType == "FL"
-                            ? participant.IdentityDocuments.FirstOrDefault(x => x.IsActive)?.RegistrationAddress
+                            ? (participant.PersonId.HasValue
+                                ? ctx.IdentityDocuments.FirstOrDefault(x => x.PersonId == participant.PersonId.Value && x.IsActive)?.RegistrationAddress
+                                : null)
                             : participant.CompanyAddress,
                         CeoName = ceoFullName,
                         ResignationDate = request.ResignationDate,
@@ -249,7 +251,7 @@ public static class CeoResignationEndpoints
                 var ceoName = ceoUser is not null
                     ? string.Join(" ", new[] { ceoUser.LastName, ceoUser.FirstName, ceoUser.MiddleName }
                         .Where(x => !string.IsNullOrWhiteSpace(x)))
-                    : ceoParticipant.FullName ?? "Генеральный директор";
+                    : ceoParticipant.Person?.FullName ?? throw new InvalidOperationException("У ГД не заполнены данные ФЛ (Person)");
 
                 var participantCount = await ctx.BoardParticipants
                     .CountAsync(x => x.LegalEntityId == leId.Value && x.IsActive);

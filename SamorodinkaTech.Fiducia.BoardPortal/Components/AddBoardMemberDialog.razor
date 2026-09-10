@@ -163,14 +163,32 @@
                 .Where(p => p.LegalEntityId == LegalEntityId)
                 .MaxAsync(p => (int?)p.SortOrder) ?? 0;
 
+            // Создаём Person для ФЛ/ИП
+            Guid? personId = null;
+            if (!string.IsNullOrWhiteSpace(_fullName.Trim()))
+            {
+                var nameParts = _fullName.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                var person = new Person
+                {
+                    Id = Guid.NewGuid(),
+                    LastName = nameParts.ElementAtOrDefault(0) ?? "",
+                    FirstName = nameParts.ElementAtOrDefault(1) ?? "",
+                    MiddleName = nameParts.ElementAtOrDefault(2),
+                    Inn = _personInn,
+                    Snils = _snils,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                };
+                ctx.Persons.Add(person);
+                personId = person.Id;
+            }
+
             var participant = new BoardParticipant
             {
                 Id = Guid.NewGuid(),
                 LegalEntityId = LegalEntityId,
                 ParticipantType = participantType,
-                FullName = _fullName.Trim(),
-                PersonInn = _personInn,
-                Snils = _snils,
+                PersonId = personId,
                 IsActive = true,
                 SortOrder = maxSort + 1,
                 CreatedAt = DateTime.UtcNow,
@@ -178,19 +196,20 @@
             };
 
             // Добавляем ДУЛ как отдельный документ
-            if (_dulTypeId.HasValue && !string.IsNullOrEmpty(_passportNumber))
+            if (_dulTypeId.HasValue && !string.IsNullOrEmpty(_passportNumber) && personId.HasValue)
             {
-                participant.IdentityDocuments.Add(new IdentityDocument
+                var idoc = new IdentityDocument
                 {
                     Id = Guid.NewGuid(),
-                    ParticipantId = participant.Id,
+                    PersonId = personId.Value,
                     DulTypeId = _dulTypeId.Value,
                     Series = _passportSeries,
                     Number = _passportNumber,
                     IsActive = true,
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow
-                });
+                };
+                ctx.IdentityDocuments.Add(idoc);
             }
 
             ctx.BoardParticipants.Add(participant);
@@ -221,7 +240,7 @@
             await OnSaved.InvokeAsync(new BoardSetupResult
             {
                 ParticipantId = participant.Id,
-                FullName = participant.FullName,
+                FullName = participant.Person?.FullName,
                 RoleCode = _roleCode,
                 RoleName = role.Name
             });
@@ -242,20 +261,23 @@
     {
         try
         {
-            if (string.IsNullOrWhiteSpace(participant.FullName)) return;
+            if (string.IsNullOrWhiteSpace(participant.Person?.FullName)) return;
             if (!string.IsNullOrWhiteSpace(participant.EcosystemParticipantId?.ToString())) return;
 
-            var nameParts = participant.FullName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            var nameParts = participant.Person.FullName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
             if (nameParts.Length < 2) return;
 
             var lastName = nameParts[0];
             var firstName = nameParts[1];
             var middleName = nameParts.Length > 2 ? nameParts[2] : null;
 
-            var primaryDoc = participant.IdentityDocuments?.FirstOrDefault(x => x.IsActive);
+            var personId = participant.PersonId;
+            var primaryDoc = personId.HasValue
+                ? ctx.IdentityDocuments.FirstOrDefault(x => x.PersonId == personId.Value && x.IsActive)
+                : null;
             var result = await EdinApi.ResolvePersonAsync(
                 lastName, firstName, middleName,
-                participant.PersonInn, participant.Snils,
+                participant.Person?.Inn, participant.Person?.Snils,
                 null, primaryDoc?.Series, primaryDoc?.Number);
 
             if (result?.MasterId.HasValue == true)

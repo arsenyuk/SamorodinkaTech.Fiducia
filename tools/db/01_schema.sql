@@ -752,19 +752,40 @@ CREATE TABLE IF NOT EXISTS agenda_proposals (
 -- Участники Совета директоров (board_participant)
 -- ============================================================================
 
+-- ============================================================================
+-- Физические лица (person) — ФЛ и ИП
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS person (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    last_name varchar(300) NOT NULL,
+    first_name varchar(300) NOT NULL,
+    middle_name varchar(300),
+    inn varchar(12),
+    citizenship varchar(100),
+    snils varchar(14),
+    ogrnip varchar(15),
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    created_by uuid
+);
+
+CREATE INDEX IF NOT EXISTS ix_person_inn ON person(inn) WHERE inn IS NOT NULL;
+
+-- ============================================================================
+-- Участники общества (board_participant)
+-- ============================================================================
+
 CREATE TABLE IF NOT EXISTS board_participant (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     legal_entity_id uuid NOT NULL REFERENCES legal_entities(id) ON DELETE RESTRICT,
     participant_type varchar(20) NOT NULL DEFAULT 'FL',
-    full_name varchar(300),
-    person_inn varchar(12),
-    citizenship varchar(100),
+    person_id uuid REFERENCES person(id) ON DELETE SET NULL,
     company_name varchar(500),
     company_inn varchar(12),
     company_ogrn varchar(15),
     company_kpp varchar(9),
     company_address text,
-    ogrnip varchar(15),
     share_percent numeric(5,2),
     share_amount numeric(18,2),
     payment_info varchar(500),
@@ -777,8 +798,7 @@ CREATE TABLE IF NOT EXISTS board_participant (
     updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     created_by uuid,
     ecosystem_participant_id uuid REFERENCES ecosystem_participants(id) ON DELETE SET NULL,
-    is_general_director boolean NOT NULL DEFAULT false,
-    snils varchar(14)
+    is_general_director boolean NOT NULL DEFAULT false
 );
 
 CREATE INDEX IF NOT EXISTS ix_board_participant_legal_entity ON board_participant(legal_entity_id);
@@ -790,7 +810,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS ux_board_participant_le_sort ON board_particip
 
 CREATE TABLE IF NOT EXISTS identity_documents (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    participant_id uuid NOT NULL REFERENCES board_participant(id) ON DELETE RESTRICT,
+    person_id uuid NOT NULL REFERENCES person(id) ON DELETE RESTRICT,
     dul_type_id uuid NOT NULL REFERENCES ref_dul_type(id) ON DELETE RESTRICT,
     series varchar(10),
     number varchar(10),
@@ -804,8 +824,8 @@ CREATE TABLE IF NOT EXISTS identity_documents (
     created_by uuid
 );
 
-CREATE INDEX IF NOT EXISTS ix_idoc_participant ON identity_documents(participant_id);
-CREATE INDEX IF NOT EXISTS ix_idoc_active ON identity_documents(participant_id, is_active) WHERE is_active = true;
+CREATE INDEX IF NOT EXISTS ix_idoc_person ON identity_documents(person_id);
+CREATE INDEX IF NOT EXISTS ix_idoc_active ON identity_documents(person_id, is_active) WHERE is_active = true;
 
 -- ============================================================================
 -- Роли участников в СД (board_participant_role)

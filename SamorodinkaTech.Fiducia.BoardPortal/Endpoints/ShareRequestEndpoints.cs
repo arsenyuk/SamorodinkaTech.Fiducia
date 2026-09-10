@@ -579,7 +579,8 @@ public static class ShareRequestEndpoints
 
                 var participants = await ctx.BoardParticipants
                     .Where(p => p.LegalEntityId == leId && p.IsActive)
-                    .Select(p => new { p.FullName, p.CompanyName, p.CompanyInn, p.ParticipantType, p.SharePercent, p.ShareAmount })
+                    .Include(p => p.Person)
+                    .Select(p => new { FullName = p.Person != null ? p.Person.FullName : null, p.CompanyName, p.CompanyInn, p.ParticipantType, p.SharePercent, p.ShareAmount })
                     .ToListAsync();
 
                 return Results.Ok(participants);
@@ -1361,7 +1362,7 @@ public static class ShareRequestEndpoints
                 return Results.Ok(supports.Select(s => new
                 {
                     s.Id,
-                    ParticipantName = s.Participant?.FullName ?? s.Participant?.CompanyName,
+                    ParticipantName = s.Participant?.Person?.FullName ?? s.Participant?.CompanyName,
                     s.SharePercentAtSupport,
                     s.SupportedAt,
                     s.WithdrawnAt,
@@ -1943,7 +1944,7 @@ public static class ShareRequestEndpoints
         RequestTypeId = r.RequestTypeId,
         RequestTypeCode = r.RequestType?.Code,
         RequestTypeName = r.RequestType?.Name,
-        InitiatorName = r.Participant?.FullName ?? r.Participant?.CompanyName,
+        InitiatorName = r.Participant?.Person?.FullName ?? r.Participant?.CompanyName,
         r.Payload,
         r.Status,
         r.CollectiveStatus,

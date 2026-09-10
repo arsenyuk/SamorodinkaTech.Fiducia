@@ -612,7 +612,7 @@
                                     <option value="">— не выбран —</option>
                                     @foreach (var p in _gdParticipants)
                                     {
-                                        <option value="@p.Id">@p.FullName</option>
+                                        <option value="@p.Id">@(p.Person?.FullName ?? "—")</option>
                                     }
                                 </select>
                             </div>
@@ -623,10 +623,16 @@
                             <div class="row g-3">
                                 <div class="col-md-4">
                                     <label class="form-label text-muted">Фамилия</label>
-                                    <input type="text" class="form-control" value="@_selectedGdParticipant.FullName" readonly />
+                                    <input type="text" class="form-control" value="@(_selectedGdParticipant.Person?.FullName ?? "—")" readonly />
                                 </div>
                                 @{
-                                    var gdDoc = _selectedGdParticipant.IdentityDocuments?.FirstOrDefault(x => x.IsActive);
+                                    var gdPersonId = _selectedGdParticipant?.PersonId;
+                                    IdentityDocument? gdDoc = null;
+                                    if (gdPersonId.HasValue)
+                                    {
+                                        using var docCtx = DbFactory.CreateDbContext();
+                                        gdDoc = docCtx.IdentityDocuments.Include(x => x.DulType).FirstOrDefault(x => x.PersonId == gdPersonId.Value && x.IsActive);
+                                    }
                                 }
                                 <div class="col-md-3">
                                     <label class="form-label text-muted">Тип документа</label>
@@ -645,7 +651,7 @@
                                 </div>
                                 <div class="col-md-3">
                                     <label class="form-label text-muted">ИНН</label>
-                                    <input type="text" class="form-control" value="@_selectedGdParticipant.PersonInn" readonly />
+                                    <input type="text" class="form-control" value="@(_selectedGdParticipant.Person?.Inn ?? "—")" readonly />
                                 </div>
                             </div>
                             <h6 class="mt-3">СНИЛС</h6>
@@ -1103,7 +1109,7 @@
         set
         {
             _selectedGdParticipantId = string.IsNullOrEmpty(value) ? null : Guid.Parse(value);
-            _gdSnils = _selectedGdParticipant?.Snils;
+            _gdSnils = _selectedGdParticipant?.Person?.Snils;
         }
     }
 
@@ -1123,7 +1129,7 @@
         {
             await using var ctx = await DbFactory.CreateDbContextAsync();
             _gdParticipants = await ctx.BoardParticipants
-                .Include(p => p.IdentityDocuments).ThenInclude(d => d.DulType)
+                .Include(p => p.Person)
                 .Where(p => p.LegalEntityId == legalEntityId
                             && p.ParticipantType == "FL"
                             && p.IsActive)
@@ -1132,7 +1138,7 @@
 
             var currentGd = _gdParticipants.FirstOrDefault(p => p.IsGeneralDirector);
             _selectedGdParticipantId = currentGd?.Id;
-            _gdSnils = currentGd?.Snils;
+            _gdSnils = currentGd?.Person?.Snils;
         }
         catch (Exception ex)
         {
@@ -1695,7 +1701,8 @@
                 if (gdParticipant is not null)
                 {
                     gdParticipant.IsGeneralDirector = true;
-                    gdParticipant.Snils = _gdSnils;
+                    if (gdParticipant.Person is not null)
+                        gdParticipant.Person.Snils = _gdSnils;
                     gdParticipant.UpdatedAt = DateTime.UtcNow;
                 }
             }
@@ -1721,7 +1728,7 @@
                         var bp = await scopedCtx.BoardParticipants.FindAsync(gdPid);
                         if (bp is null) return;
 
-                        var fullNameParts = (bp.FullName ?? "").Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                        var fullNameParts = (bp.Person?.FullName ?? "").Split(' ', StringSplitOptions.RemoveEmptyEntries);
                         var lastName = fullNameParts.ElementAtOrDefault(0);
                         var firstName = fullNameParts.ElementAtOrDefault(1);
                         var middleName = fullNameParts.ElementAtOrDefault(2);
@@ -1729,7 +1736,9 @@
                         if (string.IsNullOrEmpty(lastName) || string.IsNullOrEmpty(firstName)) return;
 
                         // Получаем код типа ДУЛ из основного документа
-                        var bpDoc = bp.IdentityDocuments?.FirstOrDefault(x => x.IsActive);
+                        var bpDoc = bp.PersonId.HasValue
+                            ? scopedCtx.IdentityDocuments.FirstOrDefault(x => x.PersonId == bp.PersonId.Value && x.IsActive)
+                            : null;
                         string? dulTypeCode = null;
                         if (bpDoc is not null)
                         {
@@ -1739,7 +1748,7 @@
 
                         var result = await edinClient.ResolvePersonAsync(
                             lastName, firstName, middleName,
-                            bp.PersonInn, gdSnilsVal,
+                            bp.Person?.Inn, gdSnilsVal,
                             dulTypeCode, bpDoc?.Series, bpDoc?.Number);
 
                         if (result?.MasterId is null) return;
