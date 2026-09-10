@@ -17,7 +17,7 @@ public class ShareRequestConfiguration : IEntityTypeConfiguration<ShareRequest>
         builder.Property(r => r.ParticipantId).HasColumnName("participant_id").IsRequired();
         builder.Property(r => r.RequestTypeId).HasColumnName("request_type_id").IsRequired();
         builder.Property(r => r.Status).HasColumnName("status").IsRequired().HasMaxLength(20).HasDefaultValue("pending");
-        builder.Property(r => r.Payload).HasColumnName("payload");
+        builder.Property(r => r.Payload).HasColumnName("payload").HasColumnType("jsonb");
         builder.Property(r => r.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("CURRENT_TIMESTAMP");
         builder.Property(r => r.CompletedAt).HasColumnName("completed_at");
         builder.Property(r => r.CreatedBy).HasColumnName("created_by");

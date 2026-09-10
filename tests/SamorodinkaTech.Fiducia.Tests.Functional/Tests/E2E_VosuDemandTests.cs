@@ -6,12 +6,13 @@ namespace SamorodinkaTech.Fiducia.Tests.Functional;
 
 /// <summary>
 /// Сквозной E2E-тест: требование участника о созыве ВОСУ.
-/// Сценарий:
-/// 1. Участник с долей ≥10% подаёт требование DEMAND_VOSU
-/// 2. Требование сразу направляется ГД (SUBMITTED_TO_CEO)
-/// 3. Участник получает уведомление "Требование направлено ГД"
-/// 4. ГД видит уведомление и открывает страницу требований
-/// 5. ГД принимает требование → создаётся план ВОСУ
+/// Паттерн: Admin Console (User + EcoParticipant + Role) →
+///          Board Portal (BoardParticipant с ДУЛ) →
+///          ЕДИН binding (MasterId → привязка) →
+///          подача DEMAND_VOSU → решение CEO → план ВОСУ.
+///
+/// Роль PARTICIPANT назначается АВТОМАТИЧЕСКИ при привязке
+/// BoardParticipant к EcosystemParticipant через ЕДИН binding.
 /// </summary>
 [Collection("CharterTests")]
 public class E2E_VosuDemandTests : BrowserFixture
@@ -28,123 +29,115 @@ public class E2E_VosuDemandTests : BrowserFixture
         var testStartTime = DateTimeOffset.UtcNow;
         var testName = "VosuDemand_ParticipantWithSufficientShare";
 
-        var (adminPage, boardPage, ldapPage, login) = await SetupFullCycleAsync(67);
+        var (adminPage, boardPage, ldapPage) = await SetupFullCycleAsync(67);
         try
         {
-            var entityIndex = 67;
-            var persons = CharterTestDataFixed.PersonsByEntity[entityIndex];
-            var gdLogin = persons.Gd?.Login ?? persons.Participants[0].Login;
+            var persons = CharterTestDataFixed.PersonsByEntity[67];
+            var gdLogin = persons.Gd?.Login!;
             var participantLogin = persons.Participants[0].Login;
+            var participantFullName = persons.Participants[0].FullName;
 
-            // ── Часть А: Участник подаёт требование ──────────────────────
-            // Входим как участник (не ГД)
+            // ── Шаг 1: ГД добавляет BoardParticipant для участника ──────
+            // ГД (ivanov.tm) залогинен после SetupFullCycle
+            await AuthHelper.LoginAsBoardUserAsync(boardPage, gdLogin);
+            boardPage.Url.Should().Contain("/main");
+
+            var participantId = await BoardPortalHelper.AddParticipantWithPersonalDataAsync(
+                boardPage,
+                fullName: participantFullName,
+                passportSeries: "21",
+                passportNumber: "4690",
+                personInn: "781234567890",
+                participantType: "FL",
+                sharePercent: 40m,
+                shareAmount: 40000m);
+
+            participantId.Should().NotBeEmpty("участник должен быть создан");
+
+            // ── Шаг 2: Ожидание ЕДИН binding ──────────────────────────
+            // Роль PARTICIPANT назначается автоматически при привязке
+            await EdinTestHelper.WaitForEdinBindingAsync(boardPage, participantId, timeoutSeconds: 15);
+
+            var mpiMasterId = await EdinTestHelper.GetParticipantMpiMasterIdAsync(boardPage, participantId);
+            mpiMasterId.Should().NotBeNull("ЕДИН должен привязать MasterId");
+
+            // ── Шаг 3: Участник подаёт требование DEMAND_VOSU ──────────
             await AuthHelper.LoginAsBoardUserAsync(boardPage, participantLogin);
             boardPage.Url.Should().Contain("/main");
 
-            // Переходим на страницу создания требования
-            await boardPage.GotoAsync(PortalUrls.GetUrl(Portal.BoardPortal, "/share-requests/create"));
+            // Навигация через UI: "Мои запросы"
+            await boardPage.ClickAsync("text=Мои запросы");
             await AuthHelper.WaitForBlazorReady(boardPage);
             await boardPage.WaitForTimeoutAsync(2000);
 
-            // Проверяем, что страница загрузилась
-            var h3 = await boardPage.WaitForSelectorAsync("h3", new() { Timeout = 15000 });
-            h3.Should().NotBeNull();
+            // Кликаем "Подать требование"
+            await boardPage.ClickAsync("text=Подать требование");
+            await AuthHelper.WaitForBlazorReady(boardPage);
+            await boardPage.WaitForTimeoutAsync(2000);
 
             // Выбираем тип DEMAND_VOSU
-            await boardPage.WaitForSelectorAsync("text=Требование о созыве ВОСУ", new() { Timeout = 10000 });
             await boardPage.ClickAsync("text=Требование о созыве ВОСУ");
             await boardPage.WaitForTimeoutAsync(1000);
 
             // Заполняем текст требования
-            var textarea = await boardPage.WaitForSelectorAsync("textarea", new() { Timeout = 5000 });
+            var textarea = await boardPage.WaitForSelectorAsync("textarea", new() { Timeout = 10000 });
             await textarea!.FillAsync("Требование о созыве внеочередного общего собрания участников для рассмотрения вопроса о смене генерального директора");
 
-            // Ставим галочку "ознакомлен с рекомендациями"
+            // Ставим галочку
             var checkbox = await boardPage.WaitForSelectorAsync("#agreeWarning", new() { Timeout = 5000 });
             await checkbox!.ClickAsync();
             await boardPage.WaitForTimeoutAsync(500);
 
-            // Отправляем требование
+            // Отправляем
             await boardPage.ClickAsync("button:text('Подать требование')");
             await boardPage.WaitForTimeoutAsync(3000);
 
-            // Проверяем редирект на список требований
             boardPage.Url.Should().Contain("/share-requests");
 
-            // ── Часть Б: ГД проверяет уведомление и принимает ────────────
-            // Входим как ГД
+            // ── Шаг 4: CEO принимает требование ───────────────────────
             await AuthHelper.LoginAsBoardUserAsync(boardPage, gdLogin);
             boardPage.Url.Should().Contain("/main");
 
-            // Проверяем уведомление
-            await boardPage.GotoAsync(PortalUrls.GetUrl(Portal.BoardPortal, "/notifications"));
+            await boardPage.ClickAsync("text=Оповещения");
             await AuthHelper.WaitForBlazorReady(boardPage);
             await boardPage.WaitForTimeoutAsync(2000);
 
-            // Ищем уведомление о требовании
             var notification = await boardPage.WaitForSelectorAsync(
                 "text=Требование участника о созыве ВОСУ",
                 new() { Timeout = 10000 });
-            notification.Should().NotBeNull("Уведомление о требовании должно отображаться");
+            notification.Should().NotBeNull("уведомление должно отображаться");
 
-            // Кликаем по ссылке уведомления (переход на /ceo-demands/{id})
-            var notificationLink = await boardPage.WaitForSelectorAsync(
+            // Кликаем по ссылке уведомления
+            var link = await boardPage.WaitForSelectorAsync(
                 "a:text('Требование участника о созыве ВОСУ')",
                 new() { Timeout = 5000 });
-            if (notificationLink is not null)
+            if (link is not null)
             {
-                await notificationLink.ClickAsync();
+                await link.ClickAsync();
+                await AuthHelper.WaitForBlazorReady(boardPage);
                 await boardPage.WaitForTimeoutAsync(3000);
             }
             else
             {
-                // Если ссылки нет — переходим через меню
-                await boardPage.GotoAsync(PortalUrls.GetUrl(Portal.BoardPortal, "/ceo-demands"));
+                await boardPage.ClickAsync("text=Требования участников");
                 await AuthHelper.WaitForBlazorReady(boardPage);
                 await boardPage.WaitForTimeoutAsync(2000);
-            }
-
-            // Проверяем страницу CEO: либо список, либо детали
-            if (boardPage.Url.Contains("/ceo-demands/"))
-            {
-                // Мы на странице деталей — проверяем индикатор дедлайна
-                await boardPage.WaitForSelectorAsync("text=Дедлайн решения", new() { Timeout = 5000 });
-
-                // Нажимаем "Принять"
-                await boardPage.ClickAsync("button:text('Принять требование')");
-                await boardPage.WaitForTimeoutAsync(2000);
-
-                // Подтверждаем в диалоге
-                boardPage.Dialog += async (_, dialog) => await dialog.AcceptAsync();
-                await boardPage.WaitForTimeoutAsync(3000);
-
-                // Проверяем ссылку на план
-                await boardPage.WaitForSelectorAsync("text=Перейти к плану ВОСУ", new() { Timeout = 10000 });
-            }
-            else if (boardPage.Url.Contains("/ceo-demands"))
-            {
-                // Мы на странице списка — кликаем по первому требованию
-                var demandRow = await boardPage.WaitForSelectorAsync("table tbody tr", new() { Timeout = 5000 });
-                if (demandRow is not null)
+                var row = await boardPage.WaitForSelectorAsync("table tbody tr", new() { Timeout = 5000 });
+                if (row is not null)
                 {
-                    await demandRow.ClickAsync();
+                    await row.ClickAsync();
+                    await AuthHelper.WaitForBlazorReady(boardPage);
                     await boardPage.WaitForTimeoutAsync(3000);
-
-                    // Проверяем индикатор дедлайна
-                    await boardPage.WaitForSelectorAsync("text=Дедлайн решения", new() { Timeout = 5000 });
-
-                    // Нажимаем "Принять"
-                    await boardPage.ClickAsync("button:text('Принять требование')");
-                    await boardPage.WaitForTimeoutAsync(2000);
-
-                    // Подтверждаем в диалоге
-                    boardPage.Dialog += async (_, dialog) => await dialog.AcceptAsync();
-                    await boardPage.WaitForTimeoutAsync(3000);
-
-                    // Проверяем ссылку на план
-                    await boardPage.WaitForSelectorAsync("text=Перейти к плану ВОСУ", new() { Timeout = 10000 });
                 }
             }
+
+            await boardPage.WaitForSelectorAsync("text=Дедлайн решения", new() { Timeout = 10000 });
+
+            boardPage.Dialog += async (_, dialog) => await dialog.AcceptAsync();
+            await boardPage.ClickAsync("button:text('Принять требование')");
+            await boardPage.WaitForTimeoutAsync(5000);
+
+            await boardPage.WaitForSelectorAsync("text=Перейти к плану ВОСУ", new() { Timeout = 10000 });
         }
         catch
         {
@@ -159,7 +152,7 @@ public class E2E_VosuDemandTests : BrowserFixture
         }
     }
 
-    private async Task<(IPage adminPage, IPage boardPage, IPage ldapPage, string login)> SetupFullCycleAsync(int entityIndex)
+    private async Task<(IPage adminPage, IPage boardPage, IPage ldapPage)> SetupFullCycleAsync(int entityIndex)
     {
         await InfrastructureHelper.EnsureInfrastructureReadyAsync();
 
@@ -182,7 +175,7 @@ public class E2E_VosuDemandTests : BrowserFixture
             shortName: entity.ShortName,
             ogrn: entity.Ogrn);
 
-        return (adminPage, boardPage, ldapPage, gdLogin);
+        return (adminPage, boardPage, ldapPage);
     }
 
     private static async Task CleanupAsync(IPage adminPage, IPage boardPage, IPage ldapPage)

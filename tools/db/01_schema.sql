@@ -519,7 +519,7 @@ CREATE TABLE IF NOT EXISTS legal_entity_charter (
     has_revision_commission boolean,
     has_board_of_directors boolean NOT NULL DEFAULT false,
     gd_term_id uuid REFERENCES ref_gd_term(id) ON DELETE SET NULL,
-    vosu_threshold_percent numeric(4,2) CHECK (vosu_threshold_percent > 0 AND vosu_threshold_percent <= 10),
+    vosu_threshold_percent numeric(4,2),
     board_decides_convening_osu boolean NOT NULL DEFAULT false
 );
 
@@ -782,11 +782,13 @@ CREATE TABLE IF NOT EXISTS board_participant (
     created_by uuid,
     ecosystem_participant_id uuid REFERENCES ecosystem_participants(id) ON DELETE SET NULL,
     is_general_director boolean NOT NULL DEFAULT false,
-    snils varchar(14)
+    snils varchar(14),
+    dul_search_key varchar(200)
 );
 
 CREATE INDEX IF NOT EXISTS ix_board_participant_legal_entity ON board_participant(legal_entity_id);
 CREATE UNIQUE INDEX IF NOT EXISTS ux_board_participant_le_sort ON board_participant(legal_entity_id, sort_order);
+CREATE INDEX IF NOT EXISTS ix_board_participant_search_key ON board_participant(legal_entity_id, dul_search_key) WHERE dul_search_key IS NOT NULL;
 
 -- ============================================================================
 -- Роли участников в СД (board_participant_role)

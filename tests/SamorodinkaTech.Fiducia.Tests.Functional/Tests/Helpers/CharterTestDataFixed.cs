@@ -142,7 +142,7 @@ public static class CharterTestDataFixed
         // ── Первичный ввод состава СД: Вариант 3 — Председатель + Секретарь (66) ────
         new(66,  "Общество с ограниченной ответственностью «Зимин Финанс»", "7830987654", "2309876543212", "ООО «ЗФ»",  ExecutiveBodyA, PersonData.CreateAdmin("zimin.pk", "Зимин Пётр Кириллович", "Зимин", "Пётр", "Кириллович", "zimin.pk")),
         // ── Требование участника о созыве ВОСУ (67) ────
-        new(67,  "Общество с ограниченной ответственностью «Иванов Трейд»", "7831987654", "2319876543212", "ООО «ИТ»",  ExecutiveBodyA, PersonData.CreateAdmin("ivanov.tr", "Иванов Тимур Романович", "Иванов", "Тимур", "Романович", "ivanov.tr")),
+        new(67,  "Общество с ограниченной ответственностью «Иванов Трейд»", "7831987654", "2319876543212", "ООО «ИТ»",  ExecutiveBodyA, PersonData.CreateAdmin("ivanov.tm", "Иванов Тимур Романович", "Иванов", "Тимур", "Романович", "ivanov.tm")),
     ];
 
     /// <summary>
@@ -699,11 +699,9 @@ public static class CharterTestDataFixed
             ]),
         // ── Требование участника о созыве ВОСУ (67) ────
         [67] = new(
-            Gd: new() { Uid = "ivanov.tr", Login = "ivanov.tr", FullName = "Иванов Тимур Романович", LastName = "Иванов", FirstName = "Тимур", MiddleName = "Романович", Position = "Генеральный директор" },
+            Gd: new() { Uid = "ivanov.tm", Login = "ivanov.tm", FullName = "Иванов Тимур Романович", LastName = "Иванов", FirstName = "Тимур", MiddleName = "Романович", Position = "Генеральный директор" },
             Participants:
             [
-                PersonData.CreateParticipantWithDul("Иванов Тимур Романович", 60m,
-                    "21", "4680", "888888", login: "ivanov.tr") with { Uid = "ivanov.tr" },
                 PersonData.CreateParticipantWithDul("Петрова Мария Сергеевна", 40m,
                     "21", "4690", "999999", login: "petrova.ms67") with { Uid = "petrova.ms67" },
             ]),

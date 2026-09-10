@@ -626,6 +626,7 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.Property(x => x.CreatedBy).HasColumnName("created_by");
             b.Property(x => x.IsGeneralDirector).HasColumnName("is_general_director").IsRequired().HasDefaultValue(false);
             b.Property(x => x.Snils).HasColumnName("snils").HasMaxLength(14);
+            b.Property(x => x.DulSearchKey).HasColumnName("dul_search_key").HasMaxLength(200);
             b.HasIndex(x => x.LegalEntityId).HasDatabaseName("ix_board_participant_legal_entity");
         });
 
@@ -1129,6 +1130,9 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.Property(x => x.Id).HasColumnName("id");
             b.Property(x => x.Code).HasColumnName("code").HasMaxLength(50).IsRequired();
             b.Property(x => x.Name).HasColumnName("name").HasMaxLength(300).IsRequired();
+            b.Property(x => x.GroupCode).HasColumnName("group_code").HasMaxLength(50).IsRequired();
+            b.Property(x => x.GroupName).HasColumnName("group_name").HasMaxLength(300).IsRequired();
+            b.Property(x => x.IsElectronicAvailable).HasColumnName("is_electronic_available").HasDefaultValue(false);
             b.Property(x => x.IsUnitary).HasColumnName("is_unitary").HasDefaultValue(false);
             b.Property(x => x.StorageYears).HasColumnName("storage_years").HasDefaultValue(3);
             b.Property(x => x.IsForLlc).HasColumnName("is_for_llc").HasDefaultValue(false);

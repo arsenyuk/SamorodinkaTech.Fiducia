@@ -67,6 +67,43 @@ public class EdinBindingService : IEdinBindingService
             return new EdinBindingResult { Success = true, MpiMasterId = masterId, LinkedUserId = participant.UserId };
         }
 
+        // ── Дедупликация по MasterId: проверяем, есть ли уже EP с тем же MasterId в этом ЮЛ ──
+        var duplicateEp = await _dbContext.EcosystemParticipants
+            .FirstOrDefaultAsync(x => x.MpiMasterId == masterId
+                                   && x.LegalEntityId == participant.LegalEntityId
+                                   && x.Id != participant.Id, ct);
+
+        if (duplicateEp is not null)
+        {
+            _logger.LogInformation("ЕДИН: дубликат MasterId={MasterId} — EP {DuplicateId} уже привязан в ЮЛ {LeId}. Привязываем BoardParticipant к существующему EP.",
+                masterId, duplicateEp.Id, participant.LegalEntityId);
+
+            // Привязываем BoardParticipant к существующему EcosystemParticipant
+            var boardParticipant = await _dbContext.BoardParticipants
+                .FirstOrDefaultAsync(bp => bp.EcosystemParticipantId == participant.Id, ct);
+            if (boardParticipant is not null)
+            {
+                boardParticipant.EcosystemParticipantId = duplicateEp.Id;
+            }
+
+            // Если у существующего EP уже есть UserId — привязываем и к текущему
+            if (duplicateEp.UserId.HasValue && participant.UserId != duplicateEp.UserId)
+            {
+                participant.UserId = duplicateEp.UserId.Value;
+            }
+
+            participant.MpiMasterId = masterId;
+            await _dbContext.SaveChangesAsync(ct);
+
+            return new EdinBindingResult
+            {
+                Success = true,
+                MpiMasterId = masterId,
+                LinkedUserId = duplicateEp.UserId ?? participant.UserId,
+                UserSource = duplicateEp.UserId.HasValue ? "existing_ep" : null
+            };
+        }
+
         participant.MpiMasterId = masterId;
 
         // Поиск УЗ: в БД по mpi_master_id (источник: LDAP/AD синхронизация)

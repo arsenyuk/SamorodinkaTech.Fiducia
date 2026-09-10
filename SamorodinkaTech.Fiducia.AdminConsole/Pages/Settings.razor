@@ -6,13 +6,6 @@
 <PageTitle>Fiducia — Системные настройки</PageTitle>
 
 <div class="container-fluid">
-    <!-- Текущее юридическое лицо -->
-    <div class="card mb-4">
-        <div class="card-header">
-            <h5 class="mb-0">Текущее юридическое лицо</h5>
-        </div>
-
-    </div>
 
     <!-- Системные настройки -->
     <div class="card mb-4">
@@ -100,6 +93,30 @@
                 <small class="text-muted">Файлы с этими расширениями будут сканироваться на наличие QR-кода нотариуса. Только латинские буквы без точки</small>
             </div>
             <button class="btn btn-primary" @onclick="SaveSystemSettings">Сохранить настройки</button>
+        </div>
+    </div>
+
+    <!-- Пороги для внеочередных собраний -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Пороги для внеочередных собраний</h5>
+        </div>
+        <div class="card-body">
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label class="form-label">Порог для требования ВОСУ, %</label>
+                    <input type="number" class="form-control" @bind="_vosuThreshold"
+                           min="0.01" max="100" step="0.01" placeholder="10 (по умолчанию)" />
+                    <small class="text-muted">Порог доли участника ООО для требования о созыве внеочередного собрания участников. По умолчанию 10% (п. 1 ст. 35 14-ФЗ). Устав может понизить порог.</small>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Порог для требования ВОСА, %</label>
+                    <input type="number" class="form-control" @bind="_vosaThreshold"
+                           min="0.01" max="100" step="0.01" placeholder="10 (по умолчанию)" />
+                    <small class="text-muted">Порог доли акционера АО для требования о созыве внеочередного собрания акционеров. По умолчанию 10% (п. 1 ст. 55 208-ФЗ).</small>
+                </div>
+            </div>
+            <button class="btn btn-primary" @onclick="SaveThresholds">Сохранить пороги</button>
         </div>
     </div>
 
@@ -384,6 +401,10 @@
     private bool _showStamp = true;
     private bool _autoDeclineDates = true;
 
+    // Пороги внеочередных собраний
+    private decimal? _vosuThreshold;
+    private decimal? _vosaThreshold;
+
     // Интеграции
     private bool _cryptoproEnabled = true;
     private bool _smtpEnabled = true;
@@ -418,6 +439,10 @@
                 _blockedExtensions = blockedExt;
             if (settings.TryGetValue("qr_code_extensions", out var qrExt) && !string.IsNullOrEmpty(qrExt))
                 _qrExtensions = qrExt;
+            if (settings.TryGetValue("vosu_default_threshold_percent", out var vosuStr) && decimal.TryParse(vosuStr, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var vosu))
+                _vosuThreshold = vosu;
+            if (settings.TryGetValue("vosa_default_threshold_percent", out var vosaStr) && decimal.TryParse(vosaStr, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var vosa))
+                _vosaThreshold = vosa;
         }
         catch { }
     }
@@ -473,6 +498,25 @@
 
             // Сохраняем расширения QR
             await UpsertSetting(ctx, "qr_code_extensions", _qrExtensions, "Расширения файлов для чтения QR-кода нотариуса (через запятую)", "extension_list");
+
+            await ctx.SaveChangesAsync();
+        }
+        catch { }
+    }
+
+    private async Task SaveThresholds()
+    {
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+
+            var vosuValue = _vosuThreshold?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "";
+            await UpsertSetting(ctx, "vosu_default_threshold_percent", vosuValue,
+                "Порог доли участника для требования ВОСУ (%, по умолчанию 10, ст. 35 14-ФЗ)");
+
+            var vosaValue = _vosaThreshold?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "";
+            await UpsertSetting(ctx, "vosa_default_threshold_percent", vosaValue,
+                "Порог доли акционера для требования ВОСА (%, по умолчанию 10, ст. 55 208-ФЗ)");
 
             await ctx.SaveChangesAsync();
         }

@@ -149,16 +149,33 @@ public static class ShareRequestEndpoints
             {
                 await using var ctx = await dbFactory.CreateDbContextAsync();
                 var leId = await LegalEntityHelper.GetLegalEntityIdAsync(ctx, http);
-                if (leId is null) return Results.Ok(new { threshold = (decimal?)null, defaultThreshold = 10m });
+                if (leId is null) return Results.Ok(new { threshold = (decimal?)null, defaultThreshold = (decimal?)null });
 
-                decimal? threshold = typeCode switch
+                decimal? charterThreshold = typeCode switch
                 {
                     "DEMAND_VOSU" or "DEMAND_VOSA" =>
                         (await ctx.LegalEntityCharters.FindAsync(leId))?.VosuThresholdPercent,
                     _ => null
                 };
 
-                return Results.Ok(new { threshold, defaultThreshold = 10m });
+                var systemSettingKey = typeCode switch
+                {
+                    "DEMAND_VOSU" => "vosu_default_threshold_percent",
+                    "DEMAND_VOSA" => "vosa_default_threshold_percent",
+                    _ => null
+                };
+
+                decimal? systemDefault = null;
+                if (systemSettingKey is not null)
+                {
+                    var setting = await ctx.SystemSettings.FirstOrDefaultAsync(x => x.Key == systemSettingKey);
+                    if (setting is not null && decimal.TryParse(setting.Value, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var parsed))
+                        systemDefault = parsed;
+                }
+
+                var effectiveThreshold = charterThreshold ?? systemDefault;
+
+                return Results.Ok(new { threshold = effectiveThreshold, defaultThreshold = systemDefault });
             }
             catch (Exception ex)
             {
@@ -667,20 +684,36 @@ public static class ShareRequestEndpoints
 
                 // Определяем порог по типу запроса (ст. 35 14-ФЗ / ст. 55 208-ФЗ)
                 var charter = await ctx.LegalEntityCharters.FindAsync(leId);
-                decimal? threshold = requestType.Code switch
+                decimal? charterThreshold = requestType.Code switch
                 {
                     "DEMAND_VOSU" or "DEMAND_VOSA" => charter?.VosuThresholdPercent,
                     // ADD_AGENDA_OSU, ADD_AGENDA_GOSA — без порога по закону
                     _ => null
                 };
 
+                var systemSettingKey = requestType.Code switch
+                {
+                    "DEMAND_VOSU" => "vosu_default_threshold_percent",
+                    "DEMAND_VOSA" => "vosa_default_threshold_percent",
+                    _ => null
+                };
+
+                decimal? systemDefault = null;
+                if (systemSettingKey is not null)
+                {
+                    var setting = await ctx.SystemSettings.FirstOrDefaultAsync(x => x.Key == systemSettingKey);
+                    if (setting is not null && decimal.TryParse(setting.Value, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var parsed))
+                        systemDefault = parsed;
+                }
+
                 // Определяем: направлять ли требование СД (вместо ГД)
                 bool isForBoard = charter?.BoardDecidesConveningOsu == true
                     && requestType.ConsideredByOsu;
 
                 // Определяем: хватает ли доли участнику для прямого направления
+                var effectiveThreshold = charterThreshold ?? systemDefault;
                 var participantShare = participant.SharePercent ?? 0m;
-                var hasEnoughShare = threshold.HasValue && participantShare >= threshold.Value;
+                var hasEnoughShare = effectiveThreshold.HasValue && participantShare >= effectiveThreshold.Value;
 
                 // Создаём запрос
                 var entity = new ShareRequest
@@ -693,12 +726,12 @@ public static class ShareRequestEndpoints
                     Payload = dto.Payload,
                     CreatedBy = createdBy,
                     IsCollective = true,
-                    ThresholdPercent = threshold,
+                    ThresholdPercent = effectiveThreshold,
                     TotalSupportPercent = participantShare,
                     SupporterCount = 1,
                     CollectiveStatus = hasEnoughShare
                         ? (isForBoard ? "BOARD_REVIEW" : "SUBMITTED_TO_CEO")
-                        : threshold.HasValue
+                        : effectiveThreshold.HasValue
                             ? "COLLECTING"
                             : isForBoard ? "BOARD_REVIEW" : "SUBMITTED_TO_CEO"
                 };
@@ -713,7 +746,7 @@ public static class ShareRequestEndpoints
                     SupportedAt = DateTime.UtcNow
                 };
 
-                if (!threshold.HasValue)
+                if (!effectiveThreshold.HasValue)
                     entity.SubmittedToCeoAt = DateTime.UtcNow;
 
                 ctx.ShareRequests.Add(entity);
@@ -1824,9 +1857,15 @@ public static class ShareRequestEndpoints
 
     private static async Task<string?> ValidateDemandVosuAsync(FiduciaDbContext ctx, Guid leId, ShareRequestCreateDto dto)
     {
-        // Загружаем порог устава
+        // Загружаем порог: устав → системная настройка
         var charter = await ctx.LegalEntityCharters.FindAsync(leId);
-        var threshold = charter?.VosuThresholdPercent ?? 10m; // по умолчанию 10%
+        decimal? threshold = charter?.VosuThresholdPercent;
+        if (threshold is null)
+        {
+            var setting = await ctx.SystemSettings.FirstOrDefaultAsync(x => x.Key == "vosu_default_threshold_percent");
+            if (setting is not null && decimal.TryParse(setting.Value, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var parsed))
+                threshold = parsed;
+        }
 
         // Находим участника по userId из контекста (передаём через payload)
         decimal? sharePercent = null;
@@ -1840,8 +1879,8 @@ public static class ShareRequestEndpoints
         if (sharePercent is null)
             return "Не указана доля участника";
 
-        if (sharePercent < threshold)
-            return $"Доля участника ({sharePercent}%) ниже порога устава ({threshold}%)";
+        if (threshold.HasValue && sharePercent < threshold.Value)
+            return $"Доля участника ({sharePercent}%) ниже порога ({threshold}%)";
 
         return null;
     }

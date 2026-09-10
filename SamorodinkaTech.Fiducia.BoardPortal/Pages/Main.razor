@@ -53,52 +53,63 @@
                             @if (m.WindowStart.HasValue && m.WindowEnd.HasValue)
                             {
                                 <p class="text-muted mb-0">Окно проведения: @m.WindowStart.Value.ToString("dd.MM.yyyy") — @m.WindowEnd.Value.ToString("dd.MM.yyyy")</p>
-                            }
+                                }
                             else
-                            {
-                                <p class="text-muted mb-0">Дата не определена</p>
-                            }
+                                {
+                                    <p class="text-muted mb-0">Дата не определена</p>
+                                }
+                            </div>
+                            <span class="oi oi-chevron-right"></span>
                         </div>
-                        <span class="oi oi-chevron-right"></span>
-                    </div>
-                </a>
-            }
+                    </a>
+                }
+            </div>
         </div>
-    </div>
-}
+    }
 
-@if (_isLlc)
-{
-    @if (_plannedMeetings.Count > 0)
+    @if (_isLlc)
     {
+        @if (_plannedMeetings.Count > 0)
+        {
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="alert alert-info small mb-0">
+                        Повестка ОСУ может быть изменена не позднее 10 календарных дней до даты собрания
+                        (<LawReferenceLink Article="article-14fz-36" Text="п. 2 ст. 36 14-ФЗ" />).
+                    </div>
+                </div>
+            </div>
+        }
+
         <div class="row mb-4">
             <div class="col-12">
-                <div class="alert alert-info small mb-0">
-                    Повестка ОСУ может быть изменена не позднее 10 календарных дней до даты собрания
-                    (<LawReferenceLink Article="article-14fz-36" Text="п. 2 ст. 36 14-ФЗ" />).
+                <div class="alert alert-secondary small mb-0">
+                    @if (_vosuThresholdLoaded)
+                    {
+                        <span>Для созыва ВОСУ участники должны владеть совокупно не менее
+                            <strong>@_vosuThreshold%</strong> голосов
+                            (<LawReferenceLink Article="article-14fz-35" Text="ст. 35 14-ФЗ" />).</span>
+                    }
+                    else
+                    {
+                        <span class="text-warning">⚠ Порог доли для требования ВОСУ не загружен из настроек. Обратитесь к администратору.</span>
+                    }
                 </div>
             </div>
         </div>
     }
 
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="alert alert-secondary small mb-0">
-                Для созыва ВОСУ участники должны владеть совокупно не менее
-                <strong>@_vosuThreshold%</strong> голосов
-                (<LawReferenceLink Article="article-14fz-35" Text="ст. 35 14-ФЗ" />).
-            </div>
-        </div>
-    </div>
-}
-
 @code {
+    /// <summary>Порог доли участника для требования ВОСУ по закону (п. 1 ст. 35 14-ФЗ).</summary>
+    private const decimal DefaultVosuThresholdPercent = 10m;
+
     private bool _showGreeting;
     private bool _isParticipant;
     private bool _isLlc;
     private string _greetingText = "Добро пожаловать!";
     private List<PlannedMeetingDto> _plannedMeetings = new();
-    private decimal _vosuThreshold = 10m;
+    private decimal _vosuThreshold = DefaultVosuThresholdPercent;
+    private bool _vosuThresholdLoaded;
 
     /// <summary>Время суток для приветствия (UTC-часы).</summary>
     private static string GetGreetingPrefix(int utcHour) => utcHour switch
@@ -149,9 +160,15 @@
                 .FirstOrDefaultAsync(x => x.Id == leId.Value);
             _isLlc = OkopfTypeMapper.IsLlc(le?.RefOkopf?.Code);
 
-            // Загружаем порог ВОСУ из устава
+            // Загружаем порог ВОСУ: устав (пер-ЮЛ) → системная настройка
             var charter = await ctx.LegalEntityCharters.FindAsync(leId.Value);
-            _vosuThreshold = charter?.VosuThresholdPercent ?? 10m;
+            decimal? systemDefault = null;
+            var vosuSetting = await ctx.SystemSettings.FirstOrDefaultAsync(x => x.Key == "vosu_default_threshold_percent");
+            if (vosuSetting is not null && decimal.TryParse(vosuSetting.Value, System.Globalization.NumberStyles.Any,
+System.Globalization.CultureInfo.InvariantCulture, out var parsed))
+                systemDefault = parsed;
+            _vosuThreshold = charter?.VosuThresholdPercent ?? systemDefault ?? DefaultVosuThresholdPercent;
+            _vosuThresholdLoaded = charter?.VosuThresholdPercent.HasValue == true || systemDefault.HasValue;
 
             var osuFormIds = await ctx.OsaForms
                 .Where(f => f.Code == "OOSU" || f.Code == "VOSU")

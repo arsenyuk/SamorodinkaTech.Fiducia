@@ -1882,6 +1882,8 @@ hot-reload **не работает** в Blazor Server. Нужен kill + пер�
 - Добавить `EntityPersons` в словарь `PersonsByEntity` с ключом = entityIndex.
 - Каждый `PersonData` имеет уникальные `Uid` и `Login` (формат `{фамилия}.{инициалы}{номер}`).
 - LDAP-пользователи создаются автоматически через `CharterTestGlobalInit.GetAllUniquePersons()`.
+- **AdminUser и GD — разные логины.** Сидер добавляет AdminUser (LE_ADMIN) и GD (CEO) через `AddEmployeeAsync`. При совпадении логинов — второй вызов пропускается, роль CEO не назначается.
+- **GD и Participant — один человек допустим.** Роль PARTICIPANT назначается системой при привязке BoardParticipant к EcosystemParticipant (по ДУЛ → по ЕДИН), а не через сидер.
 
 **3. Создать тестовый класс:**
 - Имя файла: `E2E_{КраткоеИмя}Tests.cs` (отражает бизнес-сценарий).

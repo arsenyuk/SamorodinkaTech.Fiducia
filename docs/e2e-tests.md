@@ -18,26 +18,16 @@
 
 | Бизнес-процесс | US | E2E-тест | Статус |
 |----------------|-----|----------|--------|
-| Вход в систему | US-002 | `US001_AuthorizationTests` | ✅ Реализован |
-| Выход из системы | US-003 | `US001_AuthorizationTests` (public pages) | ✅ Реализован |
-| Публичные страницы | US-002 | `US001_AuthorizationTests` | ✅ Реализован |
-| Принудительное закрытие сессии | US-011 | — | ❌ Нет теста |
-| Аудит-лог входов/выходов | US-012 | — | ❌ Нет теста |
+| Вход/выход/публичные страницы | US-002 | `US001_AuthorizationTests` | ✅ Реализован |
 
 ### Заседания совета директоров
 
 | Бизнес-процесс | US | E2E-тест | Статус |
 |----------------|-----|----------|--------|
-| Создание заседания | US-004 | `US002_MeetingTests` | ✅ Реализован |
-| Голосование | US-005 | `US005_VotingTests` | ✅ Реализован |
-| Просмотр документов заседания | US-008 | `US004_CommitteeTests` (documents page) | ✅ Реализован |
-| Печатные формы по ГОСТу | US-009 | `US004_CommitteeTests` (print-forms page) | ✅ Реализован |
-
-### Комитеты
-
-| Бизнес-процесс | US | E2E-тест | Статус |
-|----------------|-----|----------|--------|
-| Управление комитетами | US-006 | `US004_CommitteeTests` | ✅ Реализован |
+| Типовой устав | — | `E2E_StandardCharterTests` | ✅ Реализован |
+| Нетиповой устав | — | `E2E_NonStandardCharterTests` | ✅ Реализован |
+| Первичный ввод состава СД | — | `E2E_BoardSetupTests` | ✅ Реализован |
+| Генеральный директор | — | `E2E_GeneralDirectorTests` | ✅ Реализован |
 
 ### Участники (ООО)
 
@@ -46,23 +36,20 @@
 | Список участников | US-023 | `US023_ParticipantTests` | ✅ Реализован |
 | Требования участника | US-020 | `US020_ShareRequestTests` | ✅ Реализован |
 | Каталог предоставленных документов | US-021 | `US021_DocumentCatalogTests` | ✅ Реализован |
-
-### Оповещения
-
-| Бизнес-процесс | US | E2E-тест | Статус |
-|----------------|-----|----------|--------|
-| Оповещения (UI) | US-010 | `US010_NotificationTests` | ✅ Реализован |
-| Отправленные уведомления (Admin) | US-010.1 | `US004_CommitteeTests` (sent-notifications) | ✅ Реализован |
+| Требование о созыве ВОСУ | — | `E2E_VosuDemandTests` | ✅ Реализован |
 
 ### Администрирование
 
 | Бизнес-процесс | US | E2E-тест | Статус |
 |----------------|-----|----------|--------|
-| Настройка ЮЛ | US-001 | `US001_AuthorizationTests` (admin console) | ✅ Реализован |
-| Справочники (все 20 страниц) | US-012 (admin) | `PageVerificationHelper.VerifyAdminConsolePagesAsync` | ✅ Реализован |
-| Пользователи | — | `US004_CommitteeTests` (users, roles) | ✅ Реализован |
-| Шаблоны орг-планов | — | `US004_CommitteeTests` (org-templates) | ✅ Реализован |
-| Настройки | — | `US020_MeetingTests` (settings) | ✅ Реализован |
+| Управление пользователями | — | `E2E_UserManagementTests` | ✅ Реализован |
+
+### ЕДИН-интеграция
+
+| Бизнес-процесс | US | E2E-тест | Статус |
+|----------------|-----|----------|--------|
+| ЕДИН-интеграция (привязка) | — | `E2E_EdinIntegrationTests` | ✅ Реализован |
+| ЕДИН-сценарии | — | `E2E_EdinScenarioTests` | ✅ Реализован |
 
 > **Правило:** Проверка страниц справочников выполняется только через
 > `PageVerificationHelper.VerifyAdminConsolePagesAsync` — строго один раз
@@ -140,18 +127,16 @@ public class US0XX_FeatureTests : BrowserFixture
 | US-номер | E2E-класс | Файл |
 |----------|-----------|------|
 | US-001 | `US001_AuthorizationTests` | `Tests/US001_AuthorizationTests.cs` |
-| US-002 | `US002_MeetingTests` | `Tests/US002_MeetingTests.cs` |
-| US-004 | `US004_CommitteeTests` | `Tests/US004_CommitteeTests.cs` |
-| US-005 | `US005_VotingTests` | `Tests/US005_VotingTests.cs` |
-| US-010 | `US010_NotificationTests` | `Tests/US010_NotificationTests.cs` |
 | US-020 | `US020_ShareRequestTests` | `Tests/US020_ShareRequestTests.cs` |
 | US-021 | `US021_DocumentCatalogTests` | `Tests/US021_DocumentCatalogTests.cs` |
-| US-022 | `US022_OsuMeetingTests` | `Tests/US022_OsuMeetingTests.cs` |
 | US-023 | `US023_ParticipantTests` | `Tests/US023_ParticipantTests.cs` |
-| US-024 | `US024_ContractTests` | `Tests/US024_ContractTests.cs` |
 | — | `E2E_StandardCharterTests` | `Tests/E2E_StandardCharterTests.cs` |
 | — | `E2E_NonStandardCharterTests` | `Tests/E2E_NonStandardCharterTests.cs` |
 | — | `E2E_BoardSetupTests` | `Tests/E2E_BoardSetupTests.cs` |
+| — | `E2E_GeneralDirectorTests` | `Tests/E2E_GeneralDirectorTests.cs` |
+| — | `E2E_EdinIntegrationTests` | `Tests/E2E_EdinIntegrationTests.cs` |
+| — | `E2E_EdinScenarioTests` | `Tests/E2E_EdinScenarioTests.cs` |
+| — | `E2E_UserManagementTests` | `Tests/E2E_UserManagementTests.cs` |
 | — | `E2E_VosuDemandTests` | `Tests/E2E_VosuDemandTests.cs` |
 
 ---

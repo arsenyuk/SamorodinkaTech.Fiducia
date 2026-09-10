@@ -113,17 +113,22 @@ public static class ParticipantEndpoints
                 var llcCheck = await ValidateAccessAsync(ctx, http, audit, logger);
                 if (llcCheck is not null) return llcCheck;
 
-                var (login, _) = await GetUserInfoAsync(ctx, http);
-                var participant = await ctx.EcosystemParticipants
-                    .FirstOrDefaultAsync(ep => ep.Login == login);
-                var leId = participant?.LegalEntityId ?? Guid.Empty;
+                var leId = await LegalEntityHelper.GetLegalEntityIdAsync(ctx, http) ?? Guid.Empty;
 
                 var maxSort = await ctx.BoardParticipants
                     .Where(p => p.LegalEntityId == leId)
                     .MaxAsync(p => (int?)p.SortOrder) ?? 0;
 
                 var entity = MapDtoToEntity(dto, leId);
-                entity.EcosystemParticipantId = participant?.Id;
+                entity.DulSearchKey = ComputeDulSearchKey(entity);
+
+                // ── Дедупликация ──────────────────────────────────────
+                var dedupError = await CheckDuplicateParticipantAsync(ctx, leId, entity, null);
+                if (dedupError is not null)
+                {
+                    logger.LogWarning("Дедупликация: {Error}", dedupError);
+                    return Results.BadRequest(new { error = dedupError });
+                }
                 entity.Id = Guid.NewGuid();
                 entity.SortOrder = maxSort + 1;
                 entity.CreatedAt = DateTime.UtcNow;
@@ -191,6 +196,15 @@ public static class ParticipantEndpoints
                 entity.ExitDate = dto.ExitDate;
                 entity.IsActive = dto.IsActive ?? true;
                 entity.UpdatedAt = DateTime.UtcNow;
+                entity.DulSearchKey = ComputeDulSearchKey(entity);
+
+                // ── Дедупликация (при обновлении) ────────────────────
+                var dedupError = await CheckDuplicateParticipantAsync(ctx, entity.LegalEntityId, entity, id);
+                if (dedupError is not null)
+                {
+                    logger.LogWarning("Дедупликация при обновлении {Id}: {Error}", id, dedupError);
+                    return Results.BadRequest(new { error = dedupError });
+                }
 
                 await ctx.SaveChangesAsync();
 
@@ -1429,4 +1443,62 @@ public static class ParticipantEndpoints
         public string Status { get; init; } = "pending";
         public string? Comment { get; init; }
     }
+
+    /// <summary>
+    /// Проверка дубликата участника по ДУЛ/INN в пределах одного ЮЛ.
+    /// Возвращает сообщение об ошибке или null если дубликатов нет.
+    /// </summary>
+    private static async Task<string?> CheckDuplicateParticipantAsync(
+        FiduciaDbContext ctx,
+        Guid legalEntityId,
+        BoardParticipant entity,
+        Guid? excludeId)
+    {
+        var query = ctx.BoardParticipants
+            .Where(p => p.LegalEntityId == legalEntityId
+                     && p.IsActive
+                     && p.Id != (excludeId ?? Guid.Empty));
+
+        // Проверка по поисковому ключу ДУЛ (нормализованная строка)
+        var searchKey = ComputeDulSearchKey(entity);
+        if (!string.IsNullOrEmpty(searchKey))
+        {
+            if (await query.AnyAsync(p => p.DulSearchKey == searchKey))
+                return "Участник с таким документом уже добавлен";
+        }
+
+        // Проверка по ИНН (ФЛ)
+        if (entity.ParticipantType == "FL" && !string.IsNullOrEmpty(entity.PersonInn))
+        {
+            if (await query.AnyAsync(p => p.PersonInn == entity.PersonInn))
+                return "Участник с таким ИНН уже добавлен";
+        }
+
+        // Проверка по ИНН (ЮЛ)
+        if (entity.ParticipantType == "UL" && !string.IsNullOrEmpty(entity.CompanyInn))
+        {
+            if (await query.AnyAsync(p => p.ParticipantType == "UL" && p.CompanyInn == entity.CompanyInn))
+                return "Юридическое лицо с таким ИНН уже добавлено";
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Вычисляет поисковый ключ ДУЛ для дедупликации.
+    /// Формат: DulTypeId|normalized_series|normalized_number
+    /// </summary>
+    private static string? ComputeDulSearchKey(BoardParticipant entity)
+    {
+        if (!entity.DulTypeId.HasValue || string.IsNullOrEmpty(entity.PassportNumber))
+            return null;
+
+        var series = NormalizeDulField(entity.PassportSeries ?? "");
+        var number = NormalizeDulField(entity.PassportNumber);
+        return $"{entity.DulTypeId}|{series}|{number}";
+    }
+
+    /// <summary>Нормализация поля ДУЛ: удаление пробелов/дефисов, верхний регистр.</summary>
+    private static string NormalizeDulField(string value) =>
+        value.Replace(" ", "").Replace("-", "").ToUpperInvariant();
 }

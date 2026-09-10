@@ -122,4 +122,8 @@ public class BoardParticipant
 
     /// <summary>СНИЛС (snils) — формат XXX-XXX-XXX XX, 14 символов.</summary>
     public string? Snils { get; set; }
+
+    /// <summary>Поисковый ключ ДУЛ для дедупликации (dul_search_key).
+    /// Нормализованная строка: DulTypeId|Series|Number.</summary>
+    public string? DulSearchKey { get; set; }
 }
