@@ -76,7 +76,8 @@ INSERT INTO ref_notification_type (id, code, name, category, created_at, created
     ('aa000001-0000-0000-0000-000000000015','OSU_MEETING_SUMMONS','Созыв ОСУ','OSU',CURRENT_TIMESTAMP,'00000000-0000-0000-0000-000000000000'),
     ('aa000001-0000-0000-0000-000000000016','OSU_PROTOCOL_SIGNED','Протокол ОСУ подписан','OSU',CURRENT_TIMESTAMP,'00000000-0000-0000-0000-000000000000'),
     ('aa000001-0000-0000-0000-000000000017','OSA_MEETING_SUMMONS','Созыв ОСА','OSA',CURRENT_TIMESTAMP,'00000000-0000-0000-0000-000000000000'),
-    ('aa000001-0000-0000-0000-000000000018','OSA_PROTOCOL_SIGNED','Протокол ОСА подписан','OSA',CURRENT_TIMESTAMP,'00000000-0000-0000-0000-000000000000')
+    ('aa000001-0000-0000-0000-000000000018','OSA_PROTOCOL_SIGNED','Протокол ОСА подписан','OSA',CURRENT_TIMESTAMP,'00000000-0000-0000-0000-000000000000'),
+    ('aa000001-0000-0000-0000-000000000019','VOSU_AGENDA_CHANGE','Изменение повестки ВОСУ','OSU',CURRENT_TIMESTAMP,'00000000-0000-0000-0000-000000000000')
 ON CONFLICT (code) DO NOTHING;
 
 INSERT INTO notification_template (id, notification_type_code, title_template, body_template, description, is_enabled) VALUES
@@ -135,7 +136,11 @@ INSERT INTO notification_template (id, notification_type_code, title_template, b
     ('bb000001-0000-0000-0000-000000000014','SHARE_REQUEST_VISIBLE_TO_ALL',
      'ИМИТАЦИЯ ОТПРАВКА ПО email — Новое требование участника',
      'Уважаемый Генеральный директор!\n\nПоступило требование участника {participantName}{shareText} по обществу «{legalEntityName}».\n\nТип требования: {requestType}\n\nОзнакомьтесь с требованием: {url}',
-     'Новое требование участника — видно всем ГД', TRUE)
+     'Новое требование участника — видно всем ГД', TRUE),
+    ('bb000001-0000-0000-0000-000000000015','VOSU_AGENDA_CHANGE',
+     'ИМИТАЦИЯ ОТПРАВКА ПО email — Изменение повестки ВОСУ {legalEntityName}',
+     'Уважаемый(-ая) {participantName}!\n\n{legalEntityName} уведомляет Вас об изменении повестки дня внеочередного общего собрания участников.\n\nДата проведения: {meetingDate}\nВремя начала: {meetingTime}\nМесто проведения: {meetingVenue}\n\nОзнакомьтесь с обновлённой повесткой в системе.\n\nС уважением,\nГенеральный директор {legalEntityName}',
+     'Уведомление об изменении повестки ВОСУ', TRUE)
 ON CONFLICT (notification_type_code) DO NOTHING;
 
 

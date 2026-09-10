@@ -551,6 +551,16 @@
                     <span class="text-danger small">@fileError</span>
                 }
             </fieldset>
+
+            @if (!editIsGosa && !isFinalized)
+            {
+                <div class="mt-3">
+                    <a href="/notify-vosu/@Id" class="btn btn-outline-primary">
+                        Сформировать уведомление участникам ВОСУ
+                    </a>
+                    <div class="text-muted small mt-1">Отправка уведомлений внутри системы + DOCX для печати</div>
+                </div>
+            }
             }
 
             @if (currentStep == 5)

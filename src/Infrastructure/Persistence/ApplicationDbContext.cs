@@ -390,6 +390,9 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.Property(x => x.TemporaryChairName).HasColumnName("temporary_chair_name").HasMaxLength(300);
             b.Property(x => x.ProtocolSignedAt).HasColumnName("protocol_signed_at");
             b.Property(x => x.BallotDeadline).HasColumnName("ballot_deadline");
+            b.Property(x => x.MeetingStartTime).HasColumnName("meeting_start_time");
+            b.Property(x => x.MeetingVenue).HasColumnName("meeting_venue").HasMaxLength(500);
+            b.Property(x => x.RegistrationStartTime).HasColumnName("registration_start_time");
             b.Property(x => x.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("NOW()");
             b.Property(x => x.Status).HasColumnName("status").HasMaxLength(20).HasDefaultValue("DRAFT");
             b.Property(x => x.FinalizedBy).HasColumnName("finalized_by");

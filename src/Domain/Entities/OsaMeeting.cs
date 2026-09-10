@@ -101,6 +101,15 @@ public class OsaMeeting
     /// <summary>Дата окончания приёма бюллетеней (ballot_deadline).</summary>
     public DateTime? BallotDeadline { get; set; }
 
+    /// <summary>Время начала собрания (meeting_start_time).</summary>
+    public TimeOnly? MeetingStartTime { get; set; }
+
+    /// <summary>Место проведения собрания (meeting_venue).</summary>
+    public string? MeetingVenue { get; set; }
+
+    /// <summary>Время начала регистрации участников (registration_start_time).</summary>
+    public TimeOnly? RegistrationStartTime { get; set; }
+
     /// <summary>Дата создания записи (created_at).</summary>
     public DateTime CreatedAt { get; set; }
 

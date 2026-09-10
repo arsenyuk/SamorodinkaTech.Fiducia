@@ -255,6 +255,29 @@ public class NotificationTextBuilder
 
     public (string Title, string Body) BuildGeneral(string title, string body) => (title, body);
 
+    public async Task<(string Title, string Body)> BuildVosuAgendaChangeAsync(
+        string legalEntityName, string participantName, DateOnly meetingDate,
+        TimeOnly? meetingTime, string? meetingVenue, CancellationToken ct = default)
+    {
+        var template = await GetTemplateAsync("VOSU_AGENDA_CHANGE", ct);
+        if (template is null)
+            return BuildVosuAgendaChangeFallback(legalEntityName, participantName, meetingDate, meetingTime, meetingVenue);
+
+        var placeholders = new Dictionary<string, string>
+        {
+            ["legalEntityName"] = legalEntityName,
+            ["participantName"] = participantName,
+            ["meetingDate"] = $"{meetingDate.Day} {FormatMonthRus(meetingDate.Month)} {meetingDate.Year}",
+            ["meetingTime"] = meetingTime.HasValue
+                ? $"{meetingTime.Value.Hour} часов {meetingTime.Value.Minute} минут"
+                : "не указано",
+            ["meetingVenue"] = meetingVenue ?? "не указано"
+        };
+
+        return (ApplyPlaceholders(template.TitleTemplate, placeholders),
+                ApplyPlaceholders(template.BodyTemplate, placeholders));
+    }
+
     // ═══════════════════════════════════════════════════════════════
     // Приватные fallback-методы (дефолтные тексты, без БД)
     // ═══════════════════════════════════════════════════════════════
@@ -411,4 +434,41 @@ public class NotificationTextBuilder
             + $"Тип требования: {requestType}" + urlLine
         );
     }
+
+    private static (string Title, string Body) BuildVosuAgendaChangeFallback(
+        string legalEntityName, string participantName, DateOnly meetingDate,
+        TimeOnly? meetingTime, string? meetingVenue)
+    {
+        var timeStr = meetingTime.HasValue
+            ? $"{meetingTime.Value.Hour} часов {meetingTime.Value.Minute} минут"
+            : "не указано";
+        var dateStr = $"{meetingDate.Day} {FormatMonthRus(meetingDate.Month)} {meetingDate.Year}";
+        return (
+            $"ИМИТАЦИЯ ОТПРАВКА ПО email — Изменение повестки ВОСУ {legalEntityName}",
+            $"Уважаемый(-ая) {participantName}!\n\n"
+            + $"{legalEntityName} уведомляет Вас об изменении повестки дня внеочередного общего собрания участников.\n\n"
+            + $"Дата проведения: {dateStr}\n"
+            + $"Время начала: {timeStr}\n"
+            + $"Место проведения: {meetingVenue ?? "не указано"}\n\n"
+            + $"Ознакомьтесь с обновлённой повесткой в системе.\n\n"
+            + $"С уважением,\nГенеральный директор {legalEntityName}"
+        );
+    }
+
+    private static string FormatMonthRus(int month) => month switch
+    {
+        1 => "января",
+        2 => "февраля",
+        3 => "марта",
+        4 => "апреля",
+        5 => "мая",
+        6 => "июня",
+        7 => "июля",
+        8 => "августа",
+        9 => "сентября",
+        10 => "октября",
+        11 => "ноября",
+        12 => "декабря",
+        _ => ""
+    };
 }

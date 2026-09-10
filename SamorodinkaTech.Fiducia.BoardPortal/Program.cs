@@ -14,6 +14,7 @@ using SamorodinkaTech.Fiducia.Infrastructure.Persistence;
 using SamorodinkaTech.Fiducia.Infrastructure.Common.Exceptions;
 using SamorodinkaTech.Fiducia.Infrastructure.Middleware;
 using SamorodinkaTech.Fiducia.Domain.Entities;
+using SamorodinkaTech.Fiducia.Domain.Services;
 using SamorodinkaTech.Fiducia.Infrastructure;
 using Microsoft.AspNetCore.Http;
 using SamorodinkaTech.Fiducia.Infrastructure.FileStorage;
@@ -125,6 +126,10 @@ builder.Services.AddScoped<IDocumentProvisionService, DocumentProvisionService>(
 // Meeting services — сохранение и загрузка данных собраний (OsaMeeting + BoardOfDirectors + BoardMembers)
 builder.Services.AddScoped<IMeetingSaveService, MeetingSaveService>();
 builder.Services.AddScoped<IMeetingLoadService, MeetingLoadService>();
+
+// Уведомления ВОСУ: текстовые шаблоны + генерация DOCX
+builder.Services.AddScoped<NotificationTextBuilder>();
+builder.Services.AddScoped<IVosuNotificationDocxGenerator, VosuNotificationDocxGenerator>();
 
 // QR-кодирование нотариальных документов — чтение QR со сканов
 builder.Services.Configure<QrCodeReaderOptions>(builder.Configuration.GetSection("QrCodeReader"));
@@ -598,6 +603,9 @@ app.MapAgendaItemEndpoints();
 
 // ── Notarization QR API (Чтение QR-кодов с нотариальных документов) ────
 app.MapNotarizationQrEndpoints();
+
+// ── VOSU Notifications API (Уведомления ВОСУ + DOCX) ─────────────────
+app.MapVosuNotificationEndpoints();
 
 app.MapBlazorHub();
 app.MapFallbackToPage("/_Host");

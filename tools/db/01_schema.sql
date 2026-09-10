@@ -626,6 +626,9 @@ CREATE TABLE IF NOT EXISTS osa_meetings (
     temporary_chair_name varchar(300),
     protocol_signed_at timestamp with time zone,
     ballot_deadline timestamp with time zone,
+    meeting_start_time time,
+    meeting_venue varchar(500),
+    registration_start_time time,
     created_at timestamp with time zone DEFAULT NOW()
 );
 

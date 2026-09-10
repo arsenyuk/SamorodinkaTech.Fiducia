@@ -1,0 +1,306 @@
+@page "/notify-vosu/{MeetingId:guid}"
+@using System.Net.Http.Json
+@inject HttpClient Http
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+@inject ILogger<NotifyVosu> Logger
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "CEO")]
+
+<PageTitle>Fiducia — Уведомление участников ВОСУ</PageTitle>
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3>Уведомление участников о созыве ВОСУ</h3>
+        <a href="/osu-meetings/@MeetingId" class="btn btn-outline-secondary btn-sm">← К собранию</a>
+    </div>
+
+    @if (_error is not null)
+    {
+        <div class="alert alert-danger">@_error</div>
+    }
+
+    @if (_success is not null)
+    {
+        <div class="alert alert-success">@_success</div>
+    }
+
+    @if (_loading)
+    {
+        <div class="text-center py-4">
+            <div class="spinner-border text-primary" role="status"></div>
+        </div>
+    }
+    else if (_preview is null)
+    {
+        <div class="alert alert-warning">Данные собрания не найдены.</div>
+    }
+    else
+    {
+        <div class="row">
+            @* ── Форма ────────────────────────────────────────────── *@
+            <div class="col-md-7">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">Параметры уведомления</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label">Название собрания</label>
+                            <input class="form-control" value="@_preview.Title" disabled />
+                        </div>
+
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Дата проведения</label>
+                                <InputDate @bind-Value="_meetingDate" class="form-control" />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Время начала</label>
+                                <input type="time" class="form-control" @bind="_meetingStartTime" />
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Место проведения</label>
+                            <input class="form-control" @bind="_meetingVenue"
+                                   placeholder="г. Москва, ул. Пятницкая, д. 20, стр. 1, переговорная № 3" />
+                        </div>
+
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Время регистрации участников</label>
+                                <input type="time" class="form-control" @bind="_registrationStartTime" />
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">ФИО инициатора (подавшего требование)</label>
+                            <input class="form-control" @bind="_initiatorName" placeholder="Соколов И.В." />
+                        </div>
+
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Доля инициатора (%)</label>
+                                <input type="number" class="form-control" @bind="_initiatorSharePercent"
+                                       min="0" max="100" step="0.01" />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Дата получения требования</label>
+                                <InputDate @bind-Value="_demandReceivedDate" class="form-control" />
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Место ознакомления с документами</label>
+                            <input class="form-control" @bind="_reviewLocation"
+                                   placeholder="г. Москва, ул. Пятницкая, д. 20, стр. 1, в рабочие дни с 10:00 до 16:00" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Повестка дня (по одному вопросу на строку)</label>
+                            <textarea class="form-control" rows="6" @bind="_agendaText"
+                                      placeholder="1. Избрание Председателя и Секретаря ВОСУ&#10;2. Одобрение крупной сделки&#10;3. Досрочное прекращение полномочий ГД"></textarea>
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-primary" @onclick="SendAsync" disabled="@_sending">
+                                @if (_sending)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-1"></span>
+                                }
+                                Сформировать и отправить
+                            </button>
+                            <button class="btn btn-outline-secondary" @onclick="PreviewAsync" disabled="@_sending">
+                                Предпросмотр
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            @* ── Информация ──────────────────────────────────────── *@
+            <div class="col-md-5">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">Информация</h5>
+                    </div>
+                    <div class="card-body">
+                        <p><strong>ЮЛ:</strong> @_preview.LegalEntityName</p>
+                        <p><strong>ОГРН:</strong> @_preview.LegalEntityOgrn</p>
+                        <p><strong>ИНН:</strong> @_preview.LegalEntityInn</p>
+                        <hr />
+                        <p><strong>Участников:</strong> @_preview.ParticipantCount</p>
+                        <p><strong>ГД (подпись):</strong> @_preview.CeoName</p>
+                        <hr />
+                        <div class="alert alert-info py-2 mb-0 small">
+                            <strong>Что будет:</strong>
+                            <ol class="mb-0 mt-1">
+                                <li>Уведомление отправится каждому участнику внутри системы</li>
+                                <li>Для каждого участника сформируется DOCX-файл (ГОСТ)</li>
+                                <li>Файлы сохранятся в карточке собрания (вкладка «Файлы»)</li>
+                            </ol>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public Guid MeetingId { get; set; }
+
+    private MeetingPreviewDto? _preview;
+    private bool _loading = true;
+    private bool _sending;
+    private string? _error;
+    private string? _success;
+
+    private DateOnly _meetingDate = DateOnly.FromDateTime(DateTime.Today.AddDays(30));
+    private TimeOnly _meetingStartTime = new(14, 0);
+    private TimeOnly _registrationStartTime = new(13, 30);
+    private string? _meetingVenue;
+    private string? _initiatorName;
+    private decimal? _initiatorSharePercent;
+    private DateOnly? _demandReceivedDate;
+    private string? _reviewLocation;
+    private string? _agendaText;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _preview = await Http.GetFromJsonAsync<MeetingPreviewDto>(
+                $"/api/vosu-notifications/preview/{MeetingId}");
+
+            if (_preview is not null)
+            {
+                if (_preview.MeetingDate.HasValue)
+                    _meetingDate = _preview.MeetingDate.Value;
+                if (_preview.MeetingStartTime.HasValue)
+                    _meetingStartTime = _preview.MeetingStartTime.Value;
+                if (_preview.RegistrationStartTime.HasValue)
+                    _registrationStartTime = _preview.RegistrationStartTime.Value;
+                _meetingVenue = _preview.MeetingVenue;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Ошибка загрузки предпросмотра уведомления ВОСУ");
+            _error = $"Ошибка загрузки: {ex.Message}";
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task SendAsync()
+    {
+        _error = null;
+        _success = null;
+
+        if (string.IsNullOrWhiteSpace(_meetingVenue))
+        {
+            _error = "Укажите место проведения собрания";
+            return;
+        }
+
+        var agendaItems = ParseAgendaItems(_agendaText);
+        if (agendaItems.Count == 0)
+        {
+            _error = "Укажите хотя бы один вопрос повестки";
+            return;
+        }
+
+        _sending = true;
+        StateHasChanged();
+
+        try
+        {
+            var request = new
+            {
+                meetingId = MeetingId,
+                meetingDate = _meetingDate,
+                meetingStartTime = _meetingStartTime,
+                meetingVenue = _meetingVenue,
+                registrationStartTime = _registrationStartTime,
+                agendaItems,
+                initiatorName = _initiatorName,
+                initiatorSharePercent = _initiatorSharePercent,
+                demandReceivedDate = _demandReceivedDate,
+                reviewLocation = _reviewLocation,
+                ceoName = _preview?.CeoName ?? ""
+            };
+
+            var response = await Http.PostAsJsonAsync("/api/vosu-notifications/send", request);
+            var body = await response.Content.ReadAsStringAsync();
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _error = $"Ошибка ({(int)response.StatusCode}): {body}";
+                return;
+            }
+
+            var result = System.Text.Json.JsonSerializer.Deserialize<SendResultDto>(body);
+            _success = $"Уведомления отправлены: {result?.SentCount ?? 0} участников, " +
+                       $"DOCX-файлов: {result?.FileCount ?? 0}";
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Ошибка отправки уведомлений ВОСУ");
+            _error = $"Ошибка: {ex.Message}";
+        }
+        finally
+        {
+            _sending = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task PreviewAsync()
+    {
+        _error = null;
+        try
+        {
+            await JS.InvokeVoidAsync("alert",
+                $"Предпросмотр уведомления для: {_preview?.LegalEntityName}\n" +
+                $"Дата: {_meetingDate:dd.MM.yyyy}\n" +
+                $"Время: {_meetingStartTime:HH:mm}\n" +
+                $"Место: {_meetingVenue ?? "(не указано)"}\n" +
+                $"Участников: {_preview?.ParticipantCount ?? 0}");
+        }
+        catch { }
+    }
+
+    private static List<string> ParseAgendaItems(string? text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+            return new();
+
+        return text.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(line =>
+            {
+                // Убираем номер пп "1. " в начале строки
+                var cleaned = System.Text.RegularExpressions.Regex.Replace(line, @"^\d+\.\s*", "");
+                return cleaned;
+            })
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .ToList();
+    }
+
+    private record MeetingPreviewDto(
+        Guid MeetingId,
+        string? Title,
+        DateOnly? MeetingDate,
+        TimeOnly? MeetingStartTime,
+        string? MeetingVenue,
+        TimeOnly? RegistrationStartTime,
+        int ParticipantCount,
+        string? LegalEntityName,
+        string? LegalEntityOgrn,
+        string? LegalEntityInn,
+        string? CeoName);
+
+    private record SendResultDto(int SentCount, int FileCount, Guid MeetingId);
+}
