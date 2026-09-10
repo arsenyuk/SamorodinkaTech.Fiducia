@@ -1,0 +1,99 @@
+@page "/settings/integrations"
+@using Microsoft.EntityFrameworkCore
+@inject IDbContextFactory<SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext> DbFactory
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "SYS_ADMIN")]
+
+<PageTitle>Fiducia — Интеграции</PageTitle>
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3>Интеграции</h3>
+        <a href="/settings" class="btn btn-outline-secondary btn-sm">← Назад</a>
+    </div>
+
+    @if (!string.IsNullOrEmpty(_successMessage))
+    {
+        <div class="alert alert-success">@_successMessage</div>
+    }
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="mb-4">
+                <label class="form-label fw-bold">КриптоПро CSP</label>
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" checked="@_cryptoproEnabled"
+                           @onchange="() => _cryptoproEnabled = !_cryptoproEnabled">
+                    <span class="ms-2 @(_cryptoproEnabled ? "text-success" : "text-muted")">
+                        @(_cryptoproEnabled ? "Подключено" : "Не настроено")
+                    </span>
+                </div>
+                <small class="text-muted">Для подписания УКЭП Председателем и Секретарём СД</small>
+            </div>
+
+            <div class="mb-4">
+                <label class="form-label fw-bold">SMTP-сервер (Email)</label>
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" checked="@_smtpEnabled"
+                           @onchange="() => _smtpEnabled = !_smtpEnabled">
+                    <span class="ms-2 @(_smtpEnabled ? "text-success" : "text-muted")">
+                        @(_smtpEnabled ? "Подключено" : "Не настроено")
+                    </span>
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <label class="form-label fw-bold">SMS-провайдер (ПЭП)</label>
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" checked="@_smsEnabled"
+                           @onchange="() => _smsEnabled = !_smsEnabled">
+                    <span class="ms-2 @(_smsEnabled ? "text-success" : "text-muted")">
+                        @(_smsEnabled ? "Подключено" : "Не настроено")
+                    </span>
+                </div>
+            </div>
+
+            <button class="btn btn-primary" @onclick="Save">Сохранить</button>
+        </div>
+    </div>
+</div>
+
+@code {
+    private bool _cryptoproEnabled = true;
+    private bool _smtpEnabled = true;
+    private bool _smsEnabled = false;
+    private string? _successMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+            var s = await ctx.SystemSettings.ToDictionaryAsync(x => x.Key, x => x.Value);
+            if (s.TryGetValue("integration_cryptopro_enabled", out var cp) && bool.TryParse(cp, out var cpv)) _cryptoproEnabled = cpv;
+            if (s.TryGetValue("integration_smtp_enabled", out var sm) && bool.TryParse(sm, out var smv)) _smtpEnabled = smv;
+            if (s.TryGetValue("integration_sms_enabled", out var sms) && bool.TryParse(sms, out var smsv)) _smsEnabled = smsv;
+        }
+        catch { }
+    }
+
+    private async Task Save()
+    {
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+            await U(ctx, "integration_cryptopro_enabled", _cryptoproEnabled.ToString(), "КриптоПро CSP");
+            await U(ctx, "integration_smtp_enabled", _smtpEnabled.ToString(), "SMTP-сервер");
+            await U(ctx, "integration_sms_enabled", _smsEnabled.ToString(), "SMS-провайдер");
+            await ctx.SaveChangesAsync();
+            _successMessage = "Настройки интеграций сохранены.";
+        }
+        catch { }
+    }
+
+    private static async Task U(SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext ctx, string key, string value, string description)
+    {
+        var s = await ctx.SystemSettings.FirstOrDefaultAsync(x => x.Key == key);
+        if (s is not null) { s.Value = value; s.UpdatedAt = DateTime.UtcNow; }
+        else ctx.SystemSettings.Add(new SamorodinkaTech.Fiducia.Domain.Entities.SystemSetting { Id = Guid.NewGuid(), Key = key, Value = value, Description = description, CreatedAt = DateTime.UtcNow });
+    }
+}

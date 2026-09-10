@@ -1,0 +1,230 @@
+@page "/settings/print"
+@using Microsoft.EntityFrameworkCore
+@inject IDbContextFactory<SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext> DbFactory
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "SYS_ADMIN")]
+
+<PageTitle>Fiducia — Настройки печати</PageTitle>
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3>Настройки печати (ГОСТ Р 7.0.97-2025)</h3>
+        <a href="/settings" class="btn btn-outline-secondary btn-sm">← Назад</a>
+    </div>
+
+    @if (!string.IsNullOrEmpty(_successMessage))
+    {
+        <div class="alert alert-success">@_successMessage</div>
+    }
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <h6>Поля документа</h6>
+            <div class="row mb-3">
+                <div class="col-md-3">
+                    <label class="form-label fw-bold">Левое (мм)</label>
+                    <input type="number" class="form-control" @bind="_marginLeft" min="10" max="50">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-bold">Правое (мм)</label>
+                    <input type="number" class="form-control" @bind="_marginRight" min="10" max="50">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-bold">Верхнее (мм)</label>
+                    <input type="number" class="form-control" @bind="_marginTop" min="10" max="50">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-bold">Нижнее (мм)</label>
+                    <input type="number" class="form-control" @bind="_marginBottom" min="10" max="50">
+                </div>
+            </div>
+
+            <hr />
+            <h6>Шрифты</h6>
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">Шрифт заголовков</label>
+                    <select class="form-select" @bind="_headerFont">
+                        <option value="Times New Roman">Times New Roman</option>
+                        <option value="Arial">Arial</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label fw-bold">Размер (пт)</label>
+                    <input type="number" class="form-control" @bind="_headerFontSize" min="10" max="20">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">Шрифт текста</label>
+                    <select class="form-select" @bind="_bodyFont">
+                        <option value="Times New Roman">Times New Roman</option>
+                        <option value="Arial">Arial</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label fw-bold">Размер (пт)</label>
+                    <input type="number" class="form-control" @bind="_bodyFontSize" min="10" max="16">
+                </div>
+            </div>
+
+            <hr />
+            <h6>Форматирование</h6>
+            <div class="row mb-3">
+                <div class="col-md-3">
+                    <label class="form-label fw-bold">Межстрочный интервал</label>
+                    <select class="form-select" @bind="_lineSpacing">
+                        <option value="1">1.0</option>
+                        <option value="1.15">1.15</option>
+                        <option value="1.5">1.5</option>
+                        <option value="2">2.0</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-bold">Отступ абзаца (см)</label>
+                    <input type="number" class="form-control" @bind="_paragraphIndent" min="0.5" max="3" step="0.1">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-bold">Ориентация</label>
+                    <select class="form-select" @bind="_pageOrientation">
+                        <option value="portrait">Книжная</option>
+                        <option value="landscape">Альбомная</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-bold">Формат бумаги</label>
+                    <select class="form-select" @bind="_paperSize">
+                        <option value="A4">А4 (210×297)</option>
+                        <option value="A3">А3 (297×420)</option>
+                        <option value="Letter">Letter</option>
+                    </select>
+                </div>
+            </div>
+
+            <hr />
+            <h6>Содержание</h6>
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">Нумерация страниц</label>
+                    <select class="form-select" @bind="_pageNumbering">
+                        <option value="bottom-center">Снизу по центру</option>
+                        <option value="bottom-right">Снизу справа</option>
+                        <option value="top-right">Сверху справа</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">Шапка документа</label>
+                    <input type="text" class="form-control" @bind="_headerText" placeholder="АО «Ромашка»">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">Подвал документа</label>
+                    <input type="text" class="form-control" @bind="_footerText" placeholder="Г. Москва">
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" checked="@_showWatermark"
+                               @onchange="() => _showWatermark = !_showWatermark">
+                        <label class="form-check-label">Водяной знак при просмотре</label>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" checked="@_showStamp"
+                               @onchange="() => _showStamp = !_showStamp">
+                        <label class="form-check-label">Штамп ЭЦП (п. 5.23 ГОСТа)</label>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" checked="@_autoDeclineDates"
+                               @onchange="() => _autoDeclineDates = !_autoDeclineDates">
+                        <label class="form-check-label">Автосклонение дат</label>
+                    </div>
+                </div>
+            </div>
+
+            <button class="btn btn-primary" @onclick="Save">Сохранить настройки печати</button>
+        </div>
+    </div>
+</div>
+
+@code {
+    private int _marginLeft = 30, _marginRight = 15, _marginTop = 20, _marginBottom = 20;
+    private string _headerFont = "Times New Roman";
+    private int _headerFontSize = 14;
+    private string _bodyFont = "Times New Roman";
+    private int _bodyFontSize = 14;
+    private string _lineSpacing = "1.5";
+    private double _paragraphIndent = 1.25;
+    private string _pageOrientation = "portrait";
+    private string _paperSize = "A4";
+    private string _pageNumbering = "bottom-center";
+    private string _headerText = string.Empty;
+    private string _footerText = string.Empty;
+    private bool _showWatermark = true, _showStamp = true, _autoDeclineDates = true;
+    private string? _successMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+            var s = await ctx.SystemSettings.ToDictionaryAsync(x => x.Key, x => x.Value);
+            if (s.TryGetValue("print_margin_left", out var v) && int.TryParse(v, out var ml)) _marginLeft = ml;
+            if (s.TryGetValue("print_margin_right", out var v2) && int.TryParse(v2, out var mr)) _marginRight = mr;
+            if (s.TryGetValue("print_margin_top", out var v3) && int.TryParse(v3, out var mt)) _marginTop = mt;
+            if (s.TryGetValue("print_margin_bottom", out var v4) && int.TryParse(v4, out var mb)) _marginBottom = mb;
+            if (s.TryGetValue("print_header_font", out var hf) && !string.IsNullOrEmpty(hf)) _headerFont = hf;
+            if (s.TryGetValue("print_header_font_size", out var hfs) && int.TryParse(hfs, out var hs)) _headerFontSize = hs;
+            if (s.TryGetValue("print_body_font", out var bf) && !string.IsNullOrEmpty(bf)) _bodyFont = bf;
+            if (s.TryGetValue("print_body_font_size", out var bfs) && int.TryParse(bfs, out var bs)) _bodyFontSize = bs;
+            if (s.TryGetValue("print_line_spacing", out var ls) && !string.IsNullOrEmpty(ls)) _lineSpacing = ls;
+            if (s.TryGetValue("print_paragraph_indent", out var pi) && double.TryParse(pi, System.Globalization.CultureInfo.InvariantCulture, out var pii)) _paragraphIndent = pii;
+            if (s.TryGetValue("print_orientation", out var po) && !string.IsNullOrEmpty(po)) _pageOrientation = po;
+            if (s.TryGetValue("print_paper_size", out var ps) && !string.IsNullOrEmpty(ps)) _paperSize = ps;
+            if (s.TryGetValue("print_page_numbering", out var pn) && !string.IsNullOrEmpty(pn)) _pageNumbering = pn;
+            if (s.TryGetValue("print_header_text", out var ht)) _headerText = ht;
+            if (s.TryGetValue("print_footer_text", out var ft)) _footerText = ft;
+            if (s.TryGetValue("print_show_watermark", out var sw) && bool.TryParse(sw, out var swv)) _showWatermark = swv;
+            if (s.TryGetValue("print_show_stamp", out var ss) && bool.TryParse(ss, out var ssv)) _showStamp = ssv;
+            if (s.TryGetValue("print_auto_decline_dates", out var ad) && bool.TryParse(ad, out var adv)) _autoDeclineDates = adv;
+        }
+        catch { }
+    }
+
+    private async Task Save()
+    {
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+            await U(ctx, "print_margin_left", _marginLeft.ToString());
+            await U(ctx, "print_margin_right", _marginRight.ToString());
+            await U(ctx, "print_margin_top", _marginTop.ToString());
+            await U(ctx, "print_margin_bottom", _marginBottom.ToString());
+            await U(ctx, "print_header_font", _headerFont);
+            await U(ctx, "print_header_font_size", _headerFontSize.ToString());
+            await U(ctx, "print_body_font", _bodyFont);
+            await U(ctx, "print_body_font_size", _bodyFontSize.ToString());
+            await U(ctx, "print_line_spacing", _lineSpacing);
+            await U(ctx, "print_paragraph_indent", _paragraphIndent.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            await U(ctx, "print_orientation", _pageOrientation);
+            await U(ctx, "print_paper_size", _paperSize);
+            await U(ctx, "print_page_numbering", _pageNumbering);
+            await U(ctx, "print_header_text", _headerText);
+            await U(ctx, "print_footer_text", _footerText);
+            await U(ctx, "print_show_watermark", _showWatermark.ToString());
+            await U(ctx, "print_show_stamp", _showStamp.ToString());
+            await U(ctx, "print_auto_decline_dates", _autoDeclineDates.ToString());
+            await ctx.SaveChangesAsync();
+            _successMessage = "Настройки печати сохранены.";
+        }
+        catch { }
+    }
+
+    private static async Task U(SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext ctx, string key, string value)
+    {
+        var s = await ctx.SystemSettings.FirstOrDefaultAsync(x => x.Key == key);
+        if (s is not null) { s.Value = value; s.UpdatedAt = DateTime.UtcNow; }
+        else ctx.SystemSettings.Add(new SamorodinkaTech.Fiducia.Domain.Entities.SystemSetting { Id = Guid.NewGuid(), Key = key, Value = value, Description = $"Настройка печати: {key}", CreatedAt = DateTime.UtcNow });
+    }
+}

@@ -1,0 +1,116 @@
+@page "/settings/auth"
+@using Microsoft.EntityFrameworkCore
+@inject IDbContextFactory<SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext> DbFactory
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "SYS_ADMIN")]
+
+<PageTitle>Fiducia — Метод авторизации</PageTitle>
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3>Метод авторизации</h3>
+        <a href="/settings" class="btn btn-outline-secondary btn-sm">← Назад</a>
+    </div>
+
+    @if (!string.IsNullOrEmpty(_successMessage))
+    {
+        <div class="alert alert-success">@_successMessage</div>
+    }
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="mb-3">
+                <label class="form-label fw-bold">Режим авторизации</label>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="authMethod" value="Basic"
+                           checked="@(_authMethod == "Basic")" @onchange="SetAuthMethod">
+                    <label class="form-check-label"><strong>Basic</strong> — выбор пользователя из списка</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="authMethod" value="ActiveDirectory"
+                           checked="@(_authMethod == "ActiveDirectory")" @onchange="SetAuthMethod">
+                    <label class="form-check-label"><strong>Active Directory</strong> — аутентификация по логину/паролю через LDAP</label>
+                </div>
+            </div>
+
+            @if (_authMethod == "ActiveDirectory")
+            {
+                <div class="border rounded p-3 bg-light">
+                    <h6>Настройки Active Directory</h6>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">LDAP Server</label>
+                            <input type="text" class="form-control" @bind="_ldapServer" placeholder="ldap://dc.company.local">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Domain</label>
+                            <input type="text" class="form-control" @bind="_ldapDomain" placeholder="company.local">
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Base DN</label>
+                            <input type="text" class="form-control" @bind="_ldapBaseDn" placeholder="DC=company,DC=local">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">SSL</label>
+                            <div class="form-check form-switch mt-2">
+                                <input class="form-check-input" type="checkbox" checked="@_ldapUseSsl"
+                                       @onchange="() => _ldapUseSsl = !_ldapUseSsl">
+                                <label class="form-check-label">Использовать LDAPS (636)</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+
+            <div class="mt-3">
+                <small class="text-muted">
+                    @(_authMethod == "Basic"
+                        ? "Пользователи выбирают своё ФИО из выпадающего списка. Подходит для небольших организаций."
+                        : "Аутентификация через корпоративный каталог Active Directory. Пользователи вводят логин и пароль.")
+                </small>
+            </div>
+
+            <div class="mt-3">
+                <button class="btn btn-primary" @onclick="Save">Сохранить</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private string _authMethod = "Basic";
+    private string _ldapServer = "ldap://dc.company.local";
+    private string _ldapDomain = "company.local";
+    private string _ldapBaseDn = "DC=company,DC=local";
+    private bool _ldapUseSsl = true;
+    private string? _successMessage;
+
+    private void SetAuthMethod(ChangeEventArgs e) => _authMethod = e.Value?.ToString() ?? "Basic";
+
+    private async Task Save()
+    {
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+            await Upsert(ctx, "auth_method", _authMethod, "Режим авторизации");
+            if (_authMethod == "ActiveDirectory")
+            {
+                await Upsert(ctx, "ldap_server", _ldapServer, "LDAP сервер");
+                await Upsert(ctx, "ldap_domain", _ldapDomain, "LDAP домен");
+                await Upsert(ctx, "ldap_base_dn", _ldapBaseDn, "LDAP Base DN");
+                await Upsert(ctx, "ldap_use_ssl", _ldapUseSsl.ToString(), "LDAP SSL");
+            }
+            await ctx.SaveChangesAsync();
+            _successMessage = "Настройки авторизации сохранены.";
+        }
+        catch { }
+    }
+
+    private static async Task Upsert(SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext ctx, string key, string value, string description)
+    {
+        var s = await ctx.SystemSettings.FirstOrDefaultAsync(x => x.Key == key);
+        if (s is not null) { s.Value = value; s.UpdatedAt = DateTime.UtcNow; }
+        else ctx.SystemSettings.Add(new SamorodinkaTech.Fiducia.Domain.Entities.SystemSetting { Id = Guid.NewGuid(), Key = key, Value = value, Description = description, CreatedAt = DateTime.UtcNow });
+    }
+}
