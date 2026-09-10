@@ -169,9 +169,6 @@
                 LegalEntityId = LegalEntityId,
                 ParticipantType = participantType,
                 FullName = _fullName.Trim(),
-                DulTypeId = _dulTypeId,
-                PassportSeries = _passportSeries,
-                PassportNumber = _passportNumber,
                 PersonInn = _personInn,
                 Snils = _snils,
                 IsActive = true,
@@ -179,6 +176,22 @@
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
             };
+
+            // Добавляем ДУЛ как отдельный документ
+            if (_dulTypeId.HasValue && !string.IsNullOrEmpty(_passportNumber))
+            {
+                participant.IdentityDocuments.Add(new IdentityDocument
+                {
+                    Id = Guid.NewGuid(),
+                    ParticipantId = participant.Id,
+                    DulTypeId = _dulTypeId.Value,
+                    Series = _passportSeries,
+                    Number = _passportNumber,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                });
+            }
 
             ctx.BoardParticipants.Add(participant);
 
@@ -239,10 +252,11 @@
             var firstName = nameParts[1];
             var middleName = nameParts.Length > 2 ? nameParts[2] : null;
 
+            var primaryDoc = participant.IdentityDocuments?.FirstOrDefault(x => x.IsActive);
             var result = await EdinApi.ResolvePersonAsync(
                 lastName, firstName, middleName,
                 participant.PersonInn, participant.Snils,
-                null, participant.PassportSeries, participant.PassportNumber);
+                null, primaryDoc?.Series, primaryDoc?.Number);
 
             if (result?.MasterId.HasValue == true)
             {

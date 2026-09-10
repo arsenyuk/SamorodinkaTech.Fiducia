@@ -128,7 +128,7 @@ public static class CeoResignationEndpoints
                         LegalEntityInn = legalEntity.Inn,
                         ParticipantFullName = participantName,
                         ParticipantAddress = participant.ParticipantType == "FL"
-                            ? participant.PassportRegistrationAddress
+                            ? participant.IdentityDocuments.FirstOrDefault(x => x.IsActive)?.RegistrationAddress
                             : participant.CompanyAddress,
                         CeoName = ceoFullName,
                         ResignationDate = request.ResignationDate,

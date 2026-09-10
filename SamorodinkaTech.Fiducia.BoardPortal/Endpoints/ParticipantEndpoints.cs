@@ -120,7 +120,6 @@ public static class ParticipantEndpoints
                     .MaxAsync(p => (int?)p.SortOrder) ?? 0;
 
                 var entity = MapDtoToEntity(dto, leId);
-                entity.DulSearchKey = ComputeDulSearchKey(entity);
 
                 // ── Дедупликация ──────────────────────────────────────
                 var dedupError = await CheckDuplicateParticipantAsync(ctx, leId, entity, null);
@@ -174,12 +173,6 @@ public static class ParticipantEndpoints
 
                 entity.ParticipantType = dto.ParticipantType ?? entity.ParticipantType;
                 entity.FullName = dto.FullName;
-                entity.PassportSeries = dto.PassportSeries;
-                entity.PassportNumber = dto.PassportNumber;
-                entity.PassportIssuedBy = dto.PassportIssuedBy;
-                entity.PassportIssueDate = dto.PassportIssueDate;
-                entity.PassportDepartmentCode = dto.PassportDepartmentCode;
-                entity.PassportRegistrationAddress = dto.PassportRegistrationAddress;
                 entity.PersonInn = dto.PersonInn;
                 entity.Citizenship = dto.Citizenship;
                 entity.CompanyName = dto.CompanyName;
@@ -196,7 +189,6 @@ public static class ParticipantEndpoints
                 entity.ExitDate = dto.ExitDate;
                 entity.IsActive = dto.IsActive ?? true;
                 entity.UpdatedAt = DateTime.UtcNow;
-                entity.DulSearchKey = ComputeDulSearchKey(entity);
 
                 // ── Дедупликация (при обновлении) ────────────────────
                 var dedupError = await CheckDuplicateParticipantAsync(ctx, entity.LegalEntityId, entity, id);
@@ -1199,8 +1191,9 @@ public static class ParticipantEndpoints
 
             // Сохраняем данные до Dispose контекста
             var personInn = entity.PersonInn;
-            var passportSeries = entity.PassportSeries;
-            var passportNumber = entity.PassportNumber;
+            var primaryDoc = entity.IdentityDocuments?.FirstOrDefault(x => x.IsActive);
+            var passportSeries = primaryDoc?.Series;
+            var passportNumber = primaryDoc?.Number;
 
             logger.LogDebug("ЕДИН: запуск binding для EcosystemParticipant={EcoId}, ФИО={LastName} {FirstName}", ecoId, lastName, firstName);
 
@@ -1246,37 +1239,42 @@ public static class ParticipantEndpoints
         };
     }
 
-    private static object MapParticipantToDto(BoardParticipant p) => new
+    private static object MapParticipantToDto(BoardParticipant p)
     {
-        p.Id,
-        p.LegalEntityId,
-        p.EcosystemParticipantId,
-        p.ParticipantType,
-        p.FullName,
-        MpiMasterId = p.EcosystemParticipant?.MpiMasterId,
-        p.PassportSeries,
-        p.PassportNumber,
-        p.PassportIssuedBy,
-        PassportIssueDate = p.PassportIssueDate?.ToString("dd.MM.yyyy"),
-        p.PassportDepartmentCode,
-        p.PassportRegistrationAddress,
-        p.PersonInn,
-        p.Citizenship,
-        p.CompanyName,
-        p.CompanyInn,
-        p.CompanyOgrn,
-        p.CompanyKpp,
-        p.CompanyAddress,
-        p.Ogrnip,
-        p.SharePercent,
-        p.ShareAmount,
-        p.PaymentInfo,
-        p.ShareRegistrationInfo,
-        EntryDate = p.EntryDate?.ToString("dd.MM.yyyy"),
-        ExitDate = p.ExitDate?.ToString("dd.MM.yyyy"),
-        p.IsActive,
-        p.SortOrder
-    };
+        var primaryDoc = p.IdentityDocuments?.FirstOrDefault(x => x.IsActive);
+        return new
+        {
+            p.Id,
+            p.LegalEntityId,
+            p.EcosystemParticipantId,
+            p.ParticipantType,
+            p.FullName,
+            MpiMasterId = p.EcosystemParticipant?.MpiMasterId,
+            DulTypeId = primaryDoc?.DulTypeId,
+            PassportSeries = primaryDoc?.Series,
+            PassportNumber = primaryDoc?.Number,
+            PassportIssuedBy = primaryDoc?.IssuedBy,
+            PassportIssueDate = primaryDoc?.IssueDate?.ToString("dd.MM.yyyy"),
+            PassportDepartmentCode = primaryDoc?.DepartmentCode,
+            PassportRegistrationAddress = primaryDoc?.RegistrationAddress,
+            p.PersonInn,
+            p.Citizenship,
+            p.CompanyName,
+            p.CompanyInn,
+            p.CompanyOgrn,
+            p.CompanyKpp,
+            p.CompanyAddress,
+            p.Ogrnip,
+            p.SharePercent,
+            p.ShareAmount,
+            p.PaymentInfo,
+            p.ShareRegistrationInfo,
+            EntryDate = p.EntryDate?.ToString("dd.MM.yyyy"),
+            ExitDate = p.ExitDate?.ToString("dd.MM.yyyy"),
+            p.IsActive,
+            p.SortOrder
+        };
+    }
 
     private static BoardParticipant MapDtoToEntity(BoardParticipantDto dto, Guid legalEntityId) => new()
     {
@@ -1284,12 +1282,6 @@ public static class ParticipantEndpoints
         EcosystemParticipantId = dto.EcosystemParticipantId,
         ParticipantType = dto.ParticipantType ?? "FL",
         FullName = dto.FullName,
-        PassportSeries = dto.PassportSeries,
-        PassportNumber = dto.PassportNumber,
-        PassportIssuedBy = dto.PassportIssuedBy,
-        PassportIssueDate = dto.PassportIssueDate,
-        PassportDepartmentCode = dto.PassportDepartmentCode,
-        PassportRegistrationAddress = dto.PassportRegistrationAddress,
         PersonInn = dto.PersonInn,
         Citizenship = dto.Citizenship,
         CompanyName = dto.CompanyName,
@@ -1460,11 +1452,21 @@ public static class ParticipantEndpoints
                      && p.Id != (excludeId ?? Guid.Empty));
 
         // Проверка по поисковому ключу ДУЛ (нормализованная строка)
-        var searchKey = ComputeDulSearchKey(entity);
-        if (!string.IsNullOrEmpty(searchKey))
+        var primaryDoc = entity.IdentityDocuments?.FirstOrDefault(x => x.IsActive);
+        if (primaryDoc is not null)
         {
-            if (await query.AnyAsync(p => p.DulSearchKey == searchKey))
-                return "Участник с таким документом уже добавлен";
+            var searchKey = ComputeDulSearchKey(primaryDoc);
+            if (!string.IsNullOrEmpty(searchKey))
+            {
+                var existingDoc = await ctx.IdentityDocuments
+                    .AnyAsync(d => d.ParticipantId != (excludeId ?? Guid.Empty)
+                        && d.IsActive
+                        && d.Series == primaryDoc.Series
+                        && d.Number == primaryDoc.Number
+                        && d.DulTypeId == primaryDoc.DulTypeId);
+                if (existingDoc)
+                    return "Участник с таким документом уже добавлен";
+            }
         }
 
         // Проверка по ИНН (ФЛ)
@@ -1488,14 +1490,14 @@ public static class ParticipantEndpoints
     /// Вычисляет поисковый ключ ДУЛ для дедупликации.
     /// Формат: DulTypeId|normalized_series|normalized_number
     /// </summary>
-    private static string? ComputeDulSearchKey(BoardParticipant entity)
+    private static string? ComputeDulSearchKey(IdentityDocument doc)
     {
-        if (!entity.DulTypeId.HasValue || string.IsNullOrEmpty(entity.PassportNumber))
+        if (string.IsNullOrEmpty(doc.Number))
             return null;
 
-        var series = NormalizeDulField(entity.PassportSeries ?? "");
-        var number = NormalizeDulField(entity.PassportNumber);
-        return $"{entity.DulTypeId}|{series}|{number}";
+        var series = NormalizeDulField(doc.Series ?? "");
+        var number = NormalizeDulField(doc.Number);
+        return $"{doc.DulTypeId}|{series}|{number}";
     }
 
     /// <summary>Нормализация поля ДУЛ: удаление пробелов/дефисов, верхний регистр.</summary>

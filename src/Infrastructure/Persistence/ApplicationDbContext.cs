@@ -89,6 +89,7 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
 
     public DbSet<BoardParticipant> BoardParticipants => Set<BoardParticipant>();
     public DbSet<BoardParticipantRole> BoardParticipantRoles => Set<BoardParticipantRole>();
+    public DbSet<IdentityDocument> IdentityDocuments => Set<IdentityDocument>();
     public DbSet<BoardTreasuryShare> BoardTreasuryShares => Set<BoardTreasuryShare>();
     public DbSet<BoardRegistryUpload> BoardRegistryUploads => Set<BoardRegistryUpload>();
     public DbSet<BoardParticipantChange> BoardParticipantChanges => Set<BoardParticipantChange>();
@@ -601,13 +602,6 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.Property(x => x.EcosystemParticipantId).HasColumnName("ecosystem_participant_id");
             b.Property(x => x.ParticipantType).HasColumnName("participant_type").HasMaxLength(20).IsRequired().HasDefaultValue("FL");
             b.Property(x => x.FullName).HasColumnName("full_name").HasMaxLength(300);
-            b.Property(x => x.DulTypeId).HasColumnName("dul_type_id");
-            b.Property(x => x.PassportSeries).HasColumnName("passport_series").HasMaxLength(10);
-            b.Property(x => x.PassportNumber).HasColumnName("passport_number").HasMaxLength(10);
-            b.Property(x => x.PassportIssuedBy).HasColumnName("passport_issued_by").HasMaxLength(500);
-            b.Property(x => x.PassportIssueDate).HasColumnName("passport_issue_date");
-            b.Property(x => x.PassportDepartmentCode).HasColumnName("passport_department_code").HasMaxLength(10);
-            b.Property(x => x.PassportRegistrationAddress).HasColumnName("passport_registration_address");
             b.Property(x => x.PersonInn).HasColumnName("person_inn").HasMaxLength(12);
             b.Property(x => x.Citizenship).HasColumnName("citizenship").HasMaxLength(100);
             b.Property(x => x.CompanyName).HasColumnName("company_name").HasMaxLength(500);
@@ -629,7 +623,6 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.Property(x => x.CreatedBy).HasColumnName("created_by");
             b.Property(x => x.IsGeneralDirector).HasColumnName("is_general_director").IsRequired().HasDefaultValue(false);
             b.Property(x => x.Snils).HasColumnName("snils").HasMaxLength(14);
-            b.Property(x => x.DulSearchKey).HasColumnName("dul_search_key").HasMaxLength(200);
             b.HasIndex(x => x.LegalEntityId).HasDatabaseName("ix_board_participant_legal_entity");
         });
 
@@ -646,6 +639,28 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.HasOne(x => x.Role).WithMany().HasForeignKey(x => x.RoleId);
             b.HasIndex(x => x.ParticipantId).HasDatabaseName("ix_bpr_participant");
             b.HasIndex(x => x.RoleId).HasDatabaseName("ix_bpr_role");
+        });
+
+        modelBuilder.Entity<IdentityDocument>(b =>
+        {
+            b.ToTable("identity_documents");
+            b.HasKey(x => x.Id);
+            b.Property(x => x.Id).HasColumnName("id");
+            b.Property(x => x.ParticipantId).HasColumnName("participant_id").IsRequired();
+            b.Property(x => x.DulTypeId).HasColumnName("dul_type_id").IsRequired();
+            b.Property(x => x.Series).HasColumnName("series").HasMaxLength(10);
+            b.Property(x => x.Number).HasColumnName("number").HasMaxLength(10);
+            b.Property(x => x.IssuedBy).HasColumnName("issued_by").HasMaxLength(500);
+            b.Property(x => x.IssueDate).HasColumnName("issue_date");
+            b.Property(x => x.DepartmentCode).HasColumnName("department_code").HasMaxLength(10);
+            b.Property(x => x.RegistrationAddress).HasColumnName("registration_address");
+            b.Property(x => x.IsActive).HasColumnName("is_active").IsRequired().HasDefaultValue(true);
+            b.Property(x => x.CreatedAt).HasColumnName("created_at").IsRequired();
+            b.Property(x => x.UpdatedAt).HasColumnName("updated_at").IsRequired();
+            b.Property(x => x.CreatedBy).HasColumnName("created_by");
+            b.HasOne(x => x.Participant).WithMany(x => x.IdentityDocuments).HasForeignKey(x => x.ParticipantId);
+            b.HasOne(x => x.DulType).WithMany().HasForeignKey(x => x.DulTypeId);
+            b.HasIndex(x => x.ParticipantId).HasDatabaseName("ix_idoc_participant");
         });
 
         modelBuilder.Entity<BoardTreasuryShare>(b =>

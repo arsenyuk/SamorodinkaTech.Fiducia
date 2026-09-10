@@ -757,13 +757,6 @@ CREATE TABLE IF NOT EXISTS board_participant (
     legal_entity_id uuid NOT NULL REFERENCES legal_entities(id) ON DELETE RESTRICT,
     participant_type varchar(20) NOT NULL DEFAULT 'FL',
     full_name varchar(300),
-    dul_type_id uuid REFERENCES ref_dul_type(id) ON DELETE SET NULL,
-    passport_series varchar(10),
-    passport_number varchar(10),
-    passport_issued_by varchar(500),
-    passport_issue_date date,
-    passport_department_code varchar(10),
-    passport_registration_address text,
     person_inn varchar(12),
     citizenship varchar(100),
     company_name varchar(500),
@@ -785,13 +778,34 @@ CREATE TABLE IF NOT EXISTS board_participant (
     created_by uuid,
     ecosystem_participant_id uuid REFERENCES ecosystem_participants(id) ON DELETE SET NULL,
     is_general_director boolean NOT NULL DEFAULT false,
-    snils varchar(14),
-    dul_search_key varchar(200)
+    snils varchar(14)
 );
 
 CREATE INDEX IF NOT EXISTS ix_board_participant_legal_entity ON board_participant(legal_entity_id);
 CREATE UNIQUE INDEX IF NOT EXISTS ux_board_participant_le_sort ON board_participant(legal_entity_id, sort_order);
-CREATE INDEX IF NOT EXISTS ix_board_participant_search_key ON board_participant(legal_entity_id, dul_search_key) WHERE dul_search_key IS NOT NULL;
+
+-- ============================================================================
+-- Документы участников (identity_documents) — ДУЛ
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS identity_documents (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    participant_id uuid NOT NULL REFERENCES board_participant(id) ON DELETE RESTRICT,
+    dul_type_id uuid NOT NULL REFERENCES ref_dul_type(id) ON DELETE RESTRICT,
+    series varchar(10),
+    number varchar(10),
+    issued_by varchar(500),
+    issue_date date,
+    department_code varchar(10),
+    registration_address text,
+    is_active boolean NOT NULL DEFAULT true,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    created_by uuid
+);
+
+CREATE INDEX IF NOT EXISTS ix_idoc_participant ON identity_documents(participant_id);
+CREATE INDEX IF NOT EXISTS ix_idoc_active ON identity_documents(participant_id, is_active) WHERE is_active = true;
 
 -- ============================================================================
 -- Роли участников в СД (board_participant_role)

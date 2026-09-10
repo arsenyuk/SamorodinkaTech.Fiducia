@@ -81,6 +81,7 @@ public interface IApplicationDbContext
 
     DbSet<BoardParticipant> BoardParticipants { get; }
     DbSet<BoardParticipantRole> BoardParticipantRoles { get; }
+    DbSet<IdentityDocument> IdentityDocuments { get; }
     DbSet<BoardTreasuryShare> BoardTreasuryShares { get; }
     DbSet<BoardRegistryUpload> BoardRegistryUploads { get; }
     DbSet<BoardParticipantChange> BoardParticipantChanges { get; }

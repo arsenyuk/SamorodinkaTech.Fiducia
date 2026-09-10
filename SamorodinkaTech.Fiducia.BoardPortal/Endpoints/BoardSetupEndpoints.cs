@@ -86,25 +86,31 @@ public static class BoardSetupEndpoints
                 q = q.Where(p =>
                     (p.FullName != null && p.FullName.ToLower().Contains(search)) ||
                     (p.PersonInn != null && p.PersonInn.Contains(search)) ||
-                    (p.PassportSeries != null && p.PassportSeries.Contains(search)) ||
-                    (p.PassportNumber != null && p.PassportNumber.Contains(search)));
+                    p.IdentityDocuments.Any(d =>
+                        (d.Series != null && d.Series.Contains(search)) ||
+                        (d.Number != null && d.Number.Contains(search))));
             }
 
             var items = await q
                 .OrderBy(p => p.FullName)
                 .Take(50)
+                .Include(p => p.IdentityDocuments)
                 .ToListAsync();
 
-            return Results.Ok(items.Select(p => new
+            return Results.Ok(items.Select(p =>
             {
-                participantId = p.Id,
-                fullName = p.FullName,
-                personInn = p.PersonInn,
-                dulTypeId = p.DulTypeId,
-                passportSeries = p.PassportSeries,
-                passportNumber = p.PassportNumber,
-                snils = p.Snils,
-                ecosystemBound = p.EcosystemParticipantId.HasValue
+                var primaryDoc = p.IdentityDocuments.FirstOrDefault(x => x.IsActive);
+                return new
+                {
+                    participantId = p.Id,
+                    fullName = p.FullName,
+                    personInn = p.PersonInn,
+                    dulTypeId = primaryDoc?.DulTypeId,
+                    passportSeries = primaryDoc?.Series,
+                    passportNumber = primaryDoc?.Number,
+                    snils = p.Snils,
+                    ecosystemBound = p.EcosystemParticipantId.HasValue
+                };
             }));
         });
 

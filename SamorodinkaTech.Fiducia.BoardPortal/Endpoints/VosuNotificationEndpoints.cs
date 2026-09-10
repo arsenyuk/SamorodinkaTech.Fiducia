@@ -113,7 +113,7 @@ public static class VosuNotificationEndpoints
                         LegalEntityInn = legalEntity.Inn,
                         ParticipantFullName = participantName,
                         ParticipantAddress = participant.ParticipantType == "FL"
-                            ? participant.PassportRegistrationAddress
+                            ? participant.IdentityDocuments.FirstOrDefault(x => x.IsActive)?.RegistrationAddress
                             : participant.CompanyAddress,
                         MeetingDate = request.MeetingDate,
                         MeetingStartTime = request.MeetingStartTime,
@@ -328,7 +328,7 @@ public static class VosuNotificationEndpoints
                         LegalEntityInn = legalEntity.Inn,
                         ParticipantFullName = participantName,
                         ParticipantAddress = participant.ParticipantType == "FL"
-                            ? participant.PassportRegistrationAddress
+                            ? participant.IdentityDocuments.FirstOrDefault(x => x.IsActive)?.RegistrationAddress
                             : participant.CompanyAddress,
                         MeetingDate = request.MeetingDate,
                         MeetingStartTime = request.MeetingStartTime,

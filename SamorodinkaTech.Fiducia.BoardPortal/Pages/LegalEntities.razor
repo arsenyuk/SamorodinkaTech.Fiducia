@@ -625,20 +625,23 @@
                                     <label class="form-label text-muted">Фамилия</label>
                                     <input type="text" class="form-control" value="@_selectedGdParticipant.FullName" readonly />
                                 </div>
+                                @{
+                                    var gdDoc = _selectedGdParticipant.IdentityDocuments?.FirstOrDefault(x => x.IsActive);
+                                }
                                 <div class="col-md-3">
                                     <label class="form-label text-muted">Тип документа</label>
-                                    <input type="text" class="form-control" value="@(_selectedGdParticipant.DulType?.Name ?? "—")" readonly />
+                                    <input type="text" class="form-control" value="@(gdDoc?.DulType?.Name ?? "—")" readonly />
                                 </div>
-                                @if (_selectedGdParticipant.DulType?.HasSeries == true)
+                                @if (gdDoc?.DulType?.HasSeries == true)
                                 {
                                     <div class="col-md-2">
                                         <label class="form-label text-muted">Серия</label>
-                                        <input type="text" class="form-control" value="@_selectedGdParticipant.PassportSeries" readonly />
+                                        <input type="text" class="form-control" value="@(gdDoc?.Series)" readonly />
                                     </div>
                                 }
                                 <div class="col-md-2">
                                     <label class="form-label text-muted">Номер</label>
-                                    <input type="text" class="form-control" value="@_selectedGdParticipant.PassportNumber" readonly />
+                                    <input type="text" class="form-control" value="@(gdDoc?.Number)" readonly />
                                 </div>
                                 <div class="col-md-3">
                                     <label class="form-label text-muted">ИНН</label>
@@ -1120,7 +1123,7 @@
         {
             await using var ctx = await DbFactory.CreateDbContextAsync();
             _gdParticipants = await ctx.BoardParticipants
-                .Include(p => p.DulType)
+                .Include(p => p.IdentityDocuments).ThenInclude(d => d.DulType)
                 .Where(p => p.LegalEntityId == legalEntityId
                             && p.ParticipantType == "FL"
                             && p.IsActive)
@@ -1725,18 +1728,19 @@
 
                         if (string.IsNullOrEmpty(lastName) || string.IsNullOrEmpty(firstName)) return;
 
-                        // Получаем код типа ДУЛ
+                        // Получаем код типа ДУЛ из основного документа
+                        var bpDoc = bp.IdentityDocuments?.FirstOrDefault(x => x.IsActive);
                         string? dulTypeCode = null;
-                        if (bp.DulTypeId.HasValue)
+                        if (bpDoc is not null)
                         {
-                            var dulType = await scopedCtx.RefDulTypes.FindAsync(bp.DulTypeId.Value);
+                            var dulType = await scopedCtx.RefDulTypes.FindAsync(bpDoc.DulTypeId);
                             dulTypeCode = dulType?.Code;
                         }
 
                         var result = await edinClient.ResolvePersonAsync(
                             lastName, firstName, middleName,
                             bp.PersonInn, gdSnilsVal,
-                            dulTypeCode, bp.PassportSeries, bp.PassportNumber);
+                            dulTypeCode, bpDoc?.Series, bpDoc?.Number);
 
                         if (result?.MasterId is null) return;
 

@@ -2,7 +2,7 @@ namespace SamorodinkaTech.Fiducia.Domain.Entities;
 
 /// <summary>
 /// Участник общества — реестр (board_participant).
-/// Хранит актуальный состав участников с данными ДУЛ/реквизитов ЮЛ.
+/// Хранит актуальный состав участников. Данные ДУЛ — в таблице identity_documents.
 /// </summary>
 public class BoardParticipant
 {
@@ -25,30 +25,6 @@ public class BoardParticipant
 
     /// <summary>ФИО участника-ФЛ (full_name).</summary>
     public string? FullName { get; set; }
-
-    /// <summary>Идентификатор вида документа, удостоверяющего личность (dul_type_id).</summary>
-    public Guid? DulTypeId { get; set; }
-
-    /// <summary>Вид документа, удостоверяющего личность.</summary>
-    public RefDulType? DulType { get; set; }
-
-    /// <summary>Серия паспорта (passport_series).</summary>
-    public string? PassportSeries { get; set; }
-
-    /// <summary>Номер паспорта (passport_number).</summary>
-    public string? PassportNumber { get; set; }
-
-    /// <summary>Кем выдан паспорт (passport_issued_by).</summary>
-    public string? PassportIssuedBy { get; set; }
-
-    /// <summary>Дата выдачи паспорта (passport_issue_date).</summary>
-    public DateOnly? PassportIssueDate { get; set; }
-
-    /// <summary>Код подразделения (passport_department_code).</summary>
-    public string? PassportDepartmentCode { get; set; }
-
-    /// <summary>Адрес регистрации по паспорту (passport_registration_address).</summary>
-    public string? PassportRegistrationAddress { get; set; }
 
     /// <summary>ИНН физического лица (person_inn).</summary>
     public string? PersonInn { get; set; }
@@ -123,7 +99,6 @@ public class BoardParticipant
     /// <summary>СНИЛС (snils) — формат XXX-XXX-XXX XX, 14 символов.</summary>
     public string? Snils { get; set; }
 
-    /// <summary>Поисковый ключ ДУЛ для дедупликации (dul_search_key).
-    /// Нормализованная строка: DulTypeId|Series|Number.</summary>
-    public string? DulSearchKey { get; set; }
+    /// <summary>Документы, удостоверяющие личность (identity_documents).</summary>
+    public ICollection<IdentityDocument> IdentityDocuments { get; set; } = new List<IdentityDocument>();
 }
