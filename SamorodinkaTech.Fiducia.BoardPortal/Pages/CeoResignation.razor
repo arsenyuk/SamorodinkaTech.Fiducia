@@ -1,0 +1,270 @@
+@page "/ceo-resignation"
+@using System.Net.Http.Json
+@inject HttpClient Http
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+@inject ILogger<CeoResignation> Logger
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "CEO")]
+
+<PageTitle>Fiducia — Уведомление об увольнении ГД</PageTitle>
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3>Уведомление участников об увольнении Генерального директора</h3>
+        <a href="/osu-meetings" class="btn btn-outline-secondary btn-sm">← К собраниям</a>
+    </div>
+
+    @if (_error is not null)
+    {
+        <div class="alert alert-danger">@_error</div>
+    }
+
+    @if (_success is not null)
+    {
+        <div class="alert alert-success">@_success</div>
+    }
+
+    @if (_loading)
+    {
+        <div class="text-center py-4">
+            <div class="spinner-border text-primary" role="status"></div>
+        </div>
+    }
+    else if (_preview is null)
+    {
+        <div class="alert alert-warning">Данные не загружены. Убедитесь, что вы являетесь Генеральным директором.</div>
+    }
+    else
+    {
+        <div class="row">
+            @* ── Форма ────────────────────────────────────────────── *@
+            <div class="col-md-7">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">Параметры уведомления</h5>
+                    </div>
+                    <div class="card-body">
+                        @* ── Предупреждение ─────────────────────────── *@
+                        <div class="alert alert-warning mb-4">
+                            <strong>Статья 280 ТК РФ</strong> — Порядок расторжения трудового договора по инициативе руководителя организации.<br />
+                            Руководитель организации обязан уведомить работодателя (учредителей) <strong>не позднее чем за 1 календарный месяц</strong> до даты предстоящего увольнения.<br />
+                            <small class="text-muted">
+                                <a href="/laws/tk/article-tk-280" target="_blank">Полный текст ст. 280 ТК РФ</a>
+                            </small>
+                        </div>
+
+                        @* ── ГД ────────────────────────────────────── *@
+                        <div class="mb-3 p-3 bg-light rounded">
+                            <strong>Генеральный директор:</strong> @_preview.CeoName<br />
+                            <strong>ЮЛ:</strong> @_preview.LegalEntityName
+                        </div>
+
+                        @* ── Дата увольнения ────────────────────────── *@
+                        <div class="mb-3">
+                            <label class="form-label">Плановая дата увольнения</label>
+                            <InputDate @bind-Value="_resignationDate" class="form-control" style="width:220px" />
+                            @if (_resignationDate.HasValue)
+                            {
+                                var daysLeft = _resignationDate.Value.DayNumber - DateOnly.FromDateTime(DateTime.Today).DayNumber;
+                                if (daysLeft < MinDays)
+                                {
+                                    <div class="text-danger small mt-1">
+                                        До даты увольнения осталось @daysLeft дн. — необходимо не менее @MinDays дн. (ст. 280 ТК РФ)
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="text-success small mt-1">
+                                        До даты увольнения: @daysLeft кал. дн. — срок соблюдён
+                                    </div>
+                                }
+                            }
+                        </div>
+
+                        @* ── Повестка ВОСУ ──────────────────────────── *@
+                        <div class="mb-3">
+                            <label class="form-label">Повестка ВОСУ (по одному вопросу на строку)</label>
+                            <textarea class="form-control" rows="4" @bind="_agendaText"></textarea>
+                            <div class="form-text">По умолчанию: досрочное прекращение полномочий + избрание нового ГД</div>
+                        </div>
+
+                        @* ── Место ознакомления ─────────────────────── *@
+                        <div class="mb-3">
+                            <label class="form-label">Место ознакомления с документами</label>
+                            <input class="form-control" @bind="_reviewLocation"
+                                   placeholder="г. Москва, ул. Пятницкая, д. 20, стр. 1, в рабочие дни с 10:00 до 16:00" />
+                        </div>
+
+                        @* ── Кнопка ─────────────────────────────────── *@
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-primary" @onclick="SendAsync"
+                                    disabled="@(_sending || _resignationDate is null || (_resignationDate.Value.DayNumber - DateOnly.FromDateTime(DateTime.Today).DayNumber) < MinDays)">
+                                @if (_sending)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-1"></span>
+                                }
+                                Сформировать и отправить уведомление
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            @* ── Информация ──────────────────────────────────────── *@
+            <div class="col-md-5">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">Информация</h5>
+                    </div>
+                    <div class="card-body">
+                        <p><strong>Участников:</strong> @_preview.ParticipantCount</p>
+                        <hr />
+                        <div class="alert alert-info py-2 mb-0 small">
+                            <strong>Что произойдёт при отправке:</strong>
+                            <ol class="mb-0 mt-1">
+                                <li>Уведомление отправится каждому участнику внутри системы</li>
+                                <li>Для каждого участника сформируется DOCX-файл (ГОСТ)</li>
+                                <li>Автоматически создастся требование о созыве ВОСУ (<code>DEMAND_VOSU</code>)</li>
+                                <li>В повестке ВОСУ: досрочное прекращение полномочий + избрание нового ГД</li>
+                            </ol>
+                        </div>
+                        <hr />
+                        <h6>Сроки (ст. 280 ТК РФ):</h6>
+                        <ul class="small mb-0">
+                            <li>Уведомление — не позднее <strong>1 календарного месяца</strong> до даты увольнения</li>
+                            <li>ВОСУ — в порядке ст. 35 14-ФЗ (не позднее 45 дней с даты требования)</li>
+                            <li>До избрания нового ГД полномочия сохраняются (ст. 33 14-ФЗ)</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private const int MinDays = 30;
+
+    private CeoPreviewDto? _preview;
+    private bool _loading = true;
+    private bool _sending;
+    private string? _error;
+    private string? _success;
+
+    private DateOnly? _resignationDate;
+    private string? _reviewLocation;
+    private string? _agendaText;
+
+    private static readonly string DefaultAgenda =
+        "1. Досрочное прекращение полномочий Генерального директора\n" +
+        "2. Избрание нового Генерального директора";
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _preview = await Http.GetFromJsonAsync<CeoPreviewDto>("/api/ceo-resignation/preview");
+            _agendaText = DefaultAgenda;
+
+            // Дата увольнения по умолчанию — через 45 дней
+            if (_preview is not null && _preview.MinResignationDate.HasValue)
+                _resignationDate = _preview.MinResignationDate.Value.AddDays(15);
+            else
+                _resignationDate = DateOnly.FromDateTime(DateTime.Today.AddDays(MinDays + 15));
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Ошибка загрузки предпросмотра уведомления ГД об увольнении");
+            _error = $"Ошибка загрузки: {ex.Message}";
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task SendAsync()
+    {
+        _error = null;
+        _success = null;
+
+        if (_resignationDate is null)
+        {
+            _error = "Укажите дату увольнения";
+            return;
+        }
+
+        var daysLeft = _resignationDate.Value.DayNumber - DateOnly.FromDateTime(DateTime.Today).DayNumber;
+        if (daysLeft < MinDays)
+        {
+            _error = $"До даты увольнения должно оставаться не менее {MinDays} календарных дней (ст. 280 ТК РФ)";
+            return;
+        }
+
+        var agendaItems = ParseAgendaItems(_agendaText);
+        if (agendaItems.Count == 0)
+        {
+            _error = "Укажите хотя бы один вопрос повестки";
+            return;
+        }
+
+        _sending = true;
+        StateHasChanged();
+
+        try
+        {
+            var request = new
+            {
+                resignationDate = _resignationDate.Value,
+                reviewLocation = _reviewLocation,
+                agendaItems
+            };
+
+            var response = await Http.PostAsJsonAsync("/api/ceo-resignation/send", request);
+            var body = await response.Content.ReadAsStringAsync();
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _error = $"Ошибка ({(int)response.StatusCode}): {body}";
+                return;
+            }
+
+            var result = System.Text.Json.JsonSerializer.Deserialize<SendResultDto>(body);
+            _success = $"Уведомление отправлено: {result?.SentCount ?? 0} участников, " +
+                       $"DOCX-файлов: {result?.FileCount ?? 0}. " +
+                       $"Дата увольнения: {result?.ResignationDate:dd.MM.yyyy} " +
+                       $"(осталось {result?.DaysUntilResignation} дн.)";
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Ошибка отправки уведомления ГД об увольнении");
+            _error = $"Ошибка: {ex.Message}";
+        }
+        finally
+        {
+            _sending = false;
+            StateHasChanged();
+        }
+    }
+
+    private static List<string> ParseAgendaItems(string? text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+            return new();
+
+        return text.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(line => System.Text.RegularExpressions.Regex.Replace(line, @"^\d+\.\s*", ""))
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .ToList();
+    }
+
+    private record CeoPreviewDto(
+        string? CeoName,
+        string? LegalEntityName,
+        string? LegalEntityOgrn,
+        string? LegalEntityInn,
+        int ParticipantCount,
+        DateOnly? MinResignationDate);
+
+    private record SendResultDto(int SentCount, int FileCount, DateOnly ResignationDate, int DaysUntilResignation);
+}

@@ -127,9 +127,11 @@ builder.Services.AddScoped<IDocumentProvisionService, DocumentProvisionService>(
 builder.Services.AddScoped<IMeetingSaveService, MeetingSaveService>();
 builder.Services.AddScoped<IMeetingLoadService, MeetingLoadService>();
 
-// Уведомления ВОСУ: текстовые шаблоны + генерация DOCX
+// Уведомления ВОСУ/ООСУ: текстовые шаблоны + генерация DOCX
 builder.Services.AddScoped<NotificationTextBuilder>();
 builder.Services.AddScoped<IVosuNotificationDocxGenerator, VosuNotificationDocxGenerator>();
+builder.Services.AddScoped<IOosuNotificationDocxGenerator, OosuNotificationDocxGenerator>();
+builder.Services.AddScoped<ICeoResignationDocxGenerator, CeoResignationDocxGenerator>();
 
 // QR-кодирование нотариальных документов — чтение QR со сканов
 builder.Services.Configure<QrCodeReaderOptions>(builder.Configuration.GetSection("QrCodeReader"));
@@ -606,6 +608,9 @@ app.MapNotarizationQrEndpoints();
 
 // ── VOSU Notifications API (Уведомления ВОСУ + DOCX) ─────────────────
 app.MapVosuNotificationEndpoints();
+
+// ── CEO Resignation API (Уведомление ГД об увольнении, ст. 280 ТК РФ) ─
+app.MapCeoResignationEndpoints();
 
 app.MapBlazorHub();
 app.MapFallbackToPage("/_Host");

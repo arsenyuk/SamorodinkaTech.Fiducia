@@ -138,10 +138,10 @@ public class VosuNotificationDocxGenerator : IVosuNotificationDocxGenerator
 
     private static void AddAgendaChangeNotification(Body body, VosuNotificationData data)
     {
-        var dateStr = data.NotificationDate.ToString("«dd» MMMM yyyy") + " г.";
-        var leInfo = BuildLegalEntityInfo(data);
+        // Блок адресата (участнику, ФИО, адрес)
+        AddAddresseeBlock(body, data);
 
-        body.AppendChild(CreateParagraph(leInfo, spaceAfterPt: 12));
+        body.AppendChild(new Paragraph());
         body.AppendChild(CreateParagraph("УВЕДОМЛЕНИЕ", bold: true, center: true, spaceAfterPt: 6));
         body.AppendChild(CreateParagraph("об изменении повестки дня внеочередного общего собрания участников",
             bold: true, center: true, spaceAfterPt: 12));
@@ -149,10 +149,28 @@ public class VosuNotificationDocxGenerator : IVosuNotificationDocxGenerator
         var introText = BuildIntroText(data);
         body.AppendChild(CreateParagraph(introText, spaceAfterPt: 12));
 
-        AddMeetingDetails(body, data);
+        // Ссылка: собрание состоится в ранее назначенное время и месте
+        body.AppendChild(CreateParagraph(
+            "Внеочередное общее собрание участников состоится в ранее назначенное время и месте:",
+            bold: true, spaceAfterPt: 6));
+
+        AddMeetingDetailsBody(body, data);
         AddAgendaSection(body, data);
         AddReviewSection(body, data);
         AddSignature(body, data);
+    }
+
+    private static void AddAddresseeBlock(Body body, VosuNotificationData data)
+    {
+        // Участнику ООО «...»
+        body.AppendChild(CreateParagraph($"Участнику {data.LegalEntityName}"));
+
+        // ФИО участника
+        body.AppendChild(CreateParagraph(data.ParticipantFullName));
+
+        // Адрес (если есть)
+        if (!string.IsNullOrWhiteSpace(data.ParticipantAddress))
+            body.AppendChild(CreateParagraph($"Адрес: {data.ParticipantAddress}"));
     }
 
     private static void AddInitialNotification(Body body, VosuNotificationData data)
@@ -213,6 +231,30 @@ public class VosuNotificationDocxGenerator : IVosuNotificationDocxGenerator
         body.AppendChild(CreateParagraph("Внеочередное общее собрание участников состоится:", bold: true, spaceAfterPt: 6));
 
         var dateStr = data.MeetingDate.ToString("dd.MM.yyyy");
+        var lines = new List<string>
+        {
+            $"• Дата проведения: {data.MeetingDate.Day} {FormatMonth(data.MeetingDate.Month)} {data.MeetingDate.Year} года"
+        };
+
+        if (data.MeetingStartTime.HasValue)
+            lines.Add($"• Время начала: {data.MeetingStartTime.Value.Hour} часов {data.MeetingStartTime.Value.Minute} минут");
+
+        if (!string.IsNullOrWhiteSpace(data.MeetingVenue))
+            lines.Add($"• Место проведения: {data.MeetingVenue}");
+
+        if (data.RegistrationStartTime.HasValue)
+            lines.Add($"• Время начала регистрации участников: {data.RegistrationStartTime.Value.Hour} часов {data.RegistrationStartTime.Value.Minute} минут");
+
+        foreach (var line in lines)
+            body.AppendChild(CreateParagraph(line, spaceAfterPt: 3));
+    }
+
+    /// <summary>
+    /// Детали собрания без заголовка (для уведомления об изменении повестки).
+    /// Используется после «состоится в ранее назначенное время и месте:».
+    /// </summary>
+    private static void AddMeetingDetailsBody(Body body, VosuNotificationData data)
+    {
         var lines = new List<string>
         {
             $"• Дата проведения: {data.MeetingDate.Day} {FormatMonth(data.MeetingDate.Month)} {data.MeetingDate.Year} года"

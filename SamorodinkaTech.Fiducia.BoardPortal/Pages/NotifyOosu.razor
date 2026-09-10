@@ -1,16 +1,16 @@
-@page "/notify-vosu/{MeetingId:guid}"
+@page "/notify-oosu/{MeetingId:guid}"
 @using System.Net.Http.Json
 @inject HttpClient Http
 @inject NavigationManager Nav
 @inject IJSRuntime JS
-@inject ILogger<NotifyVosu> Logger
+@inject ILogger<NotifyOosu> Logger
 @attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "CEO")]
 
-<PageTitle>Fiducia — Уведомление участников ВОСУ</PageTitle>
+<PageTitle>Fiducia — Уведомление участников ООСУ</PageTitle>
 
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h3>Уведомление участников о созыве ВОСУ</h3>
+        <h3>Уведомление участников о проведении ООСУ</h3>
         <a href="/osu-meetings/@MeetingId" class="btn btn-outline-secondary btn-sm">← К собранию</a>
     </div>
 
@@ -41,22 +41,12 @@
             <div class="col-md-7">
                 <div class="card mb-4">
                     <div class="card-header">
-                        <h5 class="mb-0">@(_isAgendaChange ? "Параметры уведомления об изменении повестки" : "Параметры уведомления о созыве ВОСУ")</h5>
+                        <h5 class="mb-0">Параметры уведомления</h5>
                     </div>
                     <div class="card-body">
                         <div class="mb-3">
                             <label class="form-label">Название собрания</label>
                             <input class="form-control" value="@_preview.Title" disabled />
-                        </div>
-
-                        <div class="form-check mb-3 p-3 bg-light rounded">
-                            <input class="form-check-input" type="checkbox" id="isAgendaChange" @bind="_isAgendaChange" />
-                            <label class="form-check-label fw-bold" for="isAgendaChange">
-                                Это уведомление об <strong>изменении</strong> повестки
-                            </label>
-                            <div class="text-muted small mt-1">
-                                В соответствии с п. 2 ст. 36 14-ФЗ. Повестка, отправленная ранее, изменяется.
-                            </div>
                         </div>
 
                         <div class="row g-3 mb-3">
@@ -81,47 +71,23 @@
                                 <label class="form-label">Время регистрации участников</label>
                                 <input type="time" class="form-control" @bind="_registrationStartTime" />
                             </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Финансовый год</label>
+                                <input type="number" class="form-control" @bind="_financialYear"
+                                       min="2020" max="2099" />
+                            </div>
                         </div>
 
-                        @if (_isAgendaChange)
-                        {
                         <div class="mb-3">
-                            <label class="form-label">ФИО инициатора (подавшего требование)</label>
-                            <input class="form-control" @bind="_initiatorName" placeholder="Соколов И.В." />
+                            <label class="form-label">Повестка дня (по одному вопросу на строку)</label>
+                            <textarea class="form-control" rows="8" @bind="_agendaText"></textarea>
+                            <div class="form-text">Стандартные вопросы ООСУ (ст. 34 14-ФЗ) подставлены по умолчанию</div>
                         </div>
-
-                        <div class="row g-3 mb-3">
-                            <div class="col-md-6">
-                                <label class="form-label">Доля инициатора (%)</label>
-                                <input type="number" class="form-control" @bind="_initiatorSharePercent"
-                                       min="0" max="100" step="0.01" />
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label">Дата получения требования</label>
-                                <InputDate @bind-Value="_demandReceivedDate" class="form-control" />
-                            </div>
-                        </div>
-                        }
 
                         <div class="mb-3">
                             <label class="form-label">Место ознакомления с документами</label>
                             <input class="form-control" @bind="_reviewLocation"
                                    placeholder="г. Москва, ул. Пятницкая, д. 20, стр. 1, в рабочие дни с 10:00 до 16:00" />
-                        </div>
-
-                        <div class="mb-3">
-                            <label class="form-label">
-                                @(_isAgendaChange ? "ОКОНЧАТЕЛЬНАЯ повестка дня (с учётом изменений)" : "Повестка дня")
-                                — по одному вопросу на строку
-                            </label>
-                            <textarea class="form-control" rows="6" @bind="_agendaText"
-                                      placeholder="1. Избрание Председателя и Секретаря ВОСУ&#10;2. Одобрение крупной сделки&#10;3. Досрочное прекращение полномочий ГД"></textarea>
-                            @if (_isAgendaChange)
-                            {
-                                <div class="form-text text-warning">
-                                    Укажите итоговую повестку с учётом всех изменений. Она заменит ранее отправленную повестку.
-                                </div>
-                            }
                         </div>
 
                         <div class="d-flex gap-2">
@@ -131,9 +97,6 @@
                                     <span class="spinner-border spinner-border-sm me-1"></span>
                                 }
                                 Сформировать и отправить
-                            </button>
-                            <button class="btn btn-outline-secondary" @onclick="PreviewAsync" disabled="@_sending">
-                                Предпросмотр
                             </button>
                         </div>
                     </div>
@@ -154,22 +117,14 @@
                         <p><strong>Участников:</strong> @_preview.ParticipantCount</p>
                         <p><strong>ГД (подпись):</strong> @_preview.CeoName</p>
                         <hr />
-                        <div class="alert @(_isAgendaChange ? "alert-warning" : "alert-info") py-2 mb-0 small">
-                            <strong>@(_isAgendaChange ? "Изменение повестки:" : "Что будет:")</strong>
+                        <div class="alert alert-info py-2 mb-0 small">
+                            <strong>Юридическая основа:</strong> ст. 34, 36 14-ФЗ<br />
+                            <strong>Срок:</strong> 2–4 месяца после окончания финансового года<br />
+                            <strong>Что будет:</strong>
                             <ol class="mb-0 mt-1">
-                                @if (_isAgendaChange)
-                                {
-                                    <li>Уведомление об изменении повестки отправится каждому участнику</li>
-                                    <li>DOCX-файл: «Уведомление об изменении повестки дня ВОСУ»</li>
-                                    <li>В блоке адресата: ФИО и адрес каждого участника</li>
-                                    <li>Повестка — <strong>ОКОНЧАТЕЛЬНАЯ</strong> (с учётом изменений)</li>
-                                }
-                                else
-                                {
-                                    <li>Уведомление о созыве отправится каждому участнику</li>
-                                    <li>Для каждого участника сформируется DOCX-файл (ГОСТ)</li>
-                                    <li>Файлы сохранятся в карточке собрания (вкладка «Файлы»)</li>
-                                }
+                                <li>Уведомление отправится каждому участнику</li>
+                                <li>DOCX-файл (ГОСТ) для каждого участника</li>
+                                <li>Файлы сохранятся в карточке собрания</li>
                             </ol>
                         </div>
                     </div>
@@ -187,24 +142,29 @@
     private bool _sending;
     private string? _error;
     private string? _success;
-    private bool _isAgendaChange;
 
     private DateOnly _meetingDate = DateOnly.FromDateTime(DateTime.Today.AddDays(30));
     private TimeOnly _meetingStartTime = new(14, 0);
     private TimeOnly _registrationStartTime = new(13, 30);
     private string? _meetingVenue;
-    private string? _initiatorName;
-    private decimal? _initiatorSharePercent;
-    private DateOnly? _demandReceivedDate;
+    private int _financialYear = DateTime.Today.Year - 1;
     private string? _reviewLocation;
     private string? _agendaText;
+
+    private static readonly string DefaultAgenda =
+        "1. Утверждение годового отчёта общества\n" +
+        "2. Утверждение годового баланса общества\n" +
+        "3. Распределение прибыли общества\n" +
+        "4. Избрание совета директоров (наблюдательного совета) общества\n" +
+        "5. Избрание ревизионной комиссии (ревизора) общества\n" +
+        "6. Назначение аудитора общества";
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
             _preview = await Http.GetFromJsonAsync<MeetingPreviewDto>(
-                $"/api/vosu-notifications/preview/{MeetingId}");
+                $"/api/oosu-notifications/preview/{MeetingId}");
 
             if (_preview is not null)
             {
@@ -215,11 +175,13 @@
                 if (_preview.RegistrationStartTime.HasValue)
                     _registrationStartTime = _preview.RegistrationStartTime.Value;
                 _meetingVenue = _preview.MeetingVenue;
+
+                _agendaText = DefaultAgenda;
             }
         }
         catch (Exception ex)
         {
-            Logger.LogWarning(ex, "Ошибка загрузки предпросмотра уведомления ВОСУ");
+            Logger.LogWarning(ex, "Ошибка загрузки предпросмотра уведомления ООСУ");
             _error = $"Ошибка загрузки: {ex.Message}";
         }
         finally
@@ -259,15 +221,12 @@
                 meetingVenue = _meetingVenue,
                 registrationStartTime = _registrationStartTime,
                 agendaItems,
-                initiatorName = _initiatorName,
-                initiatorSharePercent = _initiatorSharePercent,
-                demandReceivedDate = _demandReceivedDate,
                 reviewLocation = _reviewLocation,
-                isAgendaChange = _isAgendaChange,
-                ceoName = _preview?.CeoName ?? ""
+                ceoName = _preview?.CeoName ?? "",
+                financialYear = _financialYear
             };
 
-            var response = await Http.PostAsJsonAsync("/api/vosu-notifications/send", request);
+            var response = await Http.PostAsJsonAsync("/api/oosu-notifications/send", request);
             var body = await response.Content.ReadAsStringAsync();
 
             if (!response.IsSuccessStatusCode)
@@ -282,7 +241,7 @@
         }
         catch (Exception ex)
         {
-            Logger.LogWarning(ex, "Ошибка отправки уведомлений ВОСУ");
+            Logger.LogWarning(ex, "Ошибка отправки уведомлений ООСУ");
             _error = $"Ошибка: {ex.Message}";
         }
         finally
@@ -292,33 +251,13 @@
         }
     }
 
-    private async Task PreviewAsync()
-    {
-        _error = null;
-        try
-        {
-            await JS.InvokeVoidAsync("alert",
-                $"Предпросмотр уведомления для: {_preview?.LegalEntityName}\n" +
-                $"Дата: {_meetingDate:dd.MM.yyyy}\n" +
-                $"Время: {_meetingStartTime:HH:mm}\n" +
-                $"Место: {_meetingVenue ?? "(не указано)"}\n" +
-                $"Участников: {_preview?.ParticipantCount ?? 0}");
-        }
-        catch { }
-    }
-
     private static List<string> ParseAgendaItems(string? text)
     {
         if (string.IsNullOrWhiteSpace(text))
             return new();
 
         return text.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-            .Select(line =>
-            {
-                // Убираем номер пп "1. " в начале строки
-                var cleaned = System.Text.RegularExpressions.Regex.Replace(line, @"^\d+\.\s*", "");
-                return cleaned;
-            })
+            .Select(line => System.Text.RegularExpressions.Regex.Replace(line, @"^\d+\.\s*", ""))
             .Where(x => !string.IsNullOrWhiteSpace(x))
             .ToList();
     }

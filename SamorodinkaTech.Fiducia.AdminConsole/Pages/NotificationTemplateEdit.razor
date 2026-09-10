@@ -193,6 +193,13 @@
         "COLLECTIVE_DEMAND_DECISION" => new(),
         "SHARE_REQUEST_ACCEPTED" => new() { "{creatorName}", "{requestType}", "{legalEntityName}", "{ceoComment}", "{url}" },
         "SHARE_REQUEST_VISIBLE_TO_ALL" => new() { "{participantName}", "{sharePercent}", "{shareText}", "{requestType}", "{legalEntityName}", "{url}" },
+        "OSU_MEETING_SUMMONS" => new() { "{meetingNumber}", "{formText}", "{votingLine}" },
+        "OSU_PROTOCOL_SIGNED" => new() { "{meetingNumber}" },
+        "OSA_MEETING_SUMMONS" => new() { "{meetingNumber}", "{formText}", "{votingLine}" },
+        "OSA_PROTOCOL_SIGNED" => new() { "{meetingNumber}" },
+        "VOSU_AGENDA_CHANGE" => new() { "{legalEntityName}", "{participantName}", "{meetingDate}", "{meetingTime}", "{meetingVenue}" },
+        "OOSU_MEETING_NOTIFICATION" => new() { "{legalEntityName}", "{participantName}", "{meetingDate}", "{meetingTime}", "{meetingVenue}", "{agendaText}" },
+        "CEO_RESIGNATION" => new() { "{legalEntityName}", "{participantName}", "{ceoName}", "{resignationDate}" },
         _ => new()
     };
 }

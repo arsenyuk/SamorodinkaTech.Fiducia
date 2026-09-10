@@ -77,7 +77,9 @@ INSERT INTO ref_notification_type (id, code, name, category, created_at, created
     ('aa000001-0000-0000-0000-000000000016','OSU_PROTOCOL_SIGNED','Протокол ОСУ подписан','OSU',CURRENT_TIMESTAMP,'00000000-0000-0000-0000-000000000000'),
     ('aa000001-0000-0000-0000-000000000017','OSA_MEETING_SUMMONS','Созыв ОСА','OSA',CURRENT_TIMESTAMP,'00000000-0000-0000-0000-000000000000'),
     ('aa000001-0000-0000-0000-000000000018','OSA_PROTOCOL_SIGNED','Протокол ОСА подписан','OSA',CURRENT_TIMESTAMP,'00000000-0000-0000-0000-000000000000'),
-    ('aa000001-0000-0000-0000-000000000019','VOSU_AGENDA_CHANGE','Изменение повестки ВОСУ','OSU',CURRENT_TIMESTAMP,'00000000-0000-0000-0000-000000000000')
+    ('aa000001-0000-0000-0000-000000000019','VOSU_AGENDA_CHANGE','Изменение повестки ВОСУ','OSU',CURRENT_TIMESTAMP,'00000000-0000-0000-0000-000000000000'),
+    ('aa000001-0000-0000-0000-000000000020','OOSU_MEETING_NOTIFICATION','Уведомление о проведении ООСУ','OSU',CURRENT_TIMESTAMP,'00000000-0000-0000-0000-000000000000'),
+    ('aa000001-0000-0000-0000-000000000021','CEO_RESIGNATION','Уведомление ГД об увольнении','GD',CURRENT_TIMESTAMP,'00000000-0000-0000-0000-000000000000')
 ON CONFLICT (code) DO NOTHING;
 
 INSERT INTO notification_template (id, notification_type_code, title_template, body_template, description, is_enabled) VALUES
@@ -140,7 +142,15 @@ INSERT INTO notification_template (id, notification_type_code, title_template, b
     ('bb000001-0000-0000-0000-000000000015','VOSU_AGENDA_CHANGE',
      'ИМИТАЦИЯ ОТПРАВКА ПО email — Изменение повестки ВОСУ {legalEntityName}',
      'Уважаемый(-ая) {participantName}!\n\n{legalEntityName} уведомляет Вас об изменении повестки дня внеочередного общего собрания участников.\n\nДата проведения: {meetingDate}\nВремя начала: {meetingTime}\nМесто проведения: {meetingVenue}\n\nОзнакомьтесь с обновлённой повесткой в системе.\n\nС уважением,\nГенеральный директор {legalEntityName}',
-     'Уведомление об изменении повестки ВОСУ', TRUE)
+     'Уведомление об изменении повестки ВОСУ', TRUE),
+    ('bb000001-0000-0000-0000-000000000016','OOSU_MEETING_NOTIFICATION',
+     'ИМИТАЦИЯ ОТПРАВКА ПО email — Уведомление о проведении ООСУ {legalEntityName}',
+     'Уважаемый(-ая) {participantName}!\n\n{legalEntityName} уведомляет Вас о проведении очередного общего собрания участников.\n\nДата проведения: {meetingDate}\nВремя начала: {meetingTime}\nМесто проведения: {meetingVenue}\n\nПовестка дня:\n{agendaText}\n\nС уважением,\nГенеральный директор {legalEntityName}',
+     'Уведомление о проведении ООСУ (очередное собрание)', TRUE),
+    ('bb000001-0000-0000-0000-000000000017','CEO_RESIGNATION',
+     'ИМИТАЦИЯ ОТПРАВКА ПО email — Уведомление ГД об увольнении {legalEntityName}',
+     'Уважаемый(-ая) {participantName}!\n\n{legalEntityName} уведомляет Вас о том, что Генеральный директор {ceoName} уведомил общество о своём увольнении.\n\nПлановая дата увольнения: {resignationDate}\n\nНа основании ст. 280 ТК РФ созывается внеочередное общее собрание участников для избрания нового Генерального директора.\n\nС уважением,\nГенеральный директор {legalEntityName}',
+     'Уведомление ГД об увольнении (ст. 280 ТК РФ)', TRUE)
 ON CONFLICT (notification_type_code) DO NOTHING;
 
 

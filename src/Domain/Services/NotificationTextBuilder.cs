@@ -278,6 +278,50 @@ public class NotificationTextBuilder
                 ApplyPlaceholders(template.BodyTemplate, placeholders));
     }
 
+    public async Task<(string Title, string Body)> BuildOosuMeetingNotificationAsync(
+        string legalEntityName, string participantName, DateOnly meetingDate,
+        TimeOnly? meetingTime, string? meetingVenue, CancellationToken ct = default)
+    {
+        var template = await GetTemplateAsync("OOSU_MEETING_NOTIFICATION", ct);
+        if (template is null)
+            return BuildOosuMeetingNotificationFallback(legalEntityName, participantName, meetingDate, meetingTime, meetingVenue);
+
+        var placeholders = new Dictionary<string, string>
+        {
+            ["legalEntityName"] = legalEntityName,
+            ["participantName"] = participantName,
+            ["meetingDate"] = $"{meetingDate.Day} {FormatMonthRus(meetingDate.Month)} {meetingDate.Year}",
+            ["meetingTime"] = meetingTime.HasValue
+                ? $"{meetingTime.Value.Hour} часов {meetingTime.Value.Minute} минут"
+                : "не указано",
+            ["meetingVenue"] = meetingVenue ?? "не указано",
+            ["agendaText"] = ""
+        };
+
+        return (ApplyPlaceholders(template.TitleTemplate, placeholders),
+                ApplyPlaceholders(template.BodyTemplate, placeholders));
+    }
+
+    public async Task<(string Title, string Body)> BuildCeoResignationAsync(
+        string legalEntityName, string participantName, string ceoName,
+        DateOnly resignationDate, CancellationToken ct = default)
+    {
+        var template = await GetTemplateAsync("CEO_RESIGNATION", ct);
+        if (template is null)
+            return BuildCeoResignationFallback(legalEntityName, participantName, ceoName, resignationDate);
+
+        var placeholders = new Dictionary<string, string>
+        {
+            ["legalEntityName"] = legalEntityName,
+            ["participantName"] = participantName,
+            ["ceoName"] = ceoName,
+            ["resignationDate"] = $"{resignationDate.Day} {FormatMonthRus(resignationDate.Month)} {resignationDate.Year}"
+        };
+
+        return (ApplyPlaceholders(template.TitleTemplate, placeholders),
+                ApplyPlaceholders(template.BodyTemplate, placeholders));
+    }
+
     // ═══════════════════════════════════════════════════════════════
     // Приватные fallback-методы (дефолтные тексты, без БД)
     // ═══════════════════════════════════════════════════════════════
@@ -451,6 +495,41 @@ public class NotificationTextBuilder
             + $"Время начала: {timeStr}\n"
             + $"Место проведения: {meetingVenue ?? "не указано"}\n\n"
             + $"Ознакомьтесь с обновлённой повесткой в системе.\n\n"
+            + $"С уважением,\nГенеральный директор {legalEntityName}"
+        );
+    }
+
+    private static (string Title, string Body) BuildOosuMeetingNotificationFallback(
+        string legalEntityName, string participantName, DateOnly meetingDate,
+        TimeOnly? meetingTime, string? meetingVenue)
+    {
+        var timeStr = meetingTime.HasValue
+            ? $"{meetingTime.Value.Hour} часов {meetingTime.Value.Minute} минут"
+            : "не указано";
+        var dateStr = $"{meetingDate.Day} {FormatMonthRus(meetingDate.Month)} {meetingDate.Year}";
+        return (
+            $"ИМИТАЦИЯ ОТПРАВКА ПО email — Уведомление о проведении ООСУ {legalEntityName}",
+            $"Уважаемый(-ая) {participantName}!\n\n"
+            + $"{legalEntityName} уведомляет Вас о проведении очередного общего собрания участников.\n\n"
+            + $"Дата проведения: {dateStr}\n"
+            + $"Время начала: {timeStr}\n"
+            + $"Место проведения: {meetingVenue ?? "не указано"}\n\n"
+            + $"С уважением,\nГенеральный директор {legalEntityName}"
+        );
+    }
+
+    private static (string Title, string Body) BuildCeoResignationFallback(
+        string legalEntityName, string participantName, string ceoName, DateOnly resignationDate)
+    {
+        var dateStr = $"{resignationDate.Day} {FormatMonthRus(resignationDate.Month)} {resignationDate.Year}";
+        return (
+            $"ИМИТАЦИЯ ОТПРАВКА ПО email — Уведомление ГД об увольнении {legalEntityName}",
+            $"Уважаемый(-ая) {participantName}!\n\n"
+            + $"{legalEntityName} уведомляет Вас о том, что Генеральный директор {ceoName} "
+            + $"уведомил общество о своём увольнении.\n\n"
+            + $"Плановая дата увольнения: {dateStr}\n\n"
+            + $"На основании ст. 280 ТК РФ созывается внеочередное общее собрание участников "
+            + $"для избрания нового Генерального директора.\n\n"
             + $"С уважением,\nГенеральный директор {legalEntityName}"
         );
     }
