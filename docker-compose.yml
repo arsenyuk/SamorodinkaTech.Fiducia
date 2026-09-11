@@ -79,6 +79,7 @@ services:
       - ConnectionStrings__DefaultConnection=Host=mnemonios-postgres;Port=5432;Database=mnemonios;Username=mnemonios;Password=mnemonios_dev
       - HmacSettings__Key=default_dev_key_replace_in_production_32ch
       - ASPNETCORE_ENVIRONMENT=Development
+      - LD_LIBRARY_PATH=/usr/lib/aarch64-linux-gnu
     ports:
       - "5010:5080"
     depends_on:

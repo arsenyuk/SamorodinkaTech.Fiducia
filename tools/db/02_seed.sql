@@ -844,8 +844,4 @@ INSERT INTO ref_dul_type (id, code, name, has_series, has_department_code, sort_
     ('ffffffff-ffff-ffff-ffff-ffffffffff13', '91', 'Иные документы', false, false, 13, CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000')
 ON CONFLICT (code) DO NOTHING;
 
--- Установка типа документа по умолчанию ('21' — Паспорт гражданина РФ) для существующих записей
-UPDATE board_participant SET dul_type_id = 'ffffffff-ffff-ffff-ffff-ffffffffff10' WHERE dul_type_id IS NULL AND participant_type = 'FL';
-UPDATE board_participant_change SET dul_type_id = 'ffffffff-ffff-ffff-ffff-ffffffffff10' WHERE dul_type_id IS NULL AND participant_type = 'FL';
-
 -- ============================================================================

@@ -78,7 +78,7 @@
 | Первичный ввод состава СД: Вариант 1 (только Председатель) | — | `E2E_BoardSetupTests::BoardSetup_Variant1_ChairOnly` | ✅ Реализован |
 | Первичный ввод состава СД: Вариант 2 (Председатель + Зам.) | — | `E2E_BoardSetupTests::BoardSetup_Variant2_ChairAndDeputy` | ✅ Реализован |
 | Первичный ввод состава СД: Вариант 3 (Председатель + Секретарь) | — | `E2E_BoardSetupTests::BoardSetup_Variant3_ChairAndSecretary` | ✅ Реализован |
-| Коллективное требование (ВОСУ) | — | — | ❌ Нет теста |
+| Коллективное требование (ВОСУ) | — | `E2E_VosuDemandTests` | ✅ Реализован |
 
 ---
 

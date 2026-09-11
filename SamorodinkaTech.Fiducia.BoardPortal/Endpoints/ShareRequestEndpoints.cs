@@ -3,8 +3,10 @@ using Microsoft.EntityFrameworkCore;
 using SamorodinkaTech.Fiducia.Domain.Entities;
 using SamorodinkaTech.Fiducia.Domain.Helpers;
 using SamorodinkaTech.Fiducia.Domain.Interfaces;
+using SamorodinkaTech.Fiducia.Domain.Models;
 using SamorodinkaTech.Fiducia.Domain.Validation;
 using SamorodinkaTech.Fiducia.Infrastructure;
+using SamorodinkaTech.Fiducia.Infrastructure.Common.Exceptions;
 using SamorodinkaTech.Fiducia.Infrastructure.Persistence;
 
 namespace SamorodinkaTech.Fiducia.BoardPortal;
@@ -1096,6 +1098,19 @@ public static class ShareRequestEndpoints
                     {
                         request.OrgIntentId = orgIntentId.Value;
                         await ctx.SaveChangesAsync();
+
+                        // Фиксируем: данное требование — инициирующее для ВОСУ
+                        var demandLink = new VosuDemandLink
+                        {
+                            Id = Guid.NewGuid(),
+                            OrgIntentId = orgIntentId.Value,
+                            ShareRequestId = request.Id,
+                            IsInitiating = true,
+                            CreatedBy = userId,
+                            CreatedAt = DateTime.UtcNow
+                        };
+                        ctx.VosuDemandLinks.Add(demandLink);
+                        await ctx.SaveChangesAsync();
                     }
                 }
 
@@ -1270,9 +1285,40 @@ public static class ShareRequestEndpoints
                     .Include(r => r.Participant)
                     .FirstOrDefaultAsync(r => r.Id == id && r.LegalEntityId == leId);
 
-                return request is null
-                    ? Results.NotFound()
-                    : Results.Ok(MapToCollectiveDto(request));
+                if (request is null)
+                    return Results.NotFound();
+
+                // Определяем, является ли данное требование инициирующим для ВОСУ
+                var isInitiatingDemand = await ctx.VosuDemandLinks
+                    .AnyAsync(l => l.ShareRequestId == id && l.IsInitiating);
+
+                var dto = MapToCollectiveDto(request);
+                // Добавляем IsInitiatingDemand к anonymous object
+                var result = new
+                {
+                    ((dynamic)dto).Id,
+                    ((dynamic)dto).LegalEntityId,
+                    ((dynamic)dto).RequestTypeId,
+                    ((dynamic)dto).RequestTypeCode,
+                    ((dynamic)dto).RequestTypeName,
+                    ((dynamic)dto).InitiatorName,
+                    ((dynamic)dto).Payload,
+                    ((dynamic)dto).Status,
+                    ((dynamic)dto).CollectiveStatus,
+                    ((dynamic)dto).ThresholdPercent,
+                    ((dynamic)dto).TotalSupportPercent,
+                    ((dynamic)dto).SupporterCount,
+                    ((dynamic)dto).CreatedAt,
+                    ((dynamic)dto).SubmittedToCeoAt,
+                    ((dynamic)dto).CeoDecisionAt,
+                    ((dynamic)dto).CeoComment,
+                    ((dynamic)dto).ReviewLocation,
+                    ((dynamic)dto).OrgIntentId,
+                    ((dynamic)dto).IsEditable,
+                    IsInitiatingDemand = isInitiatingDemand
+                };
+
+                return Results.Ok(result);
             }
             catch (Exception ex)
             {
@@ -1528,6 +1574,239 @@ public static class ShareRequestEndpoints
             catch (Exception ex)
             {
                 logger.LogWarning(ex, "Ошибка открепления файла от требования {Id}", id);
+                return Results.BadRequest(new { error = ex.Message });
+            }
+        });
+
+        // POST: сформировать уведомления участникам ВОСУ по требованию
+        shareRequests.MapPost("/{id}/generate-vosu-notifications", async (
+            Guid id,
+            GenerateVosuNotificationsDto dto,
+            IDbContextFactory<FiduciaDbContext> dbFactory,
+            IVosuNotificationDocxGenerator docxGenerator,
+            IFileStorage fileStorage,
+            ISecurityAuditService audit,
+            ILoggerFactory loggerFactory,
+            HttpContext http) =>
+        {
+            var logger = loggerFactory.CreateLogger("ShareRequests.GenerateVosuNotifications");
+            try
+            {
+                await using var ctx = await dbFactory.CreateDbContextAsync();
+                var (leId, error) = await ValidateAccessAsync(ctx, http, audit, logger);
+                if (error is not null) return error;
+
+                var userIdStr = http.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                var userId = Guid.TryParse(userIdStr, out var uid) ? uid : Guid.Empty;
+
+                // Проверяем роль CEO
+                var user = await ctx.Users
+                    .Include(u => u.UserRoles).ThenInclude(ur => ur.Role)
+                    .FirstOrDefaultAsync(u => u.Id == userId);
+                var isCeo = user?.UserRoles?.Any(ur => ur.Role?.Code == "CEO") ?? false;
+                if (!isCeo)
+                    return Results.Forbid();
+
+                var request = await ctx.ShareRequests
+                    .Include(r => r.RequestType)
+                    .FirstOrDefaultAsync(r => r.Id == id && r.LegalEntityId == leId);
+                if (request is null)
+                    return Results.NotFound();
+
+                if (request.RequestType?.Code != "DEMAND_VOSU")
+                    return Results.BadRequest(new { error = "Уведомления ВОСУ доступны только для типа DEMAND_VOSU" });
+
+                if (!request.OrgIntentId.HasValue)
+                    return Results.BadRequest(new { error = "План ВОСУ не создан. Сначала примите требование." });
+
+                var orgIntentId = request.OrgIntentId.Value;
+
+                // Проверяем, нет ли уже сформированных уведомлений
+                var existingCount = await ctx.VosuNotifications
+                    .CountAsync(n => n.OrgIntentId == orgIntentId);
+                if (existingCount > 0)
+                    return Results.BadRequest(new { error = "Уведомления уже сформированы. Обновите страницу." });
+
+                // Загружаем участников
+                var participants = await ctx.BoardParticipants
+                    .Where(x => x.LegalEntityId == leId && x.IsActive)
+                    .Include(x => x.EcosystemParticipant)
+                    .Include(x => x.Person)
+                    .ToListAsync();
+                if (participants.Count == 0)
+                    return Results.BadRequest(new { error = "Нет активных участников для формирования уведомлений" });
+
+                // Юридическое лицо
+                var legalEntity = await ctx.LegalEntities.FindAsync(leId);
+                if (legalEntity is null)
+                    return Results.BadRequest(new { error = "Юридическое лицо не найдено" });
+
+                // ФИО инициатора (из payload)
+                string? initiatorName = null;
+                decimal? initiatorSharePercent = null;
+                if (!string.IsNullOrEmpty(request.Payload))
+                {
+                    try
+                    {
+                        var payload = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(request.Payload);
+                        if (payload.TryGetProperty("text", out var _)) { } // текст требования
+                    }
+                    catch { /* не JSON */ }
+                }
+                // Получаем ФИО инициатора из участника
+                var initiatorParticipant = await ctx.BoardParticipants
+                    .FirstOrDefaultAsync(p => p.Id == request.ParticipantId);
+                if (initiatorParticipant is not null)
+                {
+                    initiatorName = initiatorParticipant.ParticipantType == "FL"
+                        ? initiatorParticipant.Person?.FullName
+                        : initiatorParticipant.CompanyName;
+                    initiatorSharePercent = initiatorParticipant.SharePercent;
+                }
+
+                var ceoFullName = user is not null
+                    ? string.Join(" ", new[] { user.LastName, user.FirstName, user.MiddleName }
+                        .Where(x => !string.IsNullOrWhiteSpace(x)))
+                    : "";
+
+                var notifications = new List<object>();
+
+                foreach (var participant in participants)
+                {
+                    var participantName = participant.ParticipantType == "FL"
+                        ? participant.Person?.FullName
+                        : participant.CompanyName;
+
+                    var docxData = new VosuNotificationData
+                    {
+                        LegalEntityName = legalEntity.Name,
+                        LegalEntityOgrn = legalEntity.Ogrn,
+                        LegalEntityInn = legalEntity.Inn,
+                        ParticipantFullName = participantName,
+                        ParticipantAddress = participant.ParticipantType == "FL"
+                            ? (participant.PersonId.HasValue
+                                ? ctx.IdentityDocuments.FirstOrDefault(x => x.PersonId == participant.PersonId.Value && x.IsActive)?.RegistrationAddress
+                                : null)
+                            : participant.CompanyAddress,
+                        MeetingDate = dto.MeetingDate,
+                        MeetingStartTime = dto.MeetingStartTime,
+                        MeetingVenue = dto.MeetingVenue,
+                        RegistrationStartTime = dto.RegistrationStartTime,
+                        AgendaItems = dto.AgendaItems ?? new List<string>(),
+                        InitiatorName = initiatorName,
+                        InitiatorSharePercent = initiatorSharePercent,
+                        DemandReceivedDate = DateOnly.FromDateTime(request.CreatedAt),
+                        ReviewLocation = dto.ReviewLocation,
+                        CeoName = ceoFullName,
+                        NotificationDate = DateOnly.FromDateTime(DateTime.UtcNow),
+                        IsAgendaChange = false
+                    };
+
+                    var docxBytes = await docxGenerator.GenerateAsync(docxData);
+                    using var ms = new MemoryStream(docxBytes);
+                    var sanitized = System.Text.RegularExpressions.Regex.Replace(participantName ?? "unknown", @"[^\w\-]", "_");
+                    var fileName = $"Уведомление_ВОСУ_{sanitized}.docx";
+
+                    var storageKey = await fileStorage.SaveAsync(ms, fileName,
+                        "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+
+                    var fileEntry = new FileEntry
+                    {
+                        Id = Guid.NewGuid(),
+                        OriginalName = fileName,
+                        ContentType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                        SizeBytes = docxBytes.Length,
+                        StorageProvider = "LOCAL",
+                        StorageKeyOrPath = storageKey,
+                        Extension = "docx",
+                        FileType = "VOSU_NOTIFICATION",
+                        DisplayName = $"Уведомление ВОСУ — {participantName}",
+                        CreatedAt = DateTime.UtcNow,
+                        CreatedBy = userId
+                    };
+                    ctx.Files.Add(fileEntry);
+
+                    var vosuNotification = new VosuNotification
+                    {
+                        Id = Guid.NewGuid(),
+                        OrgIntentId = orgIntentId,
+                        BoardParticipantId = participant.Id,
+                        FileId = fileEntry.Id,
+                        CreatedBy = userId,
+                        CreatedAt = DateTime.UtcNow
+                    };
+                    ctx.VosuNotifications.Add(vosuNotification);
+
+                    notifications.Add(new
+                    {
+                        boardParticipantId = participant.Id,
+                        participantName,
+                        fileId = fileEntry.Id,
+                        fileName
+                    });
+                }
+
+                await ctx.SaveChangesAsync();
+
+                logger.LogInformation("Сформировано уведомлений ВОСУ: {Count}, OrgIntentId: {OrgIntentId}",
+                    notifications.Count, orgIntentId);
+
+                return Results.Ok(new { notifications });
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Ошибка генерации уведомлений ВОСУ по требованию {Id}", id);
+                return Results.BadRequest(new { error = ExceptionFlattener.Unwrap(ex) });
+            }
+        });
+
+        // GET: список сформированных уведомлений по требованию
+        shareRequests.MapGet("/{id}/notifications", async (
+            Guid id,
+            IDbContextFactory<FiduciaDbContext> dbFactory,
+            ISecurityAuditService audit,
+            ILoggerFactory loggerFactory,
+            HttpContext http) =>
+        {
+            var logger = loggerFactory.CreateLogger("ShareRequests.Notifications");
+            try
+            {
+                await using var ctx = await dbFactory.CreateDbContextAsync();
+                var (leId, error) = await ValidateAccessAsync(ctx, http, audit, logger);
+                if (error is not null) return error;
+
+                var request = await ctx.ShareRequests
+                    .FirstOrDefaultAsync(r => r.Id == id && r.LegalEntityId == leId);
+                if (request is null)
+                    return Results.NotFound();
+
+                if (!request.OrgIntentId.HasValue)
+                    return Results.Ok(Array.Empty<object>());
+
+                var notifications = await ctx.VosuNotifications
+                    .Include(n => n.BoardParticipant)
+                    .Include(n => n.File)
+                    .Where(n => n.OrgIntentId == request.OrgIntentId.Value)
+                    .OrderBy(n => n.BoardParticipant!.Person != null
+                        ? n.BoardParticipant.Person.LastName
+                        : n.BoardParticipant.CompanyName)
+                    .ToListAsync();
+
+                return Results.Ok(notifications.Select(n => new
+                {
+                    n.Id,
+                    boardParticipantId = n.BoardParticipantId,
+                    participantName = n.BoardParticipant?.ParticipantType == "FL"
+                        ? n.BoardParticipant?.Person?.FullName
+                        : n.BoardParticipant?.CompanyName,
+                    fileId = n.FileId,
+                    fileName = n.File?.OriginalName,
+                    n.CreatedAt
+                }));
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Ошибка получения уведомлений ВОСУ по требованию {Id}", id);
                 return Results.BadRequest(new { error = ex.Message });
             }
         });
@@ -2019,3 +2298,10 @@ public record ShareRequestRevokeDto(bool Notarized);
 public record ShareRequestCollectiveCreateDto(Guid RequestTypeId, string? Payload, string? DemandText);
 public record ShareRequestDecideDto(string Decision, string? Comment, string? ReviewLocation);
 public record ShareRequestAttachFileDto(Guid FileId);
+public record GenerateVosuNotificationsDto(
+    DateOnly MeetingDate,
+    TimeOnly? MeetingStartTime,
+    string? MeetingVenue,
+    TimeOnly? RegistrationStartTime,
+    List<string>? AgendaItems,
+    string? ReviewLocation);

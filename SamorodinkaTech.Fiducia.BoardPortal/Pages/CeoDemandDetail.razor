@@ -20,6 +20,11 @@
         <div class="alert alert-danger">@_error</div>
     }
 
+    @if (_success is not null)
+    {
+        <div class="alert alert-success">@_success</div>
+    }
+
     @if (_loading)
     {
         <div class="text-center py-4">
@@ -150,11 +155,99 @@
                     {
                         <p><strong>Дата решения:</strong> @_demand.CeoDecisionAt.Value.ToString("dd.MM.yyyy HH:mm")</p>
                     }
+                    @if (isAccepted && _demand.IsInitiatingDemand)
+                    {
+                        <div class="alert alert-info mt-2 mb-2">
+                            <strong>Данное требование инициировало созыв ВОСУ</strong>
+                        </div>
+                    }
                     @if (isAccepted && _demand.OrgIntentId.HasValue)
                     {
                         <a href="/org-plan" class="btn btn-success mt-2">
                             Перейти к плану ВОСУ
                         </a>
+                    }
+                </div>
+            </div>
+        }
+
+        @* ── Панель уведомлений ВОСУ ────────────────────────────────── *@
+        @if (_demand.CollectiveStatus == "ACCEPTED"
+            && _demand.RequestTypeCode == "DEMAND_VOSU"
+            && _demand.OrgIntentId.HasValue)
+        {
+            <div class="card mb-4 border-info">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">Формирование уведомлений участникам ВОСУ</h5>
+                </div>
+                <div class="card-body">
+                    @if (_notifications.Count > 0)
+                    {
+                        @* ── Таблица сформированных уведомлений ────── *@
+                        <h6>Сформированные уведомления (@_notifications.Count)</h6>
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Участник</th>
+                                    <th>Файл</th>
+                                    <th>Дата</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var n in _notifications)
+                                {
+                                    <tr>
+                                        <td>@n.ParticipantName</td>
+                                        <td>
+                                            <a href="/api/files/@n.FileId/download" target="_blank" class="text-decoration-none">
+                                                📄 @n.FileName
+                                            </a>
+                                        </td>
+                                        <td>@n.CreatedAt.ToString("dd.MM.yyyy HH:mm")</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    }
+                    else
+                    {
+                        @* ── Форма параметров уведомления ──────────── *@
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-4">
+                                <label class="form-label">Дата проведения</label>
+                                <InputDate @bind-Value="_meetingDate" class="form-control" />
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Время начала</label>
+                                <input type="time" class="form-control" @bind="_meetingStartTime" />
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Время регистрации</label>
+                                <input type="time" class="form-control" @bind="_registrationStartTime" />
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Место проведения</label>
+                            <input class="form-control" @bind="_meetingVenue"
+                                   placeholder="г. Москва, ул. Пятницкая, д. 20, стр. 1" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Повестка дня (по одному вопросу на строку)</label>
+                            <textarea class="form-control" rows="4" @bind="_agendaText"
+                                      placeholder="1. Избрание Председателя и Секретаря ВОСУ&#10;2. Досрочное прекращение полномочий ГД"></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Место ознакомления с документами</label>
+                            <input class="form-control" @bind="_reviewLocation"
+                                   placeholder="г. Москва, ул. Пятницкая, д. 20, стр. 1, в рабочие дни с 10:00 до 16:00" />
+                        </div>
+                        <button class="btn btn-primary" @onclick="GenerateNotificationsAsync" disabled="@_isGenerating">
+                            @if (_isGenerating)
+                            {
+                                <span class="spinner-border spinner-border-sm me-1"></span>
+                            }
+                            Сформировать уведомления
+                        </button>
                     }
                 </div>
             </div>
@@ -169,13 +262,34 @@
     private bool _loading = true;
     private bool _isDeciding;
     private string? _error;
+    private string? _success;
     private string? _ceoComment;
+
+    // Поля формы уведомлений
+    private DateOnly _meetingDate = DateOnly.FromDateTime(DateTime.Today.AddDays(30));
+    private TimeOnly _meetingStartTime = new(14, 0);
+    private TimeOnly _registrationStartTime = new(13, 30);
+    private string? _meetingVenue;
+    private string? _agendaText;
+    private string? _reviewLocation;
+    private bool _isGenerating;
+
+    // Список сформированных уведомлений
+    private List<NotificationDto> _notifications = new();
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
             _demand = await Http.GetFromJsonAsync<DemandDetailDto>($"/api/share-requests/ceo/{Id}");
+
+            // Загружаем уведомления, если требование принято и тип DEMAND_VOSU
+            if (_demand?.CollectiveStatus == "ACCEPTED"
+                && _demand.RequestTypeCode == "DEMAND_VOSU"
+                && _demand.OrgIntentId.HasValue)
+            {
+                await LoadNotificationsAsync();
+            }
         }
         catch (Exception ex)
         {
@@ -220,6 +334,91 @@
         {
             _isDeciding = false;
         }
+    }
+
+    private async Task GenerateNotificationsAsync()
+    {
+        _error = null;
+        _success = null;
+
+        if (string.IsNullOrWhiteSpace(_meetingVenue))
+        {
+            _error = "Укажите место проведения собрания";
+            return;
+        }
+
+        var agendaItems = ParseAgendaItems(_agendaText);
+        if (agendaItems.Count == 0)
+        {
+            _error = "Укажите хотя бы один вопрос повестки";
+            return;
+        }
+
+        _isGenerating = true;
+        StateHasChanged();
+
+        try
+        {
+            var dto = new
+            {
+                meetingDate = _meetingDate,
+                meetingStartTime = _meetingStartTime,
+                meetingVenue = _meetingVenue,
+                registrationStartTime = _registrationStartTime,
+                agendaItems,
+                reviewLocation = _reviewLocation
+            };
+
+            var response = await Http.PostAsJsonAsync($"/api/share-requests/{Id}/generate-vosu-notifications", dto);
+            var body = await response.Content.ReadAsStringAsync();
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _error = $"Ошибка ({(int)response.StatusCode}): {body}";
+                return;
+            }
+
+            _success = "Уведомления успешно сформированы";
+            await LoadNotificationsAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Ошибка генерации уведомлений ВОСУ по требованию {Id}", Id);
+            _error = $"Ошибка: {ex.Message}";
+        }
+        finally
+        {
+            _isGenerating = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadNotificationsAsync()
+    {
+        try
+        {
+            var result = await Http.GetFromJsonAsync<List<NotificationDto>>($"/api/share-requests/{Id}/notifications");
+            _notifications = result ?? new();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Ошибка загрузки уведомлений ВОСУ по требованию {Id}", Id);
+        }
+    }
+
+    private static List<string> ParseAgendaItems(string? text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+            return new();
+
+        return text.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(line =>
+            {
+                var cleaned = System.Text.RegularExpressions.Regex.Replace(line, @"^\d+\.\s*", "");
+                return cleaned;
+            })
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .ToList();
     }
 
     private static bool TryParsePayloadText(string payload, out string? text)
@@ -277,5 +476,14 @@
         DateTime? SubmittedToCeoAt,
         DateTime? CeoDecisionAt,
         string? CeoComment,
-        Guid? OrgIntentId);
+        Guid? OrgIntentId,
+        bool IsInitiatingDemand);
+
+    private record NotificationDto(
+        Guid Id,
+        Guid BoardParticipantId,
+        string? ParticipantName,
+        Guid FileId,
+        string? FileName,
+        DateTime CreatedAt);
 }

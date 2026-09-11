@@ -572,13 +572,15 @@ public static class BoardPortalHelper
         string? personInn = null,
         string participantType = "FL",
         decimal? sharePercent = null,
-        decimal? shareAmount = null)
+        decimal? shareAmount = null,
+        Guid? ecosystemParticipantId = null)
     {
         var sharePercentJson = sharePercent?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "null";
         var shareAmountJson = shareAmount?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "null";
         var passportSeriesJson = passportSeries != null ? $"'{EscapeJs(passportSeries)}'" : "null";
         var passportNumberJson = passportNumber != null ? $"'{EscapeJs(passportNumber)}'" : "null";
         var personInnJson = personInn != null ? $"'{EscapeJs(personInn)}'" : "null";
+        var ecoIdJson = ecosystemParticipantId.HasValue ? $"'{ecosystemParticipantId.Value}'" : "null";
 
         var result = await page.EvaluateAsync<AddParticipantResponse>(
             $@"async () => {{
@@ -593,7 +595,8 @@ public static class BoardPortalHelper
                         passportNumber: {passportNumberJson},
                         personInn: {personInnJson},
                         sharePercent: {sharePercentJson},
-                        shareAmount: {shareAmountJson}
+                        shareAmount: {shareAmountJson},
+                        ecosystemParticipantId: {ecoIdJson}
                     }})
                 }});
                 if (!response.ok) {{

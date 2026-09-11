@@ -1690,3 +1690,33 @@ CREATE TABLE IF NOT EXISTS ref_document_refusal_reason (
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS ux_ref_refusal_reason_code ON ref_document_refusal_reason(code);
+
+-- ============================================================
+-- VOSU_DEMAND_LINKS — связь требований с планом ВОСУ
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS vosu_demand_links (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    org_intent_id uuid NOT NULL REFERENCES org_intents(id),
+    share_request_id uuid NOT NULL REFERENCES share_request(id),
+    is_initiating boolean NOT NULL DEFAULT false,
+    created_by uuid NOT NULL REFERENCES users(id),
+    created_at timestamp with time zone NOT NULL DEFAULT NOW()
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS ux_vosu_demand_link ON vosu_demand_links(org_intent_id, share_request_id);
+
+-- ============================================================
+-- VOSU_NOTIFICATIONS — уведомления участникам ВОСУ (DOCX-файлы)
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS vosu_notifications (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    org_intent_id uuid NOT NULL REFERENCES org_intents(id),
+    board_participant_id uuid NOT NULL REFERENCES board_participant(id),
+    file_id uuid NOT NULL REFERENCES files(id),
+    created_by uuid NOT NULL REFERENCES users(id),
+    created_at timestamp with time zone NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS ix_vosu_notifications_org_intent ON vosu_notifications(org_intent_id);

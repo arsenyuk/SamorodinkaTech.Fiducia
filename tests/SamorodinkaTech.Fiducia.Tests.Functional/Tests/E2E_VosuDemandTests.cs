@@ -42,6 +42,18 @@ public class E2E_VosuDemandTests : BrowserFixture
             await AuthHelper.LoginAsBoardUserAsync(boardPage, gdLogin);
             boardPage.Url.Should().Contain("/main");
 
+            // Ищем существующий EcosystemParticipant по ФИО (создан через Admin Console)
+            var ecoId = await boardPage.EvaluateAsync<Guid?>(
+                $@"async () => {{
+                    const response = await fetch('/api/participants/eco-search?name={Uri.EscapeDataString(participantFullName)}', {{
+                        credentials: 'same-origin'
+                    }});
+                    if (!response.ok) return null;
+                    const data = await response.json();
+                    if (data && data.length > 0 && data[0].id) return data[0].id;
+                    return null;
+                }}");
+
             var participantId = await BoardPortalHelper.AddParticipantWithPersonalDataAsync(
                 boardPage,
                 fullName: participantFullName,
@@ -50,7 +62,8 @@ public class E2E_VosuDemandTests : BrowserFixture
                 personInn: "781234567890",
                 participantType: "FL",
                 sharePercent: 40m,
-                shareAmount: 40000m);
+                shareAmount: 40000m,
+                ecosystemParticipantId: ecoId);
 
             participantId.Should().NotBeEmpty("участник должен быть создан");
 
@@ -138,6 +151,67 @@ public class E2E_VosuDemandTests : BrowserFixture
             await boardPage.WaitForTimeoutAsync(5000);
 
             await boardPage.WaitForSelectorAsync("text=Перейти к плану ВОСУ", new() { Timeout = 10000 });
+
+            // ── Шаг 5: ГД проверяет пометку инициирующего требования ────
+            await boardPage.WaitForSelectorAsync(
+                "text=Данное требование инициировало созыв ВОСУ",
+                new() { Timeout = 5000 });
+
+            // ── Шаг 6: ГД формирует уведомления ВОСУ ──────────────────
+            // Проверяем наличие панели уведомлений
+            await boardPage.WaitForSelectorAsync(
+                "text=Формирование уведомлений участникам ВОСУ",
+                new() { Timeout = 5000 });
+
+            // Заполняем дату проведения
+            var dateInput = await boardPage.WaitForSelectorAsync("input[type='date']", new() { Timeout = 5000 });
+            dateInput.Should().NotBeNull("поле даты должно быть");
+            await dateInput!.FillAsync("2026-06-15");
+
+            // Заполняем время начала
+            var timeInputs = await boardPage.QuerySelectorAllAsync("input[type='time']");
+            timeInputs.Count.Should().BeGreaterOrEqualTo(2, "должны быть поля времени начала и регистрации");
+            await timeInputs[0].FillAsync("14:00");
+            await timeInputs[1].FillAsync("13:30");
+
+            // Заполняем место проведения
+            var venueInput = await boardPage.WaitForSelectorAsync(
+                "input[placeholder*='Место']",
+                new() { Timeout = 5000 });
+            venueInput.Should().NotBeNull("поле места проведения должно быть");
+            await venueInput!.FillAsync("г. Москва, ул. Тверская, д. 1, переговорная № 3");
+
+            // Заполняем повестку
+            var agendaTextarea = await boardPage.WaitForSelectorAsync(
+                "textarea[placeholder*='Повестка']",
+                new() { Timeout = 5000 });
+            agendaTextarea.Should().NotBeNull("поле повестки должно быть");
+            await agendaTextarea!.FillAsync("1. Избрание Председателя ВОСУ\n2. Досрочное прекращение полномочий ГД");
+
+            // Нажимаем «Сформировать уведомления»
+            await boardPage.ClickAsync("button:text('Сформировать уведомления')");
+            await boardPage.WaitForTimeoutAsync(5000);
+
+            // ── Шаг 7: Проверяем таблицу уведомлений ──────────────────
+            await boardPage.WaitForSelectorAsync(
+                "text=Сформированные уведомления",
+                new() { Timeout = 10000 });
+
+            // Проверяем наличие ссылок скачивания
+            var downloadLinks = await boardPage.QuerySelectorAllAsync(
+                "a[href*='/api/files/'][href*='/download']");
+            downloadLinks.Should().NotBeEmpty("должны быть ссылки на скачивание уведомлений");
+
+            // Проверяем, что ссылки ведут на скачивание DOCX
+            foreach (var dlLink in downloadLinks)
+            {
+                var href = await dlLink.GetAttributeAsync("href");
+                href.Should().Contain("/api/files/");
+                href.Should().Contain("/download");
+            }
+
+            // Проверяем, что мы всё ещё на странице требования (не ушли)
+            boardPage.Url.Should().Contain("/ceo-demands/");
         }
         catch
         {
@@ -184,4 +258,6 @@ public class E2E_VosuDemandTests : BrowserFixture
         await boardPage.CloseAsync();
         await adminPage.CloseAsync();
     }
+
+    private record EcoParticipantDto(string Id, string? Login, string? FullName);
 }

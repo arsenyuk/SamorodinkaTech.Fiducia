@@ -56,6 +56,26 @@ public static class ParticipantEndpoints
             return Results.Ok(items.Select(p => MapParticipantToDto(p)));
         });
 
+        // GET: поиск EcosystemParticipant по ФИО (для привязки BoardParticipant)
+        participants.MapGet("/eco-search", async (
+            string name,
+            IDbContextFactory<FiduciaDbContext> dbFactory,
+            HttpContext http) =>
+        {
+            await using var ctx = await dbFactory.CreateDbContextAsync();
+            var leId = await LegalEntityHelper.GetLegalEntityIdAsync(ctx, http);
+            if (leId is null) return Results.Ok(Array.Empty<object>());
+
+            var search = name.Trim().ToLower();
+            var results = await ctx.EcosystemParticipants
+                .Where(ep => ep.LegalEntityId == leId.Value && ep.IsActive
+                    && (ep.LastName + " " + ep.FirstName + " " + (ep.MiddleName ?? "")).ToLower().Contains(search))
+                .Select(ep => new { ep.Id, ep.Login, FullName = ep.LastName + " " + ep.FirstName + " " + (ep.MiddleName ?? "") })
+                .ToListAsync();
+
+            return Results.Ok(results);
+        });
+
         // GET: текущий участник (по пользователю)
         participants.MapGet("/current", async (
             IDbContextFactory<FiduciaDbContext> dbFactory,
@@ -115,11 +135,53 @@ public static class ParticipantEndpoints
 
                 var leId = await LegalEntityHelper.GetLegalEntityIdAsync(ctx, http) ?? Guid.Empty;
 
+                var userIdStr = http.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                Guid? userId = Guid.TryParse(userIdStr, out var uid) ? uid : null;
+
                 var maxSort = await ctx.BoardParticipants
                     .Where(p => p.LegalEntityId == leId)
                     .MaxAsync(p => (int?)p.SortOrder) ?? 0;
 
                 var entity = MapDtoToEntity(dto, leId);
+
+                // ── Создание Person при наличии FullName для ФЛ ──────
+                if (entity.ParticipantType == "FL" && !string.IsNullOrWhiteSpace(dto.FullName))
+                {
+                    var (lastName, firstName, middleName) = SplitFullName(dto.FullName);
+                    var person = new Person
+                    {
+                        Id = Guid.NewGuid(),
+                        LastName = lastName,
+                        FirstName = firstName,
+                        MiddleName = middleName,
+                        Inn = dto.PersonInn,
+                        Citizenship = dto.Citizenship,
+                        CreatedAt = DateTime.UtcNow,
+                        UpdatedAt = DateTime.UtcNow,
+                        CreatedBy = userId
+                    };
+                    ctx.Persons.Add(person);
+                    entity.PersonId = person.Id;
+
+                    // Привязываемся к существующему EcosystemParticipant или создаём новый
+                    if (!entity.EcosystemParticipantId.HasValue)
+                    {
+                        var ecoParticipant = new EcosystemParticipant
+                        {
+                            Id = Guid.NewGuid(),
+                            LegalEntityId = leId,
+                            LastName = lastName,
+                            FirstName = firstName,
+                            MiddleName = middleName,
+                            Login = string.Empty,
+                            IsActive = true,
+                            CreatedAt = DateTime.UtcNow,
+                            CreatedBy = userId
+                        };
+                        ctx.EcosystemParticipants.Add(ecoParticipant);
+                        entity.EcosystemParticipantId = ecoParticipant.Id;
+                    }
+                }
 
                 // ── Дедупликация ──────────────────────────────────────
                 var dedupError = await CheckDuplicateParticipantAsync(ctx, leId, entity, null);
@@ -1189,31 +1251,29 @@ public static class ParticipantEndpoints
                 return;
             }
 
-            var ecoParticipant = await ctx.EcosystemParticipants.FindAsync(entity.EcosystemParticipantId.Value);
-            if (ecoParticipant is null)
-            {
-                logger.LogWarning("ЕДИН: пропуск — EcosystemParticipant не найден");
-                return;
-            }
-
-            if (ecoParticipant.MpiMasterId.HasValue)
-            {
-                logger.LogWarning("ЕДИН: пропуск — MasterId уже привязан");
-                return;
-            }
-
-            var (lastName, firstName, middleName) = SplitFullName(entity.Person?.FullName ?? "");
-            var ecoId = ecoParticipant.Id;
-
-            // Сохраняем данные до Dispose контекста
+            // Сохраняем данные ДО dispose контекста
+            var ecoId = entity.EcosystemParticipantId.Value;
+            var lastName = entity.Person?.LastName ?? "";
+            var firstName = entity.Person?.FirstName ?? "";
+            var middleName = entity.Person?.MiddleName;
             var personInn = entity.Person?.Inn;
             var personId = entity.PersonId;
-            Guid? personIdForQuery = personId;
-            var primaryDoc = personIdForQuery.HasValue
-                ? ctx.IdentityDocuments.FirstOrDefault(x => x.PersonId == personIdForQuery.Value && x.IsActive)
-                : null;
-            var passportSeries = primaryDoc?.Series;
-            var passportNumber = primaryDoc?.Number;
+
+            // Ищем паспорт через новый контекст
+            string? dulType = null;
+            string? passportSeries = null;
+            string? passportNumber = null;
+            var dbFactory = serviceProvider.GetRequiredService<IDbContextFactory<FiduciaDbContext>>();
+            await using var freshCtx = await dbFactory.CreateDbContextAsync();
+            if (personId.HasValue)
+            {
+                var primaryDoc = await freshCtx.IdentityDocuments
+                    .Include(x => x.DulType)
+                    .FirstOrDefaultAsync(x => x.PersonId == personId.Value && x.IsActive);
+                dulType = primaryDoc?.DulType?.Code;
+                passportSeries = primaryDoc?.Series;
+                passportNumber = primaryDoc?.Number;
+            }
 
             logger.LogDebug("ЕДИН: запуск binding для EcosystemParticipant={EcoId}, ФИО={LastName} {FirstName}", ecoId, lastName, firstName);
 
@@ -1227,8 +1287,8 @@ public static class ParticipantEndpoints
                 {
                     await scopedBindingService.ResolveAndBindAsync(
                         ecoId, lastName, firstName, middleName,
-                        personInn, null, null,
-                        passportSeries, passportNumber);
+                        personInn, null,
+                        dulType, passportSeries, passportNumber);
                 }
                 catch (Exception ex)
                 {

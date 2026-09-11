@@ -35,6 +35,26 @@ public class EdinBindingService : IEdinBindingService
         _logger.LogDebug("ЕДИН resolve для EcosystemParticipant={EcoId}: {LastName} {FirstName}",
             ecosystemParticipantId, lastName, firstName);
 
+        // Валидация обязательных полей
+        if (string.IsNullOrWhiteSpace(lastName) || string.IsNullOrWhiteSpace(firstName))
+        {
+            _logger.LogWarning("ЕДИН: пропуск — ФИО не заполнено (LastName={LastName}, FirstName={FirstName})",
+                lastName, firstName);
+            return new EdinBindingResult { Error = "ЕДИН: обязательные поля ФИО не заполнены" };
+        }
+
+        var hasInn = !string.IsNullOrWhiteSpace(inn);
+        var hasSnils = !string.IsNullOrWhiteSpace(snils);
+        var hasDul = !string.IsNullOrWhiteSpace(dulType)
+            && (!string.IsNullOrWhiteSpace(dulSeries) || !string.IsNullOrWhiteSpace(dulNumber));
+
+        if (!hasInn && !hasSnils && !hasDul)
+        {
+            _logger.LogWarning("ЕДИН: пропуск — нет идентифицирующих данных (ИНН={Inn}, СНИЛС={Snils}, ДУЛ={DulType}/{DulSeries}/{DulNumber})",
+                inn ?? "-", snils ?? "-", dulType ?? "-", dulSeries ?? "-", dulNumber ?? "-");
+            return new EdinBindingResult { Error = "ЕДИН: нет идентифицирующих данных (ИНН, СНИЛС или ДУЛ)" };
+        }
+
         var resolveResult = await _edinClient.ResolvePersonAsync(
             lastName, firstName, middleName,
             inn, snils, dulType, dulSeries, dulNumber, ct);
