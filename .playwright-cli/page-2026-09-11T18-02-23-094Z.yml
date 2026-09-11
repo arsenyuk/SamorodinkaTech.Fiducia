@@ -1,0 +1,87 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e7]:
+    - banner [ref=e8]:
+      - banner [ref=e10]:
+        - generic [ref=e11]:
+          - generic [ref=e12]:
+            - link [ref=e15] [cursor=pointer]:
+              - /url: /
+              - img "Почта России" [ref=e16]
+            - generic [ref=e17]: Отправка
+          - generic [ref=e20]:
+            - generic [ref=e21]: Помощь
+            - link "Войти" [ref=e26] [cursor=pointer]:
+              - /url: /dashboard
+    - main [ref=e27]:
+      - generic [ref=e32]:
+        - list [ref=e36]:
+          - listitem [ref=e37]:
+            - link "ГЛАВНАЯ СТРАНИЦА" [ref=e38] [cursor=pointer]:
+              - /url: "#/main"
+          - separator [ref=e39]
+          - listitem [ref=e40]:
+            - link "ОСНОВНЫЕ ШАГИ" [ref=e41] [cursor=pointer]:
+              - /url: "#/flow"
+          - separator [ref=e42]
+          - listitem [ref=e43]:
+            - link "АВТОРИЗАЦИЯ" [ref=e44] [cursor=pointer]:
+              - /url: ""
+          - separator [ref=e45]
+          - listitem [ref=e46]:
+            - link "ТЕСТИРОВАНИЕ API" [ref=e47] [cursor=pointer]:
+              - /url: ""
+          - separator [ref=e48]
+          - listitem [ref=e49]:
+            - link "ЗАКАЗЫ" [ref=e50] [cursor=pointer]:
+              - /url: ""
+          - listitem [ref=e51]:
+            - link "ПАРТИИ" [ref=e52] [cursor=pointer]:
+              - /url: ""
+          - listitem [ref=e53]:
+            - link "ДОКУМЕНТЫ" [ref=e54] [cursor=pointer]:
+              - /url: ""
+          - listitem [ref=e55]:
+            - link "АРХИВ" [ref=e56] [cursor=pointer]:
+              - /url: ""
+          - listitem [ref=e57]:
+            - link "ПОИСК ОПС" [ref=e58] [cursor=pointer]:
+              - /url: ""
+          - listitem [ref=e59]:
+            - link "ВРЕМЕННЫЕ ИНТЕРВАЛЫ" [ref=e60] [cursor=pointer]:
+              - /url: ""
+          - listitem [ref=e61]:
+            - link "ДОЛГОСРОЧНОЕ ХРАНЕНИЕ" [ref=e62] [cursor=pointer]:
+              - /url: ""
+          - listitem [ref=e63]:
+            - link "ВОЗВРАТЫ" [ref=e64] [cursor=pointer]:
+              - /url: ""
+          - listitem [ref=e65]:
+            - link "НАСТРОЙКИ" [ref=e66] [cursor=pointer]:
+              - /url: ""
+          - listitem [ref=e67]:
+            - link "ДАННЫЕ" [ref=e68] [cursor=pointer]:
+              - /url: ""
+          - listitem [ref=e69]:
+            - link "ЗАЯВЛЕНИЯ" [ref=e70] [cursor=pointer]:
+              - /url: ""
+          - separator [ref=e71]
+          - listitem [ref=e72]:
+            - link "ОПИСАНИЕ СВОЙСТВ" [ref=e73] [cursor=pointer]:
+              - /url: ""
+        - article [ref=e79]:
+          - article [ref=e81]:
+            - heading "Создание заказа - Python (3 версия)" [level=3] [ref=e82]
+            - generic [ref=e83]: "# -*- coding: utf-8 -*- # примеры работы с api v1.0 для pyton 3 # необходим установленный модуль \"requests\" # документация модуля: https://requests.readthedocs.io # инструкции по установке модуля: https://requests.readthedocs.io/en/master/user/install import requests import base64 import json def to_base64(str): return base64.b64encode(str.encode()).decode(\"utf-8\") #properties access_token = \"TestAccessToken\" login_password = to_base64(\"login:password\") protocol = \"https://\" host = \"otpravka-api.pochta.ru\" request_headers = { \"Content-Type\": \"application/json\", \"Accept\": \"application/json;charset=UTF-8\", \"Authorization\": \"AccessToken \" + access_token, \"X-User-Authorization\": \"Basic \" + login_password } path = \"/1.0/user/backlog\" new_orders = [ { \"address-type-to\": \"DEFAULT\", \"given-name\": \"Иван\", \"house-to\": \"37\", \"index-to\": 117105, \"mail-category\": \"ORDINARY\", \"mail-direct\": 643, \"mail-type\": \"POSTAL_PARCEL\", \"mass\": 1000, \"middle-name\": \"Иванович\", \"order-num\": \"001\", \"place-to\": \"г Москва\", \"postoffice-code\": \"101000\", \"region-to\": \"г Москва\", \"street-to\": \"ш Варшавское\", \"surname\": \"Иванов\", \"tel-address\": 79459562067, \"transport-type\": \"SURFACE\", \"dimension\": { \"height\": 3, \"length\": 9, \"width\": 73 }, \"fragile\": \"true\" }, { # По данному объекту ожидается ошибка при обработке: \"code\" : \"ILLEGAL_MASS_EXCESS\" # т.к. масса больше установленного ограничения \"address-type-to\": \"DEFAULT\", \"given-name\": \"Сергей\", \"house-to\": \"13\", \"index-to\": 630084, \"mail-category\": \"ORDINARY\", \"mail-direct\": 643, \"mail-type\": \"POSTAL_PARCEL\", \"mass\": 200000, \"middle-name\": \"Владимирович\", \"order-num\": \"002\", \"place-to\": \"г Новосибирск\", \"postoffice-code\": \"101000\", \"region-to\": \"обл Новосибирская\", \"room-to\": \"99\", \"street-to\": \"проезд Газовый\", \"surname\": \"Сидоров\", \"tel-address\": 79458712076, \"transport-type\": \"SURFACE\" } ] url = protocol + host + path response = requests.put(url, headers=request_headers, data=json.dumps(new_orders)) print(\"Status code: \", response.status_code) print(\"Response body: \", response.text)"
+  - contentinfo [ref=e85]:
+    - generic [ref=e87]:
+      - generic [ref=e88]: 2026 © АО Почта России
+      - list [ref=e91]:
+        - listitem [ref=e92]:
+          - link "Поддержка" [ref=e93] [cursor=pointer]:
+            - /url: /help
+        - listitem [ref=e94]:
+          - link "8 800 100-04-05" [ref=e95] [cursor=pointer]:
+            - /url: tel:+78001000405
+        - listitem [ref=e96]:
+          - link "corpsupport@russianpost.ru" [ref=e97] [cursor=pointer]:
+            - /url: mailto:corpsupport@russianpost.ru

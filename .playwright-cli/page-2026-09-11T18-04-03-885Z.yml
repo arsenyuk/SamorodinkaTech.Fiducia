@@ -1,0 +1,314 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e7]:
+    - banner [ref=e8]:
+      - banner [ref=e10]:
+        - generic [ref=e11]:
+          - generic [ref=e12]:
+            - link [ref=e15] [cursor=pointer]:
+              - /url: /
+              - img "Почта России" [ref=e16]
+            - generic [ref=e17]: Отправка
+          - generic [ref=e20]:
+            - generic [ref=e21]: Помощь
+            - link "Войти" [ref=e26] [cursor=pointer]:
+              - /url: /dashboard
+    - main [ref=e27]:
+      - generic [ref=e32]:
+        - list [ref=e36]:
+          - listitem [ref=e37]:
+            - link "ГЛАВНАЯ СТРАНИЦА" [ref=e38] [cursor=pointer]:
+              - /url: "#/main"
+          - separator [ref=e39]
+          - listitem [ref=e40]:
+            - link "ОСНОВНЫЕ ШАГИ" [ref=e41] [cursor=pointer]:
+              - /url: "#/flow"
+          - separator [ref=e42]
+          - listitem [ref=e43]:
+            - link "АВТОРИЗАЦИЯ" [ref=e44] [cursor=pointer]:
+              - /url: ""
+          - separator [ref=e45]
+          - listitem [ref=e46]:
+            - link "ТЕСТИРОВАНИЕ API" [ref=e47] [cursor=pointer]:
+              - /url: ""
+          - separator [ref=e48]
+          - listitem [ref=e49]:
+            - link "ЗАКАЗЫ" [ref=e50] [cursor=pointer]:
+              - /url: ""
+          - listitem [ref=e51]:
+            - link "ПАРТИИ" [ref=e52] [cursor=pointer]:
+              - /url: ""
+          - listitem [ref=e53]:
+            - link "ДОКУМЕНТЫ" [ref=e54] [cursor=pointer]:
+              - /url: ""
+          - listitem [ref=e55]:
+            - link "АРХИВ" [ref=e56] [cursor=pointer]:
+              - /url: ""
+          - listitem [ref=e57]:
+            - link "ПОИСК ОПС" [ref=e58] [cursor=pointer]:
+              - /url: ""
+          - listitem [ref=e59]:
+            - link "ВРЕМЕННЫЕ ИНТЕРВАЛЫ" [ref=e60] [cursor=pointer]:
+              - /url: ""
+          - listitem [ref=e61]:
+            - link "ДОЛГОСРОЧНОЕ ХРАНЕНИЕ" [ref=e62] [cursor=pointer]:
+              - /url: ""
+          - listitem [ref=e63]:
+            - link "ВОЗВРАТЫ" [ref=e64] [cursor=pointer]:
+              - /url: ""
+          - listitem [ref=e65]:
+            - link "НАСТРОЙКИ" [ref=e66] [cursor=pointer]:
+              - /url: ""
+          - listitem [ref=e67]:
+            - link "ДАННЫЕ" [ref=e68] [cursor=pointer]:
+              - /url: ""
+          - listitem [ref=e69]:
+            - link "ЗАЯВЛЕНИЯ" [ref=e70] [cursor=pointer]:
+              - /url: ""
+          - separator [ref=e71]
+          - listitem [ref=e72]:
+            - link "ОПИСАНИЕ СВОЙСТВ" [ref=e73] [cursor=pointer]:
+              - /url: ""
+        - article [ref=e79]:
+          - article [ref=e81]:
+            - heading "Нормализация адреса" [level=3] [ref=e82]
+            - text: "Разделяет и помещает сущности переданных адресов (город, улица) в соответствующие поля возвращаемого объекта. Параметр id (идентификатор записи) используется для установления соответствия переданных и полученных записей, так как порядок сортировки возвращаемых записей не гарантируется. Метод автоматически ищет и возвращает индекс близлежащего ОПС по указанному адресу. Адрес считается корректным к отправке, если в ответе запроса:"
+            - list [ref=e83]:
+              - listitem [ref=e84]:
+                - link "quality-code" [ref=e85] [cursor=pointer]:
+                  - /url: "#/enums-clean-address-quality"
+                - text: =GOOD, POSTAL_BOX, ON_DEMAND или UNDEF_05;
+              - listitem [ref=e86]:
+                - link "validation-code" [ref=e87] [cursor=pointer]:
+                  - /url: "#/enums-clean-address-validation"
+                - text: =VALIDATED, OVERRIDDEN или CONFIRMED_MANUALLY.
+            - text: Введите
+            - link "токен авторизации приложения" [ref=e88] [cursor=pointer]:
+              - /url: "#/authorization-token"
+            - text: и
+            - link "ключ авторизации пользователя" [ref=e89] [cursor=pointer]:
+              - /url: "#/authorization-key"
+            - text: ", тогда значения заголовков будут сгенерированы автоматически."
+            - table [ref=e90]:
+              - rowgroup [ref=e91]:
+                - row [ref=e92]:
+                  - cell "Токен авторизации" [ref=e93]
+                  - cell [ref=e94]:
+                    - textbox [ref=e96]
+                - row [ref=e97]:
+                  - cell "Ключ авторизации" [ref=e98]
+                  - cell [ref=e99]:
+                    - textbox [ref=e101]
+            - text: Параметры запроса
+            - table [ref=e102]:
+              - rowgroup [ref=e103]:
+                - row [ref=e104]:
+                  - cell "Локальный URL" [ref=e105]
+                  - cell "/1.0/clean/address" [ref=e106]
+                - row [ref=e107]:
+                  - cell "Тип" [ref=e108]
+                  - cell "POST" [ref=e109]
+            - text: Заголовки запроса
+            - table [ref=e110]:
+              - rowgroup [ref=e111]:
+                - row [ref=e112]:
+                  - cell "Authorization" [ref=e113]
+                  - cell [ref=e114]
+                - row [ref=e115]:
+                  - cell "X-User-Authorization" [ref=e116]
+                  - cell [ref=e117]
+                - row [ref=e118]:
+                  - cell "Content-Type" [ref=e119]
+                  - cell "application/json;charset=UTF-8" [ref=e120]
+            - generic [ref=e121]: Тело запроса
+            - generic [ref=e122]:
+              - text: Нажмите на элемент структуры, чтобы увидеть описание
+              - link "скопировать схему" [ref=e123] [cursor=pointer]:
+                - /url: ""
+            - table [ref=e124]:
+              - rowgroup [ref=e125]:
+                - row [ref=e126]:
+                  - cell "Структура" [ref=e127]
+                  - 'cell "[ [ - Символ Начало группы { { - Символ Начало структуры \"id\": \"string\" id - Строка Идентификатор записи \"original-address\": \"string\" original-address - Строка Оригинальные адрес одной строкой } } - Символ Окончание структуры ] ] - Символ Окончание группы" [ref=e128]':
+                    - generic [ref=e130]:
+                      - generic [ref=e131]:
+                        - text: "["
+                        - paragraph [ref=e132]:
+                          - generic [ref=e133]: "[ - Символ"
+                          - generic [ref=e134]: Начало группы
+                      - generic [ref=e135]:
+                        - text: "{"
+                        - paragraph [ref=e136]:
+                          - generic [ref=e137]: "{ - Символ"
+                          - generic [ref=e138]: Начало структуры
+                      - generic [ref=e139]:
+                        - text: "\"id\": \"string\""
+                        - paragraph [ref=e140]:
+                          - generic [ref=e141]: id - Строка
+                          - generic [ref=e142]: Идентификатор записи
+                      - generic [ref=e143]:
+                        - text: "\"original-address\": \"string\""
+                        - paragraph [ref=e144]:
+                          - generic [ref=e145]: original-address - Строка
+                          - generic [ref=e146]: Оригинальные адрес одной строкой
+                      - generic [ref=e147]:
+                        - text: "}"
+                        - paragraph [ref=e148]:
+                          - generic [ref=e149]: "} - Символ"
+                          - generic [ref=e150]: Окончание структуры
+                      - generic [ref=e151]:
+                        - text: "]"
+                        - paragraph [ref=e152]:
+                          - generic [ref=e153]: "] - Символ"
+                          - generic [ref=e154]: Окончание группы
+            - text: Внимание! Анализируйте код качества (quality-code) и код проверки (validation-code) в ответах.
+            - link "Код качества" [ref=e155] [cursor=pointer]:
+              - /url: "#/enums-clean-address-quality"
+            - text: "должен быть: GOOD, POSTAL_BOX, ON_DEMAND или UNDEF_05."
+            - link "Код проверки" [ref=e156] [cursor=pointer]:
+              - /url: "#/enums-clean-address-validation"
+            - text: "должен быть: VALIDATED, OVERRIDDEN или CONFIRMED_MANUALLY. Иначе нормализуемый адрес может быть неприемлем для доставки!"
+            - generic [ref=e157]: Ответ на запрос
+            - generic [ref=e158]:
+              - text: Нажмите на элемент структуры, чтобы увидеть описание
+              - link "скопировать схему" [ref=e159] [cursor=pointer]:
+                - /url: ""
+            - table [ref=e160]:
+              - rowgroup [ref=e161]:
+                - row [ref=e162]:
+                  - cell "Структура" [ref=e163]
+                  - cell [ref=e164]:
+                    - generic [ref=e166]:
+                      - generic [ref=e167]:
+                        - text: "["
+                        - paragraph [ref=e168]:
+                          - generic [ref=e169]: "[ - Символ"
+                          - generic [ref=e170]: Начало группы
+                      - generic [ref=e171]:
+                        - text: "{"
+                        - paragraph [ref=e172]:
+                          - generic [ref=e173]: "{ - Символ"
+                          - generic [ref=e174]: Начало структуры
+                      - generic [ref=e175]:
+                        - text: "\"address-type\": \"DEFAULT\""
+                        - paragraph [ref=e176]:
+                          - generic [ref=e177]: address-type - Строка
+                          - link "Тип адреса" [ref=e179] [cursor=pointer]:
+                            - /url: "#/enums-base-address-type"
+                      - generic [ref=e180]:
+                        - text: "\"area\": \"string\""
+                        - paragraph [ref=e181]:
+                          - generic [ref=e182]: area - Строка (Опционально)
+                          - generic [ref=e183]: Район
+                      - generic [ref=e184]:
+                        - text: "\"building\": \"string\""
+                        - paragraph [ref=e185]:
+                          - generic [ref=e186]: building - Строка (Опционально)
+                          - generic [ref=e187]: "Часть здания: Строение"
+                      - generic [ref=e188]:
+                        - text: "\"corpus\": \"string\""
+                        - paragraph [ref=e189]:
+                          - generic [ref=e190]: corpus - Строка (Опционально)
+                          - generic [ref=e191]: "Часть здания: Корпус"
+                      - generic [ref=e192]:
+                        - text: "\"hotel\": \"string\""
+                        - paragraph [ref=e193]:
+                          - generic [ref=e194]: hotel - Строка (Опционально)
+                          - generic [ref=e195]: Название гостиницы
+                      - generic [ref=e196]:
+                        - text: "\"house\": \"string\""
+                        - paragraph [ref=e197]:
+                          - generic [ref=e198]: house - Строка (Опционально)
+                          - generic [ref=e199]: "Часть адреса: Номер здания"
+                      - generic [ref=e200]:
+                        - text: "\"id\": \"string\""
+                        - paragraph [ref=e201]:
+                          - generic [ref=e202]: id - Строка
+                          - generic [ref=e203]: Идентификатор записи
+                      - generic [ref=e204]:
+                        - text: "\"index\": \"string\""
+                        - paragraph [ref=e205]:
+                          - generic [ref=e206]: index - Строка
+                          - generic [ref=e207]: Почтовый индекс
+                      - generic [ref=e208]:
+                        - text: "\"letter\": \"string\""
+                        - paragraph [ref=e209]:
+                          - generic [ref=e210]: letter - Строка (Опционально)
+                          - generic [ref=e211]: "Часть здания: Литера"
+                      - generic [ref=e212]:
+                        - text: "\"location\": \"string\""
+                        - paragraph [ref=e213]:
+                          - generic [ref=e214]: location - Строка (Опционально)
+                          - generic [ref=e215]: Микрорайон
+                      - generic [ref=e216]:
+                        - text: "\"num-address-type\": \"string\""
+                        - paragraph [ref=e217]:
+                          - generic [ref=e218]: num-address-type - Строка (Опционально)
+                          - generic [ref=e219]: Номер для а/я, войсковая часть, войсковая часть ЮЯ, полевая почта
+                      - generic [ref=e220]:
+                        - text: "\"original-address\": \"string\""
+                        - paragraph [ref=e221]:
+                          - generic [ref=e222]: original-address - Строка
+                          - generic [ref=e223]: Оригинальные адрес одной строкой
+                      - generic [ref=e224]:
+                        - text: "\"place\": \"string\""
+                        - paragraph [ref=e225]:
+                          - generic [ref=e226]: place - Строка
+                          - generic [ref=e227]: Населенный пункт
+                      - generic [ref=e228]:
+                        - text: "\"quality-code\": \"GOOD\""
+                        - paragraph [ref=e229]:
+                          - generic [ref=e230]: quality-code - Строка
+                          - link "Код качества нормализации адреса" [ref=e232] [cursor=pointer]:
+                            - /url: "#/enums-clean-address-quality"
+                      - generic [ref=e233]:
+                        - text: "\"region\": \"string\""
+                        - paragraph [ref=e234]:
+                          - generic [ref=e235]: region - Строка
+                          - generic [ref=e236]: Область, регион
+                      - generic [ref=e237]:
+                        - text: "\"room\": \"string\""
+                        - paragraph [ref=e238]:
+                          - generic [ref=e239]: room - Строка (Опционально)
+                          - generic [ref=e240]: "Часть здания: Номер помещения"
+                      - generic [ref=e241]:
+                        - text: "\"slash\": \"string\""
+                        - paragraph [ref=e242]:
+                          - generic [ref=e243]: slash - Строка (Опционально)
+                          - generic [ref=e244]: "Часть здания: Дробь"
+                      - generic [ref=e245]:
+                        - text: "\"street\": \"string\""
+                        - paragraph [ref=e246]:
+                          - generic [ref=e247]: street - Строка (Опционально)
+                          - generic [ref=e248]: "Часть адреса: Улица"
+                      - generic [ref=e249]:
+                        - text: "\"validation-code\": \"CONFIRMED_MANUALLY\""
+                        - paragraph [ref=e250]:
+                          - generic [ref=e251]: validation-code - Строка
+                          - link "Код проверки нормализации адреса" [ref=e253] [cursor=pointer]:
+                            - /url: "#/enums-clean-address-validation"
+                      - generic [ref=e254]:
+                        - text: "}"
+                        - paragraph [ref=e255]:
+                          - generic [ref=e256]: "} - Символ"
+                          - generic [ref=e257]: Окончание структуры
+                      - generic [ref=e258]:
+                        - text: "]"
+                        - paragraph [ref=e259]:
+                          - generic [ref=e260]: "] - Символ"
+                          - generic [ref=e261]: Окончание группы
+            - link [ref=e262] [cursor=pointer]:
+              - /url: ""
+              - heading "Примеры кода для работы с API" [level=3] [ref=e263]
+  - contentinfo [ref=e265]:
+    - generic [ref=e267]:
+      - generic [ref=e268]: 2026 © АО Почта России
+      - list [ref=e271]:
+        - listitem [ref=e272]:
+          - link "Поддержка" [ref=e273] [cursor=pointer]:
+            - /url: /help
+        - listitem [ref=e274]:
+          - link "8 800 100-04-05" [ref=e275] [cursor=pointer]:
+            - /url: tel:+78001000405
+        - listitem [ref=e276]:
+          - link "corpsupport@russianpost.ru" [ref=e277] [cursor=pointer]:
+            - /url: mailto:corpsupport@russianpost.ru

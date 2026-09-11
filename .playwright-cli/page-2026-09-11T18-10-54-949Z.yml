@@ -1,0 +1,1183 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e7]:
+    - banner [ref=e8]:
+      - banner [ref=e10]:
+        - generic [ref=e11]:
+          - generic [ref=e12]:
+            - link [ref=e15] [cursor=pointer]:
+              - /url: /
+              - img "Почта России" [ref=e16]
+            - generic [ref=e17]: Отправка
+          - generic [ref=e20]:
+            - generic [ref=e21]: Помощь
+            - link "Войти" [ref=e26] [cursor=pointer]:
+              - /url: /dashboard
+    - main [ref=e27]:
+      - generic [ref=e32]:
+        - list [ref=e36]:
+          - listitem [ref=e37]:
+            - link "ГЛАВНАЯ СТРАНИЦА" [ref=e38] [cursor=pointer]:
+              - /url: "#/main"
+          - separator [ref=e39]
+          - listitem [ref=e40]:
+            - link "ОСНОВНЫЕ ШАГИ" [ref=e41] [cursor=pointer]:
+              - /url: "#/flow"
+          - separator [ref=e42]
+          - listitem [ref=e43]:
+            - link "АВТОРИЗАЦИЯ" [ref=e44] [cursor=pointer]:
+              - /url: ""
+          - separator [ref=e45]
+          - listitem [ref=e46]:
+            - link "ТЕСТИРОВАНИЕ API" [ref=e47] [cursor=pointer]:
+              - /url: ""
+          - separator [ref=e48]
+          - listitem [ref=e49]:
+            - link "ЗАКАЗЫ" [ref=e50] [cursor=pointer]:
+              - /url: ""
+          - listitem [ref=e51]:
+            - link "ПАРТИИ" [ref=e52] [cursor=pointer]:
+              - /url: ""
+          - listitem [ref=e53]:
+            - link "ДОКУМЕНТЫ" [ref=e54] [cursor=pointer]:
+              - /url: ""
+          - listitem [ref=e55]:
+            - link "АРХИВ" [ref=e56] [cursor=pointer]:
+              - /url: ""
+          - listitem [ref=e57]:
+            - link "ПОИСК ОПС" [ref=e58] [cursor=pointer]:
+              - /url: ""
+          - listitem [ref=e59]:
+            - link "ВРЕМЕННЫЕ ИНТЕРВАЛЫ" [ref=e60] [cursor=pointer]:
+              - /url: ""
+          - listitem [ref=e61]:
+            - link "ДОЛГОСРОЧНОЕ ХРАНЕНИЕ" [ref=e62] [cursor=pointer]:
+              - /url: ""
+          - listitem [ref=e63]:
+            - link "ВОЗВРАТЫ" [ref=e64] [cursor=pointer]:
+              - /url: ""
+          - listitem [ref=e65]:
+            - link "НАСТРОЙКИ" [ref=e66] [cursor=pointer]:
+              - /url: ""
+          - listitem [ref=e67]:
+            - link "ДАННЫЕ" [ref=e68] [cursor=pointer]:
+              - /url: ""
+          - listitem [ref=e69]:
+            - link "ЗАЯВЛЕНИЯ" [ref=e70] [cursor=pointer]:
+              - /url: ""
+          - separator [ref=e71]
+          - listitem [ref=e72]:
+            - link "ОПИСАНИЕ СВОЙСТВ" [ref=e73] [cursor=pointer]:
+              - /url: ""
+        - article [ref=e79]:
+          - article [ref=e81]:
+            - heading "Создание заказа" [level=3] [ref=e82]
+            - text: Создает новый заказ. Автоматически рассчитывает и проставляет плату за пересылку. Введите
+            - link "токен авторизации приложения" [ref=e83] [cursor=pointer]:
+              - /url: "#/authorization-token"
+            - text: и
+            - link "ключ авторизации пользователя" [ref=e84] [cursor=pointer]:
+              - /url: "#/authorization-key"
+            - text: ", тогда значения заголовков будут сгенерированы автоматически."
+            - table [ref=e85]:
+              - rowgroup [ref=e86]:
+                - row [ref=e87]:
+                  - cell "Токен авторизации" [ref=e88]
+                  - cell [ref=e89]:
+                    - textbox [ref=e91]
+                - row [ref=e92]:
+                  - cell "Ключ авторизации" [ref=e93]
+                  - cell [ref=e94]:
+                    - textbox [ref=e96]
+            - text: Параметры запроса
+            - table [ref=e97]:
+              - rowgroup [ref=e98]:
+                - row [ref=e99]:
+                  - cell "Локальный URL" [ref=e100]
+                  - cell "/1.0/user/backlog" [ref=e101]
+                - row [ref=e102]:
+                  - cell "Тип" [ref=e103]
+                  - cell "PUT" [ref=e104]
+            - text: Заголовки запроса
+            - table [ref=e105]:
+              - rowgroup [ref=e106]:
+                - row [ref=e107]:
+                  - cell "Authorization" [ref=e108]
+                  - cell [ref=e109]
+                - row [ref=e110]:
+                  - cell "X-User-Authorization" [ref=e111]
+                  - cell [ref=e112]
+                - row [ref=e113]:
+                  - cell "Content-Type" [ref=e114]
+                  - cell "application/json;charset=UTF-8" [ref=e115]
+            - generic [ref=e116]: Тело запроса
+            - generic [ref=e117]:
+              - text: Нажмите на элемент структуры, чтобы увидеть описание
+              - link "скопировать схему" [ref=e118] [cursor=pointer]:
+                - /url: ""
+            - table [ref=e119]:
+              - rowgroup [ref=e120]:
+                - row [ref=e121]:
+                  - cell "Структура" [ref=e122]
+                  - cell [ref=e123]:
+                    - generic [ref=e125]:
+                      - generic [ref=e126]:
+                        - text: "["
+                        - paragraph [ref=e127]:
+                          - generic [ref=e128]: "[ - Символ"
+                          - generic [ref=e129]: Начало группы
+                      - generic [ref=e130]:
+                        - text: "{"
+                        - paragraph [ref=e131]:
+                          - generic [ref=e132]: "{ - Символ"
+                          - generic [ref=e133]: Начало структуры
+                      - generic [ref=e134]:
+                        - text: "\"add-to-mmo\": true"
+                        - paragraph [ref=e135]:
+                          - generic [ref=e136]: "add-to-mmo - Логические: true или false (Опционально)"
+                          - generic [ref=e137]: Отметка 'Добавить в многоместное отправление'
+                      - generic [ref=e138]:
+                        - text: "\"address-from\": {"
+                        - paragraph [ref=e139]:
+                          - generic [ref=e140]: address-from - Тип адреса возврата (Опционально)
+                          - generic [ref=e141]: Адрес забора заказа
+                      - generic [ref=e142]:
+                        - text: "\"address-type\": \"DEFAULT\""
+                        - paragraph [ref=e143]:
+                          - generic [ref=e144]: address-type - Строка
+                          - generic [ref=e145]:
+                            - text: Тип адреса. См.
+                            - link "Тип адреса" [ref=e146] [cursor=pointer]:
+                              - /url: "#/enums-base-address-type"
+                      - generic [ref=e147]:
+                        - text: "\"area\": \"string\""
+                        - paragraph [ref=e148]:
+                          - generic [ref=e149]: area - Строка (Опционально)
+                          - generic [ref=e150]: Район
+                      - generic [ref=e151]:
+                        - text: "\"building\": \"string\""
+                        - paragraph [ref=e152]:
+                          - generic [ref=e153]: building - Строка (Опционально)
+                          - generic [ref=e154]: "Часть здания: Строение"
+                      - generic [ref=e155]:
+                        - text: "\"corpus\": \"string\""
+                        - paragraph [ref=e156]:
+                          - generic [ref=e157]: corpus - Строка (Опционально)
+                          - generic [ref=e158]: "Часть здания: Корпус"
+                      - generic [ref=e159]:
+                        - text: "\"hotel\": \"string\""
+                        - paragraph [ref=e160]:
+                          - generic [ref=e161]: hotel - Строка (Опционально)
+                          - generic [ref=e162]: Название гостиницы
+                      - generic [ref=e163]:
+                        - text: "\"house\": \"string\""
+                        - paragraph [ref=e164]:
+                          - generic [ref=e165]: house - Строка (Опционально)
+                          - generic [ref=e166]: "Часть адреса: Номер здания"
+                      - generic [ref=e167]:
+                        - text: "\"index\": \"string\""
+                        - paragraph [ref=e168]:
+                          - generic [ref=e169]: index - Строка
+                          - generic [ref=e170]: Почтовый индекс
+                      - generic [ref=e171]:
+                        - text: "\"letter\": \"string\""
+                        - paragraph [ref=e172]:
+                          - generic [ref=e173]: letter - Строка (Опционально)
+                          - generic [ref=e174]: "Часть здания: Литера"
+                      - generic [ref=e175]:
+                        - text: "\"location\": \"string\""
+                        - paragraph [ref=e176]:
+                          - generic [ref=e177]: location - Строка (Опционально)
+                          - generic [ref=e178]: Микрорайон
+                      - generic [ref=e179]:
+                        - text: "\"num-address-type\": \"string\""
+                        - paragraph [ref=e180]:
+                          - generic [ref=e181]: num-address-type - Строка (Опционально)
+                          - generic [ref=e182]: Номер для а/я, войсковая часть, войсковая часть ЮЯ, полевая почта
+                      - generic [ref=e183]:
+                        - text: "\"office\": \"string\""
+                        - paragraph [ref=e184]:
+                          - generic [ref=e185]: office - Строка (Опционально)
+                          - generic [ref=e186]: "Часть здания: Офис"
+                      - generic [ref=e187]:
+                        - text: "\"place\": \"string\""
+                        - paragraph [ref=e188]:
+                          - generic [ref=e189]: place - Строка
+                          - generic [ref=e190]: Населенный пункт
+                      - generic [ref=e191]:
+                        - text: "\"region\": \"string\""
+                        - paragraph [ref=e192]:
+                          - generic [ref=e193]: region - Строка
+                          - generic [ref=e194]: Область, регион
+                      - generic [ref=e195]:
+                        - text: "\"room\": \"string\""
+                        - paragraph [ref=e196]:
+                          - generic [ref=e197]: room - Строка (Опционально)
+                          - generic [ref=e198]: "Часть здания: Номер помещения"
+                      - generic [ref=e199]:
+                        - text: "\"slash\": \"string\""
+                        - paragraph [ref=e200]:
+                          - generic [ref=e201]: slash - Строка (Опционально)
+                          - generic [ref=e202]: "Часть здания: Дробь"
+                      - generic [ref=e203]:
+                        - text: "\"street\": \"string\""
+                        - paragraph [ref=e204]:
+                          - generic [ref=e205]: street - Строка (Опционально)
+                          - generic [ref=e206]: "Часть адреса: Улица"
+                      - generic [ref=e207]:
+                        - text: "\"vladenie\": \"string\""
+                        - paragraph [ref=e208]:
+                          - generic [ref=e209]: vladenie - Строка (Опционально)
+                          - generic [ref=e210]: "Часть адреса: Владение"
+                      - generic [ref=e211]:
+                        - text: "}"
+                        - paragraph [ref=e212]:
+                          - generic [ref=e213]: "} - Символ"
+                          - generic [ref=e214]: Окончание структуры
+                      - generic [ref=e215]:
+                        - text: "\"address-type-to\": \"DEFAULT\""
+                        - paragraph [ref=e216]:
+                          - generic [ref=e217]: address-type-to - Строка
+                          - generic [ref=e218]:
+                            - text: Тип адреса. См.
+                            - link "Тип адреса" [ref=e219] [cursor=pointer]:
+                              - /url: "#/enums-base-address-type"
+                      - generic [ref=e220]:
+                        - text: "\"area-to\": \"string\""
+                        - paragraph [ref=e221]:
+                          - generic [ref=e222]: area-to - Строка (Опционально)
+                          - generic [ref=e223]: Район
+                      - generic [ref=e224]:
+                        - text: "\"branch-name\": \"string\""
+                        - paragraph [ref=e225]:
+                          - generic [ref=e226]: branch-name - Строка (Опционально)
+                          - generic [ref=e227]: Идентификатор подразделения
+                      - generic [ref=e228]:
+                        - text: "\"building-to\": \"string\""
+                        - paragraph [ref=e229]:
+                          - generic [ref=e230]: building-to - Строка (Опционально)
+                          - generic [ref=e231]: "Часть здания: Строение"
+                      - generic [ref=e232]:
+                        - text: "\"client-return\": true"
+                        - paragraph [ref=e233]:
+                          - generic [ref=e234]: "client-return - Логические: true или false (Опционально)"
+                          - generic [ref=e235]: Клиентский возврат (Возврат получателем без подтверждения личности отправителя)
+                      - generic [ref=e236]:
+                        - text: "\"comment\": \"string\""
+                        - paragraph [ref=e237]:
+                          - generic [ref=e238]: comment - Строка (Опционально)
+                          - generic [ref=e239]: Комментарий к заказу
+                      - generic [ref=e240]:
+                        - text: "\"completeness-checking\": true"
+                        - paragraph [ref=e241]:
+                          - generic [ref=e242]: "completeness-checking - Логические: true или false (Опционально)"
+                          - generic [ref=e243]: Признак услуги проверки комплектности
+                      - generic [ref=e244]:
+                        - text: "\"compulsory-payment\": 0"
+                        - paragraph [ref=e245]:
+                          - generic [ref=e246]: compulsory-payment - Целое число (Опционально)
+                          - generic [ref=e247]: К оплате с получателя (копейки)
+                      - generic [ref=e248]:
+                        - text: "\"corpus-to\": \"string\""
+                        - paragraph [ref=e249]:
+                          - generic [ref=e250]: corpus-to - Строка (Опционально)
+                          - generic [ref=e251]: "Часть здания: Корпус"
+                      - generic [ref=e252]:
+                        - text: "\"courier\": true"
+                        - paragraph [ref=e253]:
+                          - generic [ref=e254]: "courier - Логические: true или false (Опционально)"
+                          - generic [ref=e255]: Отметка "Курьер"
+                      - generic [ref=e256]:
+                        - text: "\"customs-declaration\": {"
+                        - paragraph [ref=e257]:
+                          - generic [ref=e258]: customs-declaration - Декларация (Опционально)
+                          - generic [ref=e259]: Таможенная декларация (для международных отправлений)
+                      - generic [ref=e260]:
+                        - text: "\"certificate-number\": \"string\""
+                        - paragraph [ref=e261]:
+                          - generic [ref=e262]: certificate-number - Строка (Опционально)
+                          - generic [ref=e263]: Сертификаты, сопровождающие отправление
+                      - generic [ref=e264]:
+                        - text: "\"currency\": \"string\""
+                        - paragraph [ref=e265]:
+                          - generic [ref=e266]: currency - Строка
+                          - generic [ref=e267]:
+                            - text: Код валюты. См.
+                            - link "Список валют" [ref=e268] [cursor=pointer]:
+                              - /url: "#/dictionary-currencies"
+                      - generic [ref=e269]:
+                        - text: "\"customs-code\": \"string\""
+                        - paragraph [ref=e270]:
+                          - generic [ref=e271]: customs-code - Строка (Опционально)
+                          - generic [ref=e272]: Код таможенного органа
+                      - generic [ref=e273]:
+                        - text: "\"customs-entries\": ["
+                        - paragraph [ref=e274]:
+                          - generic [ref=e275]: customs-entries - Массив
+                          - generic [ref=e276]: Список вложений
+                      - generic [ref=e277]:
+                        - text: "{"
+                        - paragraph [ref=e278]:
+                          - generic [ref=e279]: "{ - Символ"
+                          - generic [ref=e280]: Начало структуры
+                      - generic [ref=e281]:
+                        - text: "\"amount\": 0"
+                        - paragraph [ref=e282]:
+                          - generic [ref=e283]: amount - Целое число
+                          - generic [ref=e284]: Количество
+                      - generic [ref=e285]:
+                        - text: "\"country-code\": 0"
+                        - paragraph [ref=e286]:
+                          - generic [ref=e287]: country-code - Целое число (Опционально)
+                          - generic [ref=e288]:
+                            - text: Код страны происхождения. См.
+                            - link "Список стран" [ref=e289] [cursor=pointer]:
+                              - /url: "#/dictionary-countries"
+                      - generic [ref=e290]:
+                        - text: "\"description\": \"string\""
+                        - paragraph [ref=e291]:
+                          - generic [ref=e292]: description - Строка
+                          - generic [ref=e293]: Наименование товара
+                      - generic [ref=e294]:
+                        - text: "\"tnved-code\": \"string\""
+                        - paragraph [ref=e295]:
+                          - generic [ref=e296]: tnved-code - Строка
+                          - generic [ref=e297]: Код ТНВЭД
+                      - generic [ref=e298]:
+                        - text: "\"trademark\": \"string\""
+                        - paragraph [ref=e299]:
+                          - generic [ref=e300]: trademark - Строка (Опционально)
+                          - generic [ref=e301]: Торговая марка
+                      - generic [ref=e302]:
+                        - text: "\"value\": 0"
+                        - paragraph [ref=e303]:
+                          - generic [ref=e304]: value - Целое число (Опционально)
+                          - generic [ref=e305]: Цена за единицу товара в копейках (вкл. НДС)
+                      - generic [ref=e306]:
+                        - text: "\"weight\": 0"
+                        - paragraph [ref=e307]:
+                          - generic [ref=e308]: weight - Целое число (Опционально)
+                          - generic [ref=e309]: Вес товара (в граммах)
+                      - generic [ref=e310]:
+                        - text: "}"
+                        - paragraph [ref=e311]:
+                          - generic [ref=e312]: "} - Символ"
+                          - generic [ref=e313]: Окончание структуры
+                      - generic [ref=e314]:
+                        - text: "]"
+                        - paragraph [ref=e315]:
+                          - generic [ref=e316]: "] - Символ"
+                          - generic [ref=e317]: Окончание группы
+                      - generic [ref=e318]:
+                        - text: "\"entries-type\": \"GIFT\""
+                        - paragraph [ref=e319]:
+                          - generic [ref=e320]: entries-type - Строка
+                          - generic [ref=e321]:
+                            - text: Категория вложения. См.
+                            - link "Категория вложения" [ref=e322] [cursor=pointer]:
+                              - /url: "#/enums-base-entries-type"
+                      - generic [ref=e323]:
+                        - text: "\"invoice-number\": \"string\""
+                        - paragraph [ref=e324]:
+                          - generic [ref=e325]: invoice-number - Строка (Опционально)
+                          - generic [ref=e326]: Счет (номер счета-фактуры)
+                      - generic [ref=e327]:
+                        - text: "\"ioss-code\": \"string\""
+                        - paragraph [ref=e328]:
+                          - generic [ref=e329]: ioss-code - Строка (Опционально)
+                          - generic [ref=e330]: Регистрационный код продавца
+                      - generic [ref=e331]:
+                        - text: "\"license-number\": \"string\""
+                        - paragraph [ref=e332]:
+                          - generic [ref=e333]: license-number - Строка (Опционально)
+                          - generic [ref=e334]: Лицензии, сопровождающие отправление
+                      - generic [ref=e335]:
+                        - text: "\"with-certificate\": true"
+                        - paragraph [ref=e336]:
+                          - generic [ref=e337]: "with-certificate - Логические: true или false (Опционально)"
+                          - generic [ref=e338]: "Приложенные документы: сертификат"
+                      - generic [ref=e339]:
+                        - text: "\"with-invoice\": true"
+                        - paragraph [ref=e340]:
+                          - generic [ref=e341]: "with-invoice - Логические: true или false (Опционально)"
+                          - generic [ref=e342]: "Приложенные документы: счет-фактура"
+                      - generic [ref=e343]:
+                        - text: "\"with-license\": true"
+                        - paragraph [ref=e344]:
+                          - generic [ref=e345]: "with-license - Логические: true или false (Опционально)"
+                          - generic [ref=e346]: "Приложенные документы: лицензия"
+                      - generic [ref=e347]:
+                        - text: "}"
+                        - paragraph [ref=e348]:
+                          - generic [ref=e349]: "} - Символ"
+                          - generic [ref=e350]: Окончание структуры
+                      - generic [ref=e351]:
+                        - text: "\"delivery-to-door\": true"
+                        - paragraph [ref=e352]:
+                          - generic [ref=e353]: "delivery-to-door - Логические: true или false (Опционально)"
+                          - generic [ref=e354]: Отметка 'Доставка до двери'
+                      - generic [ref=e355]:
+                        - text: "\"delivery-with-cod\": true"
+                        - paragraph [ref=e356]:
+                          - generic [ref=e357]: "delivery-with-cod - Логические: true или false (Опционально)"
+                          - generic [ref=e358]: Признак оплаты при получении
+                      - generic [ref=e359]:
+                        - text: "\"dimension\": {"
+                        - paragraph [ref=e360]:
+                          - generic [ref=e361]: dimension - Размеры (Опционально)
+                          - generic [ref=e362]: Линейные размеры
+                      - generic [ref=e363]:
+                        - text: "\"height\": 0"
+                        - paragraph [ref=e364]:
+                          - generic [ref=e365]: height - Целое число (Опционально)
+                          - generic [ref=e366]: Линейная высота (сантиметры)
+                      - generic [ref=e367]:
+                        - text: "\"length\": 0"
+                        - paragraph [ref=e368]:
+                          - generic [ref=e369]: length - Целое число (Опционально)
+                          - generic [ref=e370]: Линейная длина (сантиметры)
+                      - generic [ref=e371]:
+                        - text: "\"width\": 0"
+                        - paragraph [ref=e372]:
+                          - generic [ref=e373]: width - Целое число (Опционально)
+                          - generic [ref=e374]: Линейная ширина (сантиметры)
+                      - generic [ref=e375]:
+                        - text: "}"
+                        - paragraph [ref=e376]:
+                          - generic [ref=e377]: "} - Символ"
+                          - generic [ref=e378]: Окончание структуры
+                      - generic [ref=e379]:
+                        - text: "\"dimension-type\": \"S\""
+                        - paragraph [ref=e380]:
+                          - generic [ref=e381]: dimension-type - Строка (Опционально)
+                          - link "Типоразмер" [ref=e383] [cursor=pointer]:
+                            - /url: "#/enums-dimension-type"
+                      - generic [ref=e384]:
+                        - text: "\"easy-return\": true"
+                        - paragraph [ref=e385]:
+                          - generic [ref=e386]: "easy-return - Логические: true или false (Опционально)"
+                          - generic [ref=e387]: Лёгкий возврат (Возврат получателем с подтверждением личности отправителя)
+                      - generic [ref=e388]:
+                        - text: "\"ecom-data\": {"
+                        - paragraph [ref=e389]:
+                          - generic [ref=e390]: ecom-data - Данные ЕКОМ (Опционально)
+                          - generic [ref=e391]: Данные отправления ЕКОМ
+                      - generic [ref=e392]:
+                        - text: "\"delivery-point-index\": \"string\""
+                        - paragraph [ref=e393]:
+                          - generic [ref=e394]: delivery-point-index - Строка (Опционально)
+                          - generic [ref=e395]: Идентификатор пункта выдачи заказов
+                      - generic [ref=e396]:
+                        - text: "\"identity-methods\": ["
+                        - paragraph [ref=e397]:
+                          - generic [ref=e398]: identity-methods - Массив (Опционально)
+                          - link "Методы идентификации" [ref=e400] [cursor=pointer]:
+                            - /url: "#/enums-identity-methods"
+                      - generic [ref=e401]: "\"WITHOUT_IDENTIFICATION\""
+                      - generic [ref=e402]:
+                        - text: "]"
+                        - paragraph [ref=e403]:
+                          - generic [ref=e404]: "] - Символ"
+                          - generic [ref=e405]: Окончание группы
+                      - generic [ref=e406]:
+                        - text: "\"services\": ["
+                        - paragraph [ref=e407]:
+                          - generic [ref=e408]: services - Массив (Опционально)
+                          - generic [ref=e409]:
+                            - text: Сервисы ЕКОМ. См.
+                            - link "Коды видов сервиса" [ref=e410] [cursor=pointer]:
+                              - /url: "#/enums-ecom-services"
+                      - generic [ref=e411]: "\"WITHOUT_SERVICE\""
+                      - generic [ref=e412]:
+                        - text: "]"
+                        - paragraph [ref=e413]:
+                          - generic [ref=e414]: "] - Символ"
+                          - generic [ref=e415]: Окончание группы
+                      - generic [ref=e416]:
+                        - text: "}"
+                        - paragraph [ref=e417]:
+                          - generic [ref=e418]: "} - Символ"
+                          - generic [ref=e419]: Окончание структуры
+                      - generic [ref=e420]:
+                        - text: "\"envelope-type\": \"C4\""
+                        - paragraph [ref=e421]:
+                          - generic [ref=e422]: envelope-type - Строка (Опционально)
+                          - generic [ref=e423]:
+                            - text: Тип конверта - ГОСТ Р 51506-99. См.
+                            - link "Тип конверта" [ref=e424] [cursor=pointer]:
+                              - /url: "#/enums-base-envelope-type"
+                      - generic [ref=e425]:
+                        - text: "\"farma\": true"
+                        - paragraph [ref=e426]:
+                          - generic [ref=e427]: "farma - Логические: true или false (Опционально)"
+                          - generic [ref=e428]: Отметка 'Фарма'
+                      - generic [ref=e429]:
+                        - text: "\"fiscal-data\": {"
+                        - paragraph [ref=e430]:
+                          - generic [ref=e431]: fiscal-data - Фискальные данные (Опционально)
+                          - generic [ref=e432]: Фискальные данные
+                      - generic [ref=e433]:
+                        - text: "\"customer-email\": \"string\""
+                        - paragraph [ref=e434]:
+                          - generic [ref=e435]: customer-email - Строка (Опционально)
+                          - generic [ref=e436]: Адрес электронной почты плательщика
+                      - generic [ref=e437]:
+                        - text: "\"customer-inn\": \"string\""
+                        - paragraph [ref=e438]:
+                          - generic [ref=e439]: customer-inn - Строка (Опционально)
+                          - generic [ref=e440]: ИНН юридического лица покупателя
+                      - generic [ref=e441]:
+                        - text: "\"customer-name\": \"string\""
+                        - paragraph [ref=e442]:
+                          - generic [ref=e443]: customer-name - Строка (Опционально)
+                          - generic [ref=e444]: Наименование юридического лица покупателя
+                      - generic [ref=e445]:
+                        - text: "\"customer-phone\": 0"
+                        - paragraph [ref=e446]:
+                          - generic [ref=e447]: customer-phone - Целое число (Опционально)
+                          - generic [ref=e448]: Телефон плательщика
+                      - generic [ref=e449]:
+                        - text: "\"payment-amount\": 0"
+                        - paragraph [ref=e450]:
+                          - generic [ref=e451]: payment-amount - Целое число (Опционально)
+                          - generic [ref=e452]: Сумма предоплаты (копейки)
+                      - generic [ref=e453]:
+                        - text: "}"
+                        - paragraph [ref=e454]:
+                          - generic [ref=e455]: "} - Символ"
+                          - generic [ref=e456]: Окончание структуры
+                      - generic [ref=e457]:
+                        - text: "\"fragile\": true"
+                        - paragraph [ref=e458]:
+                          - generic [ref=e459]: "fragile - Логические: true или false"
+                          - generic [ref=e460]: Установлена ли отметка "Осторожно/Хрупкое/Терморежим"?
+                      - generic [ref=e461]:
+                        - text: "\"given-name\": \"string\""
+                        - paragraph [ref=e462]:
+                          - generic [ref=e463]: given-name - Строка
+                          - generic [ref=e464]: Имя получателя
+                      - generic [ref=e465]:
+                        - text: "\"goods\": {"
+                        - paragraph [ref=e466]:
+                          - generic [ref=e467]: goods - Товарное вложение РПО (Опционально)
+                          - generic [ref=e468]: Товарное вложение РПО
+                      - generic [ref=e469]:
+                        - text: "\"items\": ["
+                        - paragraph [ref=e470]:
+                          - generic [ref=e471]: items - Массив
+                          - generic [ref=e472]: Список вложений
+                      - generic [ref=e473]:
+                        - text: "{"
+                        - paragraph [ref=e474]:
+                          - generic [ref=e475]: "{ - Символ"
+                          - generic [ref=e476]: Начало структуры
+                      - generic [ref=e477]:
+                        - text: "\"country-code\": 0"
+                        - paragraph [ref=e478]:
+                          - generic [ref=e479]: country-code - Целое число (Опционально)
+                          - generic [ref=e480]:
+                            - text: Код страны происхождения. См.
+                            - link "Список стран" [ref=e481] [cursor=pointer]:
+                              - /url: "#/dictionary-countries"
+                      - generic [ref=e482]:
+                        - text: "\"customs-declaration-number\": \"string\""
+                        - paragraph [ref=e483]:
+                          - generic [ref=e484]: customs-declaration-number - Строка (Опционально)
+                          - generic [ref=e485]: Номер таможенной декларации
+                      - generic [ref=e486]:
+                        - text: "\"description\": \"string\""
+                        - paragraph [ref=e487]:
+                          - generic [ref=e488]: description - Строка
+                          - generic [ref=e489]: Наименование товара
+                      - generic [ref=e490]:
+                        - text: "\"excise\": 0"
+                        - paragraph [ref=e491]:
+                          - generic [ref=e492]: excise - Целое число (Опционально)
+                          - generic [ref=e493]: Акциз (копейки)
+                      - generic [ref=e494]:
+                        - text: "\"good-id\": \"string\""
+                        - paragraph [ref=e495]:
+                          - generic [ref=e496]: good-id - Строка (Опционально)
+                          - generic [ref=e497]: внутренний идентификатор товара у поставщика
+                      - generic [ref=e498]:
+                        - text: "\"goods-type\": \"GOODS\""
+                        - paragraph [ref=e499]:
+                          - generic [ref=e500]: goods-type - Строка (Опционально)
+                          - generic [ref=e501]:
+                            - text: Признак товар или услуга. См.
+                            - link "Тип вложения" [ref=e502] [cursor=pointer]:
+                              - /url: "#/enums-goods-type"
+                      - generic [ref=e503]:
+                        - text: "\"insr-value\": 0"
+                        - paragraph [ref=e504]:
+                          - generic [ref=e505]: insr-value - Целое число (Опционально)
+                          - generic [ref=e506]: Объявленная ценность (копейки)
+                      - generic [ref=e507]:
+                        - text: "\"item-number\": \"string\""
+                        - paragraph [ref=e508]:
+                          - generic [ref=e509]: item-number - Строка (Опционально)
+                          - generic [ref=e510]: Номенклатура (артикул) товара
+                      - generic [ref=e511]:
+                        - text: "\"lineattr\": 0"
+                        - paragraph [ref=e512]:
+                          - generic [ref=e513]: lineattr - Целое число (Опционально)
+                          - generic [ref=e514]:
+                            - text: Признак предмета расчета. См.
+                            - link "Справочнк признаков предмета расчета" [ref=e515] [cursor=pointer]:
+                              - /url: "#/enums-lineattr"
+                      - generic [ref=e516]:
+                        - text: "\"payattr\": 0"
+                        - paragraph [ref=e517]:
+                          - generic [ref=e518]: payattr - Целое число (Опционально)
+                          - generic [ref=e519]:
+                            - text: Признак способа расчета. См.
+                            - link "Признаки способов расчета" [ref=e520] [cursor=pointer]:
+                              - /url: "#/enums-payattr"
+                      - generic [ref=e521]:
+                        - text: "\"quantity\": 0"
+                        - paragraph [ref=e522]:
+                          - generic [ref=e523]: quantity - Число
+                          - generic [ref=e524]: Количество товара
+                      - generic [ref=e525]:
+                        - text: "\"service-type\": 0"
+                        - paragraph [ref=e526]:
+                          - generic [ref=e527]: service-type - Целое число (Опционально)
+                          - generic [ref=e528]: "Вид сервиса для товара: 1 - без вскрытия (по умолчанию), 2 - с осмотром вложения, 3 - с примеркой"
+                      - generic [ref=e529]:
+                        - text: "\"supplier-inn\": \"string\""
+                        - paragraph [ref=e530]:
+                          - generic [ref=e531]: supplier-inn - Строка (Опционально)
+                          - generic [ref=e532]: ИНН поставщика товара
+                      - generic [ref=e533]:
+                        - text: "\"supplier-name\": \"string\""
+                        - paragraph [ref=e534]:
+                          - generic [ref=e535]: supplier-name - Строка (Опционально)
+                          - generic [ref=e536]: Наименование поставщика товара
+                      - generic [ref=e537]:
+                        - text: "\"supplier-phone\": \"string\""
+                        - paragraph [ref=e538]:
+                          - generic [ref=e539]: supplier-phone - Строка (Опционально)
+                          - generic [ref=e540]: Телефон поставщика товара
+                      - generic [ref=e541]:
+                        - text: "\"value\": 0"
+                        - paragraph [ref=e542]:
+                          - generic [ref=e543]: value - Целое число (Опционально)
+                          - generic [ref=e544]: Цена за единицу товара в копейках (вкл. НДС)
+                      - generic [ref=e545]:
+                        - text: "\"vat-rate\": 0"
+                        - paragraph [ref=e546]:
+                          - generic [ref=e547]: vat-rate - Целое число (Опционально)
+                          - generic [ref=e548]: "Ставка НДС: Без НДС(-1), 0, 10, 110, 20, 120"
+                      - generic [ref=e549]:
+                        - text: "\"weight\": 0"
+                        - paragraph [ref=e550]:
+                          - generic [ref=e551]: weight - Целое число (Опционально)
+                          - generic [ref=e552]: Вес товара (в граммах)
+                      - generic [ref=e553]:
+                        - text: "}"
+                        - paragraph [ref=e554]:
+                          - generic [ref=e555]: "} - Символ"
+                          - generic [ref=e556]: Окончание структуры
+                      - generic [ref=e557]:
+                        - text: "]"
+                        - paragraph [ref=e558]:
+                          - generic [ref=e559]: "] - Символ"
+                          - generic [ref=e560]: Окончание группы
+                      - generic [ref=e561]:
+                        - text: "}"
+                        - paragraph [ref=e562]:
+                          - generic [ref=e563]: "} - Символ"
+                          - generic [ref=e564]: Окончание структуры
+                      - generic [ref=e565]:
+                        - text: "\"group-name\": \"string\""
+                        - paragraph [ref=e566]:
+                          - generic [ref=e567]: group-name - Строка (Опционально)
+                          - generic [ref=e568]:
+                            - text: Наименование группы (для Многоместных отправлений см.
+                            - link "ММО" [ref=e569] [cursor=pointer]:
+                              - /url: https://otpravka.pochta.ru/help/#/details/170
+                            - text: )
+                      - generic [ref=e570]:
+                        - text: "\"hotel-to\": \"string\""
+                        - paragraph [ref=e571]:
+                          - generic [ref=e572]: hotel-to - Строка (Опционально)
+                          - generic [ref=e573]: Название гостиницы
+                      - generic [ref=e574]:
+                        - text: "\"house-to\": \"string\""
+                        - paragraph [ref=e575]:
+                          - generic [ref=e576]: house-to - Строка
+                          - generic [ref=e577]: "Часть адреса: Номер здания"
+                      - generic [ref=e578]:
+                        - text: "\"index-to\": 0"
+                        - paragraph [ref=e579]:
+                          - generic [ref=e580]: index-to - Целое число
+                          - generic [ref=e581]: Почтовый индекс, для отправлений адресованных в почтомат или пункт выдачи, должен использоваться объект "ecom-data"
+                          - generic [ref=e582]: Для отправления по РФ
+                      - generic [ref=e583]:
+                        - text: "\"inner-num\": \"string\""
+                        - paragraph [ref=e584]:
+                          - generic [ref=e585]: inner-num - Строка (Опционально)
+                          - generic [ref=e586]: Дополнительный идентификатор отправления
+                      - generic [ref=e587]:
+                        - text: "\"insr-value\": 0"
+                        - paragraph [ref=e588]:
+                          - generic [ref=e589]: insr-value - Целое число (Опционально)
+                          - generic [ref=e590]: Объявленная ценность (копейки)
+                      - generic [ref=e591]:
+                        - text: "\"inventory\": true"
+                        - paragraph [ref=e592]:
+                          - generic [ref=e593]: "inventory - Логические: true или false (Опционально)"
+                          - generic [ref=e594]: Наличие описи вложения
+                      - generic [ref=e595]:
+                        - text: "\"letter-to\": \"string\""
+                        - paragraph [ref=e596]:
+                          - generic [ref=e597]: letter-to - Строка (Опционально)
+                          - generic [ref=e598]: "Часть здания: Литера"
+                      - generic [ref=e599]:
+                        - text: "\"location-to\": \"string\""
+                        - paragraph [ref=e600]:
+                          - generic [ref=e601]: location-to - Строка (Опционально)
+                          - generic [ref=e602]: Микрорайон
+                      - generic [ref=e603]:
+                        - text: "\"manual-address-input\": true"
+                        - paragraph [ref=e604]:
+                          - generic [ref=e605]:
+                            - text: "manual-address-input - Логические: true или false (Опционально)"
+                            - generic [ref=e606]: Признак ручного ввода адреса
+                      - generic [ref=e607]:
+                        - text: "\"mail-category\": \"SIMPLE\""
+                        - paragraph [ref=e608]:
+                          - generic [ref=e609]: mail-category - Строка
+                          - generic [ref=e610]:
+                            - text: Категория РПО. См.
+                            - link "Категория РПО" [ref=e611] [cursor=pointer]:
+                              - /url: "#/enums-base-mail-category"
+                      - generic [ref=e612]:
+                        - text: "\"mail-direct\": 0"
+                        - paragraph [ref=e613]:
+                          - generic [ref=e614]: mail-direct - Целое число
+                          - generic [ref=e615]:
+                            - text: Код страны. См.
+                            - link "Список стран" [ref=e616] [cursor=pointer]:
+                              - /url: "#/dictionary-countries"
+                      - generic [ref=e617]:
+                        - text: "\"mail-type\": \"UNDEFINED\""
+                        - paragraph [ref=e618]:
+                          - generic [ref=e619]: mail-type - Строка
+                          - generic [ref=e620]:
+                            - text: Вид РПО. См.
+                            - link "Вид РПО" [ref=e621] [cursor=pointer]:
+                              - /url: "#/enums-base-mail-type"
+                      - generic [ref=e622]:
+                        - text: "\"mass\": 0"
+                        - paragraph [ref=e623]:
+                          - generic [ref=e624]: mass - Целое число
+                          - generic [ref=e625]: Вес РПО (в граммах)
+                      - generic [ref=e626]:
+                        - text: "\"middle-name\": \"string\""
+                        - paragraph [ref=e627]:
+                          - generic [ref=e628]: middle-name - Строка (Опционально)
+                          - generic [ref=e629]: Отчество получателя
+                      - generic [ref=e630]:
+                        - text: "\"no-return\": true"
+                        - paragraph [ref=e631]:
+                          - generic [ref=e632]: "no-return - Логические: true или false (Опционально)"
+                          - generic [ref=e633]: Отметка "Возврату не подлежит"
+                      - generic [ref=e634]:
+                        - text: "\"notice-payment-method\": \"CASHLESS\""
+                        - paragraph [ref=e635]:
+                          - generic [ref=e636]: notice-payment-method - Строка (Опционально)
+                          - generic [ref=e637]:
+                            - text: Способ оплаты уведомления. См.
+                            - link "Способ оплаты" [ref=e638] [cursor=pointer]:
+                              - /url: "#/enums-payment-methods"
+                      - generic [ref=e639]:
+                        - text: "\"num-address-type-to\": \"string\""
+                        - paragraph [ref=e640]:
+                          - generic [ref=e641]: num-address-type-to - Строка (Опционально)
+                          - generic [ref=e642]: Номер для а/я, войсковая часть, войсковая часть ЮЯ, полевая почта
+                      - generic [ref=e643]:
+                        - text: "\"office-to\": \"string\""
+                        - paragraph [ref=e644]:
+                          - generic [ref=e645]: office-to - Строка (Опционально)
+                          - generic [ref=e646]: "Часть здания: Офис"
+                      - generic [ref=e647]:
+                        - text: "\"order-num\": \"string\""
+                        - paragraph [ref=e648]:
+                          - generic [ref=e649]: order-num - Строка
+                          - generic [ref=e650]: Номер заказа. Внешний идентификатор заказа, который формируется отправителем
+                      - generic [ref=e651]:
+                        - text: "\"payment\": 0"
+                        - paragraph [ref=e652]:
+                          - generic [ref=e653]: payment - Целое число (Опционально)
+                          - generic [ref=e654]: Сумма наложенного платежа (копейки)
+                      - generic [ref=e655]:
+                        - text: "\"payment-method\": \"CASHLESS\""
+                        - paragraph [ref=e656]:
+                          - generic [ref=e657]: payment-method - Строка (Опционально)
+                          - generic [ref=e658]:
+                            - text: Способ оплаты. См.
+                            - link "Способ оплаты" [ref=e659] [cursor=pointer]:
+                              - /url: "#/enums-payment-methods"
+                      - generic [ref=e660]:
+                        - text: "\"place-to\": \"string\""
+                        - paragraph [ref=e661]:
+                          - generic [ref=e662]: place-to - Строка
+                          - generic [ref=e663]: Населенный пункт
+                      - generic [ref=e664]:
+                        - text: "\"postoffice-code\": \"string\""
+                        - paragraph [ref=e665]:
+                          - generic [ref=e666]: postoffice-code - Строка
+                          - generic [ref=e667]: Индекс места приема
+                      - generic [ref=e668]:
+                        - text: "\"pre-postal-preparation\": true"
+                        - paragraph [ref=e669]:
+                          - generic [ref=e670]: "pre-postal-preparation - Логические: true или false (Опционально)"
+                          - generic [ref=e671]: Предпочтовая подготовка
+                      - generic [ref=e672]:
+                        - text: "\"prepaid-amount\": 0"
+                        - paragraph [ref=e673]:
+                          - generic [ref=e674]: prepaid-amount - Целое число (Опционально)
+                          - generic [ref=e675]: Сумма частичной предоплаты
+                      - generic [ref=e676]:
+                        - text: "\"raw-address\": \"string\""
+                        - paragraph [ref=e677]:
+                          - generic [ref=e678]: raw-address - Строка (Опционально)
+                          - generic [ref=e679]: Необработанный адрес получателя
+                      - generic [ref=e680]:
+                        - text: "\"recipient-name\": \"string\""
+                        - paragraph [ref=e681]:
+                          - generic [ref=e682]: recipient-name - Строка
+                          - generic [ref=e683]: Наименование получателя одной строкой (ФИО, наименование организации)
+                      - generic [ref=e684]:
+                        - text: "\"region-to\": \"string\""
+                        - paragraph [ref=e685]:
+                          - generic [ref=e686]: region-to - Строка
+                          - generic [ref=e687]: Область, регион
+                      - generic [ref=e688]:
+                        - text: "\"room-to\": \"string\""
+                        - paragraph [ref=e689]:
+                          - generic [ref=e690]: room-to - Строка (Опционально)
+                          - generic [ref=e691]: "Часть здания: Номер помещения"
+                      - generic [ref=e692]:
+                        - text: "\"sender-comment\": \"string\""
+                        - paragraph [ref=e693]:
+                          - generic [ref=e694]: sender-comment - Строка (Опционально)
+                          - generic [ref=e695]: Комментарий отправителя для ЭУВ
+                      - generic [ref=e696]:
+                        - text: "\"sender-name\": \"string\""
+                        - paragraph [ref=e697]:
+                          - generic [ref=e698]: sender-name - Строка (Опционально)
+                          - generic [ref=e699]: Наименование отправителя одной строкой (ФИО, наименование организации)
+                      - generic [ref=e700]:
+                        - text: "\"shelf-life-days\": 0"
+                        - paragraph [ref=e701]:
+                          - generic [ref=e702]: shelf-life-days - Целое число (Опционально)
+                          - generic [ref=e703]: Срок хранения отправления от 15 до 60 дней
+                      - generic [ref=e704]:
+                        - text: "\"slash-to\": \"string\""
+                        - paragraph [ref=e705]:
+                          - generic [ref=e706]: slash-to - Строка (Опционально)
+                          - generic [ref=e707]: "Часть здания: Дробь"
+                      - generic [ref=e708]:
+                        - text: "\"sms-notice-recipient\": 0"
+                        - paragraph [ref=e709]:
+                          - generic [ref=e710]: sms-notice-recipient - Целое число (Опционально)
+                          - generic [ref=e711]: Признак услуги SMS уведомления
+                      - generic [ref=e712]:
+                        - text: "\"str-index-to\": \"string\""
+                        - paragraph [ref=e713]:
+                          - generic [ref=e714]: str-index-to - Строка
+                          - generic [ref=e715]: Почтовый индекс (буквенно-цифровой)
+                          - generic [ref=e716]: Для международных отправлений
+                      - generic [ref=e717]:
+                        - text: "\"street-to\": \"string\""
+                        - paragraph [ref=e718]:
+                          - generic [ref=e719]: street-to - Строка
+                          - generic [ref=e720]: "Часть адреса: Улица"
+                      - generic [ref=e721]:
+                        - text: "\"surname\": \"string\""
+                        - paragraph [ref=e722]:
+                          - generic [ref=e723]: surname - Строка
+                          - generic [ref=e724]: Фамилия получателя
+                      - generic [ref=e725]:
+                        - text: "\"tariff-count\": 1"
+                        - paragraph [ref=e726]:
+                          - generic [ref=e727]: tariff-count - Целое число
+                          - generic [ref=e728]: "Количество тарифов: 1 - только полный тариф, 2 - полный и скидочный тарифы"
+                      - generic [ref=e729]:
+                        - text: "\"tel-address\": 0"
+                        - paragraph [ref=e730]:
+                          - generic [ref=e731]: tel-address - Целое число (Опционально)
+                          - generic [ref=e732]: Телефон получателя (может быть обязательным для некоторых типов отправлений)
+                      - generic [ref=e733]:
+                        - text: "\"tel-address-from\": 0"
+                        - paragraph [ref=e734]:
+                          - generic [ref=e735]: tel-address-from - Целое число (Опционально)
+                          - generic [ref=e736]: Телефон отправителя
+                      - generic [ref=e737]:
+                        - text: "\"time-slot-id\": 0"
+                        - paragraph [ref=e738]:
+                          - generic [ref=e739]: time-slot-id - Целое число (Опционально)
+                          - generic [ref=e740]: Идентификатор временного интервала
+                      - generic [ref=e741]:
+                        - text: "\"tender\": true"
+                        - paragraph [ref=e742]:
+                          - generic [ref=e743]: "tender - Логические: true или false (Опционально)"
+                          - generic [ref=e744]: Доступно только для отправлений «ЕКОМ Маркетплейс». Отметка указывает на перевозку грузоотправлений ЕКОМ Маркетплейс, принятых в рамках заключенных тендерных договоров
+                      - generic [ref=e745]:
+                        - text: "\"transport-mode\": \"STANDARD\""
+                        - paragraph [ref=e746]:
+                          - generic [ref=e747]: transport-mode - Строка (Опционально)
+                          - generic [ref=e748]:
+                            - text: Возможный режим транспортировки (только для типа отправлений EMS Тендер). См.
+                            - link "Режим транспортировки" [ref=e749] [cursor=pointer]:
+                              - /url: "#/enums-base-transport-mode"
+                      - generic [ref=e750]:
+                        - text: "\"transport-type\": \"SURFACE\""
+                        - paragraph [ref=e751]:
+                          - generic [ref=e752]: transport-type - Строка (Опционально)
+                          - generic [ref=e753]:
+                            - text: Возможный вид транспортировки (для международных отправлений). См.
+                            - link "Вид транспортировки" [ref=e754] [cursor=pointer]:
+                              - /url: "#/enums-base-transport-type"
+                      - generic [ref=e755]:
+                        - text: "\"unloading\": true"
+                        - paragraph [ref=e756]:
+                          - generic [ref=e757]: "unloading - Логические: true или false (Опционально)."
+                          - generic [ref=e758]: Доп.услуга "Погрузочно-разгрузочные работы"
+                      - generic [ref=e759]:
+                        - text: "\"vladenie-to\": \"string\""
+                        - paragraph [ref=e760]:
+                          - generic [ref=e761]: vladenie-to - Строка (Опционально)
+                          - generic [ref=e762]: "Часть здания: Владение"
+                      - generic [ref=e763]:
+                        - text: "\"vsd\": true"
+                        - paragraph [ref=e764]:
+                          - generic [ref=e765]: "vsd - Логические: true или false (Опционально)"
+                          - generic [ref=e766]: Возврат сопроводительных документов
+                      - generic [ref=e767]:
+                        - text: "\"with-discount\": true"
+                        - paragraph [ref=e768]:
+                          - generic [ref=e769]: "with-discount - Логические: true или false (Опционально)"
+                          - generic [ref=e770]: true - тариф со скидкой, false - тариф без скидки
+                      - generic [ref=e771]:
+                        - text: "\"with-documents\": true"
+                        - paragraph [ref=e772]:
+                          - generic [ref=e773]: "with-documents - Логические: true или false (Опционально)"
+                          - generic [ref=e774]: С документами (для ЕМС международного)
+                      - generic [ref=e775]:
+                        - text: "\"with-electronic-notice\": true"
+                        - paragraph [ref=e776]:
+                          - generic [ref=e777]: "with-electronic-notice - Логические: true или false (Опционально)"
+                          - generic [ref=e778]: Отметка 'С электронным уведомлением'
+                      - generic [ref=e779]:
+                        - text: "\"with-goods\": true"
+                        - paragraph [ref=e780]:
+                          - generic [ref=e781]: "with-goods - Логические: true или false (Опционально)"
+                          - generic [ref=e782]: С товарами (для ЕМС международного)
+                      - generic [ref=e783]:
+                        - text: "\"with-order-of-notice\": true"
+                        - paragraph [ref=e784]:
+                          - generic [ref=e785]: "with-order-of-notice - Логические: true или false (Опционально)"
+                          - generic [ref=e786]: Отметка 'С заказным уведомлением'
+                      - generic [ref=e787]:
+                        - text: "\"with-packaging\": true"
+                        - paragraph [ref=e788]:
+                          - generic [ref=e789]: "with-packaging - Логические: true или false (Опционально)"
+                          - generic [ref=e790]: Отметка 'С упаковкой'
+                      - generic [ref=e791]:
+                        - text: "\"with-simple-notice\": true"
+                        - paragraph [ref=e792]:
+                          - generic [ref=e793]: "with-simple-notice - Логические: true или false (Опционально)"
+                          - generic [ref=e794]: Отметка 'С простым уведомлением'
+                      - generic [ref=e795]:
+                        - text: "\"with-uzeuv-notice\": true"
+                        - paragraph [ref=e796]:
+                          - generic [ref=e797]: "with-uzeuv-notice - Логические: true или false (Опционально)"
+                          - generic [ref=e798]: Отметка 'С ЮЗЭУВ'
+                      - generic [ref=e799]:
+                        - text: "\"wo-mail-rank\": true"
+                        - paragraph [ref=e800]:
+                          - generic [ref=e801]: "wo-mail-rank - Логические: true или false (Опционально)"
+                          - generic [ref=e802]: Отметка "Без разряда"
+                      - generic [ref=e803]:
+                        - text: "\"seller-id\": \"string\""
+                        - paragraph [ref=e804]:
+                          - generic [ref=e805]: seller-id - Строка (Опционально)
+                          - generic [ref=e806]: Идентификатор отправителя на торговой площадке
+                      - generic [ref=e807]:
+                        - text: "\"payment-details\": {"
+                        - paragraph [ref=e808]:
+                          - generic [ref=e809]: payment-details - Реквизиты получателя наложенного платежа(Опционально)
+                          - generic [ref=e810]: Реквизиты получателя наложенного платежа
+                      - generic [ref=e811]:
+                        - text: "\"recipient-surname\": \"string\""
+                        - paragraph [ref=e812]:
+                          - generic [ref=e813]: recipient-surname - Строка (Опционально)
+                          - generic [ref=e814]: Фамилия получателя наложенного платежа
+                      - generic [ref=e815]:
+                        - text: "\"recipient-firstname\": \"string\""
+                        - paragraph [ref=e816]:
+                          - generic [ref=e817]: recipient-firstname - Строка (Опционально)
+                          - generic [ref=e818]: Имя получателя наложенного платежа
+                      - generic [ref=e819]:
+                        - text: "\"recipient-middlename\": \"string\""
+                        - paragraph [ref=e820]:
+                          - generic [ref=e821]: recipient-middlename - Строка (Опционально)
+                          - generic [ref=e822]: Отчество получателя наложенного платежа
+                      - generic [ref=e823]:
+                        - text: "\"bank-name\": \"string\""
+                        - paragraph [ref=e824]:
+                          - generic [ref=e825]: bank-name - Строка (Опционально)
+                          - generic [ref=e826]: Наименование банка получателя наложенного платежа
+                      - generic [ref=e827]:
+                        - text: "\"bank-bik\": \"string\""
+                        - paragraph [ref=e828]:
+                          - generic [ref=e829]: bank-bik - Строка (Опционально)
+                          - generic [ref=e830]: БИК банка получателя наложенного платежа
+                      - generic [ref=e831]:
+                        - text: "\"bank-corr-account\": \"string\""
+                        - paragraph [ref=e832]:
+                          - generic [ref=e833]: bank-corr-account - Строка (Опционально)
+                          - generic [ref=e834]: Корреспондентский счет получателя наложенного платежа
+                      - generic [ref=e835]:
+                        - text: "\"bank-account\": \"string\""
+                        - paragraph [ref=e836]:
+                          - generic [ref=e837]: bank-account - Строка (Опционально)
+                          - generic [ref=e838]: Счет получателя наложенного платежа
+                      - generic [ref=e839]:
+                        - text: "\"is-cash\": \"string\""
+                        - paragraph [ref=e840]:
+                          - generic [ref=e841]: item-number - Строка (Опционально)
+                          - generic [ref=e842]: Признак получения наложенного платежа наличными
+                      - generic [ref=e843]:
+                        - text: "}"
+                        - paragraph [ref=e844]:
+                          - generic [ref=e845]: "} - Символ"
+                          - generic [ref=e846]: Окончание структуры
+                      - generic [ref=e847]:
+                        - text: "}"
+                        - paragraph [ref=e848]:
+                          - generic [ref=e849]: "} - Символ"
+                          - generic [ref=e850]: Окончание структуры
+                      - generic [ref=e851]:
+                        - text: "]"
+                        - paragraph [ref=e852]:
+                          - generic [ref=e853]: "] - Символ"
+                          - generic [ref=e854]: Окончание группы
+            - generic [ref=e855]: Ответ на запрос
+            - generic [ref=e856]:
+              - text: Нажмите на элемент структуры, чтобы увидеть описание
+              - link "скопировать схему" [ref=e857] [cursor=pointer]:
+                - /url: ""
+            - table [ref=e858]:
+              - rowgroup [ref=e859]:
+                - row [ref=e860]:
+                  - cell "Структура" [ref=e861]
+                  - 'cell "{ { - Символ Начало структуры \"errors\": [ errors - Массив (Опционально) Список ошибок { { - Символ Начало структуры \"error-codes\": [ error-codes - Массив Список кодов ошибок { { - Символ Начало структуры \"code\": \"UNDEFINED\" code - Строка Код ошибки. См. ошибки \"description\": \"string\" description - Строка (Опционально) Описание ошибки \"details\": \"string\" details - Строка (Опционально) Описание ошибки \"position\": 0 position - Целое число (Опционально) Индекс в массиве } } - Символ Окончание структуры ] ] - Символ Окончание группы \"position\": 0 position - Целое число (Опционально) Индекс в массиве } } - Символ Окончание структуры ] ] - Символ Окончание группы \"result-ids\": [ result-ids - Массив (Опционально) Список успешно созданных внутренних идентификаторов отправлений 0 ] ] - Символ Окончание группы } } - Символ Окончание структуры" [ref=e862]':
+                    - generic [ref=e864]:
+                      - generic [ref=e865]:
+                        - text: "{"
+                        - paragraph [ref=e866]:
+                          - generic [ref=e867]: "{ - Символ"
+                          - generic [ref=e868]: Начало структуры
+                      - generic [ref=e869]:
+                        - text: "\"errors\": ["
+                        - paragraph [ref=e870]:
+                          - generic [ref=e871]: errors - Массив (Опционально)
+                          - generic [ref=e872]: Список ошибок
+                      - generic [ref=e873]:
+                        - text: "{"
+                        - paragraph [ref=e874]:
+                          - generic [ref=e875]: "{ - Символ"
+                          - generic [ref=e876]: Начало структуры
+                      - generic [ref=e877]:
+                        - text: "\"error-codes\": ["
+                        - paragraph [ref=e878]:
+                          - generic [ref=e879]: error-codes - Массив
+                          - generic [ref=e880]: Список кодов ошибок
+                      - generic [ref=e881]:
+                        - text: "{"
+                        - paragraph [ref=e882]:
+                          - generic [ref=e883]: "{ - Символ"
+                          - generic [ref=e884]: Начало структуры
+                      - generic [ref=e885]:
+                        - text: "\"code\": \"UNDEFINED\""
+                        - paragraph [ref=e886]:
+                          - generic [ref=e887]: code - Строка
+                          - generic [ref=e888]:
+                            - text: Код ошибки. См.
+                            - link "ошибки" [ref=e889] [cursor=pointer]:
+                              - /url: "#/enums-errors"
+                      - generic [ref=e890]:
+                        - text: "\"description\": \"string\""
+                        - paragraph [ref=e891]:
+                          - generic [ref=e892]: description - Строка (Опционально)
+                          - generic [ref=e893]: Описание ошибки
+                      - generic [ref=e894]:
+                        - text: "\"details\": \"string\""
+                        - paragraph [ref=e895]:
+                          - generic [ref=e896]: details - Строка (Опционально)
+                          - generic [ref=e897]: Описание ошибки
+                      - generic [ref=e898]:
+                        - text: "\"position\": 0"
+                        - paragraph [ref=e899]:
+                          - generic [ref=e900]: position - Целое число (Опционально)
+                          - generic [ref=e901]: Индекс в массиве
+                      - generic [ref=e902]:
+                        - text: "}"
+                        - paragraph [ref=e903]:
+                          - generic [ref=e904]: "} - Символ"
+                          - generic [ref=e905]: Окончание структуры
+                      - generic [ref=e906]:
+                        - text: "]"
+                        - paragraph [ref=e907]:
+                          - generic [ref=e908]: "] - Символ"
+                          - generic [ref=e909]: Окончание группы
+                      - generic [ref=e910]:
+                        - text: "\"position\": 0"
+                        - paragraph [ref=e911]:
+                          - generic [ref=e912]: position - Целое число (Опционально)
+                          - generic [ref=e913]: Индекс в массиве
+                      - generic [ref=e914]:
+                        - text: "}"
+                        - paragraph [ref=e915]:
+                          - generic [ref=e916]: "} - Символ"
+                          - generic [ref=e917]: Окончание структуры
+                      - generic [ref=e918]:
+                        - text: "]"
+                        - paragraph [ref=e919]:
+                          - generic [ref=e920]: "] - Символ"
+                          - generic [ref=e921]: Окончание группы
+                      - generic [ref=e922]:
+                        - text: "\"result-ids\": ["
+                        - paragraph [ref=e923]:
+                          - generic [ref=e924]: result-ids - Массив (Опционально)
+                          - generic [ref=e925]: Список успешно созданных внутренних идентификаторов отправлений
+                      - generic [ref=e926]: "0"
+                      - generic [ref=e927]:
+                        - text: "]"
+                        - paragraph [ref=e928]:
+                          - generic [ref=e929]: "] - Символ"
+                          - generic [ref=e930]: Окончание группы
+                      - generic [ref=e931]:
+                        - text: "}"
+                        - paragraph [ref=e932]:
+                          - generic [ref=e933]: "} - Символ"
+                          - generic [ref=e934]: Окончание структуры
+            - link [ref=e935] [cursor=pointer]:
+              - /url: ""
+              - heading "Примеры кода для работы с API" [level=3] [ref=e936]
+  - contentinfo [ref=e938]:
+    - generic [ref=e940]:
+      - generic [ref=e941]: 2026 © АО Почта России
+      - list [ref=e944]:
+        - listitem [ref=e945]:
+          - link "Поддержка" [ref=e946] [cursor=pointer]:
+            - /url: /help
+        - listitem [ref=e947]:
+          - link "8 800 100-04-05" [ref=e948] [cursor=pointer]:
+            - /url: tel:+78001000405
+        - listitem [ref=e949]:
+          - link "corpsupport@russianpost.ru" [ref=e950] [cursor=pointer]:
+            - /url: mailto:corpsupport@russianpost.ru

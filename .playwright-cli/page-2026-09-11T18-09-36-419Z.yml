@@ -1,0 +1,158 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e7]:
+    - banner [ref=e8]:
+      - banner [ref=e10]:
+        - generic [ref=e11]:
+          - generic [ref=e12]:
+            - link [ref=e15] [cursor=pointer]:
+              - /url: /
+              - img "Почта России" [ref=e16]
+            - generic [ref=e17]: Отправка
+          - generic [ref=e20]:
+            - generic [ref=e21]: Помощь
+            - link "Войти" [ref=e26] [cursor=pointer]:
+              - /url: /dashboard
+    - main [ref=e27]:
+      - generic [ref=e32]:
+        - list [ref=e36]:
+          - listitem [ref=e37]:
+            - link "ГЛАВНАЯ СТРАНИЦА" [ref=e38] [cursor=pointer]:
+              - /url: "#/main"
+          - separator [ref=e39]
+          - listitem [ref=e40]:
+            - link "ОСНОВНЫЕ ШАГИ" [ref=e41] [cursor=pointer]:
+              - /url: "#/flow"
+          - separator [ref=e42]
+          - listitem [ref=e43]:
+            - link "АВТОРИЗАЦИЯ" [ref=e44] [cursor=pointer]:
+              - /url: ""
+          - separator [ref=e45]
+          - listitem [ref=e46]:
+            - link "ТЕСТИРОВАНИЕ API" [ref=e47] [cursor=pointer]:
+              - /url: ""
+          - separator [ref=e48]
+          - listitem [ref=e49]:
+            - link "ЗАКАЗЫ" [ref=e50] [cursor=pointer]:
+              - /url: ""
+          - listitem [ref=e51]:
+            - link "ПАРТИИ" [ref=e52] [cursor=pointer]:
+              - /url: ""
+          - listitem [ref=e53]:
+            - link "ДОКУМЕНТЫ" [ref=e54] [cursor=pointer]:
+              - /url: ""
+          - listitem [ref=e55]:
+            - link "АРХИВ" [ref=e56] [cursor=pointer]:
+              - /url: ""
+          - listitem [ref=e57]:
+            - link "ПОИСК ОПС" [ref=e58] [cursor=pointer]:
+              - /url: ""
+          - listitem [ref=e59]:
+            - link "ВРЕМЕННЫЕ ИНТЕРВАЛЫ" [ref=e60] [cursor=pointer]:
+              - /url: ""
+          - listitem [ref=e61]:
+            - link "ДОЛГОСРОЧНОЕ ХРАНЕНИЕ" [ref=e62] [cursor=pointer]:
+              - /url: ""
+          - listitem [ref=e63]:
+            - link "ВОЗВРАТЫ" [ref=e64] [cursor=pointer]:
+              - /url: ""
+          - listitem [ref=e65]:
+            - link "НАСТРОЙКИ" [ref=e66] [cursor=pointer]:
+              - /url: ""
+          - listitem [ref=e67]:
+            - link "ДАННЫЕ" [ref=e68] [cursor=pointer]:
+              - /url: ""
+          - listitem [ref=e69]:
+            - link "ЗАЯВЛЕНИЯ" [ref=e70] [cursor=pointer]:
+              - /url: ""
+          - separator [ref=e71]
+          - listitem [ref=e72]:
+            - link "ОПИСАНИЕ СВОЙСТВ" [ref=e73] [cursor=pointer]:
+              - /url: ""
+        - article [ref=e79]:
+          - article [ref=e81]:
+            - heading "Вид РПО" [level=3] [ref=e82]
+            - table [ref=e83]:
+              - rowgroup [ref=e87]:
+                - row [ref=e88]:
+                  - columnheader "Значение" [ref=e89]
+                  - columnheader "Описание" [ref=e90]
+              - rowgroup [ref=e91]:
+                - row [ref=e92]:
+                  - cell "POSTAL_PARCEL" [ref=e93]
+                  - cell "Посылка \"нестандартная\"" [ref=e94]
+                - row [ref=e95]:
+                  - cell "ONLINE_PARCEL" [ref=e96]
+                  - cell "Посылка \"онлайн\"" [ref=e97]
+                - row [ref=e98]:
+                  - cell "ONLINE_COURIER" [ref=e99]
+                  - cell "Курьер \"онлайн\"" [ref=e100]
+                - row [ref=e101]:
+                  - cell "EMS" [ref=e102]
+                  - cell "Отправление EMS" [ref=e103]
+                - row [ref=e104]:
+                  - cell "EMS_OPTIMAL" [ref=e105]
+                  - cell "EMS оптимальное" [ref=e106]
+                - row [ref=e107]:
+                  - cell "EMS_RT" [ref=e108]
+                  - cell "EMS РТ" [ref=e109]
+                - row [ref=e110]:
+                  - cell "EMS_TENDER" [ref=e111]
+                  - cell "EMS тендер" [ref=e112]
+                - row [ref=e113]:
+                  - cell "LETTER" [ref=e114]
+                  - cell "Письмо" [ref=e115]
+                - row [ref=e116]:
+                  - cell "LETTER_CLASS_1" [ref=e117]
+                  - cell "Письмо 1-го класса" [ref=e118]
+                - row [ref=e119]:
+                  - cell "BANDEROL" [ref=e120]
+                  - cell "Бандероль" [ref=e121]
+                - row [ref=e122]:
+                  - cell "BUSINESS_COURIER" [ref=e123]
+                  - cell "Бизнес курьер" [ref=e124]
+                - row [ref=e125]:
+                  - cell "BUSINESS_COURIER_ES" [ref=e126]
+                  - cell "Бизнес курьер экпресс" [ref=e127]
+                - row [ref=e128]:
+                  - cell "PARCEL_CLASS_1" [ref=e129]
+                  - cell "Посылка 1-го класса" [ref=e130]
+                - row [ref=e131]:
+                  - cell "BANDEROL_CLASS_1" [ref=e132]
+                  - cell "Бандероль 1-го класса" [ref=e133]
+                - row [ref=e134]:
+                  - cell "VGPO_CLASS_1" [ref=e135]
+                  - cell "ВГПО 1-го класса" [ref=e136]
+                - row [ref=e137]:
+                  - cell "SMALL_PACKET" [ref=e138]
+                  - cell "Мелкий пакет" [ref=e139]
+                - row [ref=e140]:
+                  - cell "EASY_RETURN" [ref=e141]
+                  - cell "Легкий возврат" [ref=e142]
+                - row [ref=e143]:
+                  - cell "VSD" [ref=e144]
+                  - cell "Отправление ВСД" [ref=e145]
+                - row [ref=e146]:
+                  - cell "ECOM" [ref=e147]
+                  - cell "ЕКОМ" [ref=e148]
+                - row [ref=e149]:
+                  - cell "ECOM_MARKETPLACE" [ref=e150]
+                  - cell "ЕКОМ Маркетплейс" [ref=e151]
+                - row [ref=e152]:
+                  - cell "HYPER_CARGO" [ref=e153]
+                  - cell "Доставка день в день" [ref=e154]
+                - row [ref=e155]:
+                  - cell "COMBINED" [ref=e156]
+                  - cell "Комбинированное" [ref=e157]
+  - contentinfo [ref=e159]:
+    - generic [ref=e161]:
+      - generic [ref=e162]: 2026 © АО Почта России
+      - list [ref=e165]:
+        - listitem [ref=e166]:
+          - link "Поддержка" [ref=e167] [cursor=pointer]:
+            - /url: /help
+        - listitem [ref=e168]:
+          - link "8 800 100-04-05" [ref=e169] [cursor=pointer]:
+            - /url: tel:+78001000405
+        - listitem [ref=e170]:
+          - link "corpsupport@russianpost.ru" [ref=e171] [cursor=pointer]:
+            - /url: mailto:corpsupport@russianpost.ru

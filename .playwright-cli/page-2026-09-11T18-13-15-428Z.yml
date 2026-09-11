@@ -1,0 +1,158 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e7]:
+    - banner [ref=e8]:
+      - banner [ref=e10]:
+        - generic [ref=e11]:
+          - generic [ref=e12]:
+            - link [ref=e15] [cursor=pointer]:
+              - /url: /
+              - img "Почта России" [ref=e16]
+            - generic [ref=e17]: Отправка
+          - generic [ref=e20]:
+            - generic [ref=e21]: Помощь
+            - link "Войти" [ref=e26] [cursor=pointer]:
+              - /url: /dashboard
+    - main [ref=e27]:
+      - generic [ref=e32]:
+        - list [ref=e36]:
+          - listitem [ref=e37]:
+            - link "ГЛАВНАЯ СТРАНИЦА" [ref=e38] [cursor=pointer]:
+              - /url: "#/main"
+          - separator [ref=e39]
+          - listitem [ref=e40]:
+            - link "ОСНОВНЫЕ ШАГИ" [ref=e41] [cursor=pointer]:
+              - /url: "#/flow"
+          - separator [ref=e42]
+          - listitem [ref=e43]:
+            - link "АВТОРИЗАЦИЯ" [ref=e44] [cursor=pointer]:
+              - /url: ""
+          - separator [ref=e45]
+          - listitem [ref=e46]:
+            - link "ТЕСТИРОВАНИЕ API" [ref=e47] [cursor=pointer]:
+              - /url: ""
+          - separator [ref=e48]
+          - listitem [ref=e49]:
+            - link "ЗАКАЗЫ" [ref=e50] [cursor=pointer]:
+              - /url: ""
+          - listitem [ref=e51]:
+            - link "ПАРТИИ" [ref=e52] [cursor=pointer]:
+              - /url: ""
+          - listitem [ref=e53]:
+            - link "ДОКУМЕНТЫ" [ref=e54] [cursor=pointer]:
+              - /url: ""
+          - listitem [ref=e55]:
+            - link "АРХИВ" [ref=e56] [cursor=pointer]:
+              - /url: ""
+          - listitem [ref=e57]:
+            - link "ПОИСК ОПС" [ref=e58] [cursor=pointer]:
+              - /url: ""
+          - listitem [ref=e59]:
+            - link "ВРЕМЕННЫЕ ИНТЕРВАЛЫ" [ref=e60] [cursor=pointer]:
+              - /url: ""
+          - listitem [ref=e61]:
+            - link "ДОЛГОСРОЧНОЕ ХРАНЕНИЕ" [ref=e62] [cursor=pointer]:
+              - /url: ""
+          - listitem [ref=e63]:
+            - link "ВОЗВРАТЫ" [ref=e64] [cursor=pointer]:
+              - /url: ""
+          - listitem [ref=e65]:
+            - link "НАСТРОЙКИ" [ref=e66] [cursor=pointer]:
+              - /url: ""
+          - listitem [ref=e67]:
+            - link "ДАННЫЕ" [ref=e68] [cursor=pointer]:
+              - /url: ""
+          - listitem [ref=e69]:
+            - link "ЗАЯВЛЕНИЯ" [ref=e70] [cursor=pointer]:
+              - /url: ""
+          - separator [ref=e71]
+          - listitem [ref=e72]:
+            - link "ОПИСАНИЕ СВОЙСТВ" [ref=e73] [cursor=pointer]:
+              - /url: ""
+        - article [ref=e79]:
+          - article [ref=e81]:
+            - heading "Текущее количество запросов по API" [level=3] [ref=e82]
+            - text: Возвращает общее количество запросов в сутки, разрешенное для пользователя, и остаток в текущих сутках. Введите
+            - link "токен авторизации приложения" [ref=e83] [cursor=pointer]:
+              - /url: "#/authorization-token"
+            - text: и
+            - link "ключ авторизации пользователя" [ref=e84] [cursor=pointer]:
+              - /url: "#/authorization-key"
+            - text: ", тогда значения заголовков будут сгенерированы автоматически."
+            - table [ref=e85]:
+              - rowgroup [ref=e86]:
+                - row [ref=e87]:
+                  - cell "Токен авторизации" [ref=e88]
+                  - cell [ref=e89]:
+                    - textbox [ref=e91]
+                - row [ref=e92]:
+                  - cell "Ключ авторизации" [ref=e93]
+                  - cell [ref=e94]:
+                    - textbox [ref=e96]
+            - text: Параметры запроса
+            - table [ref=e97]:
+              - rowgroup [ref=e98]:
+                - row [ref=e99]:
+                  - cell "Локальный URL" [ref=e100]
+                  - cell "/1.0/settings/limit" [ref=e101]
+                - row [ref=e102]:
+                  - cell "Тип" [ref=e103]
+                  - cell "GET" [ref=e104]
+            - text: Заголовки запроса
+            - table [ref=e105]:
+              - rowgroup [ref=e106]:
+                - row [ref=e107]:
+                  - cell "Authorization" [ref=e108]
+                  - cell [ref=e109]
+                - row [ref=e110]:
+                  - cell "X-User-Authorization" [ref=e111]
+                  - cell [ref=e112]
+                - row [ref=e113]:
+                  - cell "Content-Type" [ref=e114]
+                  - cell "application/json;charset=UTF-8" [ref=e115]
+            - generic [ref=e116]: Ответ на запрос
+            - generic [ref=e117]:
+              - text: Нажмите на элемент структуры, чтобы увидеть описание
+              - link "скопировать схему" [ref=e118] [cursor=pointer]:
+                - /url: ""
+            - table [ref=e119]:
+              - rowgroup [ref=e120]:
+                - row [ref=e121]:
+                  - cell "Структура" [ref=e122]
+                  - 'cell "{ { - Символ Начало структуры \"allowed-count\": 0 allowed-count - Целое число Количество запросов по API разрешенных для клиента \"current-count\": 0 current-count - Целое число Текущее количество по API у клиента } } - Символ Окончание структуры" [ref=e123]':
+                    - generic [ref=e125]:
+                      - generic [ref=e126]:
+                        - text: "{"
+                        - paragraph [ref=e127]:
+                          - generic [ref=e128]: "{ - Символ"
+                          - generic [ref=e129]: Начало структуры
+                      - generic [ref=e130]:
+                        - text: "\"allowed-count\": 0"
+                        - paragraph [ref=e131]:
+                          - generic [ref=e132]: allowed-count - Целое число
+                          - generic [ref=e133]: Количество запросов по API разрешенных для клиента
+                      - generic [ref=e134]:
+                        - text: "\"current-count\": 0"
+                        - paragraph [ref=e135]:
+                          - generic [ref=e136]: current-count - Целое число
+                          - generic [ref=e137]: Текущее количество по API у клиента
+                      - generic [ref=e138]:
+                        - text: "}"
+                        - paragraph [ref=e139]:
+                          - generic [ref=e140]: "} - Символ"
+                          - generic [ref=e141]: Окончание структуры
+            - link [ref=e142] [cursor=pointer]:
+              - /url: ""
+              - heading "Примеры кода для работы с API" [level=3] [ref=e143]
+  - contentinfo [ref=e145]:
+    - generic [ref=e147]:
+      - generic [ref=e148]: 2026 © АО Почта России
+      - list [ref=e151]:
+        - listitem [ref=e152]:
+          - link "Поддержка" [ref=e153] [cursor=pointer]:
+            - /url: /help
+        - listitem [ref=e154]:
+          - link "8 800 100-04-05" [ref=e155] [cursor=pointer]:
+            - /url: tel:+78001000405
+        - listitem [ref=e156]:
+          - link "corpsupport@russianpost.ru" [ref=e157] [cursor=pointer]:
+            - /url: mailto:corpsupport@russianpost.ru

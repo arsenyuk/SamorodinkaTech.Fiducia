@@ -273,6 +273,24 @@ if (builder.Configuration.GetValue<bool>("Edin:Enabled"))
     builder.Services.AddScoped<IEdinBindingService, EdinBindingService>();
 }
 
+// Почта России — расчёт тарифов, нормализация адресов, создание заказов (опционально)
+// Все настройки — в appsettings.json, секция PochtaRussia (ADR-022)
+builder.Services.Configure<PochtaRussiaOptions>(builder.Configuration.GetSection("PochtaRussia"));
+if (builder.Configuration.GetValue<bool>("PochtaRussia:Enabled"))
+{
+    builder.Services.AddScoped<IPochtaRussiaApiClient>(sp =>
+    {
+        var options = sp.GetRequiredService<IOptions<PochtaRussiaOptions>>().Value;
+        var logger = sp.GetRequiredService<ILogger<PochtaRussiaApiClient>>();
+        var httpClient = new HttpClient { BaseAddress = new Uri(options.BaseUrl) };
+        var inner = new PochtaRussiaApiClient(httpClient, logger, options.AccessToken, options.Login, options.Password);
+        var auditService = sp.GetRequiredService<ISecurityAuditService>();
+        var ipProvider = sp.GetRequiredService<IClientIpProvider>();
+        var auditLogger = sp.GetRequiredService<ILogger<AuditPochtaRussiaDecorator>>();
+        return new AuditPochtaRussiaDecorator(inner, auditService, ipProvider, auditLogger);
+    });
+}
+
 // JWT Authentication
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
