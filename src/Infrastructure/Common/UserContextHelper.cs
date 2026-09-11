@@ -40,7 +40,8 @@ public static class UserContextHelper
         if (string.IsNullOrEmpty(login)) return null;
 
         var participant = await ctx.EcosystemParticipants
-            .FirstOrDefaultAsync(ep => ep.Login == login);
+            .Include(x => x.User)
+            .FirstOrDefaultAsync(ep => ep.User != null && ep.User.Login == login);
         return participant?.LegalEntityId;
     }
 

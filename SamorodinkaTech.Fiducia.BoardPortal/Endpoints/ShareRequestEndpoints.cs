@@ -162,8 +162,8 @@ public static class ShareRequestEndpoints
 
                 var systemSettingKey = typeCode switch
                 {
-                    "DEMAND_VOSU" => "vosu_default_threshold_percent",
-                    "DEMAND_VOSA" => "vosa_default_threshold_percent",
+                    "DEMAND_VOSU" => Domain.Constants.SystemSettingKeys.VosuDefaultThresholdPercent,
+                    "DEMAND_VOSA" => Domain.Constants.SystemSettingKeys.VosaDefaultThresholdPercent,
                     _ => null
                 };
 
@@ -696,8 +696,8 @@ public static class ShareRequestEndpoints
 
                 var systemSettingKey = requestType.Code switch
                 {
-                    "DEMAND_VOSU" => "vosu_default_threshold_percent",
-                    "DEMAND_VOSA" => "vosa_default_threshold_percent",
+                    "DEMAND_VOSU" => Domain.Constants.SystemSettingKeys.VosuDefaultThresholdPercent,
+                    "DEMAND_VOSA" => Domain.Constants.SystemSettingKeys.VosaDefaultThresholdPercent,
                     _ => null
                 };
 
@@ -2142,7 +2142,7 @@ public static class ShareRequestEndpoints
         decimal? threshold = charter?.VosuThresholdPercent;
         if (threshold is null)
         {
-            var setting = await ctx.SystemSettings.FirstOrDefaultAsync(x => x.Key == "vosu_default_threshold_percent");
+            var setting = await ctx.SystemSettings.FirstOrDefaultAsync(x => x.Key == Domain.Constants.SystemSettingKeys.VosuDefaultThresholdPercent);
             if (setting is not null && decimal.TryParse(setting.Value, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var parsed))
                 threshold = parsed;
         }

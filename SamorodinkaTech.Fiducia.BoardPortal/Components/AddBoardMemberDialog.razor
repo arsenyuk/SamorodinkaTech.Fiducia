@@ -283,7 +283,8 @@
             if (result?.MasterId.HasValue == true)
             {
                 var ep = await ctx.EcosystemParticipants
-                    .FirstOrDefaultAsync(e => e.MpiMasterId == result.MasterId.Value
+                    .Include(e => e.User)
+                    .FirstOrDefaultAsync(e => e.User != null && e.User.MpiMasterId == result.MasterId.Value
                                            && e.LegalEntityId == participant.LegalEntityId);
 
                 if (ep is not null)

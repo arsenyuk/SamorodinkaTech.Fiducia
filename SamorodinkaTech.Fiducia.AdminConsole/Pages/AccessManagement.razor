@@ -390,7 +390,7 @@
                 {
                     _legalEntities = await ctx.LegalEntities
                         .Where(le => ctx.EcosystemParticipants.Any(ep =>
-                            ep.LegalEntityId == le.Id && ep.Login == login))
+                            ep.LegalEntityId == le.Id && ep.User != null && ep.User.Login == login))
                         .OrderBy(le => le.Name).ToListAsync();
                 }
                 else
@@ -451,14 +451,15 @@
 
             _employees = rows.Select(e =>
             {
-                var login = e.EcosystemParticipant?.Login ?? "—";
+                var person = e.EcosystemParticipant?.EcosystemPerson;
+                var login = e.EcosystemParticipant?.User?.Login ?? "—";
                 var userId = e.EcosystemParticipant?.UserId;
                 var roleName = roles.Where(r => r.UserId == userId).Select(r => r.Role!.Name).FirstOrDefault() ?? "—";
                 return new EmployeeRow
                 {
                     Id = e.Id,
-                    FullName = e.EcosystemParticipant != null
-                        ? string.Join(" ", new[] { e.EcosystemParticipant.LastName, e.EcosystemParticipant.FirstName, e.EcosystemParticipant.MiddleName }.Where(p => !string.IsNullOrWhiteSpace(p)))
+                    FullName = person != null
+                        ? string.Join(" ", new[] { person.LastName, person.FirstName, person.MiddleName }.Where(p => !string.IsNullOrWhiteSpace(p)))
                         : "—",
                     Position = e.Position,
                     Login = login,
@@ -488,8 +489,8 @@
             _externalPersons = rows.Select(x => new ExternalPersonRow
             {
                 Id = x.Id,
-                FullName = x.EcosystemParticipant != null
-                    ? string.Join(" ", new[] { x.EcosystemParticipant.LastName, x.EcosystemParticipant.FirstName, x.EcosystemParticipant.MiddleName }.Where(p => !string.IsNullOrWhiteSpace(p)))
+                FullName = x.EcosystemParticipant?.EcosystemPerson != null
+                    ? string.Join(" ", new[] { x.EcosystemParticipant.EcosystemPerson.LastName, x.EcosystemParticipant.EcosystemPerson.FirstName, x.EcosystemParticipant.EcosystemPerson.MiddleName }.Where(p => !string.IsNullOrWhiteSpace(p)))
                     : "—",
                 RoleName = x.Position,
                 StartedAt = x.StartedAt,
@@ -529,8 +530,10 @@
             {
                 await using var ctx = await DbFactory.CreateDbContextAsync();
 
-                if (await ctx.EcosystemParticipants.AnyAsync(ep =>
-                    ep.LegalEntityId == Guid.Parse(_selectedLegalEntityId) && ep.Login == _ldapSearchLogin))
+                if (await ctx.EcosystemParticipants
+                    .Include(x => x.User)
+                    .AnyAsync(ep =>
+                    ep.LegalEntityId == Guid.Parse(_selectedLegalEntityId) && ep.User != null && ep.User.Login == _ldapSearchLogin))
                 {
                     _ldapWarning = $"Логин «{_ldapSearchLogin}» уже используется в этом ЮЛ.";
                     Logger.LogWarning("Дубль логина при поиске: {Login} уже используется в ЮЛ {LeId}", _ldapSearchLogin, _selectedLegalEntityId);
@@ -616,8 +619,10 @@
             await using var ctx = await DbFactory.CreateDbContextAsync();
             var leId = Guid.Parse(_selectedLegalEntityId);
 
-            if (await ctx.EcosystemParticipants.AnyAsync(ep =>
-                ep.LegalEntityId == leId && ep.Login == _empLogin))
+            if (await ctx.EcosystemParticipants
+                .Include(x => x.User)
+                .AnyAsync(ep =>
+                ep.LegalEntityId == leId && ep.User != null && ep.User.Login == _empLogin))
             {
                 _empError = $"Логин «{_empLogin}» уже используется.";
                 Logger.LogWarning("Дубль логина при добавлении сотрудника: {Login} уже используется в ЮЛ {LeId}", _empLogin, _selectedLegalEntityId);
@@ -651,14 +656,21 @@
             }
 
             var pid = Guid.NewGuid();
+            var personId = Guid.NewGuid();
+            ctx.EcosystemPersons.Add(new()
+            {
+                Id = personId,
+                LastName = _empLastName,
+                FirstName = _empFirstName,
+                MiddleName = _empMiddleName,
+                CreatedAt = DateTime.UtcNow,
+                CreatedBy = Guid.Empty
+            });
             ctx.EcosystemParticipants.Add(new()
             {
                 Id = pid,
                 LegalEntityId = leId,
-                LastName = _empLastName,
-                FirstName = _empFirstName,
-                MiddleName = _empMiddleName,
-                Login = _empLogin,
+                EcosystemPersonId = personId,
                 UserId = existingUser?.Id,
                 CreatedAt = DateTime.UtcNow,
                 CreatedBy = Guid.Empty
@@ -783,8 +795,10 @@
             var leId = Guid.Parse(_selectedLegalEntityId);
             var extLogin = $"{_extLastName.ToLowerInvariant()}.{_extFirstName.ToLowerInvariant()}";
 
-            if (await ctx.EcosystemParticipants.AnyAsync(ep =>
-                ep.LegalEntityId == leId && ep.Login == extLogin))
+            if (await ctx.EcosystemParticipants
+                .Include(x => x.User)
+                .AnyAsync(ep =>
+                ep.LegalEntityId == leId && ep.User != null && ep.User.Login == extLogin))
             {
                 _extError = $"Логин «{extLogin}» уже используется в этом ЮЛ.";
                 Logger.LogWarning("Дубль логина при добавлении внешнего лица: {Login} уже используется в ЮЛ {LeId}", extLogin, _selectedLegalEntityId);
@@ -796,15 +810,21 @@
             }
 
             var pid = Guid.NewGuid();
-
+            var personId = Guid.NewGuid();
+            ctx.EcosystemPersons.Add(new()
+            {
+                Id = personId,
+                LastName = _extLastName,
+                FirstName = _extFirstName,
+                MiddleName = _extMiddleName,
+                CreatedAt = DateTime.UtcNow,
+                CreatedBy = Guid.Empty
+            });
             ctx.EcosystemParticipants.Add(new()
             {
                 Id = pid,
                 LegalEntityId = leId,
-                LastName = _extLastName,
-                FirstName = _extFirstName,
-                MiddleName = _extMiddleName,
-                Login = extLogin,
+                EcosystemPersonId = personId,
                 CreatedAt = DateTime.UtcNow,
                 CreatedBy = Guid.Empty
             });

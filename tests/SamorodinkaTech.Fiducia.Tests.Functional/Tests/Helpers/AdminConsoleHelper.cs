@@ -147,6 +147,18 @@ public static class AdminConsoleHelper
 
         await page.ClickAsync(".modal .input-group button.btn-outline-secondary");
 
+        // Check for duplicate login warning — if exists, close modal and return
+        await page.WaitForTimeoutAsync(1000);
+        var duplicateWarning = await page.QuerySelectorAsync(".modal .text-warning");
+        if (duplicateWarning is not null)
+        {
+            // Close modal
+            var closeBtn = await page.QuerySelectorAsync(".modal .btn-close");
+            if (closeBtn is not null) await closeBtn.ClickAsync();
+            await page.WaitForTimeoutAsync(500);
+            return;
+        }
+
         // Wait for LDAP to populate readonly fields
         await page.WaitForFunctionAsync(
             @"() => {

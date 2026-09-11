@@ -2,8 +2,7 @@ namespace SamorodinkaTech.Fiducia.Domain.Entities;
 
 /// <summary>
 /// Участник экосистемы (ecosystem_participants).
-/// Связывает ФЛ с ЮЛ. Содержит атрибуты ФЛ и логин (уникальный в рамках ЮЛ).
-/// Ссылка на Employee и ExternalAttractedPerson идёт через эту таблицу.
+/// Связывает ФЛ с ЮЛ. Ссылка на Employee и ExternalAttractedPerson идёт через эту таблицу.
 /// </summary>
 public class EcosystemParticipant
 {
@@ -13,29 +12,14 @@ public class EcosystemParticipant
     /// <summary>Ссылка на юридическое лицо (legal_entity_id).</summary>
     public Guid LegalEntityId { get; set; }
 
-    /// <summary>Фамилия (last_name).</summary>
-    public string LastName { get; set; } = string.Empty;
+    /// <summary>Ссылка на ФЛ участника экосистемы (ecosystem_person_id).</summary>
+    public Guid EcosystemPersonId { get; set; }
 
-    /// <summary>Имя (first_name).</summary>
-    public string FirstName { get; set; } = string.Empty;
-
-    /// <summary>Отчество (middle_name).</summary>
-    public string? MiddleName { get; set; }
-
-    /// <summary>Email (email).</summary>
-    public string? Email { get; set; }
-
-    /// <summary>Телефон (phone).</summary>
-    public string? Phone { get; set; }
-
-    /// <summary>Логин (login). Уникальный в рамках ЮЛ.</summary>
-    public string Login { get; set; } = string.Empty;
+    /// <summary>Физическое лицо участника экосистемы.</summary>
+    public EcosystemPerson? EcosystemPerson { get; set; }
 
     /// <summary>Ссылка на учётную запись (user_id).</summary>
     public Guid? UserId { get; set; }
-
-    /// <summary>Идентификатор мастер-записи MPI (mpi_master_id). Источник: ЕДИН API.</summary>
-    public Guid? MpiMasterId { get; set; }
 
     /// <summary>Признак активности участника экосистемы (is_active).</summary>
     public bool IsActive { get; set; } = true;

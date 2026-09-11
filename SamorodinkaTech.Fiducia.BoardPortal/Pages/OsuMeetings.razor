@@ -226,7 +226,7 @@
 
             // Загружаем шаблон из system_settings
             var settings = await ctx.SystemSettings.ToDictionaryAsync(x => x.Key, x => x.Value);
-            if (settings.TryGetValue("oosu_title_template", out var tpl) && !string.IsNullOrEmpty(tpl))
+            if (settings.TryGetValue(Domain.Constants.SystemSettingKeys.OosuTitleTemplate, out var tpl) && !string.IsNullOrEmpty(tpl))
                 _oosuTitleTemplate = tpl;
 
             if (_currentLegalEntityId != Guid.Empty)

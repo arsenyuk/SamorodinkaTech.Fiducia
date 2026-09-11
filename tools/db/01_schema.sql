@@ -415,34 +415,38 @@ CREATE INDEX IF NOT EXISTS ix_legal_entities_inn ON legal_entities(inn);
 CREATE INDEX IF NOT EXISTS ix_legal_entities_ogrn ON legal_entities(ogrn);
 
 -- ============================================================================
+-- Физические лица участников экосистемы (ecosystem_persons)
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS ecosystem_persons (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    last_name varchar(150) NOT NULL,
+    first_name varchar(150) NOT NULL,
+    middle_name varchar(150),
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    created_by uuid REFERENCES users(id)
+);
+
+-- ============================================================================
 -- Участники экосистемы (ecosystem_participants)
 -- ============================================================================
 
 CREATE TABLE IF NOT EXISTS ecosystem_participants (
     id uuid PRIMARY KEY,
     legal_entity_id uuid NOT NULL REFERENCES legal_entities(id) ON DELETE RESTRICT,
-    last_name varchar(150) NOT NULL,
-    first_name varchar(150) NOT NULL,
-    middle_name varchar(150),
-    email varchar(255),
-    phone varchar(20),
-    login varchar(100) NOT NULL,
+    ecosystem_person_id uuid NOT NULL REFERENCES ecosystem_persons(id) ON DELETE RESTRICT,
     user_id uuid REFERENCES users(id) ON DELETE SET NULL,
-    -- MPI: идентификатор мастер-записи (источник: ЕДИН API)
-    mpi_master_id uuid,
     is_active boolean NOT NULL DEFAULT true,
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     created_by uuid REFERENCES users(id)
 );
 
-CREATE UNIQUE INDEX ux_ecosystem_participant_le_login
-    ON ecosystem_participants(legal_entity_id, login);
+CREATE UNIQUE INDEX ux_ecosystem_participant_le_person
+    ON ecosystem_participants(legal_entity_id, ecosystem_person_id);
 
 CREATE INDEX ix_ecosystem_participant_le ON ecosystem_participants(legal_entity_id);
 
 CREATE INDEX ix_ecosystem_participant_user_id ON ecosystem_participants(user_id);
-
-CREATE INDEX ix_ecosystem_participant_mpi_master_id ON ecosystem_participants(mpi_master_id) WHERE mpi_master_id IS NOT NULL;
 
 -- ============================================================================
 -- ПЭП: соглашение о Politically Exposed Person (привязано к участнику экосистемы)

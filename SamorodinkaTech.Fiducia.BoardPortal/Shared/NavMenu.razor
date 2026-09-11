@@ -156,7 +156,8 @@
             if (!string.IsNullOrEmpty(login))
             {
                 var participant = await ctx.EcosystemParticipants
-                    .FirstOrDefaultAsync(ep => ep.Login == login);
+                    .Include(ep => ep.User)
+                    .FirstOrDefaultAsync(ep => ep.User != null && ep.User.Login == login);
 
                 if (participant is not null)
                 {

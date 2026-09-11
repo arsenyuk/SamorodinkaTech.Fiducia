@@ -310,7 +310,8 @@
                     // ЮЛ определяется через внешнее привлеченное лицо (EcosystemParticipant → ExternalAttractedPerson → LegalEntity)
                     var externalPerson = await DbContext.ExternalAttractedPersons
                         .Include(e => e.EcosystemParticipant)
-                        .FirstOrDefaultAsync(e => e.EcosystemParticipant != null && e.EcosystemParticipant.Login == _user.Login && e.IsActive);
+                        .ThenInclude(ep => ep!.User)
+                        .FirstOrDefaultAsync(e => e.EcosystemParticipant != null && e.EcosystemParticipant.User != null && e.EcosystemParticipant.User.Login == _user.Login && e.IsActive);
                     if (externalPerson == null)
                     {
                         _otpError = "Не найдена запись внешнего привлеченного лица. Обратитесь к администратору.";

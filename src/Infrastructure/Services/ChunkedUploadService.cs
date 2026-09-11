@@ -235,7 +235,7 @@ namespace SamorodinkaTech.Fiducia.Infrastructure.Services
             {
                 await using var ctx = await _dbFactory.CreateDbContextAsync(cancellationToken);
                 var setting = await ctx.SystemSettings
-                    .FirstOrDefaultAsync(x => x.Key == "blocked_extensions", cancellationToken);
+                    .FirstOrDefaultAsync(x => x.Key == Domain.Constants.SystemSettingKeys.BlockedExtensions, cancellationToken);
 
                 if (setting != null && !string.IsNullOrEmpty(setting.Value))
                 {
@@ -321,7 +321,7 @@ namespace SamorodinkaTech.Fiducia.Infrastructure.Services
             {
                 await using var ctx = await _dbFactory.CreateDbContextAsync(ct);
                 var setting = await ctx.SystemSettings
-                    .FirstOrDefaultAsync(x => x.Key == "qr_code_extensions", ct);
+                    .FirstOrDefaultAsync(x => x.Key == Domain.Constants.SystemSettingKeys.QrCodeExtensions, ct);
 
                 if (setting is not null && !string.IsNullOrEmpty(setting.Value))
                 {

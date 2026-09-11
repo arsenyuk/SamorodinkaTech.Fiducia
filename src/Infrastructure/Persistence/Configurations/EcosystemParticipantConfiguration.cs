@@ -14,29 +14,25 @@ public class EcosystemParticipantConfiguration : IEntityTypeConfiguration<Ecosys
         builder.Property(x => x.Id).HasColumnName("id");
 
         builder.Property(x => x.LegalEntityId).HasColumnName("legal_entity_id").IsRequired();
-        builder.Property(x => x.LastName).HasColumnName("last_name").HasMaxLength(150).IsRequired();
-        builder.Property(x => x.FirstName).HasColumnName("first_name").HasMaxLength(150).IsRequired();
-        builder.Property(x => x.MiddleName).HasColumnName("middle_name").HasMaxLength(150);
-        builder.Property(x => x.Email).HasColumnName("email").HasMaxLength(255);
-        builder.Property(x => x.Phone).HasColumnName("phone").HasMaxLength(20);
-        builder.Property(x => x.Login).HasColumnName("login").HasMaxLength(100).IsRequired();
+        builder.Property(x => x.EcosystemPersonId).HasColumnName("ecosystem_person_id").IsRequired();
         builder.Property(x => x.UserId).HasColumnName("user_id");
-
-        // MPI: мастер-запись (источник: ЕДИН)
-        builder.Property(x => x.MpiMasterId).HasColumnName("mpi_master_id");
-        builder.HasIndex(x => x.MpiMasterId).HasDatabaseName("ix_ecosystem_participant_mpi_master_id");
 
         builder.Property(x => x.IsActive).HasColumnName("is_active").IsRequired().HasDefaultValue(true);
 
         builder.Property(x => x.CreatedAt).HasColumnName("created_at").HasDefaultValueSql("CURRENT_TIMESTAMP");
         builder.Property(x => x.CreatedBy).HasColumnName("created_by");
 
-        builder.HasIndex(x => new { x.LegalEntityId, x.Login }).IsUnique().HasDatabaseName("ux_ecosystem_participant_le_login");
+        builder.HasIndex(x => new { x.LegalEntityId, x.EcosystemPersonId }).IsUnique().HasDatabaseName("ux_ecosystem_participant_le_person");
         builder.HasIndex(x => x.LegalEntityId).HasDatabaseName("ix_ecosystem_participant_le");
 
         builder.HasOne(x => x.LegalEntity)
             .WithMany()
             .HasForeignKey(x => x.LegalEntityId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(x => x.EcosystemPerson)
+            .WithMany()
+            .HasForeignKey(x => x.EcosystemPersonId)
             .OnDelete(DeleteBehavior.Restrict);
     }
 }

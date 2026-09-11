@@ -188,7 +188,7 @@ public static class DocumentCatalogEndpoints
         if (user is null) return null;
 
         var participant = await ctx.EcosystemParticipants
-            .FirstOrDefaultAsync(ep => ep.Login == user.Login);
+            .FirstOrDefaultAsync(ep => ep.UserId == user.Id);
         return participant?.LegalEntityId;
     }
 

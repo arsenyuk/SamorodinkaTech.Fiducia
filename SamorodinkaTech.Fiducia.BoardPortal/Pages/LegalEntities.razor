@@ -1264,7 +1264,8 @@
             }
 
             var participant = await ctx.EcosystemParticipants
-                .FirstOrDefaultAsync(ep => ep.Login == login);
+                .Include(ep => ep.User)
+                .FirstOrDefaultAsync(ep => ep.User != null && ep.User.Login == login);
 
             if (participant is null)
             {
@@ -1755,7 +1756,8 @@
 
                         // Ищем ecosystem_participant по MasterId + LegalEntityId
                         var ep = await scopedCtx.EcosystemParticipants
-                            .FirstOrDefaultAsync(x => x.MpiMasterId == result.MasterId
+                            .Include(x => x.User)
+                            .FirstOrDefaultAsync(x => x.User != null && x.User.MpiMasterId == result.MasterId
                                                    && x.LegalEntityId == gdLeId);
 
                         if (ep is null)
@@ -1767,9 +1769,13 @@
                         // Привязываем board_participant к ecosystem_participant
                         bp.EcosystemParticipantId = ep.Id;
 
-                        // Устанавливаем MasterId если не был установлен
-                        if (ep.MpiMasterId is null)
-                            ep.MpiMasterId = result.MasterId;
+                        // Устанавливаем MasterId если не был установлен (в User)
+                        if (ep.User?.MpiMasterId is null && ep.UserId.HasValue)
+                        {
+                            var user = await scopedCtx.Users.FindAsync(ep.UserId.Value);
+                            if (user is not null)
+                                user.MpiMasterId = result.MasterId;
+                        }
 
                         // Назначаем роль CEO если есть user
                         if (ep.UserId.HasValue)

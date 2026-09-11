@@ -91,19 +91,15 @@ public static class CharterTestSeeder
             CharterTestDataFixed.RoleLeAdmin,
             entity.Name);
 
-        // ГД (или первый участник для типов B/C)
-        if (persons.Gd is not null)
+        // ГД — EcosystemParticipant создаётся выше (admin), роль CEO назначается при привязке BoardParticipant через Board Portal
+        if (persons.Gd is not null && persons.Gd.Login != entity.AdminUser.Login)
         {
-            // Пропускаем если ГД = администратор (тот же login — один человек)
-            if (persons.Gd.Login != entity.AdminUser.Login)
-            {
-                await AdminConsoleHelper.AddEmployeeAsync(
-                    adminPage,
-                    persons.Gd.LastName, persons.Gd.FirstName, persons.Gd.MiddleName,
-                    persons.Gd.Position, persons.Gd.Login,
-                    CharterTestDataFixed.RoleCeo,
-                    entity.Name);
-            }
+            await AdminConsoleHelper.AddEmployeeAsync(
+                adminPage,
+                persons.Gd.LastName, persons.Gd.FirstName, persons.Gd.MiddleName,
+                persons.Gd.Position, persons.Gd.Login,
+                CharterTestDataFixed.RoleCeo,
+                entity.Name);
         }
         else if (persons.Participants.Count > 0)
         {

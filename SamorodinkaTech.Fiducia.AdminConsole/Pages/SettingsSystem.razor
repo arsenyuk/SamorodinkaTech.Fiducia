@@ -1,13 +1,14 @@
 @page "/settings/system"
 @using Microsoft.EntityFrameworkCore
+@using SamorodinkaTech.Fiducia.Domain.Constants
 @inject IDbContextFactory<SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext> DbFactory
 @attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "SYS_ADMIN")]
 
-<PageTitle>Fiducia — Системные настройки</PageTitle>
+<PageTitle>Fiducia — Общие настройки</PageTitle>
 
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h3>Системные настройки</h3>
+        <h3>Общие настройки</h3>
         <a href="/settings" class="btn btn-outline-secondary btn-sm">← Назад</a>
     </div>
 
@@ -23,11 +24,6 @@
     <div class="card mb-4">
         <div class="card-body">
             <div class="row mb-3">
-                <div class="col-md-6">
-                    <label class="form-label fw-bold">Дедлайн протокола (дней)</label>
-                    <input type="number" class="form-control" @bind="_protocolDeadline" min="1" max="30">
-                    <small class="text-muted">Согласно <a href="/board-law/68">ст. 68 п. 4 208-ФЗ</a></small>
-                </div>
                 <div class="col-md-6">
                     <label class="form-label fw-bold">Срок действия инвайта (дней)</label>
                     <input type="number" class="form-control" @bind="_inviteExpiry" min="1" max="30">
@@ -48,33 +44,6 @@
                         <div class="invalid-feedback">@_ganttPaddingError</div>
                     }
                     <small class="text-muted">После окончания последней задачи на диаграмме оргплана</small>
-                </div>
-            </div>
-
-            <hr />
-            <h6>Шаблоны наименований заседаний</h6>
-            <div class="row mb-3">
-                <div class="col-md-6">
-                    <label class="form-label fw-bold">Шаблон наименования ГОСА</label>
-                    <input type="text" class="form-control @(_gosaTitleError is not null ? "is-invalid" : "")" @bind="_gosaTitleTemplate"
-                           @oninput="() => _gosaTitleError = null"
-                           placeholder="Годовое за {YYYY} год">
-                    @if (_gosaTitleError is not null)
-                    {
-                        <div class="invalid-feedback">@_gosaTitleError</div>
-                    }
-                    <small class="text-muted">Плейсхолдеры: <code>{YYYY}</code> — год, <code>{YY}</code> — год (2 цифры), <code>{MM}</code> — месяц, <code>{DD}</code> — день</small>
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label fw-bold">Шаблон наименования ООСУ</label>
-                    <input type="text" class="form-control @(_oosuTitleError is not null ? "is-invalid" : "")" @bind="_oosuTitleTemplate"
-                           @oninput="() => _oosuTitleError = null"
-                           placeholder="Очередное за {YYYY} год">
-                    @if (_oosuTitleError is not null)
-                    {
-                        <div class="invalid-feedback">@_oosuTitleError</div>
-                    }
-                    <small class="text-muted">Плейсхолдеры: <code>{YYYY}</code> — год, <code>{YY}</code> — год (2 цифры), <code>{MM}</code> — месяц, <code>{DD}</code> — день</small>
                 </div>
             </div>
 
@@ -111,18 +80,13 @@
 </div>
 
 @code {
-    private int _protocolDeadline = 3;
     private int _inviteExpiry = 7;
     private string _tspServer = "http://timestamp.ru/timestamp";
     private int _ganttPaddingWeeks = 2;
-    private string _gosaTitleTemplate = "Годовое за {YYYY} год";
-    private string _oosuTitleTemplate = "Очередное за {YYYY} год";
     private string _blockedExtensions = "exe,dll,com,msi,bat,cmd,scr,pif";
     private string? _blockedExtensionsError;
     private string _qrExtensions = "png,jpg,jpeg,bmp,gif,tiff,pdf";
     private string? _qrExtensionsError;
-    private string? _gosaTitleError;
-    private string? _oosuTitleError;
     private string? _ganttPaddingError;
     private string? _successMessage;
     private string? _errorMessage;
@@ -134,15 +98,11 @@
             await using var ctx = await DbFactory.CreateDbContextAsync();
             var settings = await ctx.SystemSettings.ToDictionaryAsync(x => x.Key, x => x.Value);
 
-            if (settings.TryGetValue("gantt_end_padding_weeks", out var pw) && int.TryParse(pw, out var pww))
+            if (settings.TryGetValue(SystemSettingKeys.GanttEndPaddingWeeks, out var pw) && int.TryParse(pw, out var pww))
                 _ganttPaddingWeeks = pww;
-            if (settings.TryGetValue("gosa_title_template", out var gt) && !string.IsNullOrEmpty(gt))
-                _gosaTitleTemplate = gt;
-            if (settings.TryGetValue("oosu_title_template", out var ot) && !string.IsNullOrEmpty(ot))
-                _oosuTitleTemplate = ot;
-            if (settings.TryGetValue("blocked_extensions", out var be) && !string.IsNullOrEmpty(be))
+            if (settings.TryGetValue(SystemSettingKeys.BlockedExtensions, out var be) && !string.IsNullOrEmpty(be))
                 _blockedExtensions = be;
-            if (settings.TryGetValue("qr_code_extensions", out var qr) && !string.IsNullOrEmpty(qr))
+            if (settings.TryGetValue(SystemSettingKeys.QrCodeExtensions, out var qr) && !string.IsNullOrEmpty(qr))
                 _qrExtensions = qr;
         }
         catch { }
@@ -155,12 +115,9 @@
 
         _blockedExtensionsError = ValidateExtensionList(_blockedExtensions);
         _qrExtensionsError = ValidateExtensionList(_qrExtensions);
-        _gosaTitleError = ValidateTemplate(_gosaTitleTemplate);
-        _oosuTitleError = ValidateTemplate(_oosuTitleTemplate);
         _ganttPaddingError = _ganttPaddingWeeks < 0 ? "Значение не может быть отрицательным." : null;
 
         if (_blockedExtensionsError is not null || _qrExtensionsError is not null
-            || _gosaTitleError is not null || _oosuTitleError is not null
             || _ganttPaddingError is not null)
         {
             StateHasChanged();
@@ -170,11 +127,9 @@
         try
         {
             await using var ctx = await DbFactory.CreateDbContextAsync();
-            await UpsertSetting(ctx, "gantt_end_padding_weeks", _ganttPaddingWeeks.ToString(), "Запас в неделях");
-            await UpsertSetting(ctx, "gosa_title_template", _gosaTitleTemplate, "Шаблон названия ГОСА", "template_string");
-            await UpsertSetting(ctx, "oosu_title_template", _oosuTitleTemplate, "Шаблон названия ООСУ", "template_string");
-            await UpsertSetting(ctx, "blocked_extensions", _blockedExtensions, "Запрещённые расширения файлов", "extension_list");
-            await UpsertSetting(ctx, "qr_code_extensions", _qrExtensions, "Расширения файлов для QR-кода", "extension_list");
+            await UpsertSetting(ctx, SystemSettingKeys.GanttEndPaddingWeeks, _ganttPaddingWeeks.ToString(), "Запас в неделях");
+            await UpsertSetting(ctx, SystemSettingKeys.BlockedExtensions, _blockedExtensions, "Запрещённые расширения файлов", "extension_list");
+            await UpsertSetting(ctx, SystemSettingKeys.QrCodeExtensions, _qrExtensions, "Расширения файлов для QR-кода", "extension_list");
             await ctx.SaveChangesAsync();
             _successMessage = "Настройки сохранены.";
         }
@@ -216,23 +171,6 @@
                 return $"Недопустимое расширение «{ext}». Допустимы только латинские буквы и цифры без точки.";
             if (!seen.Add(ext)) return $"Дубликат расширения «{ext}».";
             if (ext.Length > 20) return $"Расширение «{ext}» слишком длинное (максимум 20 символов).";
-        }
-        return null;
-    }
-
-    private static readonly HashSet<string> KnownPlaceholders = new(StringComparer.OrdinalIgnoreCase) { "{YYYY}", "{YY}", "{MM}", "{DD}" };
-
-    private static string? ValidateTemplate(string? value)
-    {
-        if (string.IsNullOrWhiteSpace(value)) return null;
-        if (value.Length > 200) return "Шаблон слишком длинный (максимум 200 символов).";
-        var matches = System.Text.RegularExpressions.Regex.Matches(value, @"\{[A-Za-z]+\}");
-        foreach (System.Text.RegularExpressions.Match m in matches)
-        {
-            if (m.Value != m.Value.ToUpperInvariant())
-                return $"Плейсхолдер «{m.Value}» должен быть в верхнем регистре: «{m.Value.ToUpperInvariant()}».";
-            if (!KnownPlaceholders.Contains(m.Value))
-                return $"Неизвестный плейсхолдер «{m.Value}». Допустимы: {string.Join(", ", KnownPlaceholders)}";
         }
         return null;
     }

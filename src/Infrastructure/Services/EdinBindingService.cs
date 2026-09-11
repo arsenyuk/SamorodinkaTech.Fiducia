@@ -76,69 +76,75 @@ public class EdinBindingService : IEdinBindingService
         var masterId = resolveResult.MasterId.Value;
 
         // Привязка MasterId к участнику
-        var participant = await _dbContext.EcosystemParticipants.FindAsync([ecosystemParticipantId], ct);
+        var participant = await _dbContext.EcosystemParticipants
+            .Include(x => x.User)
+            .FirstOrDefaultAsync(x => x.Id == ecosystemParticipantId, ct);
         if (participant is null)
         {
             return new EdinBindingResult { Error = $"Участник {ecosystemParticipantId} не найден" };
         }
 
-        if (participant.MpiMasterId == masterId && participant.UserId.HasValue)
+        // Проверяем, есть ли уже MasterId у пользователя
+        if (participant.User?.MpiMasterId == masterId && participant.UserId.HasValue)
         {
             return new EdinBindingResult { Success = true, MpiMasterId = masterId, LinkedUserId = participant.UserId };
         }
 
-        // ── Дедупликация по MasterId: проверяем, есть ли уже EP с тем же MasterId в этом ЮЛ ──
-        var duplicateEp = await _dbContext.EcosystemParticipants
-            .FirstOrDefaultAsync(x => x.MpiMasterId == masterId
-                                   && x.LegalEntityId == participant.LegalEntityId
-                                   && x.Id != participant.Id, ct);
+        // ── Дедупликация по MasterId: проверяем, есть ли уже User с тем же MasterId в этом ЮЛ ──
+        var duplicateUser = await _dbContext.Users
+            .FirstOrDefaultAsync(u => u.MpiMasterId == masterId, ct);
 
-        if (duplicateEp is not null)
+        if (duplicateUser is not null && duplicateUser.Id != participant.UserId)
         {
-            _logger.LogInformation("ЕДИН: дубликат MasterId={MasterId} — EP {DuplicateId} уже привязан в ЮЛ {LeId}. Привязываем BoardParticipant к существующему EP.",
-                masterId, duplicateEp.Id, participant.LegalEntityId);
+            _logger.LogInformation("ЕДИН: дубликат MasterId={MasterId} — User {UserId} уже привязан. Привязываем EP к существующему User.",
+                masterId, duplicateUser.Id);
 
-            // Привязываем BoardParticipant к существующему EcosystemParticipant
-            var boardParticipant = await _dbContext.BoardParticipants
-                .FirstOrDefaultAsync(bp => bp.EcosystemParticipantId == participant.Id, ct);
-            if (boardParticipant is not null)
+            // Привязываем BoardParticipant к существующему EcosystemParticipant (если есть)
+            var existingEp = await _dbContext.EcosystemParticipants
+                .FirstOrDefaultAsync(x => x.UserId == duplicateUser.Id
+                                       && x.LegalEntityId == participant.LegalEntityId
+                                       && x.Id != participant.Id, ct);
+            if (existingEp is not null)
             {
-                boardParticipant.EcosystemParticipantId = duplicateEp.Id;
+                var boardParticipant = await _dbContext.BoardParticipants
+                    .FirstOrDefaultAsync(bp => bp.EcosystemParticipantId == participant.Id, ct);
+                if (boardParticipant is not null)
+                {
+                    boardParticipant.EcosystemParticipantId = existingEp.Id;
+                }
             }
 
-            // Если у существующего EP уже есть UserId — привязываем и к текущему
-            if (duplicateEp.UserId.HasValue && participant.UserId != duplicateEp.UserId)
-            {
-                participant.UserId = duplicateEp.UserId.Value;
-            }
-
-            participant.MpiMasterId = masterId;
+            participant.UserId = duplicateUser.Id;
             await _dbContext.SaveChangesAsync(ct);
 
             return new EdinBindingResult
             {
                 Success = true,
                 MpiMasterId = masterId,
-                LinkedUserId = duplicateEp.UserId ?? participant.UserId,
-                UserSource = duplicateEp.UserId.HasValue ? "existing_ep" : null
+                LinkedUserId = duplicateUser.Id,
+                UserSource = "existing_user"
             };
         }
 
-        participant.MpiMasterId = masterId;
+        // Записываем MasterId в User
+        if (participant.User is not null)
+        {
+            participant.User.MpiMasterId = masterId;
+        }
 
         // Поиск УЗ: в БД по mpi_master_id (источник: LDAP/AD синхронизация)
         Guid? linkedUserId = null;
         string? userSource = null;
 
-        var existingUser = await _dbContext.Users
+        var existingUserByMpi = await _dbContext.Users
             .FirstOrDefaultAsync(u => u.MpiMasterId == masterId, ct);
 
-        if (existingUser is not null)
+        if (existingUserByMpi is not null)
         {
-            linkedUserId = existingUser.Id;
+            linkedUserId = existingUserByMpi.Id;
             userSource = "db";
             _logger.LogInformation("ЕДИН: УЗ найдена в БД по MPI MasterId={MasterId}: User={UserId}",
-                masterId, existingUser.Id);
+                masterId, existingUserByMpi.Id);
         }
 
         if (linkedUserId.HasValue)

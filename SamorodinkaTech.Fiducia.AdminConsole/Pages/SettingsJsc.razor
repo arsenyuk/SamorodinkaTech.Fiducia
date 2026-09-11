@@ -1,0 +1,151 @@
+@page "/settings/jsc"
+@using Microsoft.EntityFrameworkCore
+@using SamorodinkaTech.Fiducia.Domain.Constants
+@inject IDbContextFactory<SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext> DbFactory
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "SYS_ADMIN")]
+
+<PageTitle>Fiducia — Настройки АО</PageTitle>
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3>Настройки АО</h3>
+        <a href="/settings" class="btn btn-outline-secondary btn-sm">← Назад</a>
+    </div>
+
+    @if (!string.IsNullOrEmpty(_successMessage))
+    {
+        <div class="alert alert-success">@_successMessage</div>
+    }
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <h6>Протоколы</h6>
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label class="form-label fw-bold">Срок составления протокола ОСА (дней)</label>
+                    <input type="number" class="form-control" @bind="_osaProtocolDeadline" min="1" max="30">
+                    <small class="text-muted">Ст. 68 п. 4 208-ФЗ</small>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-bold">Срок составления протокола заседания СД (дней)</label>
+                    <input type="number" class="form-control" @bind="_osaBoardProtocolDeadline" min="1" max="30">
+                    <small class="text-muted">Ст. 65 208-ФЗ</small>
+                </div>
+            </div>
+
+            <hr />
+            <h6>Шаблоны</h6>
+            <div class="mb-3">
+                <label class="form-label fw-bold">Шаблон наименования ГОСА</label>
+                <input type="text" class="form-control @(_gosaTitleError is not null ? "is-invalid" : "")" @bind="_gosaTitleTemplate"
+                       @oninput="() => _gosaTitleError = null"
+                       placeholder="Годовое за {YYYY} год">
+                @if (_gosaTitleError is not null)
+                {
+                    <div class="invalid-feedback">@_gosaTitleError</div>
+                }
+                <small class="text-muted">Плейсхолдеры: <code>{YYYY}</code> — год, <code>{YY}</code> — год (2 цифры), <code>{MM}</code> — месяц, <code>{DD}</code> — день</small>
+            </div>
+
+            <hr />
+            <h6>Пороги</h6>
+            <div class="mb-3">
+                <label class="form-label fw-bold">Порог для требования ВОСА, %</label>
+                <input type="number" class="form-control" @bind="_vosaThreshold"
+                       min="0.01" max="100" step="0.01" placeholder="10 (по умолчанию)" />
+                <small class="text-muted">Порог доли акционера АО для требования о созыве ВОСА. По умолчанию 10% (п. 1 ст. 55 208-ФЗ).</small>
+            </div>
+
+            <button class="btn btn-primary" @onclick="Save">Сохранить</button>
+        </div>
+    </div>
+</div>
+
+@code {
+    private int _osaProtocolDeadline = 3;
+    private int _osaBoardProtocolDeadline = 3;
+    private string _gosaTitleTemplate = "Годовое за {YYYY} год";
+    private string? _gosaTitleError;
+    private decimal? _vosaThreshold;
+    private string? _successMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+            var settings = await ctx.SystemSettings.ToDictionaryAsync(x => x.Key, x => x.Value);
+
+            if (settings.TryGetValue(SystemSettingKeys.OsaProtocolDeadlineDays, out var osaD) && int.TryParse(osaD, out var osaV))
+                _osaProtocolDeadline = osaV;
+            if (settings.TryGetValue(SystemSettingKeys.OsaBoardProtocolDeadlineDays, out var osaBd) && int.TryParse(osaBd, out var osaBv))
+                _osaBoardProtocolDeadline = osaBv;
+            if (settings.TryGetValue(SystemSettingKeys.GosaTitleTemplate, out var gt) && !string.IsNullOrEmpty(gt))
+                _gosaTitleTemplate = gt;
+            if (settings.TryGetValue(SystemSettingKeys.VosaDefaultThresholdPercent, out var vt) && decimal.TryParse(vt, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var vosaV2))
+                _vosaThreshold = vosaV2;
+        }
+        catch { }
+    }
+
+    private async Task Save()
+    {
+        _successMessage = null;
+        _gosaTitleError = ValidateTemplate(_gosaTitleTemplate);
+
+        if (_gosaTitleError is not null)
+        {
+            StateHasChanged();
+            return;
+        }
+
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+            await UpsertSetting(ctx, SystemSettingKeys.OsaProtocolDeadlineDays, _osaProtocolDeadline.ToString(), "Срок составления протокола ОСА (дней)", "positive_int");
+            await UpsertSetting(ctx, SystemSettingKeys.OsaBoardProtocolDeadlineDays, _osaBoardProtocolDeadline.ToString(), "Срок составления протокола заседания СД (АО) (дней)", "positive_int");
+            await UpsertSetting(ctx, SystemSettingKeys.GosaTitleTemplate, _gosaTitleTemplate, "Шаблон названия ГОСА", "template_string");
+            await UpsertSetting(ctx, SystemSettingKeys.VosaDefaultThresholdPercent, _vosaThreshold?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "", "Порог доли акционера для требования ВОСА");
+            await ctx.SaveChangesAsync();
+            _successMessage = "Настройки АО сохранены.";
+        }
+        catch { }
+    }
+
+    private static async Task UpsertSetting(SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext ctx,
+        string key, string value, string description, string? validationType = null)
+    {
+        var setting = await ctx.SystemSettings.FirstOrDefaultAsync(x => x.Key == key);
+        if (setting is not null)
+        {
+            setting.Value = value;
+            setting.ValidationType = validationType;
+            setting.UpdatedAt = DateTime.UtcNow;
+        }
+        else
+        {
+            ctx.SystemSettings.Add(new SamorodinkaTech.Fiducia.Domain.Entities.SystemSetting
+            {
+                Id = Guid.NewGuid(), Key = key, Value = value, Description = description,
+                ValidationType = validationType, CreatedAt = DateTime.UtcNow
+            });
+        }
+    }
+
+    private static readonly HashSet<string> KnownPlaceholders = new(StringComparer.OrdinalIgnoreCase) { "{YYYY}", "{YY}", "{MM}", "{DD}" };
+
+    private static string? ValidateTemplate(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return null;
+        if (value.Length > 200) return "Шаблон слишком длинный (максимум 200 символов).";
+        var matches = System.Text.RegularExpressions.Regex.Matches(value, @"\{[A-Za-z]+\}");
+        foreach (System.Text.RegularExpressions.Match m in matches)
+        {
+            if (m.Value != m.Value.ToUpperInvariant())
+                return $"Плейсхолдер «{m.Value}» должен быть в верхнем регистре: «{m.Value.ToUpperInvariant()}».";
+            if (!KnownPlaceholders.Contains(m.Value))
+                return $"Неизвестный плейсхолдер «{m.Value}». Допустимы: {string.Join(", ", KnownPlaceholders)}";
+        }
+        return null;
+    }
+}

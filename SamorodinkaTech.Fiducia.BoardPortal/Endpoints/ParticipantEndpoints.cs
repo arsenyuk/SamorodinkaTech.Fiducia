@@ -39,7 +39,8 @@ public static class ParticipantEndpoints
                 if (!string.IsNullOrEmpty(login))
                 {
                     var participant = await ctx.EcosystemParticipants
-                        .FirstOrDefaultAsync(ep => ep.Login == login);
+                        .Include(ep => ep.User)
+                        .FirstOrDefaultAsync(ep => ep.User != null && ep.User.Login == login);
                     if (participant != null)
                         leId = participant.LegalEntityId;
                 }
@@ -68,9 +69,12 @@ public static class ParticipantEndpoints
 
             var search = name.Trim().ToLower();
             var results = await ctx.EcosystemParticipants
+                .Include(ep => ep.EcosystemPerson)
+                .Include(ep => ep.User)
                 .Where(ep => ep.LegalEntityId == leId.Value && ep.IsActive
-                    && (ep.LastName + " " + ep.FirstName + " " + (ep.MiddleName ?? "")).ToLower().Contains(search))
-                .Select(ep => new { ep.Id, ep.Login, FullName = ep.LastName + " " + ep.FirstName + " " + (ep.MiddleName ?? "") })
+                    && ep.EcosystemPerson != null
+                    && (ep.EcosystemPerson.LastName + " " + ep.EcosystemPerson.FirstName + " " + (ep.EcosystemPerson.MiddleName ?? "")).ToLower().Contains(search))
+                .Select(ep => new { ep.Id, Login = ep.User!.Login, FullName = ep.EcosystemPerson!.LastName + " " + ep.EcosystemPerson.FirstName + " " + (ep.EcosystemPerson.MiddleName ?? "") })
                 .ToListAsync();
 
             return Results.Ok(results);
@@ -112,7 +116,7 @@ public static class ParticipantEndpoints
         participants.MapGet("/{id}", async (Guid id, IDbContextFactory<FiduciaDbContext> dbFactory) =>
         {
             await using var ctx = await dbFactory.CreateDbContextAsync();
-            var p = await ctx.BoardParticipants.Include(x => x.EcosystemParticipant).Include(x => x.Person).FirstOrDefaultAsync(x => x.Id == id);
+            var p = await ctx.BoardParticipants.Include(x => x.EcosystemParticipant).ThenInclude(x => x!.User).Include(x => x.Person).FirstOrDefaultAsync(x => x.Id == id);
             if (p is null) return Results.NotFound();
             return Results.Ok(MapParticipantToDto(p));
         });
@@ -166,14 +170,22 @@ public static class ParticipantEndpoints
                     // Привязываемся к существующему EcosystemParticipant или создаём новый
                     if (!entity.EcosystemParticipantId.HasValue)
                     {
+                        var ecoPerson = new EcosystemPerson
+                        {
+                            Id = Guid.NewGuid(),
+                            LastName = lastName,
+                            FirstName = firstName,
+                            MiddleName = middleName,
+                            CreatedAt = DateTime.UtcNow,
+                            CreatedBy = userId
+                        };
+                        ctx.EcosystemPersons.Add(ecoPerson);
+
                         var ecoParticipant = new EcosystemParticipant
                         {
                             Id = Guid.NewGuid(),
                             LegalEntityId = leId,
-                            LastName = lastName,
-                            FirstName = firstName,
-                            MiddleName = middleName,
-                            Login = string.Empty,
+                            EcosystemPersonId = ecoPerson.Id,
                             IsActive = true,
                             CreatedAt = DateTime.UtcNow,
                             CreatedBy = userId
@@ -353,7 +365,8 @@ public static class ParticipantEndpoints
 
                 var (login, _) = await GetUserInfoAsync(ctx, http);
                 var participant = await ctx.EcosystemParticipants
-                    .FirstOrDefaultAsync(ep => ep.Login == login);
+                    .Include(ep => ep.User)
+                    .FirstOrDefaultAsync(ep => ep.User != null && ep.User.Login == login);
                 var leId = participant?.LegalEntityId ?? Guid.Empty;
 
                 var le = await ctx.LegalEntities.FirstOrDefaultAsync(x => x.Id == leId);
@@ -516,7 +529,8 @@ public static class ParticipantEndpoints
 
                 var (login, _) = await GetUserInfoAsync(ctx, http);
                 var participant = await ctx.EcosystemParticipants
-                    .FirstOrDefaultAsync(ep => ep.Login == login);
+                    .Include(ep => ep.User)
+                    .FirstOrDefaultAsync(ep => ep.User != null && ep.User.Login == login);
                 var leId = participant?.LegalEntityId ?? Guid.Empty;
 
                 var maxSort = await ctx.BoardTreasuryShares
@@ -1074,7 +1088,8 @@ public static class ParticipantEndpoints
         }
 
         var participant = await ctx.EcosystemParticipants
-            .FirstOrDefaultAsync(ep => ep.Login == login);
+            .Include(ep => ep.User)
+            .FirstOrDefaultAsync(ep => ep.User != null && ep.User.Login == login);
 
         if (participant is null)
         {
@@ -1329,7 +1344,7 @@ public static class ParticipantEndpoints
             p.ParticipantType,
             p.PersonId,
             FullName = p.Person?.FullName,
-            MpiMasterId = p.EcosystemParticipant?.MpiMasterId,
+            MpiMasterId = p.EcosystemParticipant?.User?.MpiMasterId,
             DulTypeId = primaryDoc?.DulTypeId,
             PassportSeries = primaryDoc?.Series,
             PassportNumber = primaryDoc?.Number,

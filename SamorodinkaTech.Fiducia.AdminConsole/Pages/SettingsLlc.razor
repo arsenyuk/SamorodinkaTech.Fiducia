@@ -1,0 +1,151 @@
+@page "/settings/llc"
+@using Microsoft.EntityFrameworkCore
+@using SamorodinkaTech.Fiducia.Domain.Constants
+@inject IDbContextFactory<SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext> DbFactory
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "SYS_ADMIN")]
+
+<PageTitle>Fiducia — Настройки ООО</PageTitle>
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3>Настройки ООО</h3>
+        <a href="/settings" class="btn btn-outline-secondary btn-sm">← Назад</a>
+    </div>
+
+    @if (!string.IsNullOrEmpty(_successMessage))
+    {
+        <div class="alert alert-success">@_successMessage</div>
+    }
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <h6>Протоколы</h6>
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label class="form-label fw-bold">Срок составления протокола ОСУ (дней)</label>
+                    <input type="number" class="form-control" @bind="_osuProtocolDeadline" min="1" max="30">
+                    <small class="text-muted">Ст. 37 п. 6 14-ФЗ</small>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-bold">Срок составления протокола заседания СД (дней)</label>
+                    <input type="number" class="form-control" @bind="_osuBoardProtocolDeadline" min="1" max="30">
+                    <small class="text-muted">Ст. 32 п. 3.2 14-ФЗ</small>
+                </div>
+            </div>
+
+            <hr />
+            <h6>Шаблоны</h6>
+            <div class="mb-3">
+                <label class="form-label fw-bold">Шаблон наименования ООСУ</label>
+                <input type="text" class="form-control @(_oosuTitleError is not null ? "is-invalid" : "")" @bind="_oosuTitleTemplate"
+                       @oninput="() => _oosuTitleError = null"
+                       placeholder="Очередное за {YYYY} год">
+                @if (_oosuTitleError is not null)
+                {
+                    <div class="invalid-feedback">@_oosuTitleError</div>
+                }
+                <small class="text-muted">Плейсхолдеры: <code>{YYYY}</code> — год, <code>{YY}</code> — год (2 цифры), <code>{MM}</code> — месяц, <code>{DD}</code> — день</small>
+            </div>
+
+            <hr />
+            <h6>Пороги</h6>
+            <div class="mb-3">
+                <label class="form-label fw-bold">Порог для требования ВОСУ, %</label>
+                <input type="number" class="form-control" @bind="_vosuThreshold"
+                       min="0.01" max="100" step="0.01" placeholder="10 (по умолчанию)" />
+                <small class="text-muted">Порог доли участника ООО для требования о созыве ВОСУ. По умолчанию 10% (п. 1 ст. 35 14-ФЗ).</small>
+            </div>
+
+            <button class="btn btn-primary" @onclick="Save">Сохранить</button>
+        </div>
+    </div>
+</div>
+
+@code {
+    private int _osuProtocolDeadline = 3;
+    private int _osuBoardProtocolDeadline = 3;
+    private string _oosuTitleTemplate = "Очередное за {YYYY} год";
+    private string? _oosuTitleError;
+    private decimal? _vosuThreshold;
+    private string? _successMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+            var settings = await ctx.SystemSettings.ToDictionaryAsync(x => x.Key, x => x.Value);
+
+            if (settings.TryGetValue(SystemSettingKeys.OsuProtocolDeadlineDays, out var osuD) && int.TryParse(osuD, out var osuV))
+                _osuProtocolDeadline = osuV;
+            if (settings.TryGetValue(SystemSettingKeys.OsuBoardProtocolDeadlineDays, out var osuBd) && int.TryParse(osuBd, out var osuBv))
+                _osuBoardProtocolDeadline = osuBv;
+            if (settings.TryGetValue(SystemSettingKeys.OosuTitleTemplate, out var ot) && !string.IsNullOrEmpty(ot))
+                _oosuTitleTemplate = ot;
+            if (settings.TryGetValue(SystemSettingKeys.VosuDefaultThresholdPercent, out var vt) && decimal.TryParse(vt, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var vosuV2))
+                _vosuThreshold = vosuV2;
+        }
+        catch { }
+    }
+
+    private async Task Save()
+    {
+        _successMessage = null;
+        _oosuTitleError = ValidateTemplate(_oosuTitleTemplate);
+
+        if (_oosuTitleError is not null)
+        {
+            StateHasChanged();
+            return;
+        }
+
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+            await UpsertSetting(ctx, SystemSettingKeys.OsuProtocolDeadlineDays, _osuProtocolDeadline.ToString(), "Срок составления протокола ОСУ (дней)", "positive_int");
+            await UpsertSetting(ctx, SystemSettingKeys.OsuBoardProtocolDeadlineDays, _osuBoardProtocolDeadline.ToString(), "Срок составления протокола заседания СД (ООО) (дней)", "positive_int");
+            await UpsertSetting(ctx, SystemSettingKeys.OosuTitleTemplate, _oosuTitleTemplate, "Шаблон названия ООСУ", "template_string");
+            await UpsertSetting(ctx, SystemSettingKeys.VosuDefaultThresholdPercent, _vosuThreshold?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "", "Порог доли участника для требования ВОСУ");
+            await ctx.SaveChangesAsync();
+            _successMessage = "Настройки ООО сохранены.";
+        }
+        catch { }
+    }
+
+    private static async Task UpsertSetting(SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext ctx,
+        string key, string value, string description, string? validationType = null)
+    {
+        var setting = await ctx.SystemSettings.FirstOrDefaultAsync(x => x.Key == key);
+        if (setting is not null)
+        {
+            setting.Value = value;
+            setting.ValidationType = validationType;
+            setting.UpdatedAt = DateTime.UtcNow;
+        }
+        else
+        {
+            ctx.SystemSettings.Add(new SamorodinkaTech.Fiducia.Domain.Entities.SystemSetting
+            {
+                Id = Guid.NewGuid(), Key = key, Value = value, Description = description,
+                ValidationType = validationType, CreatedAt = DateTime.UtcNow
+            });
+        }
+    }
+
+    private static readonly HashSet<string> KnownPlaceholders = new(StringComparer.OrdinalIgnoreCase) { "{YYYY}", "{YY}", "{MM}", "{DD}" };
+
+    private static string? ValidateTemplate(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return null;
+        if (value.Length > 200) return "Шаблон слишком длинный (максимум 200 символов).";
+        var matches = System.Text.RegularExpressions.Regex.Matches(value, @"\{[A-Za-z]+\}");
+        foreach (System.Text.RegularExpressions.Match m in matches)
+        {
+            if (m.Value != m.Value.ToUpperInvariant())
+                return $"Плейсхолдер «{m.Value}» должен быть в верхнем регистре: «{m.Value.ToUpperInvariant()}».";
+            if (!KnownPlaceholders.Contains(m.Value))
+                return $"Неизвестный плейсхолдер «{m.Value}». Допустимы: {string.Join(", ", KnownPlaceholders)}";
+        }
+        return null;
+    }
+}

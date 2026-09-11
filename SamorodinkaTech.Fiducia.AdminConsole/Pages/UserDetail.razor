@@ -129,25 +129,19 @@
                     {
                         <dl class="row mb-0">
                             <dt class="col-sm-3">Фамилия</dt>
-                            <dd class="col-sm-9">@_person.LastName</dd>
+                            <dd class="col-sm-9">@_person.EcosystemPerson?.LastName</dd>
 
                             <dt class="col-sm-3">Имя</dt>
-                            <dd class="col-sm-9">@_person.FirstName</dd>
+                            <dd class="col-sm-9">@_person.EcosystemPerson?.FirstName</dd>
 
-                            @if (!string.IsNullOrWhiteSpace(_person.MiddleName))
+                            @if (!string.IsNullOrWhiteSpace(_person.EcosystemPerson?.MiddleName))
                             {
                                 <dt class="col-sm-3">Отчество</dt>
-                                <dd class="col-sm-9">@_person.MiddleName</dd>
+                                <dd class="col-sm-9">@_person.EcosystemPerson?.MiddleName</dd>
                             }
 
                             <dt class="col-sm-3">Email</dt>
-                            <dd class="col-sm-9">@_person.Email</dd>
-
-                            @if (!string.IsNullOrWhiteSpace(_person.Phone))
-                            {
-                                <dt class="col-sm-3">Телефон</dt>
-                                <dd class="col-sm-9">@_person.Phone</dd>
-                            }
+                            <dd class="col-sm-9">@_user.Email</dd>
 
                             @if (_user!.IsExternal)
                             {
@@ -359,6 +353,7 @@
             // Находим участника экосистемы по UserId
             _person = await DbContext.EcosystemParticipants
                 .AsNoTracking()
+                .Include(x => x.EcosystemPerson)
                 .FirstOrDefaultAsync(p => p.UserId == _user.Id);
 
             if (_person is not null)
@@ -377,7 +372,7 @@
                 .AsNoTracking()
                 .Include(e => e.LegalEntity)
                 .Include(e => e.EcosystemParticipant)
-                .Where(e => e.EcosystemParticipant != null && e.EcosystemParticipant.Login == _user.Login)
+                .Where(e => e.EcosystemParticipant != null && e.EcosystemParticipant.UserId == _user.Id)
                 .ToListAsync();
 
             _userRoles = await DbContext.UserRoles
