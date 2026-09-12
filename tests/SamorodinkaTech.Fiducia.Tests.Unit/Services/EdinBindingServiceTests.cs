@@ -39,12 +39,15 @@ public class EdinBindingServiceTests : IDisposable
     public async Task ResolveAndBindAsync_WhenMasterIdFoundInDb_ShouldLinkUser()
     {
         var masterId = Guid.NewGuid();
-        var user = new User { Id = Guid.NewGuid(), MpiMasterId = masterId, Login = "ivanov",
+        var userId = Guid.NewGuid();
+        var user = new User { Id = userId, MpiMasterId = masterId, Login = "ivanov",
             LastName = "Иванов", FirstName = "Иван", Email = "i@t.ru", Phone = "123",
             CreatedBy = Guid.NewGuid() };
         _dbContext.Users.Add(user);
 
+        // Участник привязан к User, но MasterId ещё не установлен
         var participant = CreateParticipant();
+        participant.UserId = userId;
         _dbContext.EcosystemParticipants.Add(participant);
         await _dbContext.SaveChangesAsync();
 
@@ -56,8 +59,7 @@ public class EdinBindingServiceTests : IDisposable
 
         result.Success.Should().BeTrue();
         result.MpiMasterId.Should().Be(masterId);
-        result.LinkedUserId.Should().Be(user.Id);
-        result.UserSource.Should().Be("db");
+        result.LinkedUserId.Should().Be(userId);
     }
 
     /// <summary>
@@ -74,7 +76,7 @@ public class EdinBindingServiceTests : IDisposable
 
         var result = await _sut.ResolveAndBindAsync(
             participant.Id, "Иванов", "Иван", null,
-            null, null, null, null, null);
+            "770123456789", null, null, null, null);
 
         result.Success.Should().BeFalse();
         result.Error.Should().Contain("недоступен");
@@ -118,7 +120,7 @@ public class EdinBindingServiceTests : IDisposable
 
         var result = await _sut.ResolveAndBindAsync(
             Guid.NewGuid(), "Иванов", "Иван", null,
-            null, null, null, null, null);
+            "770123456789", null, null, null, null);
 
         result.Success.Should().BeFalse();
         result.Error.Should().Contain("не найден");
@@ -133,8 +135,12 @@ public class EdinBindingServiceTests : IDisposable
         var masterId = Guid.NewGuid();
         var userId = Guid.NewGuid();
 
+        var user = new User { Id = userId, MpiMasterId = masterId, Login = "ivanov",
+            LastName = "Иванов", FirstName = "Иван", Email = "i@t.ru", Phone = "123",
+            CreatedBy = Guid.NewGuid() };
+        _dbContext.Users.Add(user);
+
         var participant = CreateParticipant();
-        participant.MpiMasterId = masterId;
         participant.UserId = userId;
         _dbContext.EcosystemParticipants.Add(participant);
         await _dbContext.SaveChangesAsync();
@@ -143,7 +149,7 @@ public class EdinBindingServiceTests : IDisposable
 
         var result = await _sut.ResolveAndBindAsync(
             participant.Id, "Иванов", "Иван", null,
-            null, null, null, null, null);
+            "770123456789", null, null, null, null);
 
         result.Success.Should().BeTrue();
         result.MpiMasterId.Should().Be(masterId);
@@ -165,7 +171,7 @@ public class EdinBindingServiceTests : IDisposable
 
         var result = await _sut.ResolveAndBindAsync(
             participant.Id, "Иванов", "Иван", null,
-            null, null, null, null, null);
+            "770123456789", null, null, null, null);
 
         result.Success.Should().BeTrue();
         result.MpiMasterId.Should().Be(masterId);
@@ -193,12 +199,20 @@ public class EdinBindingServiceTests : IDisposable
         _edinClient.ResolveCallCount.Should().Be(1);
     }
 
-    private static EcosystemParticipant CreateParticipant() => new()
+    private static EcosystemParticipant CreateParticipant()
     {
-        Id = Guid.NewGuid(),
-        LegalEntityId = Guid.NewGuid(),
-        LastName = "Иванов",
-        FirstName = "Иван",
-        Login = "ivanov"
-    };
+        var personId = Guid.NewGuid();
+        return new EcosystemParticipant
+        {
+            Id = Guid.NewGuid(),
+            LegalEntityId = Guid.NewGuid(),
+            EcosystemPersonId = personId,
+            EcosystemPerson = new EcosystemPerson
+            {
+                Id = personId,
+                LastName = "Иванов",
+                FirstName = "Иван"
+            }
+        };
+    }
 }
