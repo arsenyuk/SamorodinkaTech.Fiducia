@@ -1600,7 +1600,9 @@ CREATE TABLE IF NOT EXISTS board_participant_change (
     participant_id uuid NOT NULL REFERENCES board_participant(id) ON DELETE RESTRICT,
     participant_type varchar(20) NOT NULL,
     -- ФЛ
-    full_name varchar(300),
+    last_name varchar(300),
+    first_name varchar(300),
+    middle_name varchar(300),
     dul_type_id uuid REFERENCES ref_dul_type(id) ON DELETE SET NULL,
     passport_series varchar(10),
     passport_number varchar(10),

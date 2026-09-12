@@ -555,6 +555,8 @@ public static class BoardPortalHelper
         public Guid Id { get; set; }
         public Guid? EcosystemParticipantId { get; set; }
         public string? FullName { get; set; }
+        public string? DulSeries { get; set; }
+        public string? DulNumber { get; set; }
     }
 
     /// <summary>DTO-ответ при получении списка участников.</summary>
@@ -630,6 +632,100 @@ public static class BoardPortalHelper
         var participant = await GetParticipantAsync(page, participantId);
         return participant?.EcosystemParticipantId;
     }
+
+    /// <summary>Добавить участника с данными ДУЛ через API.</summary>
+    public static async Task<Guid> AddParticipantWithDulAsync(
+        IPage page, string fullName, string dulTypeCode, string dulSeries, string dulNumber,
+        string? personInn = null, decimal? sharePercent = null, decimal? shareAmount = null)
+    {
+        var sharePercentJson = sharePercent?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "null";
+        var shareAmountJson = shareAmount?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "null";
+        var personInnJson = personInn != null ? $"'{EscapeJs(personInn)}'" : "null";
+
+        var result = await page.EvaluateAsync<AddParticipantResponse>(
+            $@"async () => {{
+                const response = await fetch('/api/participants', {{
+                    method: 'POST',
+                    headers: {{ 'Content-Type': 'application/json' }},
+                    credentials: 'same-origin',
+                    body: JSON.stringify({{
+                        participantType: 'FL',
+                        fullName: '{EscapeJs(fullName)}',
+                        dulTypeCode: '{EscapeJs(dulTypeCode)}',
+                        dulSeries: '{EscapeJs(dulSeries)}',
+                        dulNumber: '{EscapeJs(dulNumber)}',
+                        personInn: {personInnJson},
+                        sharePercent: {sharePercentJson},
+                        shareAmount: {shareAmountJson}
+                    }})
+                }});
+                if (!response.ok) {{
+                    const body = await response.text();
+                    throw new Error(`POST /api/participants failed: ${{response.status}} ${{body}}`);
+                }}
+                return await response.json();
+            }}");
+
+        return result.Id;
+    }
+
+    /// <summary>Подать информирование об изменении сведений участника.</summary>
+    public static async Task<Guid> SubmitParticipantChangeAsync(
+        IPage page, Guid participantId,
+        string? dulTypeCode = null, string? passportSeries = null, string? passportNumber = null,
+        string? passportIssuedBy = null, string? comment = null)
+    {
+        var dulTypeCodeJson = dulTypeCode != null ? $"'{EscapeJs(dulTypeCode)}'" : "null";
+        var passportSeriesJson = passportSeries != null ? $"'{EscapeJs(passportSeries)}'" : "null";
+        var passportNumberJson = passportNumber != null ? $"'{EscapeJs(passportNumber)}'" : "null";
+        var passportIssuedByJson = passportIssuedBy != null ? $"'{EscapeJs(passportIssuedBy)}'" : "null";
+        var commentJson = comment != null ? $"'{EscapeJs(comment)}'" : "null";
+
+        var result = await page.EvaluateAsync<AddParticipantResponse>(
+            $@"async () => {{
+                const response = await fetch('/api/participant-changes', {{
+                    method: 'POST',
+                    headers: {{ 'Content-Type': 'application/json' }},
+                    credentials: 'same-origin',
+                    body: JSON.stringify({{
+                        participantId: '{participantId}',
+                        participantType: 'FL',
+                        dulTypeCode: {dulTypeCodeJson},
+                        passportSeries: {passportSeriesJson},
+                        passportNumber: {passportNumberJson},
+                        passportIssuedBy: {passportIssuedByJson},
+                        comment: {commentJson},
+                        source: 'electronic'
+                    }})
+                }});
+                if (!response.ok) {{
+                    const body = await response.text();
+                    throw new Error(`POST /api/participant-changes failed: ${{response.status}} ${{body}}`);
+                }}
+                return await response.json();
+            }}");
+
+        return result.Id;
+    }
+
+    /// <summary>Получить все версии IdentityDocument участника.</summary>
+    public static async Task<List<IdentityDocumentVersion>> GetAllIdentityDocumentsAsync(
+        IPage page, Guid participantId)
+    {
+        return await page.EvaluateAsync<List<IdentityDocumentVersion>>(
+            $@"async () => {{
+                const response = await fetch('/api/participants/{participantId}/identity-documents', {{
+                    credentials: 'same-origin'
+                }});
+                if (!response.ok) throw new Error(`GET identity-documents failed: ${{response.status}}`);
+                return await response.json();
+            }}");
+    }
+
+    /// <summary>DTO версии IdentityDocument.</summary>
+    public record IdentityDocumentVersion(
+        Guid Id, string? DulTypeCode, string? Series, string? Number,
+        bool IsActive, string? CreatedAt);
 
     // ══════════════════════════════════════════════════════════════════════
     // Вкладка «ГД» — генеральный директор

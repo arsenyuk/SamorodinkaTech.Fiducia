@@ -117,9 +117,9 @@ else
                                     {
                                         <div class="fw-semibold">@(p.FullName ?? "—")</div>
                                         <div class="small text-muted">
-                                            @if (!string.IsNullOrEmpty(p.PassportSeries) || !string.IsNullOrEmpty(p.PassportNumber))
+                                            @if (!string.IsNullOrEmpty(p.DulSeries) || !string.IsNullOrEmpty(p.DulNumber))
                                             {
-                                                <span>паспорт @p.PassportSeries @p.PassportNumber</span>
+                                                <span>паспорт @p.DulSeries @p.DulNumber</span>
                                             }
                                             @if (!string.IsNullOrEmpty(p.PassportDepartmentCode))
                                             {
@@ -1162,7 +1162,9 @@ else
             {
                 participantId = Guid.Parse(_paperParticipantId),
                 participantType = participant?.ParticipantType ?? "FL",
-                fullName = _paperFullName ?? participant?.FullName,
+                lastName = (string?)null,
+                firstName = (string?)null,
+                middleName = (string?)null,
                 personInn = _paperPersonInn ?? participant?.PersonInn,
                 companyName = _paperCompanyName ?? participant?.CompanyName,
                 companyInn = _paperCompanyInn ?? participant?.CompanyInn,
@@ -1224,8 +1226,8 @@ else
         _formParticipantType = p.ParticipantType ?? "FL";
         _formFullName = p.FullName;
         _formDulTypeId = p.DulTypeId;
-        _formPassportSeries = p.PassportSeries;
-        _formPassportNumber = p.PassportNumber;
+        _formPassportSeries = p.DulSeries;
+        _formPassportNumber = p.DulNumber;
         _formPassportIssuedBy = p.PassportIssuedBy;
         _formPassportIssueDateStr = ToHtmlDate(p.PassportIssueDate);
         _formPassportDepartmentCode = p.PassportDepartmentCode;
@@ -1291,7 +1293,9 @@ else
             var dto = new
             {
                 participantType = _formParticipantType,
-                fullName = _formFullName,
+                lastName = (string?)null,
+                firstName = (string?)null,
+                middleName = (string?)null,
                 dulTypeId = _formDulTypeId,
                 passportSeries = _formPassportSeries,
                 passportNumber = _formPassportNumber,
@@ -1484,8 +1488,8 @@ else
         public string? ParticipantType { get; set; }
         public string? FullName { get; set; }
         public Guid? DulTypeId { get; set; }
-        public string? PassportSeries { get; set; }
-        public string? PassportNumber { get; set; }
+        public string? DulSeries { get; set; }
+        public string? DulNumber { get; set; }
         public string? PassportIssuedBy { get; set; }
         public string? PassportIssueDate { get; set; }
         public string? PassportDepartmentCode { get; set; }

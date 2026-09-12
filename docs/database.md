@@ -49,6 +49,17 @@ erDiagram
         uuid standard_charter_id FK
     }
 
+    person {
+        uuid id PK
+        varchar last_name
+        varchar first_name
+        varchar middle_name
+        varchar inn
+        varchar citizenship
+        varchar snils
+        varchar ogrnip
+    }
+
     ecosystem_participants {
         uuid id PK
         uuid legal_entity_id FK
@@ -66,12 +77,34 @@ erDiagram
     board_participant {
         uuid id PK
         uuid legal_entity_id FK
+        uuid person_id FK
         uuid ecosystem_participant_id FK
         varchar participant_type
-        varchar full_name
-        varchar person_inn
-        numeric share_percent
         boolean is_active
+        boolean is_general_director
+    }
+
+    identity_documents {
+        uuid id PK
+        uuid person_id FK
+        uuid dul_type_id FK
+        varchar series
+        varchar number
+        boolean is_active
+        timestamp valid_from
+        timestamp valid_to
+    }
+
+    board_participant_change {
+        uuid id PK
+        uuid legal_entity_id FK
+        uuid participant_id FK
+        varchar participant_type
+        varchar full_name
+        varchar passport_series
+        varchar passport_number
+        varchar status
+        timestamp submitted_at
     }
 
     files {
@@ -104,7 +137,10 @@ erDiagram
     ecosystem_participants ||--o{ independence_declarations : has
     ecosystem_participants ||--o{ pdn_consents : has
     legal_entities ||--o{ board_participant : has
-    ecosystem_participants ||--o{ board_participant : linked_to
+    person ||--o{ board_participant : has
+    person ||--o{ identity_documents : has
+    ref_dul_type ||--o{ identity_documents : typed_as
+    board_participant ||--o{ board_participant_change : informs
     legal_entities ||--|| legal_entity_charter : has
     legal_entities ||--o{ osa_meetings : organises
 ```
@@ -197,32 +233,42 @@ erDiagram
 
 Ограничение: UNIQUE(legal_entity_id, login).
 
+### person
+
+Физические лица — единый источник ФИО, ИНН, СНИЛС. Связаны с `board_participant` через `person_id`, с `identity_documents` через `person_id`.
+
+| Поле | Тип | Описание |
+|------|-----|----------|
+| `id` | UUID | Первичный ключ |
+| `last_name` | VARCHAR(300) | Фамилия |
+| `first_name` | VARCHAR(300) | Имя |
+| `middle_name` | VARCHAR(300) | Отчество (nullable) |
+| `inn` | VARCHAR(12) | ИНН (nullable) |
+| `citizenship` | VARCHAR(100) | Гражданство (nullable) |
+| `snils` | VARCHAR(14) | СНИЛС (nullable) |
+| `ogrnip` | VARCHAR(15) | ОГРНИП (nullable) |
+| `created_at` | TIMESTAMP WITH TIME ZONE | Дата создания |
+| `updated_at` | TIMESTAMP WITH TIME ZONE | Дата обновления |
+| `created_by` | UUID | FK → users (nullable) |
+
+Индекс: `ix_person_inn` по `inn` (WHERE inn IS NOT NULL).
+
 ### board_participant
 
-Реестр участников общества (участники СД, акционеры). Хранит данные ДУЛ/реквизитов ЮЛ.
+Реестр участников общества (участники СД, акционеры). Ссылается на `person` для ФИО/ИНН и на `ecosystem_participants` для привязки к учётной записи.
 
 | Поле | Тип | Описание |
 |------|-----|----------|
 | `id` | UUID | Первичный ключ |
 | `legal_entity_id` | UUID | FK → legal_entities (ON DELETE RESTRICT) |
+| `participant_type` | VARCHAR(20) | Тип: FL (физлицо), UL (юрлицо), IP (ИП) |
+| `person_id` | UUID | FK → person (nullable, ON DELETE SET NULL) |
 | `ecosystem_participant_id` | UUID | FK → ecosystem_participants (nullable, ON DELETE SET NULL) |
-| `participant_type` | VARCHAR(20) | Тип: FL (физлицо), UL (юрлицо), ИП |
-| `full_name` | VARCHAR(300) | ФИО (для ФЛ) |
-| `dul_type_id` | UUID | FK → ref_dul_type (nullable) |
-| `passport_series` | VARCHAR(10) | Серия паспорта (nullable) |
-| `passport_number` | VARCHAR(10) | Номер паспорта (nullable) |
-| `passport_issued_by` | VARCHAR(500) | Кем выдан (nullable) |
-| `passport_issue_date` | DATE | Дата выдачи (nullable) |
-| `passport_department_code` | VARCHAR(10) | Код подразделения (nullable) |
-| `passport_registration_address` | TEXT | Адрес регистрации (nullable) |
-| `person_inn` | VARCHAR(12) | ИНН физлица (nullable) |
-| `citizenship` | VARCHAR(100) | Гражданство (nullable) |
 | `company_name` | VARCHAR(500) | Наименование ЮЛ (для UL) |
 | `company_inn` | VARCHAR(12) | ИНН ЮЛ (nullable) |
 | `company_ogrn` | VARCHAR(15) | ОГРН ЮЛ (nullable) |
 | `company_kpp` | VARCHAR(9) | КПП ЮЛ (nullable) |
 | `company_address` | TEXT | Адрес ЮЛ (nullable) |
-| `ogrnip` | VARCHAR(15) | ОГРНИП (nullable) |
 | `share_percent` | NUMERIC(5,2) | Доля в процентах (nullable) |
 | `share_amount` | NUMERIC(18,2) | Номинальная стоимость доли (nullable) |
 | `payment_info` | VARCHAR(500) | Сведения об оплате (nullable) |
@@ -231,9 +277,81 @@ erDiagram
 | `exit_date` | DATE | Дата выхода из состава (nullable) |
 | `is_active` | BOOLEAN | Действующий участник |
 | `sort_order` | INT | Порядок сортировки |
+| `is_general_director` | BOOLEAN | Генеральный директор ООО |
 | `created_at` | TIMESTAMP WITH TIME ZONE | Дата создания |
 | `updated_at` | TIMESTAMP WITH TIME ZONE | Дата обновления |
 | `created_by` | UUID | FK → users (nullable) |
+
+Индексы: `ix_board_participant_legal_entity` по `legal_entity_id`, уникальный `ux_board_participant_le_sort` по `(legal_entity_id, sort_order)`.
+
+### identity_documents
+
+Документы, удостоверяющие личность (ДУЛ). Версионирование: каждая версия ДУЛ — отдельная запись. Активная версия: `is_active = true`. При изменении: старая запись → `is_active = false`, создаётся новая запись с `is_active = true`.
+
+| Поле | Тип | Описание |
+|------|-----|----------|
+| `id` | UUID | Первичный ключ |
+| `person_id` | UUID | FK → person (ON DELETE RESTRICT) |
+| `dul_type_id` | UUID | FK → ref_dul_type (ON DELETE RESTRICT) |
+| `series` | VARCHAR(10) | Серия документа (nullable) |
+| `number` | VARCHAR(10) | Номер документа (nullable) |
+| `issued_by` | VARCHAR(500) | Кем выдан (nullable) |
+| `issue_date` | DATE | Дата выдачи (nullable) |
+| `department_code` | VARCHAR(10) | Код подразделения (nullable) |
+| `registration_address` | TEXT | Адрес регистрации (nullable) |
+| `is_active` | BOOLEAN | Активная версия документа |
+| `created_at` | TIMESTAMP WITH TIME ZONE | Дата создания записи |
+| `updated_at` | TIMESTAMP WITH TIME ZONE | Дата обновления записи |
+| `created_by` | UUID | FK → users (nullable) |
+
+Индексы: `ix_idoc_person` по `person_id`, `ix_idoc_active` по `(person_id, is_active) WHERE is_active = true`.
+
+### board_participant_change
+
+Записи сведений участника (информационирование об изменении). При электронном источнике — автоприменение к `identity_documents` и `person`. При бумажном — статус `pending` → `approved`/`rejected` через рассмотрение ГД.
+
+| Поле | Тип | Описание |
+|------|-----|----------|
+| `id` | UUID | Первичный ключ |
+| `legal_entity_id` | UUID | FK → legal_entities (ON DELETE RESTRICT) |
+| `participant_id` | UUID | FK → board_participant (ON DELETE RESTRICT) |
+| `participant_type` | VARCHAR(20) | Тип участника |
+| `last_name` | VARCHAR(300) | Фамилия (nullable) |
+| `first_name` | VARCHAR(300) | Имя (nullable) |
+| `middle_name` | VARCHAR(300) | Отчество (nullable) |
+| `dul_type_id` | UUID | FK → ref_dul_type (nullable, ON DELETE SET NULL) |
+| `passport_series` | VARCHAR(10) | Новая серия паспорта (nullable) |
+| `passport_number` | VARCHAR(10) | Новый номер паспорта (nullable) |
+| `passport_issued_by` | VARCHAR(500) | Кем выдан (nullable) |
+| `passport_issue_date` | DATE | Дата выдачи (nullable) |
+| `passport_department_code` | VARCHAR(10) | Код подразделения (nullable) |
+| `passport_registration_address` | TEXT | Адрес регистрации (nullable) |
+| `person_inn` | VARCHAR(12) | Новый ИНН (nullable) |
+| `citizenship` | VARCHAR(100) | Гражданство (nullable) |
+| `company_name` | VARCHAR(500) | Наименование ЮЛ (nullable) |
+| `company_inn` | VARCHAR(12) | ИНН ЮЛ (nullable) |
+| `company_ogrn` | VARCHAR(15) | ОГРН ЮЛ (nullable) |
+| `company_kpp` | VARCHAR(9) | КПП ЮЛ (nullable) |
+| `company_address` | TEXT | Адрес ЮЛ (nullable) |
+| `ogrnip` | VARCHAR(15) | ОГРНИП (nullable) |
+| `share_percent` | NUMERIC(5,2) | Доля (nullable) |
+| `share_amount` | NUMERIC(18,2) | Номинальная стоимость (nullable) |
+| `document_file_id` | UUID | FK → files (nullable, ON DELETE SET NULL) |
+| `document_original_name` | VARCHAR(255) | Исходное имя документа (nullable) |
+| `source` | VARCHAR(20) | Источник: paper / electronic (nullable) |
+| `date` | VARCHAR(50) | Дата бумажного документа (nullable) |
+| `paper_doc_number` | VARCHAR(100) | Номер бумажного документа (nullable) |
+| `comment` | TEXT | Комментарий (nullable) |
+| `submitted_by` | UUID | FK → users (nullable, ON DELETE SET NULL) |
+| `submitted_at` | TIMESTAMP WITH TIME ZONE | Дата подачи |
+| `status` | VARCHAR(20) | Статус: pending / approved / rejected |
+| `review_comment` | TEXT | Комментарий при рассмотрении (nullable) |
+| `reviewed_by` | UUID | FK → users (nullable, ON DELETE SET NULL) |
+| `reviewed_at` | TIMESTAMP WITH TIME ZONE | Дата рассмотрения (nullable) |
+| `created_at` | TIMESTAMP WITH TIME ZONE | Дата создания |
+| `updated_at` | TIMESTAMP WITH TIME ZONE | Дата обновления |
+
+Индексы: `ix_board_participant_change_le` по `legal_entity_id`, `ix_board_participant_change_participant` по `participant_id`.
 
 ### legal_entity_charter
 

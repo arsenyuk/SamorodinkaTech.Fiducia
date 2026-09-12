@@ -54,8 +54,16 @@
                 <h6 class="mt-3">Данные физического лица</h6>
                 <div class="row mb-3">
                     <div class="col-md-4">
-                        <label class="form-label">ФИО</label>
-                        <input class="form-control" @bind="_formFullName" />
+                        <label class="form-label">Фамилия</label>
+                        <input class="form-control" @bind="_formLastName" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Имя</label>
+                        <input class="form-control" @bind="_formFirstName" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Отчество</label>
+                        <input class="form-control" @bind="_formMiddleName" />
                     </div>
                     <div class="col-md-4">
                         <label class="form-label">ИНН</label>
@@ -142,9 +150,17 @@
             {
                 <h6 class="mt-3">Данные ИП</h6>
                 <div class="row mb-3">
-                    <div class="col-md-6">
-                        <label class="form-label">ФИО</label>
-                        <input class="form-control" @bind="_formFullName" />
+                    <div class="col-md-4">
+                        <label class="form-label">Фамилия</label>
+                        <input class="form-control" @bind="_formLastName" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Имя</label>
+                        <input class="form-control" @bind="_formFirstName" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Отчество</label>
+                        <input class="form-control" @bind="_formMiddleName" />
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">ИНН</label>
@@ -280,7 +296,9 @@ else
     private IBrowserFile? _selectedDocument;
     private string? _selectedDocumentName;
 
-    private string? _formFullName;
+    private string? _formLastName;
+    private string? _formFirstName;
+    private string? _formMiddleName;
     private string? _formPersonInn;
     private string? _formCitizenship;
     private string? _formPassportSeries;
@@ -343,11 +361,13 @@ else
 
     private void PreFillForm(ParticipantRow p)
     {
-        _formFullName = p.FullName;
+        _formLastName = p.LastName;
+        _formFirstName = p.FirstName;
+        _formMiddleName = p.MiddleName;
         _formPersonInn = p.PersonInn;
         _formCitizenship = p.Citizenship;
-        _formPassportSeries = p.PassportSeries;
-        _formPassportNumber = p.PassportNumber;
+        _formPassportSeries = p.DulSeries;
+        _formPassportNumber = p.DulNumber;
         _formPassportIssuedBy = p.PassportIssuedBy;
         _formPassportDepartmentCode = p.PassportDepartmentCode;
         _formPassportRegistrationAddress = p.PassportRegistrationAddress;
@@ -406,10 +426,12 @@ else
             {
                 participantId = _currentParticipant.Id,
                 participantType = _currentParticipant.ParticipantType ?? "FL",
-                fullName = _formFullName ?? _currentParticipant.FullName,
+                lastName = _formLastName,
+                firstName = _formFirstName,
+                middleName = _formMiddleName,
                 dulTypeId = _currentParticipant.DulTypeId,
-                passportSeries = _formPassportSeries ?? _currentParticipant.PassportSeries,
-                passportNumber = _formPassportNumber ?? _currentParticipant.PassportNumber,
+                passportSeries = _formPassportSeries ?? _currentParticipant.DulSeries,
+                passportNumber = _formPassportNumber ?? _currentParticipant.DulNumber,
                 passportIssuedBy = _formPassportIssuedBy ?? _currentParticipant.PassportIssuedBy,
                 passportDepartmentCode = _formPassportDepartmentCode ?? _currentParticipant.PassportDepartmentCode,
                 passportRegistrationAddress = _formPassportRegistrationAddress ?? _currentParticipant.PassportRegistrationAddress,
@@ -464,12 +486,15 @@ else
         public Guid Id { get; set; }
         public string? ParticipantType { get; set; }
         public string? FullName { get; set; }
+        public string? LastName { get; set; }
+        public string? FirstName { get; set; }
+        public string? MiddleName { get; set; }
         public Guid? DulTypeId { get; set; }
+        public string? DulSeries { get; set; }
+        public string? DulNumber { get; set; }
         public string? CompanyName { get; set; }
         public string? PersonInn { get; set; }
         public string? Citizenship { get; set; }
-        public string? PassportSeries { get; set; }
-        public string? PassportNumber { get; set; }
         public string? PassportIssuedBy { get; set; }
         public string? PassportDepartmentCode { get; set; }
         public string? PassportRegistrationAddress { get; set; }

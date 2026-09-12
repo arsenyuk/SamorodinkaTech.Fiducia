@@ -121,6 +121,35 @@ public static class ParticipantEndpoints
             return Results.Ok(MapParticipantToDto(p));
         });
 
+        // GET: все версии IdentityDocument участника
+        participants.MapGet("/{id}/identity-documents", async (Guid id, IDbContextFactory<FiduciaDbContext> dbFactory) =>
+        {
+            await using var ctx = await dbFactory.CreateDbContextAsync();
+            var participant = await ctx.BoardParticipants.FindAsync(id);
+            if (participant?.PersonId is null) return Results.Ok(Array.Empty<object>());
+
+            var docs = await ctx.IdentityDocuments
+                .Include(d => d.DulType)
+                .Where(d => d.PersonId == participant.PersonId.Value)
+                .OrderByDescending(d => d.CreatedAt)
+                .ToListAsync();
+
+            return Results.Ok(docs.Select(d => new
+            {
+                d.Id,
+                DulTypeCode = d.DulType?.Code,
+                DulTypeName = d.DulType?.Name,
+                d.Series,
+                d.Number,
+                d.IssuedBy,
+                IssueDate = d.IssueDate?.ToString("dd.MM.yyyy"),
+                d.DepartmentCode,
+                d.RegistrationAddress,
+                d.IsActive,
+                CreatedAt = d.CreatedAt.ToString("dd.MM.yyyy HH:mm")
+            }));
+        });
+
         // POST: добавление участника
         participants.MapPost("/", async (
             HttpContext http,
@@ -166,6 +195,32 @@ public static class ParticipantEndpoints
                     };
                     ctx.Persons.Add(person);
                     entity.PersonId = person.Id;
+
+                    // ── Создание IdentityDocument при наличии ДУЛ ────
+                    if (!string.IsNullOrWhiteSpace(dto.DulTypeCode))
+                    {
+                        var dulType = await ctx.RefDulTypes.FirstOrDefaultAsync(t => t.Code == dto.DulTypeCode);
+                        if (dulType is not null)
+                        {
+                            var now = DateTime.UtcNow;
+                            ctx.IdentityDocuments.Add(new IdentityDocument
+                            {
+                                Id = Guid.NewGuid(),
+                                PersonId = person.Id,
+                                DulTypeId = dulType.Id,
+                                Series = dto.DulSeries,
+                                Number = dto.DulNumber,
+                                IssuedBy = dto.PassportIssuedBy,
+                                IssueDate = dto.PassportIssueDate,
+                                DepartmentCode = dto.PassportDepartmentCode,
+                                RegistrationAddress = dto.PassportRegistrationAddress,
+                                IsActive = true,
+                                CreatedAt = now,
+                                UpdatedAt = now,
+                                CreatedBy = userId
+                            });
+                        }
+                    }
 
                     // Привязываемся к существующему EcosystemParticipant или создаём новый
                     if (!entity.EcosystemParticipantId.HasValue)
@@ -904,7 +959,10 @@ public static class ParticipantEndpoints
                     LegalEntityId = leId.Value,
                     ParticipantId = dto.ParticipantId,
                     ParticipantType = dto.ParticipantType ?? "FL",
-                    FullName = dto.FullName,
+                    LastName = dto.LastName,
+                    FirstName = dto.FirstName,
+                    MiddleName = dto.MiddleName,
+                    DulTypeId = dto.DulTypeId,
                     PassportSeries = dto.PassportSeries,
                     PassportNumber = dto.PassportNumber,
                     PassportIssuedBy = dto.PassportIssuedBy,
@@ -939,6 +997,12 @@ public static class ParticipantEndpoints
 
                 logger.LogInformation("[{Ip}] Создано информирование об изменении сведений: participant={ParticipantId}, id={Id}",
                     ClientIpHelper.GetClientIp(http), dto.ParticipantId, entity.Id);
+
+                // ── Автоприменение для электронных информирований ───
+                if (entity.Source == "electronic")
+                {
+                    await ApplyParticipantChangeAsync(ctx, entity, logger, http);
+                }
 
                 return Results.Ok(MapParticipantChangeToDto(entity));
             }
@@ -1346,8 +1410,9 @@ public static class ParticipantEndpoints
             FullName = p.Person?.FullName,
             MpiMasterId = p.EcosystemParticipant?.User?.MpiMasterId,
             DulTypeId = primaryDoc?.DulTypeId,
-            PassportSeries = primaryDoc?.Series,
-            PassportNumber = primaryDoc?.Number,
+            DulTypeCode = primaryDoc?.DulType?.Code,
+            DulSeries = primaryDoc?.Series,
+            DulNumber = primaryDoc?.Number,
             PassportIssuedBy = primaryDoc?.IssuedBy,
             PassportIssueDate = primaryDoc?.IssueDate?.ToString("dd.MM.yyyy"),
             PassportDepartmentCode = primaryDoc?.DepartmentCode,
@@ -1421,7 +1486,10 @@ public static class ParticipantEndpoints
         c.LegalEntityId,
         c.ParticipantId,
         c.ParticipantType,
-        c.FullName,
+        c.LastName,
+        c.FirstName,
+        c.MiddleName,
+        c.DulTypeId,
         c.PassportSeries,
         c.PassportNumber,
         c.PassportIssuedBy,
@@ -1458,8 +1526,9 @@ public static class ParticipantEndpoints
         public string? ParticipantType { get; init; }
         public Guid? EcosystemParticipantId { get; init; }
         public string? FullName { get; init; }
-        public string? PassportSeries { get; init; }
-        public string? PassportNumber { get; init; }
+        public string? DulTypeCode { get; init; }
+        public string? DulSeries { get; init; }
+        public string? DulNumber { get; init; }
         public string? PassportIssuedBy { get; init; }
         public DateOnly? PassportIssueDate { get; init; }
         public string? PassportDepartmentCode { get; init; }
@@ -1495,7 +1564,10 @@ public static class ParticipantEndpoints
     {
         public Guid ParticipantId { get; init; }
         public string? ParticipantType { get; init; }
-        public string? FullName { get; init; }
+        public string? LastName { get; init; }
+        public string? FirstName { get; init; }
+        public string? MiddleName { get; init; }
+        public Guid? DulTypeId { get; init; }
         public string? PassportSeries { get; init; }
         public string? PassportNumber { get; init; }
         public string? PassportIssuedBy { get; init; }
@@ -1525,6 +1597,108 @@ public static class ParticipantEndpoints
     {
         public string Status { get; init; } = "pending";
         public string? Comment { get; init; }
+    }
+
+    /// <summary>
+    /// Автоприменение записи сведений: сравнение с текущим состоянием, версионирование ДУЛ, обновление Person.
+    /// </summary>
+    private static async Task ApplyParticipantChangeAsync(
+        FiduciaDbContext ctx,
+        BoardParticipantChange entity,
+        ILogger logger,
+        HttpContext http)
+    {
+        var participant = await ctx.BoardParticipants
+            .Include(p => p.Person)
+            .FirstOrDefaultAsync(p => p.Id == entity.ParticipantId);
+
+        if (participant?.PersonId.HasValue != true) return;
+
+        var now = DateTime.UtcNow;
+        var currentDoc = await ctx.IdentityDocuments
+            .FirstOrDefaultAsync(d => d.PersonId == participant.PersonId.Value && d.IsActive);
+
+        var changes = new List<string>();
+
+        // Сравнение ДУЛ
+        if (currentDoc is not null)
+        {
+            if (entity.DulTypeId.HasValue && entity.DulTypeId != currentDoc.DulTypeId)
+                changes.Add("Тип документа изменён");
+            if (!string.IsNullOrEmpty(entity.PassportSeries) && entity.PassportSeries != currentDoc.Series)
+                changes.Add($"Серия: {currentDoc.Series} → {entity.PassportSeries}");
+            if (!string.IsNullOrEmpty(entity.PassportNumber) && entity.PassportNumber != currentDoc.Number)
+                changes.Add($"Номер: {currentDoc.Number} → {entity.PassportNumber}");
+            if (!string.IsNullOrEmpty(entity.PassportRegistrationAddress) && entity.PassportRegistrationAddress != currentDoc.RegistrationAddress)
+                changes.Add("Адрес регистрации изменился");
+        }
+
+        // Сравнение ФИО (отдельные поля, без SplitFullName)
+        if (participant.Person is not null)
+        {
+            if (!string.IsNullOrEmpty(entity.LastName) && entity.LastName != participant.Person.LastName)
+                changes.Add($"Фамилия: {participant.Person.LastName} → {entity.LastName}");
+            if (!string.IsNullOrEmpty(entity.FirstName) && entity.FirstName != participant.Person.FirstName)
+                changes.Add($"Имя: {participant.Person.FirstName} → {entity.FirstName}");
+        }
+
+        // Сравнение ИНН
+        if (participant.Person is not null && !string.IsNullOrEmpty(entity.PersonInn)
+            && entity.PersonInn != participant.Person.Inn)
+            changes.Add($"ИНН: {participant.Person.Inn} → {entity.PersonInn}");
+
+        if (changes.Count > 0)
+        {
+            // Версионирование: деактивировать старую версию ДУЛ
+            if (currentDoc is not null)
+            {
+                currentDoc.IsActive = false;
+                currentDoc.UpdatedAt = now;
+            }
+            // Создать новую версию ДУЛ
+            var dulTypeId = entity.DulTypeId ?? currentDoc?.DulTypeId
+                ?? (await ctx.RefDulTypes.FirstOrDefaultAsync(t => t.Code == "21"))?.Id
+                ?? Guid.Empty;
+            if (dulTypeId != Guid.Empty)
+            {
+                ctx.IdentityDocuments.Add(new IdentityDocument
+                {
+                    Id = Guid.NewGuid(),
+                    PersonId = participant.PersonId.Value,
+                    DulTypeId = dulTypeId,
+                    Series = entity.PassportSeries,
+                    Number = entity.PassportNumber,
+                    IssuedBy = entity.PassportIssuedBy,
+                    IssueDate = entity.PassportIssueDate,
+                    DepartmentCode = entity.PassportDepartmentCode,
+                    RegistrationAddress = entity.PassportRegistrationAddress,
+                    IsActive = true,
+                    CreatedAt = now,
+                    UpdatedAt = now,
+                    CreatedBy = entity.SubmittedBy
+                });
+            }
+            // Обновить Person (ФИО — отдельные поля из change-записи)
+            if (participant.Person is not null)
+            {
+                if (!string.IsNullOrEmpty(entity.LastName))
+                    participant.Person.LastName = entity.LastName;
+                if (!string.IsNullOrEmpty(entity.FirstName))
+                    participant.Person.FirstName = entity.FirstName;
+                if (entity.MiddleName != null)
+                    participant.Person.MiddleName = entity.MiddleName;
+            }
+            if (!string.IsNullOrEmpty(entity.PersonInn) && participant.Person is not null)
+                participant.Person.Inn = entity.PersonInn;
+
+            logger.LogInformation("[{Ip}] Автоприменение сведений: participant={ParticipantId}, изменения: {Changes}",
+                ClientIpHelper.GetClientIp(http), entity.ParticipantId, string.Join("; ", changes));
+        }
+
+        // Статус — отражает факт применения
+        entity.Status = "approved";
+        entity.UpdatedAt = now;
+        await ctx.SaveChangesAsync();
     }
 
     /// <summary>

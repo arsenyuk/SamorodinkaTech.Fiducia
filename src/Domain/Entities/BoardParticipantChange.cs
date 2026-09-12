@@ -20,8 +20,14 @@ public class BoardParticipantChange
 
     // ── ФЛ ────────────────────────────────────────────────────────
 
-    /// <summary>ФИО участника-ФЛ (full_name).</summary>
-    public string? FullName { get; set; }
+    /// <summary>Фамилия (last_name).</summary>
+    public string? LastName { get; set; }
+
+    /// <summary>Имя (first_name).</summary>
+    public string? FirstName { get; set; }
+
+    /// <summary>Отчество (middle_name).</summary>
+    public string? MiddleName { get; set; }
 
     /// <summary>Идентификатор вида документа, удостоверяющего личность (dul_type_id).</summary>
     public Guid? DulTypeId { get; set; }

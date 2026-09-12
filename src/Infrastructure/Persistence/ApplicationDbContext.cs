@@ -725,7 +725,9 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.Property(x => x.LegalEntityId).HasColumnName("legal_entity_id").IsRequired();
             b.Property(x => x.ParticipantId).HasColumnName("participant_id").IsRequired();
             b.Property(x => x.ParticipantType).HasColumnName("participant_type").HasMaxLength(20).IsRequired();
-            b.Property(x => x.FullName).HasColumnName("full_name").HasMaxLength(300);
+            b.Property(x => x.LastName).HasColumnName("last_name").HasMaxLength(300);
+            b.Property(x => x.FirstName).HasColumnName("first_name").HasMaxLength(300);
+            b.Property(x => x.MiddleName).HasColumnName("middle_name").HasMaxLength(300);
             b.Property(x => x.DulTypeId).HasColumnName("dul_type_id");
             b.Property(x => x.PassportSeries).HasColumnName("passport_series").HasMaxLength(10);
             b.Property(x => x.PassportNumber).HasColumnName("passport_number").HasMaxLength(10);

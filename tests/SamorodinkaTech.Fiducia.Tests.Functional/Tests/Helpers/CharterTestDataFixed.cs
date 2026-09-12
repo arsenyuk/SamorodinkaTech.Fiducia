@@ -143,6 +143,8 @@ public static class CharterTestDataFixed
         new(66,  "Общество с ограниченной ответственностью «Зимин Финанс»", "7830987654", "2309876543212", "ООО «ЗФ»",  ExecutiveBodyA, PersonData.CreateAdmin("zimin.pk", "Зимин Пётр Кириллович", "Зимин", "Пётр", "Кириллович", "zimin.pk")),
         // ── Требование участника о созыве ВОСУ (67) ────
         new(67,  "Общество с ограниченной ответственностью «Иванов Трейд»", "7831987654", "2319876543212", "ООО «ИТ»",  ExecutiveBodyA, PersonData.CreateAdmin("ivanov.tm", "Иванов Тимур Романович", "Иванов", "Тимур", "Романович", "ivanov.tm")),
+        // ── Изменение сведений участника / версионирование ДУЛ (68) ────
+        new(68,  "Общество с ограниченной ответственностью «Казаков и Partners»", "7832987654", "2329876543212", "ООО «К&P»",  ExecutiveBodyA, PersonData.CreateAdmin("kazakov.nv", "Казаков Николай Викторович", "Казаков", "Николай", "Викторович", "kazakov.nv")),
     ];
 
     /// <summary>
@@ -704,6 +706,14 @@ public static class CharterTestDataFixed
             [
                 PersonData.CreateParticipantWithDul("Петрова Мария Сергеевна", 40m,
                     "21", "4690", "999999", login: "petrova.ms67") with { Uid = "petrova.ms67" },
+            ]),
+        // ── Изменение сведений участника / версионирование ДУЛ (68) ────
+        [68] = new(
+            Gd: new() { Uid = "kazakov.nv", Login = "kazakov.nv", FullName = "Казаков Николай Викторович", LastName = "Казаков", FirstName = "Николай", MiddleName = "Викторович", Position = "Генеральный директор" },
+            Participants:
+            [
+                PersonData.CreateParticipantWithDul("Фролов Станислав Андреевич", 60m,
+                    "21", "4600", "111222", isDirector: true, login: "frolov.sa68") with { Uid = "frolov.sa68" },
             ]),
     };
 
