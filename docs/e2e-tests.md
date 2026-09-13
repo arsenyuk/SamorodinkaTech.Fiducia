@@ -12,6 +12,73 @@
 
 ---
 
+## Результаты последнего прогона
+
+**Дата:** 2026-09-13
+**Среда:** .NET 10 SDK (10.0.300) + Playwright Chromium (headless=false)
+**Длительность:** 3 мин 43 сек
+**Итого:** 99 тестов → **16 пройдено**, 83 сбой
+
+### Корневая причина массовых сбоев (ИСПРАВЛЕНО 2026-09-13)
+
+Все 83 сбоя вызваны **одной корневой ошибкой**: `CharterTestSeeder.SeedEntityAsync` пытался
+назначить роль ГД (CEO) через Admin Console (`AddEmployeeAsync` → dropdown роли).
+**ГД не назначается в Admin Console** — роль CEO привязывается при создании
+`BoardParticipant` через Board Portal (флаг `is_general_director`).
+
+Dropdown `<select class="form-select">` в модалке добавления сотрудника **не содержит**
+роль CEO → таймаут 30 сек → `GlobalFixture.HasFailed` блокирует все последующие тесты.
+
+**Фикс:** удалён блок назначения ГД из `CharterTestSeeder.SeedEntityAsync` (строки 92–117).
+Сидер создаёт только Admin User (роль `RoleLeAdmin`). Ожидаемый результат следующего
+прогона: все тесты, кроме `E2E_BoardSetupTests` (страница `/board-setup` не загружает wizard),
+должны пройти.
+
+### Пройденные тесты (16)
+
+| Класс | Тест | Статус |
+|-------|------|--------|
+| `E2E_EdinIntegrationTests` | `UsersList_ShouldHaveEdinColumn` | ✅ |
+| `E2E_EdinIntegrationTests` | `UserDetail_ShouldHaveEdinTab` | ✅ |
+| `E2E_EdinIntegrationTests` | `EdinTab_ShouldShowMpiMasterIdOrNotLinked` | ✅ |
+| `E2E_EdinScenarioTests` | `Scenario1_AdminCreatesLeAndBindsEdin` | ✅ |
+| `E2E_EdinScenarioTests` | `Scenario2_DeduplicationViaEdin` | ✅ |
+| `E2E_UserManagementTests` | `AddEmployee_LdapNotFound_ShowsWarningAndButtonDisabled` | ✅ |
+| `E2E_UserManagementTests` | `AddEmployee_LdapFoundButNoRole_ButtonDisabled` | ✅ |
+| `E2E_UserManagementTests` | `AddEmployee_LdapFoundAndRoleSelected_ButtonEnabled` | ✅ |
+| `E2E_UserManagementTests` | `EmployeeList_ShouldShowFullNameAndLogin` | ✅ |
+| `US001_AuthorizationTests` | `BoardPortal_LoginPage_ShowsSelectDropdown` | ✅ |
+| `US001_AuthorizationTests` | `AdminConsoleLoginPage_LoadsBlazorShell` | ✅ |
+| `US001_AuthorizationTests` | `BoardPortal_LoginPage_ShowsNoSidebar` | ✅ |
+| `US001_AuthorizationTests` | `BoardPortal_PublicLanding_Present` | ✅ |
+| `US001_AuthorizationTests` | `BoardPortal_OnboardingPage_Rendered` | ✅ |
+| `US001_AuthorizationTests` | `BoardPortal_ProposalPage_RenderedForAnonymousUsers` | ✅ |
+| `Helpers.LoginTest` | `TestLoginAdminConsole` | ✅ |
+
+### Сбойные тесты (83)
+
+| Класс | Кол-во тестов | Причина |
+|-------|---------------|---------|
+| `E2E_StandardCharterTests` | 36 | CharterTestSeeder timeout |
+| `E2E_NonStandardCharterTests` | 20 | CharterTestSeeder timeout |
+| `E2E_BoardSetupTests` | 3 | CharterTestSeeder timeout |
+| `E2E_GeneralDirectorTests` | 6 | CharterTestSeeder timeout |
+| `E2E_VosuDemandTests` | 1 | CharterTestSeeder timeout |
+| `E2E_ParticipantDulChangeTests` | 1 | CharterTestSeeder timeout |
+| `US020_ShareRequestTests` | 5 | CharterTestSeeder timeout |
+| `US021_DocumentCatalogTests` | 5 | CharterTestSeeder timeout |
+| `US023_ParticipantTests` | 5 | CharterTestSeeder timeout |
+| `US023_ParticipantTests` (последний US023 — `ShouldLoadWithExpectedContent`) | 1 | CharterTestSeeder timeout |
+| **Итого** | **83** | |
+
+### Неисправимые сбои (предыдущие прогоны)
+
+- `E2E_BoardSetupTests` (3 варианта) — страница `/board-setup` не загружает wizard (ADMIN-88).
+  **Не зависит** от CharterTestSeeder — требует отдельного.fix.
+- `E2E_ParticipantDulChangeTests` — падал из-за CharterTestSeeder. **Ожидается прохождение** после фикса сидера.
+
+---
+
 ## Маппинг: Бизнес-процесс → US → E2E-тест
 
 ### Авторизация и безопасность
@@ -156,11 +223,14 @@ public class US0XX_FeatureTests : BrowserFixture
 ## Запуск тестов
 
 ```bash
-# Все функциональные тесты
-dotnet test tests/SamorodinkaTech.Fiducia.Tests.Functional
+# Все функциональные тесты (MTP runner — .NET 10 SDK)
+dotnet run --project tests/SamorodinkaTech.Fiducia.Tests.Functional
 
-# Конкретный тест
-dotnet test --filter "FullyQualifiedName~US001_AuthorizationTests"
+# Список всех тестов
+dotnet run --project tests/SamorodinkaTech.Fiducia.Tests.Functional -- --list-tests
+
+# Конкретный тест (через фильтр MTP)
+dotnet run --project tests/SamorodinkaTech.Fiducia.Tests.Functional -- --filter "US001_AuthorizationTests"
 
 # С видео-записью (для отладки)
 # Добавить в BrowserFixture: Headless = false, RecordVideoDir = "videos/"

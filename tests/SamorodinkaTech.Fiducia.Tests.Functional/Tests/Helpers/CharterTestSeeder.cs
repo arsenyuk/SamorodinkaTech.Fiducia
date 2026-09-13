@@ -59,7 +59,6 @@ public static class CharterTestSeeder
         }
 
         var entity = CharterTestDataFixed.LegalEntities[charterNumber - 1];
-        var persons = CharterTestDataFixed.PersonsByEntity[charterNumber];
 
         // ── Создание ЮЛ + назначение ролей ───────────────────────────
         Console.WriteLine($"[Seeder] ЮЛ {charterNumber}: создание ЮЛ...");
@@ -89,32 +88,8 @@ public static class CharterTestSeeder
             entity.AdminUser.Position, entity.AdminUser.Login,
             CharterTestDataFixed.RoleLeAdmin);
 
-        // ГД — EcosystemParticipant создаётся выше (admin), роль CEO назначается при привязке BoardParticipant через Board Portal
-        if (persons.Gd is not null && persons.Gd.Login != entity.AdminUser.Login)
-        {
-            await AdminConsoleHelper.AddEmployeeAsync(
-                adminPage,
-                persons.Gd.LastName, persons.Gd.FirstName, persons.Gd.MiddleName,
-                persons.Gd.Position, persons.Gd.Login,
-                CharterTestDataFixed.RoleCeo);
-        }
-        else if (persons.Participants.Count > 0)
-        {
-            var p = persons.Participants[0];
-            // Пропускаем если участник = администратор (тот же login — один человек)
-            if (p.Login != entity.AdminUser.Login)
-            {
-                var nameParts = p.FullName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-                if (nameParts.Length >= 3)
-                {
-                    await AdminConsoleHelper.AddEmployeeAsync(
-                        adminPage,
-                        nameParts[0], nameParts[1], nameParts[2],
-                        "Директор", p.Login,
-                        CharterTestDataFixed.RoleCeo);
-                }
-            }
-        }
+        // ГД НЕ назначается в Admin Console — роль CEO привязывается
+        // при создании BoardParticipant через Board Portal (флаг is_general_director).
 
         Console.WriteLine($"[Seeder] ЮЛ {charterNumber}: сидирование завершено.");
     }
