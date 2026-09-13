@@ -168,4 +168,58 @@ public class E2E_UserManagementTests : BrowserFixture
             throw;
         }
     }
+
+    /// <summary>
+    /// После добавления сотрудника — ФИО и Логин отображаются в таблице.
+    /// </summary>
+    [Fact]
+    public async Task EmployeeList_ShouldShowFullNameAndLogin()
+    {
+        SkipIfPreviousFailed();
+        try
+        {
+        var page = await CreateAdminConsolePageAsync();
+        await AuthHelper.LoginAsAdminAsync(page, "v.vasilyeva", "1");
+
+        // Создать тестовое ЮЛ и добавить сотрудника
+        await AdminConsoleHelper.CreateLegalEntityAsync(page, "Тестовое ЮЛ ФИО", "7701234570");
+        await AdminConsoleHelper.AddEmployeeAsync(
+            page,
+            "Нечаев", "Василий", "Алексеевич",
+            "Администратор ЮЛ",
+            "nechaev.va",
+            "LE_ADMIN");
+
+        // Перейти на страницу сотрудников (обновить данные)
+        await page.GotoAsync(PortalUrls.GetUrl(Portal.AdminConsole, "/access-management?le=" +
+            page.Url.Split("le=").Last().Split('&')[0]));
+        await AuthHelper.WaitForBlazorReady(page);
+        await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+
+        // Дождаться загрузки таблицы
+        await page.WaitForSelectorAsync("tbody tr", new() { Timeout = DefaultTimeout });
+
+        // Проверить ФИО — первая ячейка первой строки
+        var firstRowCells = page.Locator("tbody tr:first-child td");
+        var fullNameCell = await firstRowCells.Nth(0).TextContentAsync();
+        fullNameCell.Should().NotBeNullOrWhiteSpace("ФИО сотрудника должно быть заполнено");
+        fullNameCell.Should().Contain("Нечаев", "ФИО должно содержать фамилию");
+        fullNameCell.Should().Contain("Василий", "ФИО должно содержать имя");
+
+        // Проверить Логин — третья ячейка
+        var loginCell = await firstRowCells.Nth(2).TextContentAsync();
+        loginCell.Should().NotBeNullOrWhiteSpace("Логин сотрудника должен быть заполнен");
+        loginCell.Should().Contain("nechaev.va", "Логин должен совпадать");
+
+        // Проверить Роль — четвёртая ячейка
+        var roleCell = await firstRowCells.Nth(3).TextContentAsync();
+        roleCell.Should().NotBeNullOrWhiteSpace("Роль сотрудника должна отображаться");
+        roleCell.Should().Contain("Администратор ЮЛ", "Роль должна отображаться");
+        }
+        catch
+        {
+            GlobalFixture.MarkFailed();
+            throw;
+        }
+    }
 }

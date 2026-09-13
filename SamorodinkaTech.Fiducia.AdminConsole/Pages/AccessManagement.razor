@@ -294,6 +294,9 @@
             var leId = Guid.Parse(_selectedLegalEntityId);
             var rows = await ctx.Employees
                 .Include(e => e.EcosystemParticipant)
+                    .ThenInclude(ep => ep!.EcosystemPerson)
+                .Include(e => e.EcosystemParticipant)
+                    .ThenInclude(ep => ep!.User)
                 .Where(e => e.LegalEntityId == leId)
                 .ToListAsync();
 
