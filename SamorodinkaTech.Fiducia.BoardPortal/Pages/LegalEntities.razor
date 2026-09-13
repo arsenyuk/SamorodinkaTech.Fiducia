@@ -1130,10 +1130,11 @@
             await using var ctx = await DbFactory.CreateDbContextAsync();
             _gdParticipants = await ctx.BoardParticipants
                 .Include(p => p.Person)
+                .Include(p => p.Shares.Where(s => s.IsActive).Take(1))
                 .Where(p => p.LegalEntityId == legalEntityId
                             && p.ParticipantType == "FL"
                             && p.IsActive)
-                .OrderBy(p => p.SortOrder)
+                .OrderByDescending(p => p.Shares.Where(s => s.IsActive).Select(s => s.SharePercent).FirstOrDefault())
                 .ToListAsync();
 
             var currentGd = _gdParticipants.FirstOrDefault(p => p.IsGeneralDirector);

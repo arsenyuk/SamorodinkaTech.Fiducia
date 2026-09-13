@@ -9,6 +9,7 @@ namespace SamorodinkaTech.Fiducia.Tests.Functional;
 /// Сценарий: участник (PARTICIPANT) заходит на страницу каталога документов,
 /// проверяет загрузку страницы, наличие accordion-элементов и ссылок на скачивание.
 /// Требуется роль PARTICIPANT в Board Portal.
+/// Документация: docs/e2e-document-catalog.md
 /// </summary>
 public class US021_DocumentCatalogTests : BrowserFixture
 {

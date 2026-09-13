@@ -83,10 +83,11 @@ public static class InfrastructureHelper
     private static async Task StartInfrastructureAsync()
     {
         // ═══════════════════════════════════════════════════════════════════
-        // Шаг 1: PostgreSQL + OpenLDAP + phpLDAPadmin через docker-compose
+        // Шаг 1: PostgreSQL + OpenLDAP + phpLDAPadmin + ЕДИН (mnemonios) через docker-compose
         // ═══════════════════════════════════════════════════════════════════
         await RunCommandAsync("docker-compose", "up -d postgres", timeout: TimeSpan.FromMinutes(2));
         await RunCommandAsync("docker-compose", "-f docker-compose.ldap.yml up -d", timeout: TimeSpan.FromMinutes(2));
+        await RunCommandAsync("docker-compose", "up -d mnemonios-postgres mnemonios", timeout: TimeSpan.FromMinutes(3));
 
         // ═══════════════════════════════════════════════════════════════════
         // Шаг 2: Admin Console (порт 5001)
@@ -127,7 +128,8 @@ public static class InfrastructureHelper
             ("PostgreSQL", "http://localhost:5001"),
             ("phpLDAPadmin", "http://localhost:8082"),
             ("Admin Console", "http://localhost:5001"),
-            ("Board Portal", "http://localhost:5002")
+            ("Board Portal", "http://localhost:5002"),
+            ("ЕДИН (mnemonios)", "http://localhost:5010")
         };
 
         foreach (var (name, url) in services)

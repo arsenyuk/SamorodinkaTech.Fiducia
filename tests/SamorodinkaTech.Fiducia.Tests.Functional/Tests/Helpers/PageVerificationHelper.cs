@@ -92,6 +92,9 @@ public static class PageVerificationHelper
         await VerifyPageAsync(adminPage, "/main",
             "_framework/blazor.server.js", "Admin Console: Main");
 
+        await VerifyPageAsync(adminPage, "/legal-entities",
+            "_framework/blazor.server.js", "Admin Console: LegalEntities");
+
         await VerifyPageAsync(adminPage, "/users",
             "_framework/blazor.server.js", "Admin Console: Users");
 

@@ -50,11 +50,13 @@ public static class ParticipantEndpoints
 
             var items = await ctx.BoardParticipants
                 .Include(p => p.EcosystemParticipant)
+                .Include(p => p.Companies.Where(c => c.IsActive).Take(1))
+                .Include(p => p.Shares.Where(s => s.IsActive).Take(1))
                 .Where(p => p.LegalEntityId == leId.Value)
-                .OrderBy(p => p.SortOrder)
+                .OrderByDescending(p => p.Shares.Where(s => s.IsActive).Select(s => s.SharePercent).FirstOrDefault())
                 .ToListAsync();
 
-            return Results.Ok(items.Select(p => MapParticipantToDto(p)));
+            return Results.Ok(items.Select(p => MapParticipantToDto(p, activeCompany: p.Companies.FirstOrDefault(), activeShare: p.Shares.FirstOrDefault())));
         });
 
         // GET: поиск EcosystemParticipant по ФИО (для привязки BoardParticipant)
@@ -109,16 +111,24 @@ public static class ParticipantEndpoints
             if (participant is null)
                 return Results.Ok(new { Id = (Guid?)null, FullName = (string?)null, SharePercent = (decimal?)null });
 
-            return Results.Ok(new { participant.Id, FullName = participant.Person?.FullName, participant.SharePercent });
+            var activeShare = await ctx.BoardParticipantShares
+                .FirstOrDefaultAsync(s => s.ParticipantId == participant.Id && s.IsActive);
+
+            return Results.Ok(new { participant.Id, FullName = participant.Person?.FullName, SharePercent = activeShare?.SharePercent });
         });
 
         // GET: один участник по ID
         participants.MapGet("/{id}", async (Guid id, IDbContextFactory<FiduciaDbContext> dbFactory) =>
         {
             await using var ctx = await dbFactory.CreateDbContextAsync();
-            var p = await ctx.BoardParticipants.Include(x => x.EcosystemParticipant).ThenInclude(x => x!.User).Include(x => x.Person).FirstOrDefaultAsync(x => x.Id == id);
+            var p = await ctx.BoardParticipants
+                .Include(x => x.EcosystemParticipant).ThenInclude(x => x!.User)
+                .Include(x => x.Person)
+                .Include(x => x.Companies.Where(c => c.IsActive).Take(1))
+                .Include(x => x.Shares.Where(s => s.IsActive).Take(1))
+                .FirstOrDefaultAsync(x => x.Id == id);
             if (p is null) return Results.NotFound();
-            return Results.Ok(MapParticipantToDto(p));
+            return Results.Ok(MapParticipantToDto(p, activeCompany: p.Companies.FirstOrDefault(), activeShare: p.Shares.FirstOrDefault()));
         });
 
         // GET: все версии IdentityDocument участника
@@ -171,22 +181,32 @@ public static class ParticipantEndpoints
                 var userIdStr = http.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
                 Guid? userId = Guid.TryParse(userIdStr, out var uid) ? uid : null;
 
-                var maxSort = await ctx.BoardParticipants
-                    .Where(p => p.LegalEntityId == leId)
-                    .MaxAsync(p => (int?)p.SortOrder) ?? 0;
+                // Валидация ФИО для ФЛ
+                if (dto.ParticipantType == "FL" || string.IsNullOrEmpty(dto.ParticipantType))
+                {
+                    if (string.IsNullOrWhiteSpace(dto.LastName))
+                    {
+                        logger.LogWarning("Создание участника: фамилия обязательна для физического лица");
+                        return Results.BadRequest(new { error = "Фамилия обязательна для физического лица" });
+                    }
+                    if (string.IsNullOrWhiteSpace(dto.FirstName))
+                    {
+                        logger.LogWarning("Создание участника: имя обязательно для физического лица");
+                        return Results.BadRequest(new { error = "Имя обязательно для физического лица" });
+                    }
+                }
 
                 var entity = MapDtoToEntity(dto, leId);
 
-                // ── Создание Person при наличии FullName для ФЛ ──────
-                if (entity.ParticipantType == "FL" && !string.IsNullOrWhiteSpace(dto.FullName))
+                // ── Создание Person при наличии ФИО для ФЛ ──────
+                if (entity.ParticipantType == "FL" && !string.IsNullOrWhiteSpace(dto.LastName))
                 {
-                    var (lastName, firstName, middleName) = SplitFullName(dto.FullName);
                     var person = new Person
                     {
                         Id = Guid.NewGuid(),
-                        LastName = lastName,
-                        FirstName = firstName,
-                        MiddleName = middleName,
+                        LastName = dto.LastName,
+                        FirstName = dto.FirstName ?? "",
+                        MiddleName = dto.MiddleName,
                         Inn = dto.PersonInn,
                         Citizenship = dto.Citizenship,
                         CreatedAt = DateTime.UtcNow,
@@ -197,9 +217,12 @@ public static class ParticipantEndpoints
                     entity.PersonId = person.Id;
 
                     // ── Создание IdentityDocument при наличии ДУЛ ────
+                    logger.LogWarning("DEBUG DulType: Code={Code}, Series={Series}, Number={Number}",
+                        dto.DulTypeCode ?? "NULL", dto.DulSeries ?? "NULL", dto.DulNumber ?? "NULL");
                     if (!string.IsNullOrWhiteSpace(dto.DulTypeCode))
                     {
                         var dulType = await ctx.RefDulTypes.FirstOrDefaultAsync(t => t.Code == dto.DulTypeCode);
+                        logger.LogWarning("DEBUG DulType lookup: Found={Found}, Id={Id}", dulType is not null, dulType?.Id);
                         if (dulType is not null)
                         {
                             var now = DateTime.UtcNow;
@@ -225,28 +248,55 @@ public static class ParticipantEndpoints
                     // Привязываемся к существующему EcosystemParticipant или создаём новый
                     if (!entity.EcosystemParticipantId.HasValue)
                     {
-                        var ecoPerson = new EcosystemPerson
+                        // Ищем существующий EcosystemParticipant для текущего пользователя в этом ЮЛ
+                        Guid? existingEcoId = null;
+                        if (userId.HasValue)
                         {
-                            Id = Guid.NewGuid(),
-                            LastName = lastName,
-                            FirstName = firstName,
-                            MiddleName = middleName,
-                            CreatedAt = DateTime.UtcNow,
-                            CreatedBy = userId
-                        };
-                        ctx.EcosystemPersons.Add(ecoPerson);
+                            var existingEco = await ctx.EcosystemParticipants
+                                .FirstOrDefaultAsync(ep => ep.UserId == userId.Value && ep.LegalEntityId == leId);
+                            if (existingEco is not null)
+                                existingEcoId = existingEco.Id;
+                        }
 
-                        var ecoParticipant = new EcosystemParticipant
+                        if (existingEcoId.HasValue)
                         {
-                            Id = Guid.NewGuid(),
-                            LegalEntityId = leId,
-                            EcosystemPersonId = ecoPerson.Id,
-                            IsActive = true,
-                            CreatedAt = DateTime.UtcNow,
-                            CreatedBy = userId
-                        };
-                        ctx.EcosystemParticipants.Add(ecoParticipant);
-                        entity.EcosystemParticipantId = ecoParticipant.Id;
+                            entity.EcosystemParticipantId = existingEcoId.Value;
+                        }
+                        else
+                        {
+                            var ecoPerson = new EcosystemPerson
+                            {
+                                Id = Guid.NewGuid(),
+                                LastName = dto.LastName ?? "",
+                                FirstName = dto.FirstName ?? "",
+                                MiddleName = dto.MiddleName,
+                                CreatedAt = DateTime.UtcNow,
+                                CreatedBy = userId
+                            };
+                            ctx.EcosystemPersons.Add(ecoPerson);
+
+                            // Ищем существующий User для привязки к EcosystemParticipant
+                            Guid? existingUserId = null;
+                            if (userId.HasValue)
+                            {
+                                var existingUser = await ctx.Users.FindAsync(userId.Value);
+                                if (existingUser is not null)
+                                    existingUserId = existingUser.Id;
+                            }
+
+                            var ecoParticipant = new EcosystemParticipant
+                            {
+                                Id = Guid.NewGuid(),
+                                LegalEntityId = leId,
+                                EcosystemPersonId = ecoPerson.Id,
+                                UserId = existingUserId,
+                                IsActive = true,
+                                CreatedAt = DateTime.UtcNow,
+                                CreatedBy = userId
+                            };
+                            ctx.EcosystemParticipants.Add(ecoParticipant);
+                            entity.EcosystemParticipantId = ecoParticipant.Id;
+                        }
                     }
                 }
 
@@ -258,20 +308,62 @@ public static class ParticipantEndpoints
                     return Results.BadRequest(new { error = dedupError });
                 }
                 entity.Id = Guid.NewGuid();
-                entity.SortOrder = maxSort + 1;
                 entity.CreatedAt = DateTime.UtcNow;
                 entity.UpdatedAt = DateTime.UtcNow;
 
                 ctx.BoardParticipants.Add(entity);
+
+                // ── Создание сведений об ЮЛ (SCD Type 2) ────────
+                if (entity.ParticipantType == "UL" && !string.IsNullOrWhiteSpace(dto.CompanyName))
+                {
+                    ctx.BoardParticipantCompanies.Add(new BoardParticipantCompany
+                    {
+                        Id = Guid.NewGuid(),
+                        ParticipantId = entity.Id,
+                        CompanyName = dto.CompanyName,
+                        CompanyInn = dto.CompanyInn,
+                        CompanyOgrn = dto.CompanyOgrn,
+                        CompanyKpp = dto.CompanyKpp,
+                        CompanyAddress = dto.CompanyAddress,
+                        IsActive = true,
+                        CreatedAt = DateTime.UtcNow,
+                        UpdatedAt = DateTime.UtcNow,
+                        CreatedBy = userId
+                    });
+                }
+
+                // ── SCD Type 2: начальная версия доли ───────────────
+                if (dto.SharePercent.HasValue || dto.ShareAmount.HasValue || !string.IsNullOrWhiteSpace(dto.PaymentInfo) || !string.IsNullOrWhiteSpace(dto.ShareRegistrationInfo))
+                {
+                    ctx.BoardParticipantShares.Add(new BoardParticipantShare
+                    {
+                        Id = Guid.NewGuid(),
+                        ParticipantId = entity.Id,
+                        LegalEntityId = leId,
+                        SharePercent = dto.SharePercent,
+                        ShareAmount = dto.ShareAmount,
+                        PaymentInfo = dto.PaymentInfo,
+                        ShareRegistrationInfo = dto.ShareRegistrationInfo,
+                        IsActive = true,
+                        CreatedAt = DateTime.UtcNow,
+                        UpdatedAt = DateTime.UtcNow,
+                        CreatedBy = userId
+                    });
+                }
+
                 await ctx.SaveChangesAsync();
 
-                logger.LogInformation("[{Ip}] Добавлен участник: {Name}, доля={Share}%, ЮЛ={LeId}",
-                    ClientIpHelper.GetClientIp(http), entity.Person?.FullName ?? entity.CompanyName, entity.SharePercent, leId);
+                logger.LogInformation("[{Ip}] Добавлен участник: {Name}, ЮЛ={LeId}",
+                    ClientIpHelper.GetClientIp(http), entity.Person?.FullName ?? entity.CompanyName, leId);
 
                 // ЕДИН: автоматическая привязка MasterId при наличии ПДн
                 _ = TriggerEdinBindingAsync(serviceProvider, logger, ctx, entity);
 
-                return Results.Ok(MapParticipantToDto(entity));
+                var activeCompany = await ctx.BoardParticipantCompanies
+                    .FirstOrDefaultAsync(c => c.ParticipantId == entity.Id && c.IsActive);
+                var activeShare = await ctx.BoardParticipantShares
+                    .FirstOrDefaultAsync(s => s.ParticipantId == entity.Id && s.IsActive);
+                return Results.Ok(MapParticipantToDto(entity, activeCompany: activeCompany, activeShare: activeShare));
             }
             catch (Exception ex)
             {
@@ -300,20 +392,84 @@ public static class ParticipantEndpoints
                 var entity = await ctx.BoardParticipants.FindAsync(id);
                 if (entity is null) return Results.NotFound();
 
+                var userIdStr = http.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                Guid? userId = Guid.TryParse(userIdStr, out var uid) ? uid : null;
+
                 entity.ParticipantType = dto.ParticipantType ?? entity.ParticipantType;
-                entity.CompanyName = dto.CompanyName;
-                entity.CompanyInn = dto.CompanyInn;
-                entity.CompanyOgrn = dto.CompanyOgrn;
-                entity.CompanyKpp = dto.CompanyKpp;
-                entity.CompanyAddress = dto.CompanyAddress;
-                entity.SharePercent = dto.SharePercent;
-                entity.ShareAmount = dto.ShareAmount;
-                entity.PaymentInfo = dto.PaymentInfo;
-                entity.ShareRegistrationInfo = dto.ShareRegistrationInfo;
                 entity.EntryDate = dto.EntryDate;
                 entity.ExitDate = dto.ExitDate;
                 entity.IsActive = dto.IsActive ?? true;
                 entity.UpdatedAt = DateTime.UtcNow;
+
+                // ── SCD Type 2: версионирование доли ───────────────────
+                var currentShare = await ctx.BoardParticipantShares
+                    .FirstOrDefaultAsync(s => s.ParticipantId == id && s.IsActive);
+
+                var shareChanged = currentShare is null
+                    || dto.SharePercent != currentShare.SharePercent
+                    || dto.ShareAmount != currentShare.ShareAmount
+                    || dto.PaymentInfo != currentShare.PaymentInfo
+                    || dto.ShareRegistrationInfo != currentShare.ShareRegistrationInfo;
+
+                if (shareChanged)
+                {
+                    if (currentShare is not null)
+                    {
+                        currentShare.IsActive = false;
+                        currentShare.UpdatedAt = DateTime.UtcNow;
+                    }
+                    ctx.BoardParticipantShares.Add(new BoardParticipantShare
+                    {
+                        Id = Guid.NewGuid(),
+                        ParticipantId = id,
+                        LegalEntityId = entity.LegalEntityId,
+                        SharePercent = dto.SharePercent,
+                        ShareAmount = dto.ShareAmount,
+                        PaymentInfo = dto.PaymentInfo,
+                        ShareRegistrationInfo = dto.ShareRegistrationInfo,
+                        IsActive = true,
+                        CreatedAt = DateTime.UtcNow,
+                        UpdatedAt = DateTime.UtcNow,
+                        CreatedBy = userId
+                    });
+                }
+
+                // ── SCD Type 2: сведения об ЮЛ ───────────────────
+                if (entity.ParticipantType == "UL")
+                {
+                    var currentCompany = await ctx.BoardParticipantCompanies
+                        .FirstOrDefaultAsync(c => c.ParticipantId == id && c.IsActive);
+
+                    var companyChanged = currentCompany is null
+                        || dto.CompanyName != currentCompany.CompanyName
+                        || dto.CompanyInn != currentCompany.CompanyInn
+                        || dto.CompanyOgrn != currentCompany.CompanyOgrn
+                        || dto.CompanyKpp != currentCompany.CompanyKpp
+                        || dto.CompanyAddress != currentCompany.CompanyAddress;
+
+                    if (companyChanged)
+                    {
+                        if (currentCompany is not null)
+                        {
+                            currentCompany.IsActive = false;
+                            currentCompany.UpdatedAt = DateTime.UtcNow;
+                        }
+                        ctx.BoardParticipantCompanies.Add(new BoardParticipantCompany
+                        {
+                            Id = Guid.NewGuid(),
+                            ParticipantId = id,
+                            CompanyName = dto.CompanyName,
+                            CompanyInn = dto.CompanyInn,
+                            CompanyOgrn = dto.CompanyOgrn,
+                            CompanyKpp = dto.CompanyKpp,
+                            CompanyAddress = dto.CompanyAddress,
+                            IsActive = true,
+                            CreatedAt = DateTime.UtcNow,
+                            UpdatedAt = DateTime.UtcNow,
+                            CreatedBy = userId
+                        });
+                    }
+                }
 
                 // ── Дедупликация (при обновлении) ────────────────────
                 var dedupError = await CheckDuplicateParticipantAsync(ctx, entity.LegalEntityId, entity, id);
@@ -331,7 +487,9 @@ public static class ParticipantEndpoints
                 // ЕДИН: автоматическая привязка MasterId при наличии ПДн
                 _ = TriggerEdinBindingAsync(serviceProvider, logger, ctx, entity);
 
-                return Results.Ok(MapParticipantToDto(entity));
+                var activeCompany = await ctx.BoardParticipantCompanies
+                    .FirstOrDefaultAsync(c => c.ParticipantId == id && c.IsActive);
+                return Results.Ok(MapParticipantToDto(entity, activeCompany: activeCompany));
             }
             catch (Exception ex)
             {
@@ -473,7 +631,6 @@ public static class ParticipantEndpoints
 
                 ctx.BoardParticipants.RemoveRange(existing);
 
-                var maxSort = 0;
                 var imported = new List<object>();
 
                 foreach (var f in sparkFounders.OrderByDescending(f => f.SharePercent))
@@ -510,17 +667,47 @@ public static class ParticipantEndpoints
                         CompanyName = f.Name,
                         CompanyInn = f.FounderInn,
                         CompanyOgrn = f.FounderOgrn,
-                        SharePercent = f.SharePercent,
-                        ShareAmount = f.ShareAmount,
                         EntryDate = f.EntryDate.HasValue ? DateOnly.FromDateTime(f.EntryDate.Value) : null,
                         ExitDate = f.ExitDate.HasValue ? DateOnly.FromDateTime(f.ExitDate.Value) : null,
                         IsActive = !f.ExitDate.HasValue,
-                        SortOrder = ++maxSort,
                         CreatedAt = DateTime.UtcNow,
                         UpdatedAt = DateTime.UtcNow
                     };
 
                     ctx.BoardParticipants.Add(entity);
+
+                    // SCD Type 2: начальная версия доли
+                    if (f.SharePercent.HasValue || f.ShareAmount.HasValue)
+                    {
+                        ctx.BoardParticipantShares.Add(new BoardParticipantShare
+                        {
+                            Id = Guid.NewGuid(),
+                            ParticipantId = entity.Id,
+                            LegalEntityId = leId,
+                            SharePercent = f.SharePercent,
+                            ShareAmount = f.ShareAmount,
+                            IsActive = true,
+                            CreatedAt = DateTime.UtcNow,
+                            UpdatedAt = DateTime.UtcNow
+                        });
+                    }
+
+                    // Создание сведений об ЮЛ для UL-участников
+                    if (entity.ParticipantType == "UL" && !string.IsNullOrWhiteSpace(f.Name))
+                    {
+                        ctx.BoardParticipantCompanies.Add(new BoardParticipantCompany
+                        {
+                            Id = Guid.NewGuid(),
+                            ParticipantId = entity.Id,
+                            CompanyName = f.Name,
+                            CompanyInn = f.FounderInn,
+                            CompanyOgrn = f.FounderOgrn,
+                            IsActive = true,
+                            CreatedAt = DateTime.UtcNow,
+                            UpdatedAt = DateTime.UtcNow
+                        });
+                    }
+
                     imported.Add(MapParticipantToDto(entity));
                 }
 
@@ -736,16 +923,25 @@ public static class ParticipantEndpoints
                 // Валидация XML
                 var xmlExt = System.IO.Path.GetExtension(file.FileName)?.ToLowerInvariant();
                 if (xmlExt != ".xml")
+                {
+                    logger.LogWarning("Валидация реестра: XML-файл должен иметь расширение .xml, получено {Ext}", xmlExt);
                     return Results.BadRequest(new { error = "XML-файл должен иметь расширение .xml" });
+                }
 
                 // Валидация подписи
                 var sigExt = System.IO.Path.GetExtension(signature.FileName)?.ToLowerInvariant();
                 if (sigExt != ".sig" && sigExt != ".p7s")
+                {
+                    logger.LogWarning("Валидация реестра: файл подписи должен иметь расширение .sig или .p7s, получено {Ext}", sigExt);
                     return Results.BadRequest(new { error = "Файл подписи должен иметь расширение .sig или .p7s" });
+                }
 
                 var leId = await LegalEntityHelper.GetLegalEntityIdAsync(ctx, http);
                 if (leId is null)
+                {
+                    logger.LogWarning("Валидация реестра: юридическое лицо не определено");
                     return Results.BadRequest(new { error = "Юридическое лицо не определено" });
+                }
 
                 var userIdStr = http.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
                 Guid? userId = Guid.TryParse(userIdStr, out var uid) ? uid : null;
@@ -948,10 +1144,25 @@ public static class ParticipantEndpoints
 
                 var leId = await LegalEntityHelper.GetLegalEntityIdAsync(ctx, http);
                 if (leId is null)
+                {
+                    logger.LogWarning("Валидация информирования: юридическое лицо не определено");
                     return Results.BadRequest(new { error = "Юридическое лицо не определено" });
+                }
 
                 var userIdStr = http.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
                 Guid? userId = Guid.TryParse(userIdStr, out var uid) ? uid : null;
+
+                // Валидация ФИО
+                if (string.IsNullOrWhiteSpace(dto.LastName))
+                {
+                    logger.LogWarning("Создание информирования: фамилия обязательна");
+                    return Results.BadRequest(new { error = "Фамилия обязательна" });
+                }
+                if (string.IsNullOrWhiteSpace(dto.FirstName))
+                {
+                    logger.LogWarning("Создание информирования: имя обязательно");
+                    return Results.BadRequest(new { error = "Имя обязательно" });
+                }
 
                 var entity = new BoardParticipantChange
                 {
@@ -1385,20 +1596,7 @@ public static class ParticipantEndpoints
         }
     }
 
-    /// <summary>Разбивает ФИО на фамилию, имя и отчество.</summary>
-    private static (string LastName, string FirstName, string? MiddleName) SplitFullName(string fullName)
-    {
-        var parts = fullName.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
-        return parts.Length switch
-        {
-            >= 3 => (parts[0], parts[1], parts[2]),
-            2 => (parts[0], parts[1], null),
-            1 => (parts[0], parts[0], null),
-            _ => ("", "", null)
-        };
-    }
-
-    private static object MapParticipantToDto(BoardParticipant p, IdentityDocument? primaryDoc = null)
+    private static object MapParticipantToDto(BoardParticipant p, IdentityDocument? primaryDoc = null, BoardParticipantCompany? activeCompany = null, BoardParticipantShare? activeShare = null)
     {
         return new
         {
@@ -1419,20 +1617,19 @@ public static class ParticipantEndpoints
             PassportRegistrationAddress = primaryDoc?.RegistrationAddress,
             PersonInn = p.Person?.Inn,
             Citizenship = p.Person?.Citizenship,
-            p.CompanyName,
-            p.CompanyInn,
-            p.CompanyOgrn,
-            p.CompanyKpp,
-            p.CompanyAddress,
+            CompanyName = activeCompany?.CompanyName ?? p.CompanyName,
+            CompanyInn = activeCompany?.CompanyInn ?? p.CompanyInn,
+            CompanyOgrn = activeCompany?.CompanyOgrn ?? p.CompanyOgrn,
+            CompanyKpp = activeCompany?.CompanyKpp ?? p.CompanyKpp,
+            CompanyAddress = activeCompany?.CompanyAddress ?? p.CompanyAddress,
             Ogrnip = p.Person?.Ogrnip,
-            p.SharePercent,
-            p.ShareAmount,
-            p.PaymentInfo,
-            p.ShareRegistrationInfo,
+            SharePercent = activeShare?.SharePercent,
+            ShareAmount = activeShare?.ShareAmount,
+            PaymentInfo = activeShare?.PaymentInfo,
+            ShareRegistrationInfo = activeShare?.ShareRegistrationInfo,
             EntryDate = p.EntryDate?.ToString("dd.MM.yyyy"),
             ExitDate = p.ExitDate?.ToString("dd.MM.yyyy"),
-            p.IsActive,
-            p.SortOrder
+            p.IsActive
         };
     }
 
@@ -1446,10 +1643,6 @@ public static class ParticipantEndpoints
         CompanyOgrn = dto.CompanyOgrn,
         CompanyKpp = dto.CompanyKpp,
         CompanyAddress = dto.CompanyAddress,
-        SharePercent = dto.SharePercent,
-        ShareAmount = dto.ShareAmount,
-        PaymentInfo = dto.PaymentInfo,
-        ShareRegistrationInfo = dto.ShareRegistrationInfo,
         EntryDate = dto.EntryDate,
         ExitDate = dto.ExitDate,
         IsActive = dto.IsActive ?? true
@@ -1525,7 +1718,9 @@ public static class ParticipantEndpoints
     {
         public string? ParticipantType { get; init; }
         public Guid? EcosystemParticipantId { get; init; }
-        public string? FullName { get; init; }
+        public string? LastName { get; init; }
+        public string? FirstName { get; init; }
+        public string? MiddleName { get; init; }
         public string? DulTypeCode { get; init; }
         public string? DulSeries { get; init; }
         public string? DulNumber { get; init; }
@@ -1612,85 +1807,130 @@ public static class ParticipantEndpoints
             .Include(p => p.Person)
             .FirstOrDefaultAsync(p => p.Id == entity.ParticipantId);
 
-        if (participant?.PersonId.HasValue != true) return;
+        if (participant is null) return;
 
         var now = DateTime.UtcNow;
-        var currentDoc = await ctx.IdentityDocuments
-            .FirstOrDefaultAsync(d => d.PersonId == participant.PersonId.Value && d.IsActive);
-
         var changes = new List<string>();
 
-        // Сравнение ДУЛ
-        if (currentDoc is not null)
+        // ── FL: ДУЛ + Person ─────────────────────────────────
+        if (participant.PersonId.HasValue)
         {
-            if (entity.DulTypeId.HasValue && entity.DulTypeId != currentDoc.DulTypeId)
-                changes.Add("Тип документа изменён");
-            if (!string.IsNullOrEmpty(entity.PassportSeries) && entity.PassportSeries != currentDoc.Series)
-                changes.Add($"Серия: {currentDoc.Series} → {entity.PassportSeries}");
-            if (!string.IsNullOrEmpty(entity.PassportNumber) && entity.PassportNumber != currentDoc.Number)
-                changes.Add($"Номер: {currentDoc.Number} → {entity.PassportNumber}");
-            if (!string.IsNullOrEmpty(entity.PassportRegistrationAddress) && entity.PassportRegistrationAddress != currentDoc.RegistrationAddress)
-                changes.Add("Адрес регистрации изменился");
-        }
+            var currentDoc = await ctx.IdentityDocuments
+                .FirstOrDefaultAsync(d => d.PersonId == participant.PersonId.Value && d.IsActive);
 
-        // Сравнение ФИО (отдельные поля, без SplitFullName)
-        if (participant.Person is not null)
-        {
-            if (!string.IsNullOrEmpty(entity.LastName) && entity.LastName != participant.Person.LastName)
-                changes.Add($"Фамилия: {participant.Person.LastName} → {entity.LastName}");
-            if (!string.IsNullOrEmpty(entity.FirstName) && entity.FirstName != participant.Person.FirstName)
-                changes.Add($"Имя: {participant.Person.FirstName} → {entity.FirstName}");
-        }
-
-        // Сравнение ИНН
-        if (participant.Person is not null && !string.IsNullOrEmpty(entity.PersonInn)
-            && entity.PersonInn != participant.Person.Inn)
-            changes.Add($"ИНН: {participant.Person.Inn} → {entity.PersonInn}");
-
-        if (changes.Count > 0)
-        {
-            // Версионирование: деактивировать старую версию ДУЛ
+            // Сравнение ДУЛ
             if (currentDoc is not null)
             {
-                currentDoc.IsActive = false;
-                currentDoc.UpdatedAt = now;
+                if (entity.DulTypeId.HasValue && entity.DulTypeId != currentDoc.DulTypeId)
+                    changes.Add("Тип документа изменён");
+                if (!string.IsNullOrEmpty(entity.PassportSeries) && entity.PassportSeries != currentDoc.Series)
+                    changes.Add($"Серия: {currentDoc.Series} → {entity.PassportSeries}");
+                if (!string.IsNullOrEmpty(entity.PassportNumber) && entity.PassportNumber != currentDoc.Number)
+                    changes.Add($"Номер: {currentDoc.Number} → {entity.PassportNumber}");
+                if (!string.IsNullOrEmpty(entity.PassportRegistrationAddress) && entity.PassportRegistrationAddress != currentDoc.RegistrationAddress)
+                    changes.Add("Адрес регистрации изменился");
             }
-            // Создать новую версию ДУЛ
-            var dulTypeId = entity.DulTypeId ?? currentDoc?.DulTypeId
-                ?? (await ctx.RefDulTypes.FirstOrDefaultAsync(t => t.Code == "21"))?.Id
-                ?? Guid.Empty;
-            if (dulTypeId != Guid.Empty)
+
+            // Сравнение ФИО
+            if (participant.Person is not null)
             {
-                ctx.IdentityDocuments.Add(new IdentityDocument
+                if (!string.IsNullOrEmpty(entity.LastName) && entity.LastName != participant.Person.LastName)
+                    changes.Add($"Фамилия: {participant.Person.LastName} → {entity.LastName}");
+                if (!string.IsNullOrEmpty(entity.FirstName) && entity.FirstName != participant.Person.FirstName)
+                    changes.Add($"Имя: {participant.Person.FirstName} → {entity.FirstName}");
+            }
+
+            // Сравнение ИНН
+            if (participant.Person is not null && !string.IsNullOrEmpty(entity.PersonInn)
+                && entity.PersonInn != participant.Person.Inn)
+                changes.Add($"ИНН: {participant.Person.Inn} → {entity.PersonInn}");
+
+            if (changes.Count > 0)
+            {
+                // Версионирование: деактивировать старую версию ДУЛ
+                if (currentDoc is not null)
+                {
+                    currentDoc.IsActive = false;
+                    currentDoc.UpdatedAt = now;
+                }
+                // Создать новую версию ДУЛ
+                var dulTypeId = entity.DulTypeId ?? currentDoc?.DulTypeId
+                    ?? (await ctx.RefDulTypes.FirstOrDefaultAsync(t => t.Code == "21"))?.Id
+                    ?? Guid.Empty;
+                if (dulTypeId != Guid.Empty)
+                {
+                    ctx.IdentityDocuments.Add(new IdentityDocument
+                    {
+                        Id = Guid.NewGuid(),
+                        PersonId = participant.PersonId.Value,
+                        DulTypeId = dulTypeId,
+                        Series = entity.PassportSeries,
+                        Number = entity.PassportNumber,
+                        IssuedBy = entity.PassportIssuedBy,
+                        IssueDate = entity.PassportIssueDate,
+                        DepartmentCode = entity.PassportDepartmentCode,
+                        RegistrationAddress = entity.PassportRegistrationAddress,
+                        IsActive = true,
+                        CreatedAt = now,
+                        UpdatedAt = now,
+                        CreatedBy = entity.SubmittedBy
+                    });
+                }
+                // Обновить Person
+                if (participant.Person is not null)
+                {
+                    if (!string.IsNullOrEmpty(entity.LastName))
+                        participant.Person.LastName = entity.LastName;
+                    if (!string.IsNullOrEmpty(entity.FirstName))
+                        participant.Person.FirstName = entity.FirstName;
+                    if (entity.MiddleName != null)
+                        participant.Person.MiddleName = entity.MiddleName;
+                }
+                if (!string.IsNullOrEmpty(entity.PersonInn) && participant.Person is not null)
+                    participant.Person.Inn = entity.PersonInn;
+            }
+        }
+
+        // ── UL: сведения об ЮЛ (SCD Type 2) ──────────────────
+        if (participant.ParticipantType == "UL")
+        {
+            var currentCompany = await ctx.BoardParticipantCompanies
+                .FirstOrDefaultAsync(c => c.ParticipantId == participant.Id && c.IsActive);
+
+            var companyChanged = currentCompany is null
+                || entity.CompanyName != currentCompany.CompanyName
+                || entity.CompanyInn != currentCompany.CompanyInn
+                || entity.CompanyOgrn != currentCompany.CompanyOgrn
+                || entity.CompanyKpp != currentCompany.CompanyKpp
+                || entity.CompanyAddress != currentCompany.CompanyAddress;
+
+            if (companyChanged)
+            {
+                changes.Add("Сведения об ЮЛ изменены");
+                if (currentCompany is not null)
+                {
+                    currentCompany.IsActive = false;
+                    currentCompany.UpdatedAt = now;
+                }
+                ctx.BoardParticipantCompanies.Add(new BoardParticipantCompany
                 {
                     Id = Guid.NewGuid(),
-                    PersonId = participant.PersonId.Value,
-                    DulTypeId = dulTypeId,
-                    Series = entity.PassportSeries,
-                    Number = entity.PassportNumber,
-                    IssuedBy = entity.PassportIssuedBy,
-                    IssueDate = entity.PassportIssueDate,
-                    DepartmentCode = entity.PassportDepartmentCode,
-                    RegistrationAddress = entity.PassportRegistrationAddress,
+                    ParticipantId = participant.Id,
+                    CompanyName = entity.CompanyName,
+                    CompanyInn = entity.CompanyInn,
+                    CompanyOgrn = entity.CompanyOgrn,
+                    CompanyKpp = entity.CompanyKpp,
+                    CompanyAddress = entity.CompanyAddress,
                     IsActive = true,
                     CreatedAt = now,
                     UpdatedAt = now,
                     CreatedBy = entity.SubmittedBy
                 });
             }
-            // Обновить Person (ФИО — отдельные поля из change-записи)
-            if (participant.Person is not null)
-            {
-                if (!string.IsNullOrEmpty(entity.LastName))
-                    participant.Person.LastName = entity.LastName;
-                if (!string.IsNullOrEmpty(entity.FirstName))
-                    participant.Person.FirstName = entity.FirstName;
-                if (entity.MiddleName != null)
-                    participant.Person.MiddleName = entity.MiddleName;
-            }
-            if (!string.IsNullOrEmpty(entity.PersonInn) && participant.Person is not null)
-                participant.Person.Inn = entity.PersonInn;
+        }
 
+        if (changes.Count > 0)
+        {
             logger.LogInformation("[{Ip}] Автоприменение сведений: participant={ParticipantId}, изменения: {Changes}",
                 ClientIpHelper.GetClientIp(http), entity.ParticipantId, string.Join("; ", changes));
         }

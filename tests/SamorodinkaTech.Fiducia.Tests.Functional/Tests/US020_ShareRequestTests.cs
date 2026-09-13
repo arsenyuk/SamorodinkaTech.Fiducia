@@ -8,6 +8,7 @@ namespace SamorodinkaTech.Fiducia.Tests.Functional;
 /// US-020: Требования участника — E2E-тест через Playwright.
 /// Сценарий: участник (PARTICIPANT) заходит на страницу требований,
 /// проверяет загрузку, кнопку создания, API и форму создания.
+/// Документация: docs/e2e-share-request.md
 /// </summary>
 public class US020_ShareRequestTests : BrowserFixture
 {

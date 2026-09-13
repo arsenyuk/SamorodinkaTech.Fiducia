@@ -18,6 +18,7 @@ namespace SamorodinkaTech.Fiducia.Tests.Functional;
 /// 6. Проверка страниц Board Portal и Admin Console (US-002..US-024)
 /// 7. Проверка записей аудита (вход, чтение/запись, участники)
 /// 8. Проверка отсутствия ошибок в логе приложения за период работы теста
+/// Документация: docs/e2e-nonstandard-charter.md
 /// </summary>
 [Collection("CharterTests")]
 public class E2E_NonStandardCharterTests : BrowserFixture
@@ -825,7 +826,7 @@ public class E2E_NonStandardCharterTests : BrowserFixture
         {
             await BoardPortalHelper.AddParticipantAsync(
                 boardPage,
-                p.FullName,
+                p.LastName, p.FirstName, p.MiddleName,
                 sharePercent: p.SharePercent);
         }
 

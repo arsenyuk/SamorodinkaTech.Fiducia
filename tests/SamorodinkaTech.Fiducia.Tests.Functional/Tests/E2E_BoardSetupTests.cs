@@ -17,6 +17,7 @@ namespace SamorodinkaTech.Fiducia.Tests.Functional;
 /// 6. Добавление Зам. председателя (Вариант 2)
 /// 7. Сохранение и проверка отсутствия ошибок
 /// 8. Проверка страницы Admin Console
+/// Документация: docs/e2e-board-setup.md
 /// </summary>
 [Collection("CharterTests")]
 public class E2E_BoardSetupTests : BrowserFixture
@@ -57,7 +58,7 @@ public class E2E_BoardSetupTests : BrowserFixture
             await NavigateToBoardSetupAsync(boardPage);
 
             // Проверяем, что страница загрузилась (ищем h3 — Blazor рендерит в DOM до SignalR)
-            var h3 = await boardPage.WaitForSelectorAsync("h3", new() { Timeout = 15000 });
+            var h3 = await boardPage.WaitForSelectorAsync("h3", new() { Timeout = 2000 });
             h3.Should().NotBeNull("h3 заголовок wizard'а должен присутствовать");
 
             // Проверяем структуру СД
@@ -221,7 +222,28 @@ public class E2E_BoardSetupTests : BrowserFixture
 
     private async Task NavigateToBoardSetupAsync(IPage boardPage)
     {
-        var url = PortalUrls.GetUrl(Portal.BoardPortal, "/board-setup");
+        // Получаем ID выбранного ЮЛ со страницы /legal-entities
+        var legalEntityIdStr = await boardPage.EvaluateAsync<string?>(
+            @"() => {
+                const link = document.querySelector('a[href*=""board-setup?leId=""]');
+                if (link) {
+                    const match = link.href.match(/leId=([0-9a-f-]{36})/i);
+                    return match ? match[1] : null;
+                }
+                return null;
+            }");
+
+        if (string.IsNullOrEmpty(legalEntityIdStr))
+        {
+            // Fallback: пытаемся получить из select
+            legalEntityIdStr = await boardPage.EvaluateAsync<string?>(
+                @"() => {
+                    const sel = document.querySelector('.card-body select.form-select');
+                    return sel ? sel.value : null;
+                }");
+        }
+
+        var url = PortalUrls.GetUrl(Portal.BoardPortal, $"/board-setup?leId={legalEntityIdStr}");
         await boardPage.GotoAsync(url);
         await AuthHelper.WaitForBlazorReady(boardPage);
         await boardPage.WaitForTimeoutAsync(3000);
@@ -280,7 +302,7 @@ public class E2E_BoardSetupTests : BrowserFixture
         {
             await BoardPortalHelper.AddParticipantAsync(
                 boardPage,
-                p.FullName,
+                p.LastName, p.FirstName, p.MiddleName,
                 sharePercent: p.SharePercent);
         }
 

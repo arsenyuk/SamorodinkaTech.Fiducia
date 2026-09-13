@@ -442,7 +442,9 @@ public static class BoardPortalHelper
     /// </summary>
     public static async Task<Guid> AddParticipantAsync(
         IPage page,
-        string fullName,
+        string lastName,
+        string firstName,
+        string? middleName = null,
         decimal? sharePercent = null,
         decimal? shareAmount = null,
         string? dulTypeCode = null,
@@ -454,6 +456,7 @@ public static class BoardPortalHelper
         var dulTypeCodeJson = dulTypeCode != null ? $"'{EscapeJs(dulTypeCode)}'" : "null";
         var dulSeriesJson = dulSeries != null ? $"'{EscapeJs(dulSeries)}'" : "null";
         var dulNumberJson = dulNumber != null ? $"'{EscapeJs(dulNumber)}'" : "null";
+        var middleNameJson = middleName != null ? $"'{EscapeJs(middleName)}'" : "null";
 
         var result = await page.EvaluateAsync<AddParticipantResponse>(
             $@"async () => {{
@@ -463,7 +466,9 @@ public static class BoardPortalHelper
                     credentials: 'same-origin',
                     body: JSON.stringify({{
                         participantType: 'FL',
-                        fullName: '{EscapeJs(fullName)}',
+                        lastName: '{EscapeJs(lastName)}',
+                        firstName: '{EscapeJs(firstName)}',
+                        middleName: {middleNameJson},
                         sharePercent: {sharePercentJson},
                         shareAmount: {shareAmountJson},
                         dulTypeCode: {dulTypeCodeJson},
@@ -494,10 +499,10 @@ public static class BoardPortalHelper
 
         for (var i = 0; i < count; i++)
         {
-            var fullName = CharterTestData.GetParticipantFullName(charterNumber, i + 1);
+            var (lastName, firstName, middleName) = CharterTestData.GetParticipantNameParts(charterNumber, i + 1);
             var sharePercent = percents[i];
 
-            await AddParticipantAsync(page, fullName, sharePercent: sharePercent);
+            await AddParticipantAsync(page, lastName, firstName, middleName, sharePercent: sharePercent);
             await page.WaitForTimeoutAsync(300);
         }
     }
@@ -514,10 +519,10 @@ public static class BoardPortalHelper
 
         for (var i = 0; i < count; i++)
         {
-            var fullName = NonStandardCharterTestData.GetParticipantFullName(testIndex, i + 1);
+            var (lastName, firstName, middleName) = NonStandardCharterTestData.GetParticipantNameParts(testIndex, i + 1);
             var sharePercent = percents[i];
 
-            await AddParticipantAsync(page, fullName, sharePercent: sharePercent);
+            await AddParticipantAsync(page, lastName, firstName, middleName, sharePercent: sharePercent);
             await page.WaitForTimeoutAsync(300);
         }
     }
@@ -577,12 +582,18 @@ public static class BoardPortalHelper
         decimal? shareAmount = null,
         Guid? ecosystemParticipantId = null)
     {
+        var nameParts = fullName.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        var lastName = nameParts.ElementAtOrDefault(0) ?? "";
+        var firstName = nameParts.ElementAtOrDefault(1) ?? "";
+        var middleName = nameParts.Length > 2 ? string.Join(' ', nameParts.Skip(2)) : null;
+
         var sharePercentJson = sharePercent?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "null";
         var shareAmountJson = shareAmount?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "null";
         var passportSeriesJson = passportSeries != null ? $"'{EscapeJs(passportSeries)}'" : "null";
         var passportNumberJson = passportNumber != null ? $"'{EscapeJs(passportNumber)}'" : "null";
         var personInnJson = personInn != null ? $"'{EscapeJs(personInn)}'" : "null";
         var ecoIdJson = ecosystemParticipantId.HasValue ? $"'{ecosystemParticipantId.Value}'" : "null";
+        var middleNameJson = middleName != null ? $"'{EscapeJs(middleName)}'" : "null";
 
         var result = await page.EvaluateAsync<AddParticipantResponse>(
             $@"async () => {{
@@ -592,7 +603,9 @@ public static class BoardPortalHelper
                     credentials: 'same-origin',
                     body: JSON.stringify({{
                         participantType: '{EscapeJs(participantType)}',
-                        fullName: '{EscapeJs(fullName)}',
+                        lastName: '{EscapeJs(lastName)}',
+                        firstName: '{EscapeJs(firstName)}',
+                        middleName: {middleNameJson},
                         passportSeries: {passportSeriesJson},
                         passportNumber: {passportNumberJson},
                         personInn: {personInnJson},
@@ -636,11 +649,19 @@ public static class BoardPortalHelper
     /// <summary>Добавить участника с данными ДУЛ через API.</summary>
     public static async Task<Guid> AddParticipantWithDulAsync(
         IPage page, string fullName, string dulTypeCode, string dulSeries, string dulNumber,
-        string? personInn = null, decimal? sharePercent = null, decimal? shareAmount = null)
+        string? personInn = null, decimal? sharePercent = null, decimal? shareAmount = null,
+        Guid? ecosystemParticipantId = null)
     {
+        var parts = fullName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        var lastName = parts.ElementAtOrDefault(0) ?? "";
+        var firstName = parts.ElementAtOrDefault(1) ?? "";
+        var middleName = parts.ElementAtOrDefault(2);
+
         var sharePercentJson = sharePercent?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "null";
         var shareAmountJson = shareAmount?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "null";
         var personInnJson = personInn != null ? $"'{EscapeJs(personInn)}'" : "null";
+        var middleNameJson = middleName != null ? $"'{EscapeJs(middleName)}'" : "null";
+        var ecoIdJson = ecosystemParticipantId.HasValue ? $"'{ecosystemParticipantId.Value}'" : "null";
 
         var result = await page.EvaluateAsync<AddParticipantResponse>(
             $@"async () => {{
@@ -650,13 +671,16 @@ public static class BoardPortalHelper
                     credentials: 'same-origin',
                     body: JSON.stringify({{
                         participantType: 'FL',
-                        fullName: '{EscapeJs(fullName)}',
+                        lastName: '{EscapeJs(lastName)}',
+                        firstName: '{EscapeJs(firstName)}',
+                        middleName: {middleNameJson},
                         dulTypeCode: '{EscapeJs(dulTypeCode)}',
                         dulSeries: '{EscapeJs(dulSeries)}',
                         dulNumber: '{EscapeJs(dulNumber)}',
                         personInn: {personInnJson},
                         sharePercent: {sharePercentJson},
-                        shareAmount: {shareAmountJson}
+                        shareAmount: {shareAmountJson},
+                        ecosystemParticipantId: {ecoIdJson}
                     }})
                 }});
                 if (!response.ok) {{
@@ -712,20 +736,29 @@ public static class BoardPortalHelper
     public static async Task<List<IdentityDocumentVersion>> GetAllIdentityDocumentsAsync(
         IPage page, Guid participantId)
     {
-        return await page.EvaluateAsync<List<IdentityDocumentVersion>>(
+        var json = await page.EvaluateAsync<string>(
             $@"async () => {{
                 const response = await fetch('/api/participants/{participantId}/identity-documents', {{
                     credentials: 'same-origin'
                 }});
                 if (!response.ok) throw new Error(`GET identity-documents failed: ${{response.status}}`);
-                return await response.json();
+                return JSON.stringify(await response.json());
             }}");
+
+        var options = new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+        return System.Text.Json.JsonSerializer.Deserialize<List<IdentityDocumentVersion>>(json, options) ?? new();
     }
 
     /// <summary>DTO версии IdentityDocument.</summary>
-    public record IdentityDocumentVersion(
-        Guid Id, string? DulTypeCode, string? Series, string? Number,
-        bool IsActive, string? CreatedAt);
+    public record IdentityDocumentVersion
+    {
+        public Guid Id { get; set; }
+        public string? DulTypeCode { get; set; }
+        public string? Series { get; set; }
+        public string? Number { get; set; }
+        public bool IsActive { get; set; }
+        public string? CreatedAt { get; set; }
+    }
 
     // ══════════════════════════════════════════════════════════════════════
     // Вкладка «ГД» — генеральный директор

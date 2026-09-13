@@ -7,6 +7,7 @@ namespace SamorodinkaTech.Fiducia.Tests.Functional;
 /// <summary>
 /// E2E-тесты: сквозные сценарии ЕДИН-интеграции для ООО с ЕИО-ГД.
 /// Требуют запущенных порталов, ЕДИН и Playwright.
+/// Документация: docs/e2e-edin-scenarios.md
 /// </summary>
 [Collection("E2ETests")]
 public class E2E_EdinScenarioTests : BrowserFixture
@@ -38,11 +39,11 @@ public class E2E_EdinScenarioTests : BrowserFixture
             var leInn = InnTestHelper.GenerateValidInn();
             await AdminConsoleHelper.CreateLegalEntityAsync(adminPage, leName, leInn);
 
-            // Установить ОКОПФ = 12300 (ООО)
+            // Установить ОКОПФ = 12300 (ООО) — ID из URL после создания
             var selectedLeId = await adminPage.EvaluateAsync<string?>(
                 @"() => {
-                    const sel = document.querySelector('.card-body select.form-select');
-                    return sel ? sel.value : null;
+                    const url = new URL(window.location.href);
+                    return url.searchParams.get('le');
                 }");
             if (!string.IsNullOrEmpty(selectedLeId) && Guid.TryParse(selectedLeId, out var leGuid))
             {
@@ -50,6 +51,7 @@ public class E2E_EdinScenarioTests : BrowserFixture
             }
 
             // ── Шаг 3: Добавить сотрудника (LE_ADMIN) ───────────────────
+            // Страница уже на /access-management?le={id} после CreateLegalEntityAsync
             var login = "nechaev.va";
             await AdminConsoleHelper.AddEmployeeAsync(
                 adminPage,
@@ -120,11 +122,11 @@ public class E2E_EdinScenarioTests : BrowserFixture
             var leInn = InnTestHelper.GenerateValidInn();
             await AdminConsoleHelper.CreateLegalEntityAsync(adminPage, leName, leInn);
 
-            // Установить ОКОПФ = 12300 (ООО)
+            // Установить ОКОПФ = 12300 (ООО) — ID из URL после создания
             var selectedLeId = await adminPage.EvaluateAsync<string?>(
                 @"() => {
-                    const sel = document.querySelector('.card-body select.form-select');
-                    return sel ? sel.value : null;
+                    const url = new URL(window.location.href);
+                    return url.searchParams.get('le');
                 }");
             if (!string.IsNullOrEmpty(selectedLeId) && Guid.TryParse(selectedLeId, out var leGuid))
             {

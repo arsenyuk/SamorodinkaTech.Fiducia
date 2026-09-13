@@ -9,6 +9,7 @@ namespace SamorodinkaTech.Fiducia.Tests.Functional;
 /// Сценарий: участник (PARTICIPANT) заходит на страницу участников общества,
 /// проверяет загрузку, вкладки, API и отсутствие ошибок.
 /// Страница доступна только для ООО (ОКОПФ 12300).
+/// Документация: docs/e2e-participant-list.md
 /// </summary>
 public class US023_ParticipantTests : BrowserFixture
 {

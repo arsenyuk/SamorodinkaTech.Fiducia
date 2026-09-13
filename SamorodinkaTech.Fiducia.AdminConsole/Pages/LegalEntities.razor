@@ -1,0 +1,259 @@
+@page "/legal-entities"
+@using Microsoft.EntityFrameworkCore
+@using Microsoft.AspNetCore.WebUtilities
+@using SamorodinkaTech.Fiducia.Domain.Entities
+@using SamorodinkaTech.Fiducia.Domain.Interfaces
+@using SamorodinkaTech.Fiducia.Infrastructure.Persistence
+@inject IDbContextFactory<FiduciaDbContext> DbFactory
+@inject ILogger<LegalEntities> Logger
+@inject NavigationManager Navigation
+@inject IHttpContextAccessor HttpContextAccessor
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "SYS_ADMIN,LE_ADMIN")]
+
+<PageTitle>Fiducia — Общества</PageTitle>
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3>Общества</h3>
+        <button class="btn btn-primary" @onclick="ShowCreateModal">+ Создать ЮЛ</button>
+    </div>
+
+    @if (!string.IsNullOrEmpty(_error))
+    {
+        <div class="alert alert-danger py-2">@_error</div>
+    }
+
+    <div class="card">
+        <div class="card-body">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Наименование</th>
+                        <th>ИНН</th>
+                        <th>ОГРН</th>
+                        <th>ОКОПФ</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var le in _legalEntities)
+                    {
+                        <tr style="cursor: pointer;" @onclick="() => OpenLegalEntity(le.Id)">
+                            <td><strong>@le.Name</strong></td>
+                            <td>@(le.Inn ?? "—")</td>
+                            <td>@(le.Ogrn ?? "—")</td>
+                            <td>@(le.OkopfName ?? "—")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@if (_showCreateModal)
+{
+    <div class="modal show d-block" tabindex="-1" style="background-color:rgba(0,0,0,.5)">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Новое ЮЛ</h5>
+                    <button class="btn-close" @onclick="() => _showCreateModal = false"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Наименование *</label>
+                        <input class="form-control @(_createNameError is not null ? "is-invalid" : "")"
+                               @bind="_createName" @oninput="() => _createNameError = null" data-testid="le-name" />
+                        @if (_createNameError is not null)
+                        {
+                            <div class="invalid-feedback">@_createNameError</div>
+                        }
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">ИНН *</label>
+                        <input class="form-control @(_createInnError is not null ? "is-invalid" : "")"
+                               @bind="_createInn" maxlength="12" @oninput="() => _createInnError = null" data-testid="le-inn" />
+                        @if (_createInnError is not null)
+                        {
+                            <div class="invalid-feedback">@_createInnError</div>
+                        }
+                    </div>
+                    @if (!string.IsNullOrEmpty(_createError))
+                    {
+                        <div class="alert alert-danger py-1 px-2 small">@_createError</div>
+                    }
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" @onclick="() => _showCreateModal = false">Отмена</button>
+                    <button class="btn btn-primary" @onclick="CreateLegalEntity"
+                            disabled="@(_createLoading || string.IsNullOrWhiteSpace(_createName) || string.IsNullOrWhiteSpace(_createInn))"
+                            data-testid="le-create">Создать</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<LegalEntityRow> _legalEntities = new();
+    private string? _error;
+
+    private bool _showCreateModal;
+    private string _createName = "", _createInn = "";
+    private string? _createNameError, _createInnError, _createError;
+    private bool _createLoading;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadLegalEntitiesAsync();
+    }
+
+    private async Task LoadLegalEntitiesAsync()
+    {
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+
+            var role = HttpContextAccessor.HttpContext?.User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
+            var isSysAdmin = role == "SYS_ADMIN";
+
+            List<LegalEntity> entities;
+            if (isSysAdmin)
+            {
+                entities = await ctx.LegalEntities
+                    .Include(le => le.RefOkopf)
+                    .OrderBy(le => le.Name)
+                    .ToListAsync();
+            }
+            else
+            {
+                var login = HttpContextAccessor.HttpContext?.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                if (Guid.TryParse(login, out var userId))
+                {
+                    var user = await ctx.Users.FindAsync(userId);
+                    login = user?.Login;
+                }
+                if (!string.IsNullOrEmpty(login))
+                {
+                    entities = await ctx.LegalEntities
+                        .Include(le => le.RefOkopf)
+                        .Where(le => ctx.EcosystemParticipants.Any(ep =>
+                            ep.LegalEntityId == le.Id && ep.User != null && ep.User.Login == login))
+                        .OrderBy(le => le.Name)
+                        .ToListAsync();
+                }
+                else
+                {
+                    entities = new();
+                }
+            }
+
+            _legalEntities = entities.Select(le => new LegalEntityRow
+            {
+                Id = le.Id,
+                Name = le.Name,
+                Inn = le.Inn,
+                Ogrn = le.Ogrn,
+                OkopfName = le.RefOkopf?.Name
+            }).ToList();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Ошибка загрузки списка ЮЛ");
+            _error = "Ошибка загрузки данных.";
+        }
+    }
+
+    private void OpenLegalEntity(Guid id)
+    {
+        Navigation.NavigateTo($"/access-management?le={id}");
+    }
+
+    private void ShowCreateModal()
+    {
+        _showCreateModal = true;
+        _createName = "";
+        _createInn = "";
+        _createNameError = null;
+        _createInnError = null;
+        _createError = null;
+    }
+
+    private async Task CreateLegalEntity()
+    {
+        _createNameError = null;
+        _createInnError = null;
+        _createError = null;
+
+        if (string.IsNullOrWhiteSpace(_createName))
+        {
+            _createNameError = "Введите наименование.";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(_createInn))
+        {
+            _createInnError = "Введите ИНН.";
+            return;
+        }
+
+        if (_createInn.Length != 10 && _createInn.Length != 12)
+        {
+            _createInnError = "ИНН: 10 или 12 цифр.";
+            return;
+        }
+
+        _createLoading = true;
+        StateHasChanged();
+
+        try
+        {
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+
+            if (await ctx.LegalEntities.AnyAsync(le => le.Inn == _createInn))
+            {
+                _createInnError = $"ИНН {_createInn} уже существует.";
+                return;
+            }
+
+            var le = new LegalEntity
+            {
+                Id = Guid.NewGuid(),
+                Name = _createName,
+                Inn = _createInn
+            };
+
+            ctx.LegalEntities.Add(le);
+            await ctx.SaveChangesAsync();
+
+            _legalEntities.Add(new LegalEntityRow
+            {
+                Id = le.Id,
+                Name = le.Name,
+                Inn = le.Inn,
+                Ogrn = le.Ogrn,
+                OkopfName = null
+            });
+            _showCreateModal = false;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Ошибка создания ЮЛ");
+            _createError = "Ошибка.";
+        }
+        finally
+        {
+            _createLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private record LegalEntityRow
+    {
+        public Guid Id { get; init; }
+        public string Name { get; init; } = "";
+        public string? Inn { get; init; }
+        public string? Ogrn { get; init; }
+        public string? OkopfName { get; init; }
+    }
+}

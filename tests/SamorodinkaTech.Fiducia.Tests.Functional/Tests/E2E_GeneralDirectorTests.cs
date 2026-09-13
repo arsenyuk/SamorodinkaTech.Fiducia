@@ -10,6 +10,7 @@ namespace SamorodinkaTech.Fiducia.Tests.Functional;
 /// видимость вкладки в зависимости от типа устава и исполнительного органа.
 /// БД сбрасывается ОДИН раз перед прогоном всех тестов.
 /// Запрещено параллельное исполнение (Collection "CharterTests").
+/// Документация: docs/e2e-general-director.md
 /// </summary>
 [Collection("CharterTests")]
 public class E2E_GeneralDirectorTests : BrowserFixture
@@ -343,7 +344,7 @@ public class E2E_GeneralDirectorTests : BrowserFixture
         {
             await BoardPortalHelper.AddParticipantAsync(
                 boardPage,
-                p.FullName,
+                p.LastName, p.FirstName, p.MiddleName,
                 sharePercent: p.SharePercent,
                 dulTypeCode: p.DulTypeCode,
                 dulSeries: p.DulSeries,

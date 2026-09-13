@@ -79,6 +79,16 @@ public static class CharterTestData
         $"Участник {participantIndex} Тестовый{charterNumber:D2}";
 
     /// <summary>
+    /// Сгенерировать части ФИО участника (LastName, FirstName, MiddleName).
+    /// </summary>
+    public static (string LastName, string FirstName, string? MiddleName) GetParticipantNameParts(int charterNumber, int participantIndex)
+    {
+        var fullName = GetParticipantFullName(charterNumber, participantIndex);
+        var parts = fullName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        return (parts.ElementAtOrDefault(0) ?? "", parts.ElementAtOrDefault(1) ?? "", parts.ElementAtOrDefault(2));
+    }
+
+    /// <summary>
     /// Уставы с ExecutiveBody = B (каждый участник — директор): 07–12, 25–30.
     /// </summary>
     public static bool IsExecutiveBodyB(int charterNumber) =>

@@ -20,6 +20,8 @@ ON CONFLICT (id) DO NOTHING;
 -- ============================================================================
 -- Тестовые пользователи (привязаны к ФЛ)
 -- ============================================================================
+-- mpi_master_id НЕ заполняется в seed-скриптах — masterId получается
+-- динамически через ЕДИН API при привязке участника (EdinBindingService).
 INSERT INTO users (id, login, last_name, first_name, email, phone, is_external, created_at, created_by, is_system) VALUES
     ('11111111-1111-1111-1111-111111111112', 'ivanov', 'Иванов', 'Иван', 'ivanov@fiducia.local', '+79001112233', FALSE, CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000', FALSE),
     ('11111111-1111-1111-1111-111111111113', 'petrova', 'Петрова', 'Мария', 'petrova@fiducia.local', '+79002223344', FALSE, CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000', FALSE),

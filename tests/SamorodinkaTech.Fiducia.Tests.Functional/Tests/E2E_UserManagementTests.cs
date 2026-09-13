@@ -6,6 +6,7 @@ namespace SamorodinkaTech.Fiducia.Tests.Functional;
 
 /// <summary>
 /// E2E-тесты добавления сотрудника через /access-management.
+/// Документация: docs/e2e-user-management.md
 /// </summary>
 [Collection("E2ETests")]
 public class E2E_UserManagementTests : BrowserFixture

@@ -13,6 +13,7 @@ namespace SamorodinkaTech.Fiducia.Tests.Functional;
 ///
 /// Роль PARTICIPANT назначается АВТОМАТИЧЕСКИ при привязке
 /// BoardParticipant к EcosystemParticipant через ЕДИН binding.
+/// Документация: docs/e2e-vosu-demand.md
 /// </summary>
 [Collection("CharterTests")]
 public class E2E_VosuDemandTests : BrowserFixture

@@ -36,20 +36,19 @@ public static class AdminConsoleHelper
     }
 
     /// <summary>
-    /// Создать юридическое лицо на странице /access-management.
+    /// Создать юридическое лицо на странице /legal-entities и перейти к нему.
     /// </summary>
     public static async Task CreateLegalEntityAsync(IPage page, string name, string inn)
     {
-        if (!page.Url.Contains("/access-management"))
-        {
-            await NavigateToAsync(page, "/access-management");
-        }
+        // Навигация на страницу Общества
+        await page.GotoAsync(PortalUrls.GetUrl(Portal.AdminConsole, "/legal-entities"));
+        await AuthHelper.WaitForBlazorReady(page);
+        await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
 
         // Дождаться кнопки "+ Создать ЮЛ"
         await page.WaitForSelectorAsync("button:has-text('Создать ЮЛ')", new PageWaitForSelectorOptions { Timeout = DefaultTimeout });
+        await page.ClickAsync("button:has-text('Создать ЮЛ')");
 
-        // Playwright DispatchEventAsync — programmatic click (Playwright docs: input#programmatic-click)
-        await page.GetByTestId("show-create-le").DispatchEventAsync("click");
         await page.WaitForSelectorAsync(".modal.show", new PageWaitForSelectorOptions { Timeout = DefaultTimeout });
 
         // Fill + change event для Blazor @bind (@onchange)
@@ -64,7 +63,6 @@ public static class AdminConsoleHelper
         // Дополнительно: Tab для надёжного триггера @onchange через потерю фокуса
         await page.Keyboard.PressAsync("Tab");
 
-        // Wait for Blazor to process change events and enable the button
         // Ожидание: кнопка «Создать» станет активной
         await page.WaitForFunctionAsync(
             @"() => {
@@ -84,32 +82,27 @@ public static class AdminConsoleHelper
             null,
             new PageWaitForFunctionOptions { Timeout = DefaultTimeout });
 
-        // Reload page to refresh entity list, then select the newly created entity
-        await NavigateToAsync(page, "/access-management");
+        // Перейти к /access-management для newly created LE
+        // Ищем созданное ЮЛ в таблице по ИНН, кликаем по нему
+        await page.WaitForSelectorAsync("tbody tr", new PageWaitForSelectorOptions { Timeout = DefaultTimeout });
 
-        // Wait for entity list to load (select must have >1 option)
-        await page.WaitForFunctionAsync(
-            @"() => {
-                const sel = document.querySelector('.card-body select.form-select');
-                return sel && sel.options.length > 1;
-            }",
-            null,
-            new PageWaitForFunctionOptions { Timeout = DefaultTimeout });
-
-        // Get option value by matching INN in label text, then use Playwright SelectOption
-        var optionValue = await page.EvaluateAsync<string?>(
+        // Клик по строке таблицы, содержащей ИНН
+        var rowClicked = await page.EvaluateAsync<bool>(
             $@"() => {{
-                const sel = document.querySelector('.card-body select.form-select');
-                if (!sel) return null;
-                for (const opt of sel.options) {{
-                    if (opt.text.includes('{inn}')) return opt.value;
+                const rows = document.querySelectorAll('tbody tr');
+                for (const row of rows) {{
+                    if (row.textContent.includes('{inn}')) {{
+                        row.click();
+                        return true;
+                    }}
                 }}
-                return null;
+                return false;
             }}");
 
-        if (optionValue is not null)
+        if (rowClicked)
         {
-            await page.SelectOptionAsync(".card-body select.form-select", optionValue);
+            await AuthHelper.WaitForBlazorReady(page);
+            await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
         }
 
         await page.WaitForTimeoutAsync(500);
@@ -126,15 +119,25 @@ public static class AdminConsoleHelper
         string middleName,
         string position,
         string login,
-        string roleCode,
-        string? legalEntityName = null)
+        string roleCode)
     {
-        // Force full page load to ensure fresh data after DB reset
-        await page.GotoAsync(PortalUrls.GetUrl(Portal.AdminConsole, "/access-management"));
+        // Если страница уже на /access-management?le= — просто ждём загрузки
+        if (!page.Url.Contains("/access-management?le="))
+        {
+            // Не на странице — нужна навигация. Но откуда взять ID?
+            // Бросаем ошибку — вызывающий код должен обеспечить навигацию.
+            throw new InvalidOperationException(
+                "[AdminConsoleHelper] AddEmployeeAsync: страница не на /access-management?le={id}. " +
+                "Вызовите CreateLegalEntityAsync или FindAndNavigateToLegalEntityAsync перед AddEmployeeAsync.");
+        }
+
         await AuthHelper.WaitForBlazorReady(page);
         await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
 
-        await EnsureEntitySelectedAsync(page, legalEntityName);
+        // Имя ЮЛ уже отображается на странице в .card-body strong
+
+        // Дождаться загрузки страницы (кнопка «Добавить сотрудника»)
+        await page.WaitForSelectorAsync("button.btn-primary.btn-sm:has-text('Добавить сотрудника')", new PageWaitForSelectorOptions { Timeout = DefaultTimeout });
 
         // Click "+ Добавить сотрудника"
         await page.ClickAsync("button.btn-primary.btn-sm:has-text('Добавить сотрудника')");
@@ -215,65 +218,66 @@ public static class AdminConsoleHelper
     }
 
     /// <summary>
-    /// Гарантировать, что ЮЛ выбрано в dropdown на странице /access-management.
-    /// Если уже выбрано — no-op. Если нет — выбрать первое доступное.
+    /// Перейти на страницу сотрудников конкретного ЮЛ.
+    /// Ищет ЮЛ по имени в «Общества», кликает → переход на /access-management?le={id}.
     /// </summary>
-    private static async Task EnsureEntitySelectedAsync(IPage page, string? legalEntityName = null)
+    public static async Task NavigateToLegalEntityAsync(IPage page, string legalEntityName)
     {
-        // Дождаться загрузки select с ЮЛ (>1 option)
-        await page.WaitForFunctionAsync(
-            @"() => {
-                const sel = document.querySelector('.card-body select.form-select');
-                return sel && sel.options.length > 1;
-            }",
-            null,
-            new PageWaitForFunctionOptions { Timeout = DefaultTimeout });
-
-        // Если передано имя ЮЛ — выбрать его по тексту
-        if (!string.IsNullOrEmpty(legalEntityName))
+        var leId = await FindLegalEntityIdByNameAsync(page, legalEntityName);
+        if (leId is null)
         {
-            var found = await page.EvaluateAsync<bool>(
-                $@"() => {{
-                    const sel = document.querySelector('.card-body select.form-select');
-                    if (!sel) return false;
-                    for (const opt of sel.options) {{
-                        if (opt.text.includes('{EscapeJs(legalEntityName)}')) {{
-                            sel.value = opt.value;
-                            sel.dispatchEvent(new Event('change', {{ bubbles: true }}));
-                            return true;
-                        }}
+            throw new InvalidOperationException(
+                $"[AdminConsoleHelper] Юридическое лицо «{legalEntityName}» не найдено в списке «Общества».");
+        }
+        await AuthHelper.WaitForBlazorReady(page);
+        await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+    }
+
+    /// <summary>
+    /// Найти ID юридического лица по имени на странице /legal-entities.
+    /// </summary>
+    private static async Task<string?> FindLegalEntityIdByNameAsync(IPage page, string legalEntityName)
+    {
+        await page.GotoAsync(PortalUrls.GetUrl(Portal.AdminConsole, "/legal-entities"));
+        await AuthHelper.WaitForBlazorReady(page);
+        await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+
+        await page.WaitForSelectorAsync("tbody tr", new PageWaitForSelectorOptions { Timeout = DefaultTimeout });
+
+        // Извлекаем ID из onclick-атрибута Blazor (data属性)
+        // Blazor генерирует onclick с NavigateTo(...), но проще — кликнуть и дождаться URL
+        var rowFound = await page.EvaluateAsync<bool>(
+            $@"() => {{
+                const rows = document.querySelectorAll('tbody tr');
+                for (const row of rows) {{
+                    if (row.textContent.includes('{EscapeJs(legalEntityName)}')) {{
+                        row.click();
+                        return true;
                     }}
-                    return false;
-                }}");
+                }}
+                return false;
+            }}");
 
-            if (found)
-            {
-                await page.WaitForTimeoutAsync(1000);
-                return;
-            }
-        }
+        if (!rowFound) return null;
 
-        // Fallback: выбрать первое доступное ЮЛ
-        var isSelected = await page.EvaluateAsync<bool>(
-            @"() => {
-                const sel = document.querySelector('.card-body select.form-select');
-                return sel && sel.value !== '';
-            }");
-
-        if (!isSelected)
+        // Ждём навигации на /access-management
+        try
         {
-            var firstOptionValue = await page.EvaluateAsync<string>(
-                @"() => {
-                    const sel = document.querySelector('.card-body select.form-select');
-                    return sel && sel.options.length > 1 ? sel.options[1].value : null;
-                }");
-
-            if (!string.IsNullOrEmpty(firstOptionValue))
-            {
-                await page.SelectOptionAsync(".card-body select.form-select", firstOptionValue);
-                await page.WaitForTimeoutAsync(1000);
-            }
+            await page.WaitForURLAsync("**/access-management**", new PageWaitForURLOptions { Timeout = DefaultTimeout });
         }
+        catch
+        {
+            return null;
+        }
+
+        // Извлекаем le из URL
+        var url = page.Url;
+        if (url.Contains("le="))
+        {
+            var leParam = url.Split("le=").Last().Split('&')[0];
+            return leParam;
+        }
+        return null;
     }
 
     /// <summary>

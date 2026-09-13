@@ -10,6 +10,7 @@ namespace SamorodinkaTech.Fiducia.Tests.Functional;
 /// Каждый тест работает со своим фиксированным ЮЛ и набором лиц.
 /// Запрещено параллельное исполнение (Collection "CharterTests").
 /// При ошибке в одном тесте все последующие тесты прерываются.
+/// Документация: docs/e2e-standard-charter.md
 /// </summary>
 [Collection("CharterTests")]
 public class E2E_StandardCharterTests : BrowserFixture
@@ -293,7 +294,7 @@ public class E2E_StandardCharterTests : BrowserFixture
             foreach (var p in persons.Participants)
             {
                 // Добавление каждого участника через API (POST /api/participants)
-                await BoardPortalHelper.AddParticipantAsync(boardPage, p.FullName, sharePercent: p.SharePercent);
+                await BoardPortalHelper.AddParticipantAsync(boardPage, p.LastName, p.FirstName, p.MiddleName, sharePercent: p.SharePercent);
             }
             // Проверка: количество участников в БД должно совпадать с ожидаемым
             await BoardPortalHelper.AssertParticipantCountAsync(boardPage, persons.Participants.Count);

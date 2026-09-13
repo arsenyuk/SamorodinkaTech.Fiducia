@@ -45,20 +45,6 @@ public class BoardParticipant
     /// <summary>Адрес юридического лица (company_address).</summary>
     public string? CompanyAddress { get; set; }
 
-    // ── Доля ──────────────────────────────────────────────────────
-
-    /// <summary>Размер доли в процентах (share_percent).</summary>
-    public decimal? SharePercent { get; set; }
-
-    /// <summary>Номинальная стоимость доли в рублях (share_amount).</summary>
-    public decimal? ShareAmount { get; set; }
-
-    /// <summary>Сведения об оплате доли (payment_info).</summary>
-    public string? PaymentInfo { get; set; }
-
-    /// <summary>Информация о регистрации операций с долей (share_registration_info).</summary>
-    public string? ShareRegistrationInfo { get; set; }
-
     // ── Статус и даты ─────────────────────────────────────────────
 
     /// <summary>Дата вхождения в состав участников (entry_date).</summary>
@@ -72,9 +58,6 @@ public class BoardParticipant
 
     // ── Мета ──────────────────────────────────────────────────────
 
-    /// <summary>Порядок сортировки (sort_order).</summary>
-    public int SortOrder { get; set; }
-
     /// <summary>Время создания записи (created_at).</summary>
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
@@ -86,4 +69,10 @@ public class BoardParticipant
 
     /// <summary>Генеральный директор ООО (is_general_director).</summary>
     public bool IsGeneralDirector { get; set; }
+
+    /// <summary>Сведения об ЮЛ (версии).</summary>
+    public ICollection<BoardParticipantCompany> Companies { get; set; } = new List<BoardParticipantCompany>();
+
+    /// <summary>Доли участника (версии SCD Type 2).</summary>
+    public ICollection<BoardParticipantShare> Shares { get; set; } = new List<BoardParticipantShare>();
 }

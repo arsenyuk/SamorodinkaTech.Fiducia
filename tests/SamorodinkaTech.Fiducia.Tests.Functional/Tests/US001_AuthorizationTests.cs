@@ -6,6 +6,7 @@ namespace SamorodinkaTech.Fiducia.Tests.Functional;
 /// <summary>
 /// US-001: Авторизация — E2E-тесты через Playwright.
 /// Проверяет страницы login, публичность AuthLayout.
+/// Документация: docs/e2e-authorization.md
 /// </summary>
 public class US001_AuthorizationTests : BrowserFixture
 {

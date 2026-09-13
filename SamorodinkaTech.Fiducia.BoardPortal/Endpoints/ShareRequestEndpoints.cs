@@ -310,7 +310,9 @@ public static class ShareRequestEndpoints
                 }
 
                 // Специфичная валидация по типам
-                var validationError = await ValidateRequestTypeAsync(ctx, requestType, leId!.Value, dto, participant.SharePercent);
+                var activeShareForValidation = await ctx.BoardParticipantShares
+                    .FirstOrDefaultAsync(s => s.ParticipantId == participant.Id && s.IsActive);
+                var validationError = await ValidateRequestTypeAsync(ctx, requestType, leId!.Value, dto, activeShareForValidation?.SharePercent);
                 if (validationError is not null)
                 {
                     logger.LogWarning("Ошибка валидации типа запроса: {ValidationError}", validationError);
@@ -582,10 +584,20 @@ public static class ShareRequestEndpoints
                 var participants = await ctx.BoardParticipants
                     .Where(p => p.LegalEntityId == leId && p.IsActive)
                     .Include(p => p.Person)
-                    .Select(p => new { FullName = p.Person != null ? p.Person.FullName : null, p.CompanyName, p.CompanyInn, p.ParticipantType, p.SharePercent, p.ShareAmount })
+                    .Include(p => p.Shares.Where(s => s.IsActive).Take(1))
                     .ToListAsync();
 
-                return Results.Ok(participants);
+                var participantDtos = participants.Select(p => new
+                {
+                    FullName = p.Person != null ? p.Person.FullName : null,
+                    p.CompanyName,
+                    p.CompanyInn,
+                    p.ParticipantType,
+                    SharePercent = p.Shares.FirstOrDefault()?.SharePercent,
+                    ShareAmount = p.Shares.FirstOrDefault()?.ShareAmount
+                }).ToList();
+
+                return Results.Ok(participantDtos);
             }
             catch (Exception ex)
             {
@@ -656,12 +668,15 @@ public static class ShareRequestEndpoints
                 }
 
                 var participant = await ctx.BoardParticipants
+                    .Include(p => p.Shares.Where(s => s.IsActive).Take(1))
                     .FirstOrDefaultAsync(p => p.LegalEntityId == leId && p.EcosystemParticipantId == ecoParticipant.Id && p.IsActive);
                 if (participant is null)
                 {
                     logger.LogWarning("Не найден участник для пользователя {UserId} (EcoParticipantId={EcoParticipantId}) в ЮЛ {LegalEntityId}", createdBy, ecoParticipant.Id, leId);
                     return Results.BadRequest(new { error = "Не найден участник для текущего пользователя" });
                 }
+
+                var activeShare = participant.Shares.FirstOrDefault();
 
                 // Проверяем тип требования
                 var requestType = await ctx.RequestTypes.FindAsync(dto.RequestTypeId);
@@ -715,7 +730,7 @@ public static class ShareRequestEndpoints
 
                 // Определяем: хватает ли доли участнику для прямого направления
                 var effectiveThreshold = charterThreshold ?? systemDefault;
-                var participantShare = participant.SharePercent ?? 0m;
+                var participantShare = activeShare?.SharePercent ?? 0m;
                 var hasEnoughShare = effectiveThreshold.HasValue && participantShare >= effectiveThreshold.Value;
 
                 // Создаём запрос
@@ -745,7 +760,7 @@ public static class ShareRequestEndpoints
                     Id = Guid.NewGuid(),
                     ShareRequestId = entity.Id,
                     ParticipantId = participant.Id,
-                    SharePercentAtSupport = participant.SharePercent ?? 0m,
+                    SharePercentAtSupport = activeShare?.SharePercent ?? 0m,
                     SupportedAt = DateTime.UtcNow
                 };
 
@@ -838,6 +853,7 @@ public static class ShareRequestEndpoints
                 }
 
                 var participant = await ctx.BoardParticipants
+                    .Include(p => p.Shares.Where(s => s.IsActive).Take(1))
                     .FirstOrDefaultAsync(p => p.LegalEntityId == leId && p.EcosystemParticipantId == ecoParticipant.Id && p.IsActive);
                 if (participant is null)
                 {
@@ -860,7 +876,7 @@ public static class ShareRequestEndpoints
                     Id = Guid.NewGuid(),
                     ShareRequestId = id,
                     ParticipantId = participant.Id,
-                    SharePercentAtSupport = participant.SharePercent ?? 0m,
+                    SharePercentAtSupport = participant.Shares.FirstOrDefault()?.SharePercent ?? 0m,
                     SupportedAt = DateTime.UtcNow
                 };
 
@@ -1655,13 +1671,14 @@ public static class ShareRequestEndpoints
                 }
                 // Получаем ФИО инициатора из участника
                 var initiatorParticipant = await ctx.BoardParticipants
+                    .Include(p => p.Shares.Where(s => s.IsActive).Take(1))
                     .FirstOrDefaultAsync(p => p.Id == request.ParticipantId);
                 if (initiatorParticipant is not null)
                 {
                     initiatorName = initiatorParticipant.ParticipantType == "FL"
                         ? initiatorParticipant.Person?.FullName
                         : initiatorParticipant.CompanyName;
-                    initiatorSharePercent = initiatorParticipant.SharePercent;
+                    initiatorSharePercent = initiatorParticipant.Shares.FirstOrDefault()?.SharePercent;
                 }
 
                 var ceoFullName = user is not null

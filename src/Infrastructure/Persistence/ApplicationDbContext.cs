@@ -1,4 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using SamorodinkaTech.Fiducia.Domain.Entities;
 using SamorodinkaTech.Fiducia.Domain.Enums;
 using SamorodinkaTech.Fiducia.Domain.Interfaces;
@@ -7,7 +9,39 @@ namespace SamorodinkaTech.Fiducia.Infrastructure.Persistence;
 
 public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplicationDbContext
 {
-    public FiduciaDbContext(DbContextOptions<FiduciaDbContext> options) : base(options) { }
+    private readonly IConfiguration _configuration;
+    private readonly ILoggerFactory _loggerFactory;
+
+    public FiduciaDbContext(
+        DbContextOptions<FiduciaDbContext> options,
+        IConfiguration configuration,
+        ILoggerFactory loggerFactory) : base(options)
+    {
+        _configuration = configuration;
+        _loggerFactory = loggerFactory;
+    }
+
+    public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        var entries = ChangeTracker.Entries<User>().ToList();
+
+        if (entries.Count > 0)
+        {
+            var edinEnabled = _configuration.GetValue<bool>("Edin:Enabled");
+            var logger = _loggerFactory.CreateLogger("FiduciaDbContext");
+
+            foreach (var entry in entries.Where(e => e.State == EntityState.Added))
+            {
+                var user = entry.Entity;
+                if (user.MpiMasterId == null && edinEnabled)
+                {
+                    logger.LogWarning("User {Login} создан без MPI MasterId (ЕДИН включен)", user.Login);
+                }
+            }
+        }
+
+        return await base.SaveChangesAsync(cancellationToken);
+    }
 
     public DbSet<PdnConsent> PdnConsents => Set<PdnConsent>();
     public DbSet<PepAgreement> PepAgreements => Set<PepAgreement>();
@@ -95,6 +129,8 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
     public DbSet<BoardTreasuryShare> BoardTreasuryShares => Set<BoardTreasuryShare>();
     public DbSet<BoardRegistryUpload> BoardRegistryUploads => Set<BoardRegistryUpload>();
     public DbSet<BoardParticipantChange> BoardParticipantChanges => Set<BoardParticipantChange>();
+    public DbSet<BoardParticipantCompany> BoardParticipantCompanies => Set<BoardParticipantCompany>();
+    public DbSet<BoardParticipantShare> BoardParticipantShares => Set<BoardParticipantShare>();
     public DbSet<ShareRequest> ShareRequests => Set<ShareRequest>();
     public DbSet<RefRequestType> RequestTypes => Set<RefRequestType>();
     public DbSet<RefDocumentType> DocumentTypes => Set<RefDocumentType>();
@@ -628,19 +664,15 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.Property(x => x.CompanyOgrn).HasColumnName("company_ogrn").HasMaxLength(15);
             b.Property(x => x.CompanyKpp).HasColumnName("company_kpp").HasMaxLength(9);
             b.Property(x => x.CompanyAddress).HasColumnName("company_address");
-            b.Property(x => x.SharePercent).HasColumnName("share_percent").HasColumnType("numeric(5,2)");
-            b.Property(x => x.ShareAmount).HasColumnName("share_amount").HasColumnType("numeric(18,2)");
-            b.Property(x => x.PaymentInfo).HasColumnName("payment_info").HasMaxLength(500);
-            b.Property(x => x.ShareRegistrationInfo).HasColumnName("share_registration_info").HasMaxLength(500);
             b.Property(x => x.EntryDate).HasColumnName("entry_date");
             b.Property(x => x.ExitDate).HasColumnName("exit_date");
             b.Property(x => x.IsActive).HasColumnName("is_active").HasDefaultValue(true);
-            b.Property(x => x.SortOrder).HasColumnName("sort_order").HasDefaultValue(0);
             b.Property(x => x.CreatedAt).HasColumnName("created_at").IsRequired();
             b.Property(x => x.UpdatedAt).HasColumnName("updated_at").IsRequired();
             b.Property(x => x.CreatedBy).HasColumnName("created_by");
             b.Property(x => x.IsGeneralDirector).HasColumnName("is_general_director").IsRequired().HasDefaultValue(false);
             b.HasOne(x => x.Person).WithMany().HasForeignKey(x => x.PersonId);
+            b.HasMany(x => x.Shares).WithOne(x => x.Participant).HasForeignKey(x => x.ParticipantId).OnDelete(DeleteBehavior.Restrict);
             b.HasIndex(x => x.LegalEntityId).HasDatabaseName("ix_board_participant_legal_entity");
         });
 
@@ -761,6 +793,44 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.Property(x => x.UpdatedAt).HasColumnName("updated_at").IsRequired();
             b.HasIndex(x => x.LegalEntityId).HasDatabaseName("ix_board_participant_change_le");
             b.HasIndex(x => x.ParticipantId).HasDatabaseName("ix_board_participant_change_participant");
+        });
+
+        modelBuilder.Entity<BoardParticipantCompany>(b =>
+        {
+            b.ToTable("board_participant_company");
+            b.HasKey(x => x.Id);
+            b.Property(x => x.Id).HasColumnName("id");
+            b.Property(x => x.ParticipantId).HasColumnName("participant_id").IsRequired();
+            b.Property(x => x.CompanyName).HasColumnName("company_name").HasMaxLength(500);
+            b.Property(x => x.CompanyInn).HasColumnName("company_inn").HasMaxLength(12);
+            b.Property(x => x.CompanyOgrn).HasColumnName("company_ogrn").HasMaxLength(15);
+            b.Property(x => x.CompanyKpp).HasColumnName("company_kpp").HasMaxLength(9);
+            b.Property(x => x.CompanyAddress).HasColumnName("company_address");
+            b.Property(x => x.IsActive).HasColumnName("is_active").IsRequired();
+            b.Property(x => x.CreatedAt).HasColumnName("created_at").IsRequired();
+            b.Property(x => x.UpdatedAt).HasColumnName("updated_at").IsRequired();
+            b.Property(x => x.CreatedBy).HasColumnName("created_by");
+            b.HasIndex(x => x.ParticipantId).HasDatabaseName("ix_bpco_participant");
+        });
+
+        modelBuilder.Entity<BoardParticipantShare>(b =>
+        {
+            b.ToTable("board_participant_share");
+            b.HasKey(x => x.Id);
+            b.Property(x => x.Id).HasColumnName("id");
+            b.Property(x => x.ParticipantId).HasColumnName("participant_id").IsRequired();
+            b.Property(x => x.LegalEntityId).HasColumnName("legal_entity_id").IsRequired();
+            b.Property(x => x.SharePercent).HasColumnName("share_percent").HasColumnType("numeric(5,2)");
+            b.Property(x => x.ShareAmount).HasColumnName("share_amount").HasColumnType("numeric(18,2)");
+            b.Property(x => x.PaymentInfo).HasColumnName("payment_info").HasMaxLength(500);
+            b.Property(x => x.ShareRegistrationInfo).HasColumnName("share_registration_info").HasMaxLength(500);
+            b.Property(x => x.IsActive).HasColumnName("is_active").IsRequired().HasDefaultValue(true);
+            b.Property(x => x.CreatedAt).HasColumnName("created_at").IsRequired();
+            b.Property(x => x.UpdatedAt).HasColumnName("updated_at").IsRequired();
+            b.Property(x => x.CreatedBy).HasColumnName("created_by");
+            b.HasIndex(x => x.ParticipantId).HasDatabaseName("ix_bps_participant");
+            b.HasIndex(x => x.LegalEntityId).HasDatabaseName("ix_bps_legal_entity");
+            b.HasIndex(x => new { x.ParticipantId, x.IsActive }).HasDatabaseName("ux_bps_active").IsUnique().HasFilter("is_active = true");
         });
 
         modelBuilder.Entity<ExtCbrFinOrgOrganization>(b =>

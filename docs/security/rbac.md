@@ -33,16 +33,19 @@
 
 ## Доступ к Admin Console
 
-Admin Console доступен **только** для `SYS_ADMIN`. Все API-эндпоинты проверяют `RequireRole("SYS_ADMIN")`.
+Admin Console доступен для `SYS_ADMIN` и `LE_ADMIN`. API-эндпоинты проверяют `RequireRole("SYS_ADMIN")`.
 
-| Раздел | Путь | Доступ |
-|--------|------|--------|
-| Управление пользователями | `/users` | SYS_ADMIN |
-| Управление сотрудниками/ЮЛ | `/access-management` | SYS_ADMIN |
-| Справочник ролей | `/roles` | SYS_ADMIN |
-| Советы директоров | `/boards` | SYS_ADMIN |
-| Общие собрания (ОСА/ОСУ) | `/osa` | SYS_ADMIN |
-| Шаблоны уведомлений | `/notification-templates` | SYS_ADMIN |
+**Scope LE_ADMIN:** Администратор ЮЛ видит только те юридические лица, в которых он является `EcosystemParticipant` (связь через `User.Login → EcosystemParticipants.LegalEntityId`).
+
+| Раздел | Путь | Доступ | Меню |
+|--------|------|--------|------|
+| Общества (список ЮЛ) | `/legal-entities` | SYS_ADMIN, LE_ADMIN | Первый пункт |
+| Сотрудники и доступ | `/access-management?le={id}` | SYS_ADMIN, LE_ADMIN | Через Общества |
+| Пользователи | `/users` | SYS_ADMIN | Не в меню (прямой URL) |
+| Справочник ролей | `/roles` | SYS_ADMIN | Через Справочники |
+| Советы директоров | `/board-of-directors-list` | SYS_ADMIN | Совет СД |
+| Общие собрания (ОСА/ОСУ) | `/osa` | SYS_ADMIN | Через Справочники |
+| Шаблоны уведомлений | `/notification-templates` | SYS_ADMIN | Шаблоны уведомлений |
 
 ---
 

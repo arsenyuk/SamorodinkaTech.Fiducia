@@ -1,5 +1,7 @@
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using SamorodinkaTech.Fiducia.Domain.Entities;
 using SamorodinkaTech.Fiducia.Domain.Interfaces;
 using SamorodinkaTech.Fiducia.Domain.Services;
@@ -306,5 +308,7 @@ public class NotificationTextBuilderTests
 // Minimal DbContext for testing with InMemory provider
 public class EmptyDbContext : FiduciaDbContext
 {
-    public EmptyDbContext(DbContextOptions<FiduciaDbContext> options) : base(options) { }
+    public EmptyDbContext(DbContextOptions<FiduciaDbContext> options) : base(options,
+        new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?> { ["Edin:Enabled"] = "false" }).Build(),
+        LoggerFactory.Create(builder => { })) { }
 }

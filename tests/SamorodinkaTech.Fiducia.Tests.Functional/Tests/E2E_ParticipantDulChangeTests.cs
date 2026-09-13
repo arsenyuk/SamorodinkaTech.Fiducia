@@ -5,12 +5,13 @@ using SamorodinkaTech.Fiducia.Tests.Functional.Helpers;
 namespace SamorodinkaTech.Fiducia.Tests.Functional;
 
 /// <summary>
-/// Сквозной E2E-тест: изменение сведений участника (ДУЛ) с версионированием.
+/// E2E-тест: Изменение сведений участника / версионирование ДУЛ.
 /// Сценарий:
-/// 1. ГД добавляет участника с ДУЛ
+/// 1. ГД (Нечаев) добавляет участника (Фролов) с ДУЛ
 /// 2. Участник подаёт новую запись сведений (новый паспорт)
 /// 3. Новая запись автоматически применяется (версионирование ДУЛ)
 /// 4. Проверка: 2 версии ДУЛ (старая неактивна, новая активна)
+/// Документация: docs/e2e-participant-dul-change.md
 /// </summary>
 [Collection("CharterTests")]
 public class E2E_ParticipantDulChangeTests : BrowserFixture
@@ -39,6 +40,18 @@ public class E2E_ParticipantDulChangeTests : BrowserFixture
             await AuthHelper.LoginAsBoardUserAsync(boardPage, gdLogin);
             boardPage.Url.Should().Contain("/main");
 
+            // Ищем EcosystemParticipant frolov.sa68 через eco-search
+            var ecoId = await boardPage.EvaluateAsync<Guid?>(
+                $@"async () => {{
+                    const response = await fetch('/api/participants/eco-search?name={Uri.EscapeDataString(participantFullName)}', {{
+                        credentials: 'same-origin'
+                    }});
+                    if (!response.ok) return null;
+                    const data = await response.json();
+                    if (data && data.length > 0 && data[0].id) return data[0].id;
+                    return null;
+                }}");
+
             var participantId = await BoardPortalHelper.AddParticipantWithDulAsync(
                 boardPage,
                 fullName: participantFullName,
@@ -46,12 +59,27 @@ public class E2E_ParticipantDulChangeTests : BrowserFixture
                 dulSeries: "4600",
                 dulNumber: "111222",
                 personInn: "781234567890",
-                sharePercent: 60m);
+                sharePercent: 60m,
+                ecosystemParticipantId: ecoId);
 
             participantId.Should().NotBeEmpty("участник должен быть создан");
 
             // ── Шаг 2: Проверяем начальное состояние ──────────────
+            // Отладка:raw JSON от API
+            var rawJson = await boardPage.EvaluateAsync<string>(
+                $@"async () => {{
+                    const response = await fetch('/api/participants/{participantId}/identity-documents', {{
+                        credentials: 'same-origin'
+                    }});
+                    return await response.text();
+                }}");
+            Console.WriteLine($"[DEBUG] Raw JSON: {rawJson}");
+
             var docsBefore = await BoardPortalHelper.GetAllIdentityDocumentsAsync(boardPage, participantId);
+            Console.WriteLine($"[DEBUG] Docs count: {docsBefore.Count}");
+            foreach (var d in docsBefore)
+                Console.WriteLine($"[DEBUG] Doc: Id={d.Id}, Series={d.Series}, Number={d.Number}, IsActive={d.IsActive}");
+
             docsBefore.Should().HaveCount(1, "должна быть одна версия ДУЛ");
             docsBefore[0].IsActive.Should().BeTrue("версия должна быть активной");
             docsBefore[0].Series.Should().Be("4600");

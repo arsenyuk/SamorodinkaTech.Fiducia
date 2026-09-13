@@ -86,6 +86,7 @@ public interface IApplicationDbContext
     DbSet<BoardTreasuryShare> BoardTreasuryShares { get; }
     DbSet<BoardRegistryUpload> BoardRegistryUploads { get; }
     DbSet<BoardParticipantChange> BoardParticipantChanges { get; }
+    DbSet<BoardParticipantCompany> BoardParticipantCompanies { get; }
 
     DbSet<RefRequestType> RequestTypes { get; }
 

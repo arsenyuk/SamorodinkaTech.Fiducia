@@ -1,5 +1,6 @@
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Moq;
 using SamorodinkaTech.Fiducia.Domain.Entities;
@@ -26,7 +27,11 @@ public class EdinBindingServiceTests : IDisposable
         var options = new DbContextOptionsBuilder<FiduciaDbContext>()
             .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
             .Options;
-        _dbContext = new FiduciaDbContext(options);
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?> { ["Edin:Enabled"] = "false" })
+            .Build();
+        var loggerFactory = LoggerFactory.Create(builder => { });
+        _dbContext = new FiduciaDbContext(options, configuration, loggerFactory);
         _sut = new EdinBindingService(_edinClient, _dbContext, _loggerMock.Object);
     }
 

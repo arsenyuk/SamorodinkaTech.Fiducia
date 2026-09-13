@@ -1,4 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using SamorodinkaTech.Fiducia.Infrastructure.Persistence;
 using SamorodinkaTech.Fiducia.Infrastructure.Persistence.Seed;
 
@@ -11,7 +13,12 @@ var options = new DbContextOptionsBuilder<FiduciaDbContext>()
     .UseNpgsql(cs)
     .Options;
 
-await using var db = new FiduciaDbContext(options);
+var configuration = new ConfigurationBuilder()
+    .AddInMemoryCollection(new Dictionary<string, string?> { ["Edin:Enabled"] = "false" })
+    .Build();
+var loggerFactory = LoggerFactory.Create(builder => { });
+
+await using var db = new FiduciaDbContext(options, configuration, loggerFactory);
 
 Console.WriteLine($"Importing OKOPF from: {csvPath}");
 await OkopfImport.RunAsync(db, csvPath);

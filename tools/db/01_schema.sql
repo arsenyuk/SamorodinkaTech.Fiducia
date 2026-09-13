@@ -790,14 +790,9 @@ CREATE TABLE IF NOT EXISTS board_participant (
     company_ogrn varchar(15),
     company_kpp varchar(9),
     company_address text,
-    share_percent numeric(5,2),
-    share_amount numeric(18,2),
-    payment_info varchar(500),
-    share_registration_info varchar(500),
     entry_date date,
     exit_date date,
     is_active boolean NOT NULL DEFAULT true,
-    sort_order int NOT NULL DEFAULT 0,
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     created_by uuid,
@@ -806,7 +801,49 @@ CREATE TABLE IF NOT EXISTS board_participant (
 );
 
 CREATE INDEX IF NOT EXISTS ix_board_participant_legal_entity ON board_participant(legal_entity_id);
-CREATE UNIQUE INDEX IF NOT EXISTS ux_board_participant_le_sort ON board_participant(legal_entity_id, sort_order);
+
+-- ============================================================================
+-- Сведения об ЮЛ участника (board_participant_company) — SCD Type 2
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS board_participant_company (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    participant_id uuid NOT NULL REFERENCES board_participant(id) ON DELETE RESTRICT,
+    company_name varchar(500),
+    company_inn varchar(12),
+    company_ogrn varchar(15),
+    company_kpp varchar(9),
+    company_address text,
+    is_active boolean NOT NULL DEFAULT true,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    created_by uuid
+);
+
+CREATE INDEX IF NOT EXISTS ix_bpco_participant ON board_participant_company(participant_id);
+CREATE INDEX IF NOT EXISTS ix_bpco_active ON board_participant_company(participant_id, is_active) WHERE is_active = true;
+
+-- ============================================================================
+-- Доли участников (board_participant_share) — SCD Type 2
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS board_participant_share (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    participant_id uuid NOT NULL REFERENCES board_participant(id) ON DELETE RESTRICT,
+    legal_entity_id uuid NOT NULL REFERENCES legal_entities(id) ON DELETE RESTRICT,
+    share_percent numeric(5,2),
+    share_amount numeric(18,2),
+    payment_info varchar(500),
+    share_registration_info varchar(500),
+    is_active boolean NOT NULL DEFAULT true,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    created_by uuid
+);
+
+CREATE INDEX IF NOT EXISTS ix_bps_participant ON board_participant_share(participant_id);
+CREATE INDEX IF NOT EXISTS ix_bps_legal_entity ON board_participant_share(legal_entity_id);
+CREATE UNIQUE INDEX IF NOT EXISTS ux_bps_active ON board_participant_share(participant_id, is_active) WHERE is_active = true;
 
 -- ============================================================================
 -- Документы участников (identity_documents) — ДУЛ

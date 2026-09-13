@@ -66,6 +66,9 @@ public class EdinBindingService : IEdinBindingService
 
         if (resolveResult.MasterId is null)
         {
+            _logger.LogWarning("ЕДИН: привязка не удалась для EcoParticipant={EcoId} ({LastName} {FirstName}): MasterId=null, status={Status}, defects={Defects}",
+                ecosystemParticipantId, lastName, firstName, resolveResult.Status,
+                resolveResult.HasDefects ? string.Join(", ", resolveResult.Defects ?? []) : "нет");
             return new EdinBindingResult
             {
                 Error = $"ЕДИН: статус {resolveResult.Status}. " +

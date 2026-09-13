@@ -17,7 +17,7 @@ public class BoardSetupValidatorTests
     {
         var result = BoardSetupValidator.ValidateSync(new());
 
-        result.Should().ContainSingle(e => e.Contains("Председатель СД"));
+        result.Should().ContainSingle(e => e.Contains("Председателя СД"));
     }
 
     [Fact]
@@ -25,7 +25,7 @@ public class BoardSetupValidatorTests
     {
         var result = BoardSetupValidator.ValidateSync(null!);
 
-        result.Should().ContainSingle(e => e.Contains("Председатель СД"));
+        result.Should().ContainSingle(e => e.Contains("Председателя СД"));
     }
 
     // ─── Ровно 1 Председатель ──────────────────────────────────────────

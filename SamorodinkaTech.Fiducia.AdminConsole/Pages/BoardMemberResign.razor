@@ -247,7 +247,7 @@ else if (_step == 2)
                 .FirstOrDefaultAsync();
 
             if (member is null || member.Appointment is null)
-            { _error = "Член СД или его назначение не найдены."; return; }
+            { Logger.LogWarning("Член СД или его назначение не найдены: memberId={MemberId}", MemberId); _error = "Член СД или его назначение не найдены."; return; }
 
             _member = new MemberInfo
             {

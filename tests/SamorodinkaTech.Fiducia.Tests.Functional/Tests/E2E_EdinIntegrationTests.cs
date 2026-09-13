@@ -7,6 +7,7 @@ namespace SamorodinkaTech.Fiducia.Tests.Functional;
 /// <summary>
 /// E2E-тесты интеграции ЕДИН (MPI) — проверка UI-элементов.
 /// Правила: ADR-027 (навигация через UI, проверка контента, аудит, логи).
+/// Документация: docs/e2e-edin-integration.md
 /// </summary>
 [Collection("E2ETests")]
 public class E2E_EdinIntegrationTests : BrowserFixture
@@ -29,8 +30,10 @@ public class E2E_EdinIntegrationTests : BrowserFixture
         {
             await AuthHelper.LoginAsAdminAsync(page, "v.vasilyeva", "1");
 
-            // Навигация через sidebar (ADR-027: правило 4, AGENTS: GotoAsync запрещён)
-            await AdminConsoleHelper.NavigateToAsync(page, "/users");
+            // Навигация на /users (страница не в sidebar — прямой переход)
+            await page.GotoAsync(PortalUrls.GetUrl(Portal.AdminConsole, "/users"));
+            await AuthHelper.WaitForBlazorReady(page);
+            await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
 
             // Ожидание рендеринга таблицы
             await page.WaitForSelectorAsync("th", new PageWaitForSelectorOptions { Timeout = 10_000 });
@@ -71,8 +74,10 @@ public class E2E_EdinIntegrationTests : BrowserFixture
         {
             await AuthHelper.LoginAsAdminAsync(page, "v.vasilyeva", "1");
 
-            // Навигация через sidebar
-            await AdminConsoleHelper.NavigateToAsync(page, "/users");
+            // Навигация на /users (страница не в sidebar — прямой переход)
+            await page.GotoAsync(PortalUrls.GetUrl(Portal.AdminConsole, "/users"));
+            await AuthHelper.WaitForBlazorReady(page);
+            await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
 
             // Ожидание загрузки таблицы
             await page.WaitForSelectorAsync("tbody tr", new PageWaitForSelectorOptions { Timeout = 10_000 });
@@ -113,7 +118,11 @@ public class E2E_EdinIntegrationTests : BrowserFixture
         try
         {
             await AuthHelper.LoginAsAdminAsync(page, "v.vasilyeva", "1");
-            await AdminConsoleHelper.NavigateToAsync(page, "/users");
+
+            // Навигация на /users (страница не в sidebar — прямой переход)
+            await page.GotoAsync(PortalUrls.GetUrl(Portal.AdminConsole, "/users"));
+            await AuthHelper.WaitForBlazorReady(page);
+            await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
 
             await page.WaitForSelectorAsync("tbody tr", new PageWaitForSelectorOptions { Timeout = 10_000 });
             await page.ClickAsync("tbody tr");

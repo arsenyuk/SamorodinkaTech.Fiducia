@@ -13,11 +13,6 @@
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h3>Пользователи</h3>
-        <div>
-            <button class="btn btn-outline-primary" @onclick="ShowInviteModal">
-                Пригласить внешнего директора
-            </button>
-        </div>
     </div>
 
     <div class="card">
@@ -104,7 +99,7 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" @onclick="CloseModals">Закрыть</button>
                     <button type="button" class="btn btn-primary" @onclick="GenerateInvite"
-                            disabled="@(_isGenerating || string.IsNullOrWhiteSpace(_inviteEmail))">
+                            disabled="@(_isGenerating || string.IsNullOrWhiteSpace(_inviteEmail) || string.IsNullOrWhiteSpace(_inviteLastName) || string.IsNullOrWhiteSpace(_inviteFirstName))">
                         @if (_isGenerating)
                         {
                             <span class="spinner-border spinner-border-sm me-1"></span>

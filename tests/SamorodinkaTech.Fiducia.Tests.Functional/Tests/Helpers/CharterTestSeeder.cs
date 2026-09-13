@@ -63,16 +63,15 @@ public static class CharterTestSeeder
 
         // ── Создание ЮЛ + назначение ролей ───────────────────────────
         Console.WriteLine($"[Seeder] ЮЛ {charterNumber}: создание ЮЛ...");
-        await AdminConsoleHelper.NavigateToAsync(adminPage, "/access-management");
-
         Console.WriteLine($"[Seeder] ЮЛ {charterNumber}: {entity.Name} (ИНН {entity.Inn})...");
         await AdminConsoleHelper.CreateLegalEntityAsync(adminPage, entity.Name, entity.Inn);
 
         // ── Установка ОКОПФ (ООО = 12300) ──────────────────────────
+        // Извлекаем ID ЮЛ из URL (?le={id})
         var selectedLeId = await adminPage.EvaluateAsync<string?>(
             @"() => {
-                const sel = document.querySelector('.card-body select.form-select');
-                return sel ? sel.value : null;
+                const url = new URL(window.location.href);
+                return url.searchParams.get('le');
             }");
         if (!string.IsNullOrEmpty(selectedLeId) && Guid.TryParse(selectedLeId, out var leGuid))
         {
@@ -83,13 +82,12 @@ public static class CharterTestSeeder
         // ── Добавление сотрудников (User + EcosystemParticipant + Employee) ──
         Console.WriteLine($"[Seeder] ЮЛ {charterNumber}: добавление сотрудников...");
 
-        // Администратор
+        // Администратор — страница уже на /access-management?le={id}
         await AdminConsoleHelper.AddEmployeeAsync(
             adminPage,
             entity.AdminUser.LastName, entity.AdminUser.FirstName, entity.AdminUser.MiddleName,
             entity.AdminUser.Position, entity.AdminUser.Login,
-            CharterTestDataFixed.RoleLeAdmin,
-            entity.Name);
+            CharterTestDataFixed.RoleLeAdmin);
 
         // ГД — EcosystemParticipant создаётся выше (admin), роль CEO назначается при привязке BoardParticipant через Board Portal
         if (persons.Gd is not null && persons.Gd.Login != entity.AdminUser.Login)
@@ -98,8 +96,7 @@ public static class CharterTestSeeder
                 adminPage,
                 persons.Gd.LastName, persons.Gd.FirstName, persons.Gd.MiddleName,
                 persons.Gd.Position, persons.Gd.Login,
-                CharterTestDataFixed.RoleCeo,
-                entity.Name);
+                CharterTestDataFixed.RoleCeo);
         }
         else if (persons.Participants.Count > 0)
         {
@@ -114,27 +111,7 @@ public static class CharterTestSeeder
                         adminPage,
                         nameParts[0], nameParts[1], nameParts[2],
                         "Директор", p.Login,
-                        CharterTestDataFixed.RoleCeo,
-                        entity.Name);
-                }
-            }
-        }
-
-        // Назначить роль PARTICIPANT первому участнику (для доступа к каталогу документов и т.д.)
-        if (persons.Participants.Count > 0)
-        {
-            var p = persons.Participants[0];
-            if (p.Login != entity.AdminUser.Login)
-            {
-                var nameParts = p.FullName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-                if (nameParts.Length >= 3)
-                {
-                    await AdminConsoleHelper.AddEmployeeAsync(
-                        adminPage,
-                        nameParts[0], nameParts[1], nameParts[2],
-                        "Участник", p.Login,
-                        CharterTestDataFixed.RoleParticipant,
-                        entity.Name);
+                        CharterTestDataFixed.RoleCeo);
                 }
             }
         }

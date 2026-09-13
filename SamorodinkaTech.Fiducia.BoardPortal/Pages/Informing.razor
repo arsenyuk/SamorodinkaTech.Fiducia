@@ -54,12 +54,12 @@
                 <h6 class="mt-3">Данные физического лица</h6>
                 <div class="row mb-3">
                     <div class="col-md-4">
-                        <label class="form-label">Фамилия</label>
-                        <input class="form-control" @bind="_formLastName" />
+                        <label class="form-label">Фамилия <span class="text-danger">*</span></label>
+                        <input class="form-control" @bind="_formLastName" required />
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label">Имя</label>
-                        <input class="form-control" @bind="_formFirstName" />
+                        <label class="form-label">Имя <span class="text-danger">*</span></label>
+                        <input class="form-control" @bind="_formFirstName" required />
                     </div>
                     <div class="col-md-4">
                         <label class="form-label">Отчество</label>
@@ -390,6 +390,16 @@ else
     private async Task SubmitInforming()
     {
         if (_currentParticipant is null) return;
+
+        if (_currentParticipant.ParticipantType == "FL")
+        {
+            if (string.IsNullOrWhiteSpace(_formLastName) || string.IsNullOrWhiteSpace(_formFirstName))
+            {
+                _error = "Фамилия и Имя обязательны";
+                StateHasChanged();
+                return;
+            }
+        }
 
         _isSubmitting = true;
         _error = null;

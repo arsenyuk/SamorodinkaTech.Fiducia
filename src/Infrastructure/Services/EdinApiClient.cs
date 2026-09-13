@@ -93,6 +93,13 @@ public class EdinApiClient : IEdinApiClient
             if (result is null)
                 return null;
 
+            if (result.Status != 0)
+            {
+                _logger.LogWarning("ЕДИН: отказ resolve для {LastName} {FirstName}, status={Status}, defects={Defects}",
+                    lastName, firstName, result.Status,
+                    string.Join(", ", result.Defects?.Select(d => d.Description ?? "") ?? []));
+            }
+
             return new EdinPersonResult
             {
                 MasterId = result.MasterId,

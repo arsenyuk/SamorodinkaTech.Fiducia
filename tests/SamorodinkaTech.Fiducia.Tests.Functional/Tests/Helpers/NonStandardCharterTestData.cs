@@ -108,4 +108,14 @@ public static class NonStandardCharterTestData
     /// </summary>
     public static string GetParticipantFullName(int testIndex, int participantIndex) =>
         $"Участник {participantIndex} Нетиповой{testIndex:D2}";
+
+    /// <summary>
+    /// Сгенерировать части ФИО участника (LastName, FirstName, MiddleName).
+    /// </summary>
+    public static (string LastName, string FirstName, string? MiddleName) GetParticipantNameParts(int testIndex, int participantIndex)
+    {
+        var fullName = GetParticipantFullName(testIndex, participantIndex);
+        var parts = fullName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        return (parts.ElementAtOrDefault(0) ?? "", parts.ElementAtOrDefault(1) ?? "", parts.ElementAtOrDefault(2));
+    }
 }

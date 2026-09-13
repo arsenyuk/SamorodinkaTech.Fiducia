@@ -127,8 +127,16 @@
     private List<RefBoardRole> _availableRoles = new();
     private List<RefDulType> _dulTypes = new();
 
-    private bool CanSave => !string.IsNullOrWhiteSpace(_roleCode)
-        && !string.IsNullOrWhiteSpace(_fullName);
+    private bool CanSave
+    {
+        get
+        {
+            if (string.IsNullOrWhiteSpace(_roleCode) || string.IsNullOrWhiteSpace(_fullName))
+                return false;
+            var parts = _fullName.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            return parts.Length >= 2;
+        }
+    }
 
     protected override async Task OnParametersSetAsync()
     {
@@ -159,10 +167,6 @@
             // Определяем participant_type
             var participantType = "FL";
 
-            var maxSort = await ctx.BoardParticipants
-                .Where(p => p.LegalEntityId == LegalEntityId)
-                .MaxAsync(p => (int?)p.SortOrder) ?? 0;
-
             // Создаём Person для ФЛ/ИП
             Guid? personId = null;
             if (!string.IsNullOrWhiteSpace(_fullName.Trim()))
@@ -190,7 +194,6 @@
                 ParticipantType = participantType,
                 PersonId = personId,
                 IsActive = true,
-                SortOrder = maxSort + 1,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
             };

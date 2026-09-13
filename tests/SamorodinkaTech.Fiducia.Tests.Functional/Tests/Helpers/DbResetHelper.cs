@@ -59,7 +59,8 @@ public static class DbResetHelper
         var dir = new DirectoryInfo(AppContext.BaseDirectory);
         for (int i = 0; i < 15 && dir != null; i++)
         {
-            if (File.Exists(Path.Combine(dir.FullName, "SamorodinkaTech.Fiducia.slnx")))
+            if (File.Exists(Path.Combine(dir.FullName, "SamorodinkaTech.Fiducia.slnx")) ||
+                File.Exists(Path.Combine(dir.FullName, "SamorodinkaTech.Fiducia.sln")))
                 return dir.FullName;
             dir = dir.Parent;
         }
