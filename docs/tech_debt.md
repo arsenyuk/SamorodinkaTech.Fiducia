@@ -83,3 +83,98 @@
 - **Список ГД (руководителей)** — доступен **только на тарифе «Максимальный»**
 
 **Приоритет:** низкий
+
+## SMS: прокси через Платформу рассылок Stream Telecom
+
+**Статус:** открыто (реализован stub-прокси)
+
+**Описание:**
+Прокси для отправки SMS через REST API Платформы рассылок (stream-telecom.ru).
+Только POST-метод. Base URL: `https://gateway.api.sc/rest/`
+
+**Текущая реализация:**
+- `ISmsApiClient` (Domain) — интерфейс
+- `SmsSendRequest`, `SmsSendResponse` (Domain) — DTO
+- `StreamTelecomOptions` (Infrastructure) — настройки (BaseUrl, Login, Password, DefaultSender, Enabled)
+- `StreamTelecomSmsClient` (Infrastructure) — HTTP-клиент: `POST /Send/SendSms/`
+
+**Требуется для полной реализации:**
+
+### Файлы для создания
+
+| # | Файл | Слой | Описание |
+|---|------|------|----------|
+| 1 | `src/Infrastructure/Auditing/AuditStreamTelecomDecorator.cs` | Infrastructure | Audit-декоратор: логирует каждую SMS-отправку в `ISecurityAuditService` с IP клиента |
+| 2 | `src/Infrastructure/Services/StreamTelecomCallbackHandler.cs` | Infrastructure | Обработчик callback_url: принимает POST от Stream Telecom, обновляет статус доставки в БД |
+| 3 | `src/Infrastructure/Services/StreamTelecomStopListService.cs` | Infrastructure | Сервис стоп-листа: добавление/удаление/получение номеров через `/sms_black_list/` |
+| 4 | `SamorodinkaTech.Fiducia.AdminConsole/Program.cs` | Api | DI-регистрация: `Configure<StreamTelecomOptions>` + `AddScoped<ISmsApiClient>` с обёрткой `AuditStreamTelecomDecorator` |
+| 5 | `SamorodinkaTech.Fiducia.BoardPortal/Program.cs` | Api | DI-регистрация (зеркальная к AdminConsole) |
+| 6 | `SamorodinkaTech.Fiducia.AdminConsole/appsettings.json` | Config | Секция `"StreamTelecom": { "BaseUrl": "...", "Login": "", "Password": "", "DefaultSender": "", "Enabled": false }` |
+| 7 | `SamorodinkaTech.Fiducia.BoardPortal/appsettings.json` | Config | Аналогичная секция |
+| 8 | `.env.example` | Config | `STREAMTELECOM__LOGIN=`, `STREAMTELECOM__PASSWORD=`, `STREAMTELECOM__DEFAULTSENDER=`, `STREAMTELECOM__ENABLED=true` |
+| 9 | `docs/integration.md` | Docs | Описание интеграции: лицензия, тариф, ограничения |
+| 10 | `tests/.../Mocks/MockSmsApiClient.cs` | Tests | Mock для unit-тестов |
+
+### Audit-декоратор
+
+```csharp
+// AuditStreamTelecomDecorator: ISmsApiClient → логирует в ISecurityAuditService
+// Код действия: "EXTERNAL:StreamTelecom:SmsSend"
+// Лог: "SMS → {phone}, sender={sender}, result={success/error}, messageId={id}"
+```
+
+### DI-регистрация (в обоих Program.cs)
+
+```csharp
+builder.Services.Configure<StreamTelecomOptions>(
+    builder.Configuration.GetSection("StreamTelecom"));
+
+if (builder.Configuration.GetValue<bool>("StreamTelecom:Enabled"))
+{
+    builder.Services.AddScoped<ISmsApiClient>(sp =>
+    {
+        var options = sp.GetRequiredService<IOptions<StreamTelecomOptions>>().Value;
+        var logger = sp.GetRequiredService<ILogger<StreamTelecomSmsClient>>();
+        var httpClient = new HttpClient { BaseAddress = new Uri(options.BaseUrl) };
+        var inner = new StreamTelecomSmsClient(httpClient, logger,
+            options.Login, options.Password, options.DefaultSender);
+        var auditService = sp.GetRequiredService<ISecurityAuditService>();
+        var ipProvider = sp.GetRequiredService<IClientIpProvider>();
+        var auditLogger = sp.GetRequiredService<ILogger<AuditStreamTelecomDecorator>>();
+        return new AuditStreamTelecomDecorator(inner, auditService, ipProvider, auditLogger);
+    });
+}
+```
+
+### Обработка статусов доставки
+
+Два механизма:
+1. **Callback URL** — Stream Telecom отправляет POST на указанный URL со статусом доставки
+2. **Polling** — периодический запрос `POST /State/state.php` с `messageId` для получения статуса
+
+Статусы: `-1` (отправлено), `0` (доставлено), `42` (не доставлено), `46` (просрочено), `255` (недоступно)
+
+### Стоп-лист
+
+- `POST /sms_black_list/?add` — добавление номера (phone + block-reason)
+- `POST /sms_black_list/?list` — получение списка (постранично, 1000 номеров/страница)
+- `POST /sms_black_list/?remove` — удаление номера
+
+### Retry-политика
+
+- Ошибки 5xx / код 8 (GatewayError) / код 9 (InternalServerError) — retry до 3 раз с экспоненциальной задержкой (1с → 2с → 4с)
+- Код 10 (Flood SMS) — retry через 60с
+- Код 5 (NotEnoughCredits) — без retry,立即 log + уведомление
+- Код 4 (UnauthorizedAccess) — без retry,立即 log
+
+**API-методы Stream Telecom REST:**
+- `POST /Send/SendSms/` — отправка единичного SMS (реализован)
+- `POST /Send/SendBulk/` — массовая отправка (один текст)
+- `POST /Send/SendBulkPacket/` — пакетная отправка (разные тексты)
+- `POST /State/state.php` — статус сообщения
+- `GET /Statistic/` — статистика
+- `POST /Statistic/all_stat.php` — детальная статистика
+- `POST /Balance/balance.php` — баланс
+- `POST /Balance/price_list.php` — список тарифов
+
+**Приоритет:** низкий
