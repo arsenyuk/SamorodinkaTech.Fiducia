@@ -84,6 +84,8 @@
 | Бизнес-процесс | US | E2E-тест | Документ | Статус |
 |----------------|-----|----------|----------|--------|
 | Список участников | US-023 | `US023_ParticipantTests` | [e2e-participant-list.md](e2e-participant-list.md) | ✅ Реализован |
+| Карточка участника (детальная страница) | US-023 | `US023_ParticipantTests::BoardPortal_ParticipantDetail_ShouldLoadWithAllFields` | [e2e-participant-list.md](e2e-participant-list.md) | ✅ Реализован |
+| Участник ЮЛ: создание и карточка | US-023 | `US023_ParticipantTests::BoardPortal_ParticipantUl_ShouldCreateAndShowDetail` | [e2e-participant-list.md](e2e-participant-list.md) | ✅ Реализован |
 | Требования участника | US-020 | `US020_ShareRequestTests` | [e2e-share-request.md](e2e-share-request.md) | ✅ Реализован |
 | Каталог предоставленных документов | US-021 | `US021_DocumentCatalogTests` | [e2e-document-catalog.md](e2e-document-catalog.md) | ✅ Реализован |
 | Требование о созыве ВОСУ | — | `E2E_VosuDemandTests` | [e2e-vosu-demand.md](e2e-vosu-demand.md) | ✅ Реализован |

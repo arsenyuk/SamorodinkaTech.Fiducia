@@ -183,6 +183,119 @@ public class US023_ParticipantTests : BrowserFixture
     }
 
     /// <summary>
+    /// US-023: Страница карточки участника загружается и содержит данные.
+    /// </summary>
+    [Fact]
+    public async Task BoardPortal_ParticipantDetail_ShouldLoadWithAllFields()
+    {
+        SkipIfPreviousFailed();
+
+        var page = await CreateBoardPortalPageAsync();
+        try
+        {
+            await SetupParticipantAsync(page, 1);
+
+            // Логин как GD (LE_ADMIN) для доступа к карточке участника
+            var gdLogin = CharterTestDataFixed.PersonsByEntity[1].Gd?.Login
+                          ?? CharterTestDataFixed.LegalEntities[0].AdminUser.Login;
+            await AuthHelper.LoginAsBoardUserAsync(page, gdLogin);
+
+            // Получаем ID первого участника через API
+            var participantId = await page.EvaluateAsync<Guid?>(
+                @"async () => {
+                    const resp = await fetch('/api/participants', {
+                        method: 'GET',
+                        credentials: 'same-origin'
+                    });
+                    if (!resp.ok) return null;
+                    const data = await resp.json();
+                    if (data && data.length > 0 && data[0].id) return data[0].id;
+                    return null;
+                }");
+
+            participantId.Should().NotBeNull("участник должен существовать");
+
+            // Навигация на страницу карточки участника
+            await page.GotoAsync(PortalUrls.GetUrl(Portal.BoardPortal, $"/participants/{participantId}"));
+            await AuthHelper.WaitForBlazorReady(page);
+            await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+            await page.WaitForSelectorAsync("h3", new() { Timeout = 10_000 });
+
+            var content = await page.ContentAsync();
+
+            content.Should().Contain("_framework/blazor.server.js",
+                "Board Portal: ParticipantDetail должен содержать Blazor shell");
+
+            content.Should().Contain("Основные сведения",
+                "Board Portal: ParticipantDetail должен содержать секцию «Основные сведения»");
+
+            content.Should().Contain("Документы",
+                "Board Portal: ParticipantDetail должен содержать секцию «Документы»");
+
+            content.Should().Contain("Привязка к ЕДИН",
+                "Board Portal: ParticipantDetail должен содержать секцию «Привязка к ЕДИН»");
+        }
+        finally
+        {
+            await page.CloseAsync();
+        }
+    }
+
+    /// <summary>
+    /// US-023: Участник типа ЮЛ создаётся и отображается в карточке.
+    /// </summary>
+    [Fact]
+    public async Task BoardPortal_ParticipantUl_ShouldCreateAndShowDetail()
+    {
+        SkipIfPreviousFailed();
+
+        var page = await CreateBoardPortalPageAsync();
+        try
+        {
+            await SetupParticipantAsync(page, 1);
+
+            // Логин как GD (LE_ADMIN)
+            var gdLogin = CharterTestDataFixed.PersonsByEntity[1].Gd?.Login
+                          ?? CharterTestDataFixed.LegalEntities[0].AdminUser.Login;
+            await AuthHelper.LoginAsBoardUserAsync(page, gdLogin);
+
+            // Создаём участника типа ЮЛ
+            var ulId = await BoardPortalHelper.AddParticipantUlAsync(
+                page,
+                companyName: "ООО «Тестовый поставщик»",
+                companyInn: "7709998880",
+                companyOgrn: "1157799001234",
+                companyKpp: "770901001",
+                companyAddress: "г. Москва, ул. Тестовая, д. 1",
+                sharePercent: 25m,
+                shareAmount: 25000m);
+
+            ulId.Should().NotBeEmpty("участник ЮЛ должен быть создан");
+
+            // Навигация на карточку ЮЛ-участника
+            await page.GotoAsync(PortalUrls.GetUrl(Portal.BoardPortal, $"/participants/{ulId}"));
+            await AuthHelper.WaitForBlazorReady(page);
+            await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+            await page.WaitForSelectorAsync("h3", new() { Timeout = 10_000 });
+
+            var content = await page.ContentAsync();
+
+            content.Should().Contain("Основные сведения",
+                "Карточка ЮЛ-участника должна содержать секцию «Основные сведения»");
+
+            content.Should().Contain("Реквизиты юридического лица",
+                "Карточка ЮЛ-участника должна содержать секцию «Реквизиты юридического лица»");
+
+            content.Should().Contain("Тестовый поставщик",
+                "Карточка ЮЛ-участника должна отображать наименование компании");
+        }
+        finally
+        {
+            await page.CloseAsync();
+        }
+    }
+
+    /// <summary>
     /// Подготовка тестовых данных: сидирование ЮЛ + регистрация участника через Board Portal.
     /// 1. Admin Console: ЮЛ + LE_ADMIN (CharterTestSeeder)
     /// 2. Admin Console: User для участника (AddEmployeeAsync) — создаёт запись в `users`

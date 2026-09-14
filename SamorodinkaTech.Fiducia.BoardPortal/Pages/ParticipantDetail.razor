@@ -1,0 +1,383 @@
+@page "/participants/{Id:guid}"
+@using System.Net.Http.Json
+@inject HttpClient Http
+@inject NavigationManager Nav
+@inject ILogger<ParticipantDetail> Logger
+@attribute [Authorize(Roles = "LE_ADMIN")]
+
+<PageTitle>Fiducia — Карточка участника</PageTitle>
+
+<a href="/participants" class="btn btn-sm btn-outline-secondary mb-3">&larr; Назад к списку</a>
+
+@if (_loading)
+{
+    <div class="text-center py-4">
+        <div class="spinner-border text-primary" role="status"></div>
+    </div>
+}
+else if (_participant is null)
+{
+    <div class="alert alert-warning">Участник не найден.</div>
+}
+else
+{
+    <h3>@(_participant.FullName ?? _participant.CompanyName ?? "Участник")</h3>
+
+    <div class="mb-3">
+        @if (_participant.IsActive)
+        {
+            <span class="badge bg-success">Действующий</span>
+        }
+        else
+        {
+            <span class="badge bg-secondary">Выбывший</span>
+        }
+        <span class="badge bg-info ms-1">@GetParticipantTypeLabel(_participant.ParticipantType)</span>
+    </div>
+
+    @* ── Основные сведения ──────────────────────────────────────────── *@
+    <div class="card mb-4">
+        <div class="card-header"><h5 class="mb-0">Основные сведения</h5></div>
+        <div class="card-body">
+            <div class="row mb-2">
+                <div class="col-md-4">
+                    <span class="text-muted">Тип участника:</span>
+                    <div class="fw-semibold">@GetParticipantTypeLabel(_participant.ParticipantType)</div>
+                </div>
+                <div class="col-md-4">
+                    <span class="text-muted">Дата входа:</span>
+                    <div class="fw-semibold">@(_participant.EntryDate ?? "—")</div>
+                </div>
+                <div class="col-md-4">
+                    <span class="text-muted">Дата выхода:</span>
+                    <div class="fw-semibold">@(_participant.ExitDate ?? "—")</div>
+                </div>
+            </div>
+            <hr />
+            <div class="row mb-2">
+                <div class="col-md-4">
+                    <span class="text-muted">Доля в уставном капитале:</span>
+                    <div class="fw-bold fs-5">
+                        @if (_participant.SharePercent.HasValue)
+                        {
+                            @($"{_participant.SharePercent.Value:0.##}%")
+                        }
+                        else
+                        {
+                            @("—")
+                        }
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <span class="text-muted">Номинальная стоимость:</span>
+                    <div class="fw-semibold">
+                        @if (_participant.ShareAmount.HasValue)
+                        {
+                            @($"{_participant.ShareAmount.Value:N2} ₽")
+                        }
+                        else
+                        {
+                            @("—")
+                        }
+                    </div>
+                </div>
+            </div>
+            @if (!string.IsNullOrEmpty(_participant.PaymentInfo) || !string.IsNullOrEmpty(_participant.ShareRegistrationInfo))
+            {
+                <hr />
+                <div class="row">
+                    @if (!string.IsNullOrEmpty(_participant.PaymentInfo))
+                    {
+                        <div class="col-md-6">
+                            <span class="text-muted">Оплата доли:</span>
+                            <div>@_participant.PaymentInfo</div>
+                        </div>
+                    }
+                    @if (!string.IsNullOrEmpty(_participant.ShareRegistrationInfo))
+                    {
+                        <div class="col-md-6">
+                            <span class="text-muted">Регистрация операций:</span>
+                            <div>@_participant.ShareRegistrationInfo</div>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+
+    @* ── Документы (для ФЛ) ────────────────────────────────────────── *@
+    @if (_participant.ParticipantType == "FL")
+    {
+        <div class="card mb-4">
+            <div class="card-header"><h5 class="mb-0">Документы</h5></div>
+            <div class="card-body">
+                @if (!string.IsNullOrEmpty(_participant.DulTypeCode) || !string.IsNullOrEmpty(_participant.DulSeries))
+                {
+                    <div class="row mb-2">
+                        <div class="col-md-4">
+                            <span class="text-muted">Вид документа:</span>
+                            <div class="fw-semibold">@(_participant.DulTypeCode ?? "—")</div>
+                        </div>
+                        <div class="col-md-4">
+                            <span class="text-muted">Серия:</span>
+                            <div class="fw-semibold">@(_participant.DulSeries ?? "—")</div>
+                        </div>
+                        <div class="col-md-4">
+                            <span class="text-muted">Номер:</span>
+                            <div class="fw-semibold">@(_participant.DulNumber ?? "—")</div>
+                        </div>
+                    </div>
+                    <div class="row mb-2">
+                        <div class="col-md-4">
+                            <span class="text-muted">Кем выдан:</span>
+                            <div>@(_participant.PassportIssuedBy ?? "—")</div>
+                        </div>
+                        <div class="col-md-4">
+                            <span class="text-muted">Дата выдачи:</span>
+                            <div>@(_participant.PassportIssueDate ?? "—")</div>
+                        </div>
+                        <div class="col-md-4">
+                            <span class="text-muted">Код подразделения:</span>
+                            <div class="font-monospace">@(_participant.PassportDepartmentCode ?? "—")</div>
+                        </div>
+                    </div>
+                    @if (!string.IsNullOrEmpty(_participant.PassportRegistrationAddress))
+                    {
+                        <div class="row mb-2">
+                            <div class="col-md-12">
+                                <span class="text-muted">Адрес регистрации:</span>
+                                <div>@_participant.PassportRegistrationAddress</div>
+                            </div>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div class="text-muted">Данные документа не заполнены.</div>
+                }
+                <hr />
+                <div class="row">
+                    <div class="col-md-4">
+                        <span class="text-muted">ИНН:</span>
+                        <div class="font-monospace fw-semibold">@(_participant.PersonInn ?? "—")</div>
+                    </div>
+                    <div class="col-md-4">
+                        <span class="text-muted">Гражданство:</span>
+                        <div>@(_participant.Citizenship ?? "—")</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    @* ── Реквизиты ЮЛ (для UL) ────────────────────────────────────── *@
+    @if (_participant.ParticipantType == "UL")
+    {
+        <div class="card mb-4">
+            <div class="card-header"><h5 class="mb-0">Реквизиты юридического лица</h5></div>
+            <div class="card-body">
+                <div class="row mb-2">
+                    <div class="col-md-6">
+                        <span class="text-muted">Наименование:</span>
+                        <div class="fw-semibold">@(_participant.CompanyName ?? "—")</div>
+                    </div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-md-3">
+                        <span class="text-muted">ИНН:</span>
+                        <div class="font-monospace">@(_participant.CompanyInn ?? "—")</div>
+                    </div>
+                    <div class="col-md-3">
+                        <span class="text-muted">ОГРН:</span>
+                        <div class="font-monospace">@(_participant.CompanyOgrn ?? "—")</div>
+                    </div>
+                    <div class="col-md-3">
+                        <span class="text-muted">КПП:</span>
+                        <div class="font-monospace">@(_participant.CompanyKpp ?? "—")</div>
+                    </div>
+                </div>
+                @if (!string.IsNullOrEmpty(_participant.CompanyAddress))
+                {
+                    <div class="row">
+                        <div class="col-md-12">
+                            <span class="text-muted">Адрес:</span>
+                            <div>@_participant.CompanyAddress</div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+
+    @* ── ИП ────────────────────────────────────────────────────────── *@
+    @if (_participant.ParticipantType == "IP")
+    {
+        <div class="card mb-4">
+            <div class="card-header"><h5 class="mb-0">Реквизиты ИП</h5></div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <span class="text-muted">ОГРНИП:</span>
+                        <div class="font-monospace">@(_participant.Ogrnip ?? "—")</div>
+                    </div>
+                    <div class="col-md-4">
+                        <span class="text-muted">ИНН:</span>
+                        <div class="font-monospace">@(_participant.PersonInn ?? "—")</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    @* ── Привязка к ЕДИН ────────────────────────────────────────────── *@
+    <div class="card mb-4">
+        <div class="card-header"><h5 class="mb-0">Привязка к ЕДИН</h5></div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-4">
+                    <span class="text-muted">EcosystemParticipantId:</span>
+                    <div class="font-monospace small">@(_participant.EcosystemParticipantId?.ToString() ?? "—")</div>
+                </div>
+                <div class="col-md-4">
+                    <span class="text-muted">MPI MasterId:</span>
+                    <div class="font-monospace small">@(_participant.MpiMasterId ?? "—")</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @* ── История документов ──────────────────────────────────────────── *@
+    @if (_identityDocuments.Count > 0)
+    {
+        <div class="card mb-4">
+            <div class="card-header"><h5 class="mb-0">История документов</h5></div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm table-striped align-middle">
+                        <thead>
+                            <tr>
+                                <th>Тип документа</th>
+                                <th>Серия</th>
+                                <th>Номер</th>
+                                <th>Кем выдан</th>
+                                <th>Дата выдачи</th>
+                                <th>Код подр.</th>
+                                <th>Статус</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var doc in _identityDocuments)
+                            {
+                                <tr>
+                                    <td>@(doc.DulTypeName ?? doc.DulTypeCode ?? "—")</td>
+                                    <td class="font-monospace">@(doc.Series ?? "—")</td>
+                                    <td class="font-monospace">@(doc.Number ?? "—")</td>
+                                    <td class="small">@(doc.IssuedBy ?? "—")</td>
+                                    <td class="small">@(doc.IssueDate ?? "—")</td>
+                                    <td class="font-monospace small">@(doc.DepartmentCode ?? "—")</td>
+                                    <td>
+                                        @if (doc.IsActive)
+                                        {
+                                            <span class="badge bg-success">Активен</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary">Архив</span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    }
+}
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+
+    private ParticipantDetailDto? _participant;
+    private List<IdentityDocumentDto> _identityDocuments = new();
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _participant = await Http.GetFromJsonAsync<ParticipantDetailDto>($"/api/participants/{Id}");
+
+            try
+            {
+                _identityDocuments = await Http.GetFromJsonAsync<List<IdentityDocumentDto>>(
+                    $"/api/participants/{Id}/identity-documents") ?? new();
+            }
+            catch
+            {
+                /* история документов может отсутствовать */
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Ошибка загрузки участника {Id}", Id);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private static string GetParticipantTypeLabel(string? type) => type switch
+    {
+        "FL" => "Физическое лицо",
+        "UL" => "Юридическое лицо",
+        "IP" => "Индивидуальный предприниматель",
+        _ => type ?? "—"
+    };
+
+    private record ParticipantDetailDto(
+        Guid Id,
+        Guid? LegalEntityId,
+        Guid? EcosystemParticipantId,
+        string? ParticipantType,
+        Guid? PersonId,
+        string? FullName,
+        string? MpiMasterId,
+        Guid? DulTypeId,
+        string? DulTypeCode,
+        string? DulSeries,
+        string? DulNumber,
+        string? PassportIssuedBy,
+        string? PassportIssueDate,
+        string? PassportDepartmentCode,
+        string? PassportRegistrationAddress,
+        string? PersonInn,
+        string? Citizenship,
+        string? CompanyName,
+        string? CompanyInn,
+        string? CompanyOgrn,
+        string? CompanyKpp,
+        string? CompanyAddress,
+        string? Ogrnip,
+        decimal? SharePercent,
+        decimal? ShareAmount,
+        string? PaymentInfo,
+        string? ShareRegistrationInfo,
+        string? EntryDate,
+        string? ExitDate,
+        bool IsActive);
+
+    private record IdentityDocumentDto(
+        Guid Id,
+        string? DulTypeCode,
+        string? DulTypeName,
+        string? Series,
+        string? Number,
+        string? IssuedBy,
+        string? IssueDate,
+        string? DepartmentCode,
+        string? RegistrationAddress,
+        bool IsActive,
+        string? CreatedAt);
+}

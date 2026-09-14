@@ -8,7 +8,7 @@
 @inject ILogger<Participants> Logger
 @inject NavigationManager Nav
 @inject IJSRuntime JS
-@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "LE_ADMIN")]
+@attribute [Authorize(Roles = "LE_ADMIN,CEO,LAWYER")]
 
 <PageTitle>Fiducia — Участники</PageTitle>
 
@@ -115,7 +115,9 @@ else
                                 <td>
                                     @if (p.ParticipantType == "FL")
                                     {
-                                        <div class="fw-semibold">@(p.FullName ?? "—")</div>
+                                        <div class="fw-semibold">
+                                            <a href="/participants/@p.Id" class="text-decoration-none">@(p.FullName ?? "—")</a>
+                                        </div>
                                         <div class="small text-muted">
                                             @if (!string.IsNullOrEmpty(p.DulSeries) || !string.IsNullOrEmpty(p.DulNumber))
                                             {
@@ -137,7 +139,9 @@ else
                                     }
                                     else if (p.ParticipantType == "UL")
                                     {
-                                        <div class="fw-semibold">@(p.CompanyName ?? "—")</div>
+                                        <div class="fw-semibold">
+                                            <a href="/participants/@p.Id" class="text-decoration-none">@(p.CompanyName ?? "—")</a>
+                                        </div>
                                         <div class="small font-monospace">
                                             ОГРН: @(p.CompanyOgrn ?? "—") · ИНН: @(p.CompanyInn ?? "—")
                                         </div>
@@ -148,7 +152,9 @@ else
                                     }
                                     else
                                     {
-                                        <div class="fw-semibold">@(p.FullName ?? "—")</div>
+                                        <div class="fw-semibold">
+                                            <a href="/participants/@p.Id" class="text-decoration-none">@(p.FullName ?? "—")</a>
+                                        </div>
                                         <div class="small font-monospace">ОГРНИП: @(p.Ogrnip ?? "—")</div>
                                         @if (!string.IsNullOrEmpty(p.PersonInn))
                                         {

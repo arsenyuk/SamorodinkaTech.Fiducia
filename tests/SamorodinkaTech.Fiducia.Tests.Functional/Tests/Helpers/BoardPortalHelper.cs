@@ -696,6 +696,53 @@ public static class BoardPortalHelper
         return result.Id;
     }
 
+    /// <summary>
+    /// Добавить участника типа ЮЛ (юридическое лицо) через API.
+    /// </summary>
+    public static async Task<Guid> AddParticipantUlAsync(
+        IPage page,
+        string companyName,
+        string? companyInn = null,
+        string? companyOgrn = null,
+        string? companyKpp = null,
+        string? companyAddress = null,
+        decimal? sharePercent = null,
+        decimal? shareAmount = null)
+    {
+        var sharePercentJson = sharePercent?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "null";
+        var shareAmountJson = shareAmount?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "null";
+        var companyInnJson = companyInn != null ? $"'{EscapeJs(companyInn)}'" : "null";
+        var companyOgrnJson = companyOgrn != null ? $"'{EscapeJs(companyOgrn)}'" : "null";
+        var companyKppJson = companyKpp != null ? $"'{EscapeJs(companyKpp)}'" : "null";
+        var companyAddressJson = companyAddress != null ? $"'{EscapeJs(companyAddress)}'" : "null";
+
+        var result = await page.EvaluateAsync<AddParticipantResponse>(
+            $@"async () => {{
+                const response = await fetch('/api/participants', {{
+                    method: 'POST',
+                    headers: {{ 'Content-Type': 'application/json' }},
+                    credentials: 'same-origin',
+                    body: JSON.stringify({{
+                        participantType: 'UL',
+                        companyName: '{EscapeJs(companyName)}',
+                        companyInn: {companyInnJson},
+                        companyOgrn: {companyOgrnJson},
+                        companyKpp: {companyKppJson},
+                        companyAddress: {companyAddressJson},
+                        sharePercent: {sharePercentJson},
+                        shareAmount: {shareAmountJson}
+                    }})
+                }});
+                if (!response.ok) {{
+                    const body = await response.text();
+                    throw new Error(`POST /api/participants failed: ${{response.status}} ${{body}}`);
+                }}
+                return await response.json();
+            }}");
+
+        return result.Id;
+    }
+
     /// <summary>Подать информирование об изменении сведений участника.</summary>
     public static async Task<Guid> SubmitParticipantChangeAsync(
         IPage page, Guid participantId,
