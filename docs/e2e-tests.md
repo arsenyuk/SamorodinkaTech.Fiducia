@@ -14,27 +14,22 @@
 
 ## Результаты последнего прогона
 
-**Дата:** 2026-09-13 (третий прогон)
+**Дата:** 2026-09-14 (четвёртый прогон — после реализации email)
 **Среда:** .NET 10 SDK (10.0.300) + Playwright Chromium (headless=false)
-**Итого:** 100 тестов → **38 пройдено**, 62 сбой (66 каскадных + 3 known issue + 5 не запущены)
+**Итого:** 100 тестов → **50 пройдено**, 50 сбой (каскадные + known issue)
 
-### Исправления (с предыдущего прогона)
+### Изменения (с предыдущего прогона)
 
-| Исправление | Файл | Описание |
-|-------------|------|----------|
-| JWT roles | `SessionService.cs` | Разбиение `role="PARTICIPANT,LE_ADMIN"` на отдельные claims для `IsInRole()` |
-| ЕДИН binding | `EdinBindingService.cs` | Назначение роли PARTICIPANT при успешной привязке + direct_link User |
-| ДУЛ в ДТО | `BoardPortalHelper.cs` | Исправлены имена полей: `passportSeries` → `dulSeries`, добавлен `dulTypeCode` |
-| ParticipantEndpoints | `ParticipantEndpoints.cs` | EcosystemParticipant привязывается к User участника (по ФИО), а не к вызывающему |
-| Admin Console auth | `Program.cs` + 56 страниц | `[Authorize(Roles = "SYS_ADMIN,LE_ADMIN")]` на всех внутренних страницах |
-| Board Portal auth | 22 страниц | `[Authorize(Roles = "...")]` с конкретными ролями на всех внутренних страницах |
-| Access denied logging | `NotAuthorizedView.razor` | Логирование отказов в доступе с логином, ролями, страницей |
-| SetupParticipantAsync | US020/US021/US023 | Логин SYS_ADMIN + навигация + регистрация участника через Board Portal |
-| Blazor render wait | US020/US021/US023 | `WaitForSelectorAsync("h3")` перед проверкой контента |
-| LdapUser mpiMasterId | `LdapUser.cs` + `LdapService.cs` | Чтение `mpiMasterId` из LDAP |
-| Seed-mpi schema | LDAP | Определение атрибута `mpiMasterId` в схеме |
+| Изменение | Описание |
+|-----------|----------|
+| Email-сервис | Реализован `IEmailService` через MailKit (SMTP) |
+| NotificationService | Интегрирована отправка email после сохранения уведомления в БД |
+| Board Portal | Добавлен раздел «Настройки» (`/settings`, `/settings/email`) |
+| Admin Console | Удалена страница `/email-settings` (перенесена в Board Portal) |
+| БД | Добавлена колонка `email_enabled` в `legal_entity_email_settings` |
+| RBAC | Обновлена документация: роли LE_ADMIN, CEO для настроек email |
 
-### Пройденные тесты (38)
+### Пройденные тесты (50)
 
 | Класс | Кол-во | Статус |
 |-------|--------|--------|
@@ -45,25 +40,25 @@
 | `E2E_EdinIntegrationTests` | 3 | ✅ Все пройдены |
 | `E2E_EdinScenarioTests` | 2 | ✅ Все пройдены |
 | `E2E_UserManagementTests` | 4 | ✅ Все пройдены |
+| `E2E_GeneralDirectorTests` | 6 | ✅ Все пройдены |
+| `E2E_StandardCharter_ExecBodyA_SignTests` | 6 | ✅ Все пройдены |
 | `Helpers.LoginTest` | 1 | ✅ Пройден |
-| **Итого** | **38** | |
+| **Итого** | **50** | |
 
-### Неработоспособные тесты (62)
+### Неработоспособные тесты (50)
 
 | Класс | Кол-во | Тип | Причина |
 |-------|--------|-----|---------|
 | `E2E_StandardCharter_ExecBodyA_NotarialTests` | 6 | Каскадный | `GlobalFixture.HasFailed` |
-| `E2E_StandardCharter_ExecBodyA_SignTests` | 6 | Каскадный | `GlobalFixture.HasFailed` |
 | `E2E_StandardCharter_ExecBodyB_NotarialTests` | 6 | Каскадный | `GlobalFixture.HasFailed` |
 | `E2E_StandardCharter_ExecBodyB_SignTests` | 6 | Каскадный | `GlobalFixture.HasFailed` |
 | `E2E_StandardCharter_ExecBodyC_NotarialTests` | 6 | Каскадный | `GlobalFixture.HasFailed` |
 | `E2E_StandardCharter_ExecBodyC_SignTests` | 6 | Каскадный | `GlobalFixture.HasFailed` |
 | `E2E_NonStandardCharterTests` | 20 | Каскадный | `GlobalFixture.HasFailed` |
-| `E2E_GeneralDirectorTests` | 6 | Каскадный | `GlobalFixture.HasFailed` |
 | `E2E_BoardSetupTests` | 3 | Known issue | Страница `/board-setup` не загружает wizard (ADMIN-88) |
 | `E2E_VosuDemandTests` | 1 | Каскадный | `GlobalFixture.HasFailed` |
 | `E2E_ParticipantDulChangeTests` | 1 | Каскадный | `GlobalFixture.HasFailed` |
-| **Итого** | **62** | | |
+| **Итого** | **50** | | |
 
 ---
 

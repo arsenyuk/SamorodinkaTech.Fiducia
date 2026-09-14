@@ -4,6 +4,7 @@
 @inject HttpClient Http
 @inject ILogger<BoardSetupWizard> Logger
 @inject NavigationManager Navigation
+@inject IJSRuntime JS
 @attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "LE_ADMIN")]
 
 <h3>Совет директоров — настройка состава</h3>
@@ -166,8 +167,6 @@ else
                           OnClose="() => _showSearchDialog = false" />
 
 @code {
-    [SupplyParameterFromQuery] public Guid? LeId { get; set; }
-
     private Guid _legalEntityId;
     private bool _loading = true;
     private string? _loadError;
@@ -187,14 +186,16 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        _legalEntityId = LeId ?? Guid.Empty;
-        if (_legalEntityId == Guid.Empty)
+        await using var ctx = await DbFactory.CreateDbContextAsync();
+        var leId = await LegalEntityHelper.GetLegalEntityIdAsync(ctx, JS);
+        if (leId is null)
         {
-            _loadError = "Не указано юридическое лицо (параметр leId)";
+            _loadError = "Пользователь не привязан к юридическому лицу. Обратитесь к администратору.";
             _loading = false;
             return;
         }
 
+        _legalEntityId = leId.Value;
         await LoadDataAsync();
     }
 

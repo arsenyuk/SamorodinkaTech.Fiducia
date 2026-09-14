@@ -222,28 +222,8 @@ public class E2E_BoardSetupTests : BrowserFixture
 
     private async Task NavigateToBoardSetupAsync(IPage boardPage)
     {
-        // Получаем ID выбранного ЮЛ со страницы /legal-entities
-        var legalEntityIdStr = await boardPage.EvaluateAsync<string?>(
-            @"() => {
-                const link = document.querySelector('a[href*=""board-setup?leId=""]');
-                if (link) {
-                    const match = link.href.match(/leId=([0-9a-f-]{36})/i);
-                    return match ? match[1] : null;
-                }
-                return null;
-            }");
-
-        if (string.IsNullOrEmpty(legalEntityIdStr))
-        {
-            // Fallback: пытаемся получить из select
-            legalEntityIdStr = await boardPage.EvaluateAsync<string?>(
-                @"() => {
-                    const sel = document.querySelector('.card-body select.form-select');
-                    return sel ? sel.value : null;
-                }");
-        }
-
-        var url = PortalUrls.GetUrl(Portal.BoardPortal, $"/board-setup?leId={legalEntityIdStr}");
+        // ЮЛ определяется из текущего пользователя (LegalEntityHelper)
+        var url = PortalUrls.GetUrl(Portal.BoardPortal, "/board-setup");
         await boardPage.GotoAsync(url);
         await AuthHelper.WaitForBlazorReady(boardPage);
         await boardPage.WaitForTimeoutAsync(3000);

@@ -128,7 +128,7 @@
         }
 
         @* ── Оповещения и план ─────────────────────────────────── *@
-        @if (_isCeo || _isLawyer || _isMemberBoard || _isSecretary || _isExternalDirector || _isParticipant || _isLeAdmin)
+        @if (_isCeo || _isMemberBoard || _isParticipant)
         {
             <div class="nav-item px-3">
                 <NavLink class="nav-link" href="notifications">
@@ -141,6 +141,16 @@
             <div class="nav-item px-3">
                 <NavLink class="nav-link" href="org-plan">
                     <span class="oi oi-project" aria-hidden="true"></span> План
+                </NavLink>
+            </div>
+        }
+
+        @* ── Настройки ────────────────────────────────────────── *@
+        @if (_isCeo || _isLeAdmin)
+        {
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="settings">
+                    <span class="oi oi-cog" aria-hidden="true"></span> Настройки
                 </NavLink>
             </div>
         }

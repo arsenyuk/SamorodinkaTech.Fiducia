@@ -243,6 +243,23 @@ if (builder.Configuration.GetValue<bool>("Edin:Enabled"))
     builder.Services.AddScoped<IEdinBindingService, EdinBindingService>();
 }
 
+// SMTP — отправка email-писем (опционально)
+// Все настройки — в appsettings.json, секция Smtp (ADR-022)
+builder.Services.Configure<SmtpOptions>(builder.Configuration.GetSection("Smtp"));
+if (builder.Configuration.GetValue<bool>("Smtp:Enabled"))
+{
+    builder.Services.AddScoped<IEmailService>(sp =>
+    {
+        var options = sp.GetRequiredService<IOptions<SmtpOptions>>().Value;
+        var logger = sp.GetRequiredService<ILogger<SmtpEmailService>>();
+        var inner = new SmtpEmailService(options, logger);
+        var auditService = sp.GetRequiredService<ISecurityAuditService>();
+        var ipProvider = sp.GetRequiredService<IClientIpProvider>();
+        var auditLogger = sp.GetRequiredService<ILogger<AuditEmailDecorator>>();
+        return new AuditEmailDecorator(inner, auditService, ipProvider, auditLogger);
+    });
+}
+
 // JWT Authentication
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>

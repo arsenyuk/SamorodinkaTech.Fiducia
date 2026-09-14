@@ -1,14 +1,14 @@
-@page "/email-settings"
+@page "/settings/email"
 @using Microsoft.EntityFrameworkCore
 @using SamorodinkaTech.Fiducia.Domain.Entities
 @using Markdig
 @inject IJSRuntime JS
 @inject IDbContextFactory<SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext> DbFactory
-@inject ILogger<EmailSettings> Logger
+@inject ILogger<SettingsEmail> Logger
 @inject IHttpContextAccessor HttpContextAccessor
-@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "SYS_ADMIN,LE_ADMIN")]
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "LE_ADMIN,CEO")]
 
-<h3>Оформление email-писем (header / footer)</h3>
+<h3>Email-уведомления</h3>
 
 @if (!string.IsNullOrEmpty(_formError))
 {
@@ -26,6 +26,13 @@ else
 
     <div class="card mb-3">
         <div class="card-body">
+            <div class="form-check form-switch mb-3">
+                <input class="form-check-input" type="checkbox" id="email-enabled" @bind="_emailEnabled">
+                <label class="form-check-label" for="email-enabled">Отправка email-уведомлений</label>
+            </div>
+
+            <hr>
+
             <div class="form-check form-switch mb-3">
                 <input class="form-check-input" type="checkbox" id="header-enabled" @bind="_headerEnabled">
                 <label class="form-check-label" for="header-enabled">Добавлять header перед телом письма</label>
@@ -87,28 +94,29 @@ else
         </button>
     </div>
 
-    @if (!string.IsNullOrEmpty(saveError))
+    @if (!string.IsNullOrEmpty(_saveError))
     {
-        <div class="alert alert-danger mt-3">@saveError</div>
+        <div class="alert alert-danger mt-3">@_saveError</div>
     }
-    @if (!string.IsNullOrEmpty(saveSuccess))
+    @if (!string.IsNullOrEmpty(_saveSuccess))
     {
-        <div class="alert alert-success mt-3">@saveSuccess</div>
+        <div class="alert alert-success mt-3">@_saveSuccess</div>
     }
 }
 
 @code {
-    private Domain.Entities.LegalEntity? _legalEntity;
+    private LegalEntity? _legalEntity;
     private Guid? _settingsId;
     private string? _formError;
 
+    private bool _emailEnabled = true;
     private bool _headerEnabled;
     private string _headerMarkdown = string.Empty;
     private bool _footerEnabled;
     private string _footerMarkdown = string.Empty;
 
-    private string? saveError;
-    private string? saveSuccess;
+    private string? _saveError;
+    private string? _saveSuccess;
 
     private string? _previewHtml;
     private string? _previewError;
@@ -124,7 +132,7 @@ else
         if (leId is null)
         {
             var role = http.User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
-            Logger.LogError("EmailSettings: пользователь с ролью {Role} не привязан к ЮЛ — нарушение целостности данных", role);
+            Logger.LogError("SettingsEmail: пользователь с ролью {Role} не привязан к ЮЛ — нарушение целостности данных", role);
             _formError = "Пользователь не привязан к юридическому лицу. Обратитесь к администратору.";
             return;
         }
@@ -132,7 +140,7 @@ else
         var le = await ctx.LegalEntities.FindAsync(leId.Value);
         if (le is null) return;
 
-        _legalEntity = new Domain.Entities.LegalEntity
+        _legalEntity = new LegalEntity
         {
             Id = le.Id,
             Name = le.Name,
@@ -148,6 +156,7 @@ else
         if (settings is not null)
         {
             _settingsId = settings.Id;
+            _emailEnabled = settings.EmailEnabled;
             _headerEnabled = settings.HeaderEnabled;
             _headerMarkdown = settings.HeaderMarkdown;
             _footerEnabled = settings.FooterEnabled;
@@ -158,8 +167,8 @@ else
     private async Task Save()
     {
         if (_legalEntity is null) return;
-        saveError = null;
-        saveSuccess = null;
+        _saveError = null;
+        _saveSuccess = null;
 
         try
         {
@@ -178,6 +187,7 @@ else
                 ctx.LegalEntityEmailSettings.Add(settings);
             }
 
+            settings.EmailEnabled = _emailEnabled;
             settings.HeaderEnabled = _headerEnabled;
             settings.HeaderMarkdown = _headerMarkdown;
             settings.FooterEnabled = _footerEnabled;
@@ -186,12 +196,12 @@ else
 
             await ctx.SaveChangesAsync();
             _settingsId = settings.Id;
-            saveSuccess = "Настройки сохранены.";
+            _saveSuccess = "Настройки сохранены.";
         }
         catch (Exception ex)
         {
             Logger.LogWarning(ex, "Ошибка сохранения email-настроек для ЮЛ {LegalEntityId}", _legalEntity.Id);
-            saveError = SamorodinkaTech.Fiducia.Infrastructure.Common.Exceptions.ExceptionFlattener.Unwrap(ex);
+            _saveError = SamorodinkaTech.Fiducia.Infrastructure.Common.Exceptions.ExceptionFlattener.Unwrap(ex);
         }
     }
 
@@ -209,7 +219,7 @@ else
             var html = "";
             if (_headerEnabled && !string.IsNullOrWhiteSpace(_headerMarkdown))
                 html += Markdown.ToHtml(_headerMarkdown, pipeline);
-            
+
             html += """<p style="color:#6c757d;font-style:italic;margin:1em 0;">[ тело письма ]</p>""";
 
             if (_footerEnabled && !string.IsNullOrWhiteSpace(_footerMarkdown))

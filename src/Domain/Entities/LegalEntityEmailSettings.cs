@@ -26,6 +26,9 @@ public class LegalEntityEmailSettings
     /// <summary>Содержимое footer'а письма в формате Markdown (footer_markdown).</summary>
     public string FooterMarkdown { get; set; } = string.Empty;
 
+    /// <summary>Включить отправку email (email_enabled).</summary>
+    public bool EmailEnabled { get; set; } = true;
+
     /// <summary>Дата и время последнего обновления (updated_at).</summary>
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 }

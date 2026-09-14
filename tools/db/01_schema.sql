@@ -535,6 +535,7 @@ CREATE TABLE IF NOT EXISTS legal_entity_email_settings (
     header_markdown text NOT NULL DEFAULT '',
     footer_enabled boolean NOT NULL DEFAULT false,
     footer_markdown text NOT NULL DEFAULT '',
+    email_enabled boolean NOT NULL DEFAULT true,
     updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ix_legal_entity_email_settings_legal_entity_id ON legal_entity_email_settings(legal_entity_id);

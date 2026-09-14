@@ -267,13 +267,16 @@ SamorodinkaTech.Fiducia/
 
 ### Notifications (Оповещения)
 
-**Сущности**: `Notification`.
+**Сущности**: `Notification`, `NotificationTemplate`, `RefNotificationType`, `LegalEntityEmailSettings`.
 
-**Интерфейс**: `INotificationService`.
+**Интерфейсы**: `INotificationService`, `IEmailService`.
 
 **Типы**: созыв заседания, напоминание, протокол, дедлайн.
 
-**Каналы**: UI-оповещения в Board Portal + Admin Console (email/SMS — в плане).
+**Каналы**: UI-оповещения в Board Portal + Admin Console + email через SMTP (MailKit).
+
+**Настройки email**: Board Portal → Настройки → Email (`/settings/email`). Управление:
+включение/выключение по ЮЛ, шапка/подвал в формате Markdown.
 
 ### Audit (Аудит безопасности)
 

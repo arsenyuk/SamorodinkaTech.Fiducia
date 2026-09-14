@@ -185,10 +185,6 @@ public static class PageVerificationHelper
         await VerifyPageAsync(adminPage, "/document-refusal-reasons",
             "_framework/blazor.server.js", "Admin Console: DocumentRefusalReasons");
 
-        // Email
-        await VerifyPageAsync(adminPage, "/email-settings",
-            "_framework/blazor.server.js", "Admin Console: EmailSettings");
-
         // Законодательство
         await VerifyPageAsync(adminPage, "/board-law",
             "_framework/blazor.server.js", "Admin Console: BoardLaw");

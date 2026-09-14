@@ -348,6 +348,7 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.Property(x => x.HeaderMarkdown).HasColumnName("header_markdown").HasColumnType("text");
             b.Property(x => x.FooterEnabled).HasColumnName("footer_enabled").HasDefaultValue(false);
             b.Property(x => x.FooterMarkdown).HasColumnName("footer_markdown").HasColumnType("text");
+            b.Property(x => x.EmailEnabled).HasColumnName("email_enabled").HasDefaultValue(true);
             b.Property(x => x.UpdatedAt).HasColumnName("updated_at").HasDefaultValueSql("CURRENT_TIMESTAMP");
             b.HasOne(x => x.LegalEntity)
              .WithMany()

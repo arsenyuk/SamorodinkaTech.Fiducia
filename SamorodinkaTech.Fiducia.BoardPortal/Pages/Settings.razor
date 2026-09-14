@@ -1,0 +1,22 @@
+@page "/settings"
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "LE_ADMIN,CEO")]
+
+<h3>Настройки</h3>
+
+<div class="row g-3 mt-2">
+    <div class="col-md-6">
+        <a href="settings/email" class="text-decoration-none">
+            <div class="card h-100 border-primary">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <span class="oi oi-envelope-open me-2"></span>Email-уведомления
+                    </h5>
+                    <p class="card-text text-muted">
+                        Управление отправкой email-писем: включение/выключение сервиса,
+                        настройка шапки и подвала письма.
+                    </p>
+                </div>
+            </div>
+        </a>
+    </div>
+</div>

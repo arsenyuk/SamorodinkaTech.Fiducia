@@ -3,7 +3,7 @@
 @using SamorodinkaTech.Fiducia.Domain.Interfaces
 @inject IApplicationDbContext DbContext
 @inject IJSRuntime JS
-@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "CEO,PARTICIPANT,MEMBER_BOARD")]
 
 <PageTitle>Fiducia — Оповещения</PageTitle>
 
