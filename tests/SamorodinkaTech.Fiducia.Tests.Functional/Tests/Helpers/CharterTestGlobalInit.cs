@@ -1,5 +1,3 @@
-using Microsoft.Playwright;
-
 namespace SamorodinkaTech.Fiducia.Tests.Functional.Helpers;
 
 /// <summary>
@@ -17,8 +15,9 @@ public static class CharterTestGlobalInit
 
     /// <summary>
     /// Выполнить глобальную инициализацию ОДИН раз перед прогоном всех тестов.
+    /// Не требует IPage — вся работа через CLI (ldapadd, ldapsearch, DbReset).
     /// </summary>
-    public static async Task InitializeAsync(IPage adminPage, IPage ldapPage, Func<Task<IPage>>? createAdminPage = null)
+    public static async Task InitializeAsync()
     {
         if (_initialized) return;
 
@@ -60,7 +59,6 @@ public static class CharterTestGlobalInit
             foreach (var person in personsList)
             {
                 await LdapHelper.CreateUserAsync(
-                    ldapPage,
                     person.Uid,
                     person.FullName,
                     person.LastName,

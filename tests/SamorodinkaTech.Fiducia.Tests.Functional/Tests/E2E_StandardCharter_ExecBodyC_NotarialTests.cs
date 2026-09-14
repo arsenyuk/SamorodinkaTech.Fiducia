@@ -67,7 +67,7 @@ public class E2E_StandardCharter_ExecBodyC_NotarialTests : BrowserFixture
         var boardPage = await CreateBoardPortalPageAsync();
         var ldapPage = await CreatePageAsync();
 
-        await CharterTestGlobalInit.InitializeAsync(adminPage, ldapPage);
+        await CharterTestGlobalInit.InitializeAsync();
         await CharterTestSeeder.EnsureSeededAsync(adminPage, charterNumber);
 
         var persons = CharterTestDataFixed.PersonsByEntity[charterNumber];

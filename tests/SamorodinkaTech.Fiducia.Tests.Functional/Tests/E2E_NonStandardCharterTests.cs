@@ -795,7 +795,7 @@ public class E2E_NonStandardCharterTests : BrowserFixture
         var ldapPage = await CreatePageAsync();
 
         // Глобальная инициализация: инфраструктура + БД + LDAP (один раз)
-        await CharterTestGlobalInit.InitializeAsync(adminPage, ldapPage);
+        await CharterTestGlobalInit.InitializeAsync();
 
         // Сидирование: логин + создание ЮЛ + роли (один раз)
         await CharterTestSeeder.EnsureSeededAsync(adminPage, entityIndex);

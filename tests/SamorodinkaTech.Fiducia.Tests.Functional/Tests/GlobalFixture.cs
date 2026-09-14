@@ -52,19 +52,8 @@ public class GlobalFixture : IAsyncLifetime
             _playwright = await Microsoft.Playwright.Playwright.CreateAsync();
             _browser = await _playwright.Chromium.LaunchAsync(new() { Headless = false });
 
-            // 3. Сброс БД + пересоздание LDAP-пользователей (один раз)
-            var adminPage = await _browser.NewPageAsync(new() { IgnoreHTTPSErrors = true });
-            var ldapPage = await _browser.NewPageAsync(new() { IgnoreHTTPSErrors = true });
-
-            try
-            {
-                await CharterTestGlobalInit.InitializeAsync(adminPage, ldapPage);
-            }
-            finally
-            {
-                await adminPage.CloseAsync();
-                await ldapPage.CloseAsync();
-            }
+            // 3. Сброс БД + пересоздание LDAP-пользователей (один раз, через CLI — без браузера)
+            await CharterTestGlobalInit.InitializeAsync();
 
             Console.WriteLine("[GlobalFixture] Инициализация завершена.");
         }));

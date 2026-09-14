@@ -89,7 +89,6 @@ public static class LdapHelper
     /// Создать пользователя в OpenLDAP через ldapadd CLI.
     /// </summary>
     public static async Task CreateUserAsync(
-        IPage page,
         string uid,
         string cn,
         string sn,

@@ -235,7 +235,7 @@ public class E2E_VosuDemandTests : BrowserFixture
         var boardPage = await CreateBoardPortalPageAsync();
         var ldapPage = await CreatePageAsync();
 
-        await CharterTestGlobalInit.InitializeAsync(adminPage, ldapPage);
+        await CharterTestGlobalInit.InitializeAsync();
         await CharterTestSeeder.EnsureSeededAsync(adminPage, entityIndex);
 
         var entity = CharterTestDataFixed.LegalEntities[entityIndex - 1];
