@@ -10,6 +10,19 @@
 
 Администратор (ГД) создаёт ЮЛ, выбирает типовой устав, проверяет его параметры в режиме «только чтение». Для уставов с ExecutiveBody=A (ГД — отдельное лицо) дополнительно добавляются участники общества.
 
+### Группировка тестов
+
+36 типовых уставов разделены на **6 файлов** по матрице `ExecutiveBody × ConfirmationMethod`:
+
+| Файл | ExecutiveBody | ConfirmationMethod | Уставы | entityIndex |
+|------|:---:|:---:|:---:|:---:|
+| `E2E_StandardCharter_ExecBodyA_NotarialTests` | A (ГД отдельно) | NOTARIAL (нотариальное) | 01–06 | 1–6 |
+| `E2E_StandardCharter_ExecBodyA_SignTests` | A (ГД отдельно) | SIGN (подписание) | 19–24 | 19–24 |
+| `E2E_StandardCharter_ExecBodyB_NotarialTests` | B (участники = ЕИО) | NOTARIAL | 07–12 | 7–12 |
+| `E2E_StandardCharter_ExecBodyB_SignTests` | B (участники = ЕИО) | SIGN | 25–30 | 25–30 |
+| `E2E_StandardCharter_ExecBodyC_NotarialTests` | C (совместно) | NOTARIAL | 13–18 | 13–18 |
+| `E2E_StandardCharter_ExecBodyC_SignTests` | C (совместно) | SIGN | 31–36 | 31–36 |
+
 ### Кто что делает
 
 | Шаг | Действие | Исполнитель |
@@ -43,7 +56,8 @@
 | Уставы | ExecutiveBody | Добавление участников |
 |--------|:---:|:---:|
 | 01–06, 19–24 | A (ГД отдельно) | Да |
-| 07–12, 25–30, 13–18, 31–36 | B/C (участники — директора) | Нет |
+| 07–12, 25–30 | B (участники — директора) | Нет |
+| 13–18, 31–36 | C (участники — совместно) | Нет |
 
 ---
 
@@ -127,7 +141,12 @@ PageVerificationHelper.VerifyBoardPortalPagesAsync(boardPage, testStartTime)
 
 | Файл | Назначение |
 |------|-----------|
-| `tests/.../E2E_StandardCharterTests.cs` | E2E-тест (36 методов) |
+| `tests/.../E2E_StandardCharter_ExecBodyA_NotarialTests.cs` | E2E-тест: ExecBody A + NOTARIAL (уставы 01–06) |
+| `tests/.../E2E_StandardCharter_ExecBodyA_SignTests.cs` | E2E-тест: ExecBody A + SIGN (уставы 19–24) |
+| `tests/.../E2E_StandardCharter_ExecBodyB_NotarialTests.cs` | E2E-тест: ExecBody B + NOTARIAL (уставы 07–12) |
+| `tests/.../E2E_StandardCharter_ExecBodyB_SignTests.cs` | E2E-тест: ExecBody B + SIGN (уставы 25–30) |
+| `tests/.../E2E_StandardCharter_ExecBodyC_NotarialTests.cs` | E2E-тест: ExecBody C + NOTARIAL (уставы 13–18) |
+| `tests/.../E2E_StandardCharter_ExecBodyC_SignTests.cs` | E2E-тест: ExecBody C + SIGN (уставы 31–36) |
 | `tests/.../Helpers/CharterTestDataFixed.cs` | Тестовые данные (entityIndex 1–36) |
 | `tests/.../Helpers/CharterTestSeeder.cs` | Сидирование ЮЛ + ролей |
 | `tests/.../Helpers/BoardPortalHelper.cs` | Хелперы: CompleteLegalEntitySetup, AddParticipant, AssertParticipantCount |

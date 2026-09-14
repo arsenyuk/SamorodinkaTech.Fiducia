@@ -196,6 +196,12 @@ public static class ParticipantEndpoints
                     }
                 }
 
+                // Валидация доли и оплаты
+                if (dto.SharePercent is not null && dto.SharePercent <= 0)
+                    return Results.BadRequest(new { error = "Размер доли должен быть больше нуля" });
+                if (dto.SharePercent is not null && dto.SharePercent < 100 && string.IsNullOrWhiteSpace(dto.PaymentInfo))
+                    return Results.BadRequest(new { error = "Сведения об оплате доли обязательны при неполной оплате" });
+
                 var entity = MapDtoToEntity(dto, leId);
 
                 // ── Создание Person при наличии ФИО для ФЛ ──────
@@ -406,7 +412,21 @@ public static class ParticipantEndpoints
                 var userIdStr = http.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
                 Guid? userId = Guid.TryParse(userIdStr, out var uid) ? uid : null;
 
-                entity.ParticipantType = dto.ParticipantType ?? entity.ParticipantType;
+                // ── Валидация ──────────────────────────────────────────
+                var participantType = dto.ParticipantType ?? entity.ParticipantType;
+                if (participantType == "FL" || string.IsNullOrEmpty(participantType))
+                {
+                    if (string.IsNullOrWhiteSpace(dto.LastName))
+                        return Results.BadRequest(new { error = "Фамилия обязательна для физического лица" });
+                    if (string.IsNullOrWhiteSpace(dto.FirstName))
+                        return Results.BadRequest(new { error = "Имя обязательно для физического лица" });
+                }
+                if (dto.SharePercent is not null && dto.SharePercent <= 0)
+                    return Results.BadRequest(new { error = "Размер доли должен быть больше нуля" });
+                if (dto.SharePercent is not null && dto.SharePercent < 100 && string.IsNullOrWhiteSpace(dto.PaymentInfo))
+                    return Results.BadRequest(new { error = "Сведения об оплате доли обязательны при неполной оплате" });
+
+                entity.ParticipantType = participantType;
                 entity.EntryDate = dto.EntryDate;
                 entity.ExitDate = dto.ExitDate;
                 entity.IsActive = dto.IsActive ?? true;
@@ -1617,6 +1637,9 @@ public static class ParticipantEndpoints
             p.ParticipantType,
             p.PersonId,
             FullName = p.Person?.FullName,
+            LastName = p.Person?.LastName,
+            FirstName = p.Person?.FirstName,
+            MiddleName = p.Person?.MiddleName,
             MpiMasterId = p.EcosystemParticipant?.User?.MpiMasterId,
             DulTypeId = primaryDoc?.DulTypeId,
             DulTypeCode = primaryDoc?.DulType?.Code,

@@ -629,10 +629,20 @@ else
                     @if (_formParticipantType == "FL")
                     {
                         <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label class="form-label">ФИО</label>
-                                <input class="form-control" @bind="_formFullName" />
+                            <div class="col-md-4">
+                                <label class="form-label">Фамилия *</label>
+                                <input class="form-control" @bind="_formLastName" />
                             </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Имя *</label>
+                                <input class="form-control" @bind="_formFirstName" />
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">Отчество</label>
+                                <input class="form-control" @bind="_formMiddleName" />
+                            </div>
+                        </div>
+                        <div class="row mb-3">
                             <div class="col-md-6">
                                 <label class="form-label">Вид документа</label>
                                 <select class="form-select" @bind="_formDulTypeId">
@@ -719,12 +729,22 @@ else
                     {
                         <div class="row mb-3">
                             <div class="col-md-6">
-                                <label class="form-label">ФИО</label>
-                                <input class="form-control" @bind="_formFullName" />
+                                <label class="form-label">Фамилия</label>
+                                <input class="form-control" @bind="_formLastName" />
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">ОГРНИП</label>
                                 <input class="form-control" @bind="_formOgrnip" />
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Имя</label>
+                                <input class="form-control" @bind="_formFirstName" />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Отчество</label>
+                                <input class="form-control" @bind="_formMiddleName" />
                             </div>
                         </div>
                         <div class="mb-3">
@@ -768,7 +788,7 @@ else
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" @onclick="CloseParticipantModal">Отмена</button>
-                    <button type="button" class="btn btn-primary" @onclick="SaveParticipant" disabled="@_savingParticipant">
+                    <button type="button" class="btn btn-primary" @onclick="SaveParticipant" disabled="@(_savingParticipant || !IsFormValid())">
                         @if (_savingParticipant)
                         {
                             <span class="spinner-border spinner-border-sm me-1"></span>
@@ -860,7 +880,9 @@ else
     private ParticipantRow? _editingParticipant;
 
     private string _formParticipantType = "FL";
-    private string? _formFullName;
+    private string? _formLastName;
+    private string? _formFirstName;
+    private string? _formMiddleName;
     private Guid? _formDulTypeId;
     private List<RefDulType>? _dulTypes;
     private string? _formPassportSeries;
@@ -1230,7 +1252,9 @@ else
     {
         _editingParticipant = p;
         _formParticipantType = p.ParticipantType ?? "FL";
-        _formFullName = p.FullName;
+        _formLastName = p.LastName;
+        _formFirstName = p.FirstName;
+        _formMiddleName = p.MiddleName;
         _formDulTypeId = p.DulTypeId;
         _formPassportSeries = p.DulSeries;
         _formPassportNumber = p.DulNumber;
@@ -1264,7 +1288,9 @@ else
     private void ResetParticipantForm()
     {
         _formParticipantType = "FL";
-        _formFullName = null;
+        _formLastName = null;
+        _formFirstName = null;
+        _formMiddleName = null;
         _formDulTypeId = null;
         _formPassportSeries = null;
         _formPassportNumber = null;
@@ -1288,6 +1314,22 @@ else
         _formExitDateStr = null;
     }
 
+    private bool IsFormValid()
+    {
+        var shareOk = _formSharePercent > 0;
+        var paymentRequired = _formSharePercent < 100;
+        var paymentOk = !paymentRequired || !string.IsNullOrWhiteSpace(_formPaymentInfo);
+
+        if (_formParticipantType == "FL")
+            return !string.IsNullOrWhiteSpace(_formLastName)
+                && !string.IsNullOrWhiteSpace(_formFirstName)
+                && shareOk && paymentOk;
+        if (_formParticipantType == "UL")
+            return !string.IsNullOrWhiteSpace(_formCompanyName)
+                && shareOk && paymentOk;
+        return shareOk && paymentOk;
+    }
+
     private async Task SaveParticipant()
     {
         _savingParticipant = true;
@@ -1299,9 +1341,9 @@ else
             var dto = new
             {
                 participantType = _formParticipantType,
-                lastName = (string?)null,
-                firstName = (string?)null,
-                middleName = (string?)null,
+                lastName = _formLastName,
+                firstName = _formFirstName,
+                middleName = _formMiddleName,
                 dulTypeId = _formDulTypeId,
                 passportSeries = _formPassportSeries,
                 passportNumber = _formPassportNumber,
@@ -1493,6 +1535,9 @@ else
         public Guid Id { get; set; }
         public string? ParticipantType { get; set; }
         public string? FullName { get; set; }
+        public string? LastName { get; set; }
+        public string? FirstName { get; set; }
+        public string? MiddleName { get; set; }
         public Guid? DulTypeId { get; set; }
         public string? DulSeries { get; set; }
         public string? DulNumber { get; set; }

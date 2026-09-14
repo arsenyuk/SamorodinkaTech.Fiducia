@@ -21,7 +21,7 @@
 | Требования участника | `US020_ShareRequestTests` | ✅ Реализован |
 | Каталог предоставленных документов | `US021_DocumentCatalogTests` | ✅ Реализован |
 | Участники ООО (список) | `US023_ParticipantTests` | ✅ Реализован |
-| Типовой устав | `E2E_StandardCharterTests` | ✅ Реализован |
+| Типовой устав | `E2E_StandardCharter_ExecBody*Tests` | ✅ Реализован |
 | Нетиповой устав | `E2E_NonStandardCharterTests` | ✅ Реализован |
 | Первичный ввод состава СД | `E2E_BoardSetupTests` | ✅ Реализован |
 | Генеральный директор | `E2E_GeneralDirectorTests` | ✅ Реализован |

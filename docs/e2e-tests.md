@@ -52,7 +52,12 @@
 
 | Класс | Кол-во | Тип | Причина |
 |-------|--------|-----|---------|
-| `E2E_StandardCharterTests` | 36 | Каскадный | `GlobalFixture.HasFailed` |
+| `E2E_StandardCharter_ExecBodyA_NotarialTests` | 6 | Каскадный | `GlobalFixture.HasFailed` |
+| `E2E_StandardCharter_ExecBodyA_SignTests` | 6 | Каскадный | `GlobalFixture.HasFailed` |
+| `E2E_StandardCharter_ExecBodyB_NotarialTests` | 6 | Каскадный | `GlobalFixture.HasFailed` |
+| `E2E_StandardCharter_ExecBodyB_SignTests` | 6 | Каскадный | `GlobalFixture.HasFailed` |
+| `E2E_StandardCharter_ExecBodyC_NotarialTests` | 6 | Каскадный | `GlobalFixture.HasFailed` |
+| `E2E_StandardCharter_ExecBodyC_SignTests` | 6 | Каскадный | `GlobalFixture.HasFailed` |
 | `E2E_NonStandardCharterTests` | 20 | Каскадный | `GlobalFixture.HasFailed` |
 | `E2E_GeneralDirectorTests` | 6 | Каскадный | `GlobalFixture.HasFailed` |
 | `E2E_BoardSetupTests` | 3 | Known issue | Страница `/board-setup` не загружает wizard (ADMIN-88) |
@@ -74,7 +79,7 @@
 
 | Бизнес-процесс | US | E2E-тест | Документ | Статус |
 |----------------|-----|----------|----------|--------|
-| Типовой устав | — | `E2E_StandardCharterTests` | [e2e-standard-charter.md](e2e-standard-charter.md) | ✅ Реализован |
+| Типовой устав | — | `E2E_StandardCharter_ExecBody{A,B,C}_{Notarial,Sign}Tests` (6 файлов) | [e2e-standard-charter.md](e2e-standard-charter.md) | ✅ Реализован |
 | Нетиповой устав + модели ЕИО | — | `E2E_NonStandardCharterTests` | [e2e-nonstandard-charter.md](e2e-nonstandard-charter.md) | ✅ Реализован |
 | Первичный ввод состава СД | — | `E2E_BoardSetupTests` | [e2e-board-setup.md](e2e-board-setup.md) | ❌ Не пройден (страница /board-setup не загружает wizard) |
 | Генеральный директор | — | `E2E_GeneralDirectorTests` | [e2e-general-director.md](e2e-general-director.md) | ✅ Реализован |
@@ -86,6 +91,10 @@
 | Список участников | US-023 | `US023_ParticipantTests` | [e2e-participant-list.md](e2e-participant-list.md) | ✅ Реализован |
 | Карточка участника (детальная страница) | US-023 | `US023_ParticipantTests::BoardPortal_ParticipantDetail_ShouldLoadWithAllFields` | [e2e-participant-list.md](e2e-participant-list.md) | ✅ Реализован |
 | Участник ЮЛ: создание и карточка | US-023 | `US023_ParticipantTests::BoardPortal_ParticipantUl_ShouldCreateAndShowDetail` | [e2e-participant-list.md](e2e-participant-list.md) | ✅ Реализован |
+| ФЛ без фамилии — отклонение (400) | US-023 | `US023_ParticipantTests::BoardPortal_ParticipantFl_EmptyLastName_ShouldReject` | [e2e-participant-list.md](e2e-participant-list.md) | ✅ Реализован |
+| ФЛ без имени — отклонение (400) | US-023 | `US023_ParticipantTests::BoardPortal_ParticipantFl_EmptyFirstName_ShouldReject` | [e2e-participant-list.md](e2e-participant-list.md) | ✅ Реализован |
+| Доля < 100% без оплаты — отклонение (400) | US-023 | `US023_ParticipantTests::BoardPortal_ParticipantFl_EmptyPayment_ShouldReject` | [e2e-participant-list.md](e2e-participant-list.md) | ✅ Реализован |
+| Доля 100% без оплаты — допустимо (201) | US-023 | `US023_ParticipantTests::BoardPortal_ParticipantFl_FullyPaidNoPayment_ShouldAccept` | [e2e-participant-list.md](e2e-participant-list.md) | ✅ Реализован |
 | Требования участника | US-020 | `US020_ShareRequestTests` | [e2e-share-request.md](e2e-share-request.md) | ✅ Реализован |
 | Каталог предоставленных документов | US-021 | `US021_DocumentCatalogTests` | [e2e-document-catalog.md](e2e-document-catalog.md) | ✅ Реализован |
 | Требование о созыве ВОСУ | — | `E2E_VosuDemandTests` | [e2e-vosu-demand.md](e2e-vosu-demand.md) | ✅ Реализован |
@@ -128,7 +137,7 @@
 | Повестка ОСУ | US-022 | `US022_OsuMeetingTests` (agenda-osu) | — | ✅ Реализован |
 | Участники ООО | US-023 | `US023_ParticipantTests` | [e2e-participant-list.md](e2e-participant-list.md) | ✅ Реализован |
 | Договоры (включая управляющих ИП) | US-024 | `US024_ContractTests` | — | ✅ Реализован |
-| Типовой устав (выбор, просмотр, добавление участников, аудит) | — | `E2E_StandardCharterTests` (36 variants) | [e2e-standard-charter.md](e2e-standard-charter.md) | ✅ Реализован |
+| Типовой устав (выбор, просмотр, добавление участников, аудит) | — | `E2E_StandardCharter_ExecBody{A,B,C}_{Notarial,Sign}Tests` (36 variants, 6 файлов) | [e2e-standard-charter.md](e2e-standard-charter.md) | ✅ Реализован |
 | Нетиповой устав (параметризованный, добавление участников, аудит) | — | `E2E_NonStandardCharterTests` (14 tests) | [e2e-nonstandard-charter.md](e2e-nonstandard-charter.md) | ✅ Реализован |
 | Модель ЕИО: ГД — наёмный сотрудник | — | `E2E_NonStandardCharterTests::Model1_HiredCeo` | [e2e-nonstandard-charter.md](e2e-nonstandard-charter.md) | ✅ Реализован |
 | Модель ЕИО: ГД — участник общества | — | `E2E_NonStandardCharterTests::Model2_CeoParticipant` | [e2e-nonstandard-charter.md](e2e-nonstandard-charter.md) | ✅ Реализован |
@@ -193,7 +202,7 @@ public class US0XX_FeatureTests : BrowserFixture
 | US-020 | `US020_ShareRequestTests` | `Tests/US020_ShareRequestTests.cs` |
 | US-021 | `US021_DocumentCatalogTests` | `Tests/US021_DocumentCatalogTests.cs` |
 | US-023 | `US023_ParticipantTests` | `Tests/US023_ParticipantTests.cs` |
-| — | `E2E_StandardCharterTests` | `Tests/E2E_StandardCharterTests.cs` |
+| — | `E2E_StandardCharter_ExecBody{A,B,C}_{Notarial,Sign}Tests` | `Tests/E2E_StandardCharter_ExecBody*.cs` (6 файлов) |
 | — | `E2E_NonStandardCharterTests` | `Tests/E2E_NonStandardCharterTests.cs` |
 | — | `E2E_BoardSetupTests` | `Tests/E2E_BoardSetupTests.cs` |
 | — | `E2E_GeneralDirectorTests` | `Tests/E2E_GeneralDirectorTests.cs` |

@@ -431,7 +431,7 @@ AssemblyInfo.cs
 
 | № | Сценарий | ЮЛ | Тест |
 |---|---------|-----|------|
-| 1 | ЮЛ со типовым уставом | 01–36 | `E2E_StandardCharterTests` |
+| 1 | ЮЛ со типовым уставом | 01–36 | `E2E_StandardCharter_ExecBody*Tests` |
 | 2 | ЮЛ с нетиповым уставом | 37–50 | `E2E_NonStandardCharterTests` |
 | 3 | ЕИО: ГД — наёмный сотрудник (Type A) | 51 | `Model1_HiredCeo` |
 | 4 | ЕИО: ГД — участник общества (Type A) | 52 | `Model2_CeoParticipant` |
@@ -507,7 +507,7 @@ dotnet test -- --filter "Charter"
 
 ```
 Tests/
-├── E2E_StandardCharterTests.cs           ← Сценарий 1: Типовой устав
+├── E2E_StandardCharter_ExecBody{A,B,C}_{Notarial,Sign}Tests.cs  ← Сценарий 1: Типовой устав (6 файлов)
 ├── E2E_NonStandardCharterTests.cs        ← Сценарий 2: Нетиповой устав
 ├── E2E_EioHiredCeoTests.cs               ← Сценарий 3: ГД — наёмный
 ├── E2E_EioCeoParticipantTests.cs         ← Сценарий 4: ГД — участник
@@ -532,7 +532,7 @@ Tests/
 
 | Бизнес-сценарий | Имя файла |
 |----------------|-----------|
-| ЮЛ со типовым уставом | `E2E_StandardCharterTests.cs` |
+| ЮЛ со типовым уставом | `E2E_StandardCharter_ExecBody*Tests.cs` |
 | ЮЛ с нетиповым уставом | `E2E_NonStandardCharterTests.cs` |
 | ЕИО: ГД — наёмный | `E2E_EioHiredCeoTests.cs` |
 | ЕИО: ГД — участник | `E2E_EioCeoParticipantTests.cs` |

@@ -16,8 +16,8 @@
 
 | Справочник | Таблица БД | Описание | E2E-сценарии |
 |------------|------------|----------|--------------|
-| Роли | `ref_roles` | Роли пользователей (SYS_ADMIN, LE_ADMIN, CEO, PARTICIPANT и др.) | `E2E_StandardCharterTests`, `E2E_NonStandardCharterTests`, `E2E_GeneralDirectorTests`, `E2E_UserManagementTests`, `E2E_EdinScenarioTests` |
-| Типы уведомлений | `ref_notification_type` | Коды типов уведомлений (MEETING_SUMMONS, VOTING_STARTED и др.) | `E2E_StandardCharterTests`, `E2E_NonStandardCharterTests` |
+| Роли | `ref_roles` | Роли пользователей (SYS_ADMIN, LE_ADMIN, CEO, PARTICIPANT и др.) | `E2E_StandardCharter_ExecBody*Tests`, `E2E_NonStandardCharterTests`, `E2E_GeneralDirectorTests`, `E2E_UserManagementTests`, `E2E_EdinScenarioTests` |
+| Типы уведомлений | `ref_notification_type` | Коды типов уведомлений (MEETING_SUMMONS, VOTING_STARTED и др.) | `E2E_StandardCharter_ExecBody*Tests`, `E2E_NonStandardCharterTests` |
 
 ---
 
@@ -25,11 +25,11 @@
 
 | Справочник | Таблица БД | Описание | E2E-сценарии |
 |------------|------------|----------|--------------|
-| Статусы СД | `ref_board_of_directors_statuses` | Статусы Совета директоров (Черновик, Действующий, Недействующий) | `E2E_StandardCharterTests`, `E2E_NonStandardCharterTests` |
+| Статусы СД | `ref_board_of_directors_statuses` | Статусы Совета директоров (Черновик, Действующий, Недействующий) | `E2E_StandardCharter_ExecBody*Tests`, `E2E_NonStandardCharterTests` |
 | Типы директоров | `ref_board_member_types` | Типы членов СД (Исполнительный, Внешний, Независимый, Штатный) | — |
 | Должности в СД | `ref_board_roles` | Должности (Председатель, Зам. председателя, Член СД, Секретарь и др.) | — |
-| Статусы назначений | `ref_board_member_appointment_statuses` | Статусы назначений (Действующий, Истёк, Сложил, Отстранён, Вакансия) | `E2E_StandardCharterTests`, `E2E_NonStandardCharterTests` |
-| Причины сложения полномочий | `ref_resignation_reasons` | Причины (По собственному желанию, Истечение срока, Избрание и др.) | `E2E_StandardCharterTests`, `E2E_NonStandardCharterTests` |
+| Статусы назначений | `ref_board_member_appointment_statuses` | Статусы назначений (Действующий, Истёк, Сложил, Отстранён, Вакансия) | `E2E_StandardCharter_ExecBody*Tests`, `E2E_NonStandardCharterTests` |
+| Причины сложения полномочий | `ref_resignation_reasons` | Причины (По собственному желанию, Истечение срока, Избрание и др.) | `E2E_StandardCharter_ExecBody*Tests`, `E2E_NonStandardCharterTests` |
 | Сроки полномочий ГД | `ref_gd_term` | Допустимые сроки полномочий ГД для нетиповых уставов ООО | `E2E_GeneralDirectorTests` |
 
 ---
@@ -40,7 +40,7 @@
 |------------|------------|----------|--------------|
 | Формы проведения заседаний СД | `ref_meeting_form` | Очное, Заочное, Смешанное | — |
 | Формы ОСА/ОСУ | `ref_osa_form` | ГОСА, ВОСА, ООСУ, ВОСУ | — |
-| Способы подтверждения протоколов | `ref_protocol_confirmation_method` | Нотариальное удостоверение, Подписание участниками, Иной способ | `E2E_StandardCharterTests` |
+| Способы подтверждения протоколов | `ref_protocol_confirmation_method` | Нотариальное удостоверение, Подписание участниками, Иной способ | `E2E_StandardCharter_ExecBody*Tests` |
 
 ---
 
@@ -48,8 +48,8 @@
 
 | Справочник | Таблица БД | Описание | E2E-сценарии |
 |------------|------------|----------|--------------|
-| ОКОПФ | `ref_okopf` | Общероссийский классификатор организационно-правовых форм (ПАО, НАО, ООО и др.) | `E2E_StandardCharterTests`, `E2E_NonStandardCharterTests`, `E2E_GeneralDirectorTests`, `E2E_EdinScenarioTests` |
-| Типовые уставы | `ref_standard_charter` | 36 типовых уставов ООО (Приказ Минэкономразвития № 411) | `E2E_StandardCharterTests`, `E2E_NonStandardCharterTests`, `E2E_GeneralDirectorTests` |
+| ОКОПФ | `ref_okopf` | Общероссийский классификатор организационно-правовых форм (ПАО, НАО, ООО и др.) | `E2E_StandardCharter_ExecBody*Tests`, `E2E_NonStandardCharterTests`, `E2E_GeneralDirectorTests`, `E2E_EdinScenarioTests` |
+| Типовые уставы | `ref_standard_charter` | 36 типовых уставов ООО (Приказ Минэкономразвития № 411) | `E2E_StandardCharter_ExecBody*Tests`, `E2E_NonStandardCharterTests`, `E2E_GeneralDirectorTests` |
 
 ---
 

@@ -103,13 +103,13 @@
 
 | Поле | Правило | Сообщение | Тесты |
 |------|---------|-----------|-------|
-| ФИО руководителя | Required | "Укажите ФИО руководителя." | [`LegalEntityValidatorTests::Director_*`](../e2e-tests.md#маппинг-us--e2e-класс), `E2E_StandardCharterTests`, `E2E_NonStandardCharterTests` |
-| Должность руководителя | Required | "Укажите должность руководителя." | [`LegalEntityValidatorTests::Director_*`](../e2e-tests.md#маппинг-us--e2e-класс), `E2E_StandardCharterTests`, `E2E_NonStandardCharterTests` |
+| ФИО руководителя | Required | "Укажите ФИО руководителя." | [`LegalEntityValidatorTests::Director_*`](../e2e-tests.md#маппинг-us--e2e-класс), `E2E_StandardCharter_ExecBody*Tests`, `E2E_NonStandardCharterTests` |
+| Должность руководителя | Required | "Укажите должность руководителя." | [`LegalEntityValidatorTests::Director_*`](../e2e-tests.md#маппинг-us--e2e-класс), `E2E_StandardCharter_ExecBody*Tests`, `E2E_NonStandardCharterTests` |
 | Окно ГОСА | End >= Start | "Дата окончания окна ГОСА не может быть раньше даты начала." | [`LegalEntityValidatorTests::Gosa_*`](../e2e-tests.md#маппинг-us--e2e-класс) |
-| Окно ГОСА (ПАО) | 01.03-30.06 | "Для ПАО окно ГОСА должно находиться в пределах 01.03-30.06." | [`LegalEntityValidatorTests::Gosa_PAO_*`](../e2e-tests.md#маппинг-us--e2e-класс), `E2E_StandardCharterTests`, `E2E_NonStandardCharterTests` |
+| Окно ГОСА (ПАО) | 01.03-30.06 | "Для ПАО окно ГОСА должно находиться в пределах 01.03-30.06." | [`LegalEntityValidatorTests::Gosa_PAO_*`](../e2e-tests.md#маппинг-us--e2e-класс), `E2E_StandardCharter_ExecBody*Tests`, `E2E_NonStandardCharterTests` |
 | Окно ГОСА (НАО) | Фиксировано 01.03-30.06 | "Для НАО интервал ГОСА фиксирован: 01.03-30.06." | [`LegalEntityValidatorTests::Gosa_NAO_*`](../e2e-tests.md#маппинг-us--e2e-класс) |
-| Типовой устав | 01-36, 2 цифры | "Номер типового устава должен быть от 01 до 36." | `E2E_StandardCharterTests` (36 тестов) |
-| Типовой устав | Только для ООО | "Типовой устав применим только для ООО." | `E2E_StandardCharterTests` |
+| Типовой устав | 01-36, 2 цифры | "Номер типового устава должен быть от 01 до 36." | `E2E_StandardCharter_ExecBody*Tests` (36 тестов) |
+| Типовой устав | Только для ООО | "Типовой устав применим только для ООО." | `E2E_StandardCharter_ExecBody*Tests` |
 | СНИЛС руководителя | 11 цифр | "СНИЛС должен содержать 11 цифр (формат XXX-XXX-XXX XX)" | [`E2E_GeneralDirectorTests::GeneralDirector_SaveWithSnils`](../e2e-tests.md#маппинг-us--e2e-класс) |
 | Макс. комитетов на члена | > 0 (если задано) | "Укажите максимальное число комитетов для одного члена СД" | — (нет теста) |
 | Макс. возглавляемых комитетов | > 0 (если задано) | "Укажите максимальное число возглавляемых комитетов для одного члена СД" | — (нет теста) |
@@ -117,7 +117,7 @@
 | Кворум комитета | 1-100% (если задано) | "Кворум комитета должен быть от 1 до 100%" | — (нет теста) |
 | Кворум совместного заседания | 1-100% (если задано) | "Кворум совместного заседания должен быть от 1 до 100%" | — (нет теста) |
 | Кворум СД | >= 50% | "Кворум не может быть менее 50% (п. 2 ст. 68 208-ФЗ)" | — (нет теста) |
-| Интервал ГОСА (ОКОПФ) | Валидность для типа ЮЛ | "Недопустимый интервал ГОСА для данной ОПФ" | `E2E_StandardCharterTests`, `E2E_NonStandardCharterTests` |
+| Интервал ГОСА (ОКОПФ) | Валидность для типа ЮЛ | "Недопустимый интервал ГОСА для данной ОПФ" | `E2E_StandardCharter_ExecBody*Tests`, `E2E_NonStandardCharterTests` |
 
 ---
 

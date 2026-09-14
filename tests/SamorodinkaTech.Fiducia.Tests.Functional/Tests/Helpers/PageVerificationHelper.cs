@@ -7,7 +7,7 @@ namespace SamorodinkaTech.Fiducia.Tests.Functional.Helpers;
 /// Проверка рендеринга страниц Board Portal и Admin Console
 /// после настройки устава и добавления участников.
 /// После каждой страницы проверяется запись в логе аудита.
-/// Используется как продолжение flow в E2E_StandardCharterTests / E2E_NonStandardCharterTests.
+/// Используется как продолжение flow в E2E_StandardCharter_ExecBody*Tests / E2E_NonStandardCharterTests.
 /// </summary>
 public static class PageVerificationHelper
 {

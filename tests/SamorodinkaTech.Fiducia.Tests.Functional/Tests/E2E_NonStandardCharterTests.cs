@@ -376,7 +376,7 @@ public class E2E_NonStandardCharterTests : BrowserFixture
     }
 
     [Fact]
-    public async Task NonStandardCharter_HasBoardOfDirectors_ShouldSaveAndShowBoardTab()
+    public async Task NonStandardCharter_HasBoardOfDirectors_ShouldSaveWithoutErrors()
     {
         var testStartTime = DateTimeOffset.UtcNow;
         var testName = "NonStandardCharter_HasBoardOfDirectors";

@@ -17,13 +17,13 @@
 
 | # | Сценарий / Класс | E2E-класс | Статус | Причина (если не пройден) |
 |---|------------------|-----------|--------|---------------------------|
-| 1 | Типовой устав (01) | `E2E_StandardCharterTests::StandardCharter01_CompleteFlow` | ❌ Каскадный 13.09 | `GlobalFixture.HasFailed` |
-| 2 | Типовой устав (02) | `E2E_StandardCharterTests::StandardCharter02_CompleteFlow` | ❌ Каскадный 13.09 | `GlobalFixture.HasFailed` |
-| 3 | Типовой устав (03) | `E2E_StandardCharterTests::StandardCharter03_CompleteFlow` | ❌ Каскадный 13.09 | `GlobalFixture.HasFailed` |
-| 4 | Типовой устав (04) | `E2E_StandardCharterTests::StandardCharter04_CompleteFlow` | ❌ Каскадный 13.09 | `GlobalFixture.HasFailed` |
-| 5 | Типовой устав (05) | `E2E_StandardCharterTests::StandardCharter05_CompleteFlow` | ❌ Каскадный 13.09 | `GlobalFixture.HasFailed` |
-| 6 | Типовой устав (06) | `E2E_StandardCharterTests::StandardCharter06_CompleteFlow` | ❌ Каскадный 13.09 | `GlobalFixture.HasFailed` |
-| 7 | Типовой устав (07–36) | `E2E_StandardCharterTests` | ❌ Каскадный 13.09 | `GlobalFixture.HasFailed` (36 тестов) |
+| 1 | Типовой устав (01) | `E2E_StandardCharter_ExecBodyA_NotarialTests::StandardCharter01_CompleteFlow` | ❌ Каскадный 13.09 | `GlobalFixture.HasFailed` |
+| 2 | Типовой устав (02) | `E2E_StandardCharter_ExecBodyA_NotarialTests::StandardCharter02_CompleteFlow` | ❌ Каскадный 13.09 | `GlobalFixture.HasFailed` |
+| 3 | Типовой устав (03) | `E2E_StandardCharter_ExecBodyA_NotarialTests::StandardCharter03_CompleteFlow` | ❌ Каскадный 13.09 | `GlobalFixture.HasFailed` |
+| 4 | Типовой устав (04) | `E2E_StandardCharter_ExecBodyA_NotarialTests::StandardCharter04_CompleteFlow` | ❌ Каскадный 13.09 | `GlobalFixture.HasFailed` |
+| 5 | Типовой устав (05) | `E2E_StandardCharter_ExecBodyA_NotarialTests::StandardCharter05_CompleteFlow` | ❌ Каскадный 13.09 | `GlobalFixture.HasFailed` |
+| 6 | Типовой устав (06) | `E2E_StandardCharter_ExecBodyA_NotarialTests::StandardCharter06_CompleteFlow` | ❌ Каскадный 13.09 | `GlobalFixture.HasFailed` |
+| 7 | Типовой устав (07–36) | `E2E_StandardCharter_ExecBody{A,B,C}_{Notarial,Sign}Tests` (6 файлов) | ❌ Каскадный 13.09 | `GlobalFixture.HasFailed` (36 тестов) |
 | 5 | Нетиповой устав: ExitAllowed | `E2E_NonStandardCharterTests::NonStandardCharter_ExitAllowed` | ❌ Каскадный 13.09 | `GlobalFixture.HasFailed` |
 | 6 | Нетиповой устав: ExitMinSharePercent | `E2E_NonStandardCharterTests::NonStandardCharter_ExitMinSharePercent` | ❌ Каскадный 13.09 | `GlobalFixture.HasFailed` |
 | 7 | Нетиповой устав: ExitMaxSharePercent | `E2E_NonStandardCharterTests::NonStandardCharter_ExitMaxSharePercent` | ❌ Каскадный 13.09 | `GlobalFixture.HasFailed` |
@@ -96,7 +96,7 @@ dotnet run --project tests/SamorodinkaTech.Fiducia.Tests.Functional -- --filter 
 
 **Ожидаемый результат:** ЮЛ создано с типовым уставом. Параметры устава (выход участника, переход доли, преимущественное право и др.) отображаются в режиме «только чтение».
 
-**E2E-тест:** `E2E_StandardCharterTests` (36 параметризованных тестов)
+**E2E-тест:** `E2E_StandardCharter_ExecBody{A,B,C}_{Notarial,Sign}Tests` (6 файлов, 36 тестов)
 
 ---
 
@@ -291,4 +291,4 @@ dotnet run --project tests/SamorodinkaTech.Fiducia.Tests.Functional -- --filter 
 
 **Исправление:** Замена текста в проверке стандартного устава.
 
-**Файл:** `tests/.../E2E_StandardCharterTests.cs` (строка 238)
+**Файл:** `tests/.../E2E_StandardCharter_ExecBody*.cs` (6 файлов)

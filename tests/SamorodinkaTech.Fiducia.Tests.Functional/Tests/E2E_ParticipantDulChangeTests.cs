@@ -21,7 +21,7 @@ public class E2E_ParticipantDulChangeTests : BrowserFixture
     }
 
     [Fact]
-    public async Task DulChange_ParticipantUpdatesPassport_ShouldVersionDocument()
+    public async Task ParticipantDulChange_ShouldVersionDocument()
     {
         SkipIfPreviousFailed();
 

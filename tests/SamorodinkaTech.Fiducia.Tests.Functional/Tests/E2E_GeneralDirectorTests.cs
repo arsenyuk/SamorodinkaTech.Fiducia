@@ -183,7 +183,7 @@ public class E2E_GeneralDirectorTests : BrowserFixture
     /// Тест 61: Вкладка «ГД» НЕ отображается при ExecutiveBody=B (каждый участник — директор).
     /// </summary>
     [Fact]
-    public async Task GeneralDirector_ExecBodyB_TabNotVisible()
+    public async Task GeneralDirector_ExecBodyB_ShouldHideTab()
     {
         SkipIfPreviousFailed();
 
@@ -221,7 +221,7 @@ public class E2E_GeneralDirectorTests : BrowserFixture
     /// Тест 62: Вкладка «ГД» НЕ отображается при ExecutiveBody=C (все совместно).
     /// </summary>
     [Fact]
-    public async Task GeneralDirector_ExecBodyC_TabNotVisible()
+    public async Task GeneralDirector_ExecBodyC_ShouldHideTab()
     {
         SkipIfPreviousFailed();
 
@@ -259,7 +259,7 @@ public class E2E_GeneralDirectorTests : BrowserFixture
     /// Тест 63: Вкладка «ГД» отображается для типового устава с ExecutiveBody=A.
     /// </summary>
     [Fact]
-    public async Task GeneralDirector_StandardCharter_ExecBodyA_TabVisible()
+    public async Task GeneralDirector_StandardCharter_ShouldShowTab()
     {
         SkipIfPreviousFailed();
 

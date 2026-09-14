@@ -123,7 +123,7 @@
 - Имя теста передаётся в сообщение об ошибке для идентификации
 
 **Запрет параллельного исполнения:**
-- Оба класса тестов (`E2E_StandardCharterTests`, `E2E_NonStandardCharterTests`) имеют атрибут `[Collection("CharterTests")]`
+- Все классы тестов уставов (`E2E_StandardCharter_ExecBody*Tests`, `E2E_NonStandardCharterTests`) имеют атрибут `[Collection("CharterTests")]`
 - xUnit выполняет тесты из одной коллекции последовательно, что гарантирует отсутствие пересечения логов
 
 **Формат строки лога:**
@@ -195,7 +195,12 @@
 tests/SamorodinkaTech.Fiducia.Tests.Functional/Tests/
 ├── BrowserFixture.cs                    # Базовый класс (Playwright lifecycle)
 ├── PortalUrls.cs                        # Конфигурация URL портала
-├── E2E_StandardCharterTests.cs          # 36 параметризованных тестов
+├── E2E_StandardCharter_ExecBodyA_NotarialTests.cs  # Уставы 01–06 (A + NOTARIAL)
+├── E2E_StandardCharter_ExecBodyA_SignTests.cs      # Уставы 19–24 (A + SIGN)
+├── E2E_StandardCharter_ExecBodyB_NotarialTests.cs  # Уставы 07–12 (B + NOTARIAL)
+├── E2E_StandardCharter_ExecBodyB_SignTests.cs      # Уставы 25–30 (B + SIGN)
+├── E2E_StandardCharter_ExecBodyC_NotarialTests.cs  # Уставы 13–18 (C + NOTARIAL)
+├── E2E_StandardCharter_ExecBodyC_SignTests.cs      # Уставы 31–36 (C + SIGN)
 ├── Helpers/
 │   ├── DbResetHelper.cs                 # Сброс БД через DbReset tool
 │   ├── LdapHelper.cs                    # Создание пользователей в LDAP
@@ -219,7 +224,7 @@ docs/e2e/
 
 ```bash
 dotnet test tests/SamorodinkaTech.Fiducia.Tests.Functional/ \
-  --filter "E2E_StandardCharterTests" \
+  --filter "E2E_StandardCharter_ExecBody" \
   --logger "console;verbosity=detailed"
 ```
 

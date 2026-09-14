@@ -296,7 +296,170 @@ public class US023_ParticipantTests : BrowserFixture
     }
 
     /// <summary>
-    /// Подготовка тестовых данных: сидирование ЮЛ + регистрация участника через Board Portal.
+    /// US-023: Создание участника ФЛ без фамилии — сервер возвращает 400.
+    /// </summary>
+    [Fact]
+    public async Task BoardPortal_ParticipantFl_EmptyLastName_ShouldReject()
+    {
+        SkipIfPreviousFailed();
+
+        var page = await CreateBoardPortalPageAsync();
+        try
+        {
+            await SetupParticipantAsync(page, 1);
+            var gdLogin = CharterTestDataFixed.PersonsByEntity[1].Gd?.Login
+                          ?? CharterTestDataFixed.LegalEntities[0].AdminUser.Login;
+            await AuthHelper.LoginAsBoardUserAsync(page, gdLogin);
+
+            var statusCode = await page.EvaluateAsync<int>(
+                @"async () => {
+                    const resp = await fetch('/api/participants', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        credentials: 'same-origin',
+                        body: JSON.stringify({
+                            participantType: 'FL',
+                            lastName: '',
+                            firstName: 'Тест',
+                            sharePercent: 50,
+                            paymentInfo: 'Оплачено'
+                        })
+                    });
+                    return resp.status;
+                }");
+
+            statusCode.Should().Be(400, "Создание ФЛ без фамилии должно возвращать 400");
+        }
+        finally
+        {
+            await page.CloseAsync();
+        }
+    }
+
+    /// <summary>
+    /// US-023: Создание участника ФЛ без имени — сервер возвращает 400.
+    /// </summary>
+    [Fact]
+    public async Task BoardPortal_ParticipantFl_EmptyFirstName_ShouldReject()
+    {
+        SkipIfPreviousFailed();
+
+        var page = await CreateBoardPortalPageAsync();
+        try
+        {
+            await SetupParticipantAsync(page, 1);
+            var gdLogin = CharterTestDataFixed.PersonsByEntity[1].Gd?.Login
+                          ?? CharterTestDataFixed.LegalEntities[0].AdminUser.Login;
+            await AuthHelper.LoginAsBoardUserAsync(page, gdLogin);
+
+            var statusCode = await page.EvaluateAsync<int>(
+                @"async () => {
+                    const resp = await fetch('/api/participants', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        credentials: 'same-origin',
+                        body: JSON.stringify({
+                            participantType: 'FL',
+                            lastName: 'Тестов',
+                            firstName: '',
+                            sharePercent: 50,
+                            paymentInfo: 'Оплачено'
+                        })
+                    });
+                    return resp.status;
+                }");
+
+            statusCode.Should().Be(400, "Создание ФЛ без имени должно возвращать 400");
+        }
+        finally
+        {
+            await page.CloseAsync();
+        }
+    }
+
+    /// <summary>
+    /// US-023: Создание участника без оплаты доли — сервер возвращает 400.
+    /// </summary>
+    [Fact]
+    public async Task BoardPortal_ParticipantFl_EmptyPayment_ShouldReject()
+    {
+        SkipIfPreviousFailed();
+
+        var page = await CreateBoardPortalPageAsync();
+        try
+        {
+            await SetupParticipantAsync(page, 1);
+            var gdLogin = CharterTestDataFixed.PersonsByEntity[1].Gd?.Login
+                          ?? CharterTestDataFixed.LegalEntities[0].AdminUser.Login;
+            await AuthHelper.LoginAsBoardUserAsync(page, gdLogin);
+
+            var statusCode = await page.EvaluateAsync<int>(
+                @"async () => {
+                    const resp = await fetch('/api/participants', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        credentials: 'same-origin',
+                        body: JSON.stringify({
+                            participantType: 'FL',
+                            lastName: 'Тестов',
+                            firstName: 'Тест',
+                            sharePercent: 50,
+                            paymentInfo: ''
+                        })
+                    });
+                    return resp.status;
+                }");
+
+            statusCode.Should().Be(400, "Создание участника без оплаты доли должно возвращать 400");
+        }
+        finally
+        {
+            await page.CloseAsync();
+        }
+    }
+
+    /// <summary>
+    /// US-023: Участник с долей 100% без сведений об оплате — допустимо (201).
+    /// </summary>
+    [Fact]
+    public async Task BoardPortal_ParticipantFl_FullyPaidNoPayment_ShouldAccept()
+    {
+        SkipIfPreviousFailed();
+
+        var page = await CreateBoardPortalPageAsync();
+        try
+        {
+            await SetupParticipantAsync(page, 1);
+            var gdLogin = CharterTestDataFixed.PersonsByEntity[1].Gd?.Login
+                          ?? CharterTestDataFixed.LegalEntities[0].AdminUser.Login;
+            await AuthHelper.LoginAsBoardUserAsync(page, gdLogin);
+
+            var statusCode = await page.EvaluateAsync<int>(
+                @"async () => {
+                    const resp = await fetch('/api/participants', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        credentials: 'same-origin',
+                        body: JSON.stringify({
+                            participantType: 'FL',
+                            lastName: 'Полный',
+                            firstName: 'Оплата',
+                            sharePercent: 100,
+                            paymentInfo: ''
+                        })
+                    });
+                    return resp.status;
+                }");
+
+            statusCode.Should().Be(201, "Участник с долей 100% без сведений об оплате должен создаваться");
+        }
+        finally
+        {
+            await page.CloseAsync();
+        }
+    }
+
+    /// <summary>
     /// 1. Admin Console: ЮЛ + LE_ADMIN (CharterTestSeeder)
     /// 2. Admin Console: User для участника (AddEmployeeAsync) — создаёт запись в `users`
     /// 3. Board Portal: GD регистрирует участника с ПДн → ЕДИН binding → PARTICIPANT
