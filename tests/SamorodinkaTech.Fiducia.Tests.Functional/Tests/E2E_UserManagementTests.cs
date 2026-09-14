@@ -11,8 +11,6 @@ namespace SamorodinkaTech.Fiducia.Tests.Functional;
 [Collection("E2ETests")]
 public class E2E_UserManagementTests : BrowserFixture
 {
-    private const int DefaultTimeout = 15_000;
-
     public E2E_UserManagementTests(GlobalFixture globalFixture) : base(globalFixture)
     {
     }

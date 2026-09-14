@@ -1,5 +1,6 @@
 using FluentAssertions;
 using Microsoft.Playwright;
+using SamorodinkaTech.Fiducia.Tests.Functional;
 
 namespace SamorodinkaTech.Fiducia.Tests.Functional.Helpers;
 
@@ -8,7 +9,7 @@ namespace SamorodinkaTech.Fiducia.Tests.Functional.Helpers;
 /// </summary>
 public static class BoardPortalHelper
 {
-    private const int DefaultTimeout = 15_000;
+    private static int DefaultTimeout => GlobalFixture.TestOptions.TimeoutMs;
 
     /// <summary>
     /// Навигация через меню Board Portal. Кликает по ссылке в левом меню.
@@ -58,7 +59,7 @@ public static class BoardPortalHelper
                     return false;
                 }",
                 null,
-                new PageWaitForFunctionOptions { Timeout = 15_000 });
+                new PageWaitForFunctionOptions { Timeout = DefaultTimeout });
         }
         catch
         {

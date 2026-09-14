@@ -1,4 +1,5 @@
 using Microsoft.Playwright;
+using SamorodinkaTech.Fiducia.Tests.Functional;
 
 namespace SamorodinkaTech.Fiducia.Tests.Functional.Helpers;
 
@@ -7,7 +8,7 @@ namespace SamorodinkaTech.Fiducia.Tests.Functional.Helpers;
 /// </summary>
 public static class AdminConsoleHelper
 {
-    private const int DefaultTimeout = 15_000;
+    private static int DefaultTimeout => GlobalFixture.TestOptions.TimeoutMs;
 
     /// <summary>
     /// Навигация через меню Admin Console. Кликает по ссылке в левом меню.

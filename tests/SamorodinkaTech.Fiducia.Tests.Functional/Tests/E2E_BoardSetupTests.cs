@@ -58,7 +58,7 @@ public class E2E_BoardSetupTests : BrowserFixture
             await NavigateToBoardSetupAsync(boardPage);
 
             // Проверяем, что страница загрузилась (ищем h3 — Blazor рендерит в DOM до SignalR)
-            var h3 = await boardPage.WaitForSelectorAsync("h3", new() { Timeout = 2000 });
+            var h3 = await boardPage.WaitForSelectorAsync("h3", new() { Timeout = DefaultTimeout });
             h3.Should().NotBeNull("h3 заголовок wizard'а должен присутствовать");
 
             // Проверяем структуру СД

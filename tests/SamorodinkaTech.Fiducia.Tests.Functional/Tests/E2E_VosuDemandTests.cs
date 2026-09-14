@@ -70,7 +70,7 @@ public class E2E_VosuDemandTests : BrowserFixture
 
             // ── Шаг 2: Ожидание ЕДИН binding ──────────────────────────
             // Роль PARTICIPANT назначается автоматически при привязке
-            await EdinTestHelper.WaitForEdinBindingAsync(boardPage, participantId, timeoutSeconds: 15);
+            await EdinTestHelper.WaitForEdinBindingAsync(boardPage, participantId, timeoutSeconds: 5);
 
             var mpiMasterId = await EdinTestHelper.GetParticipantMpiMasterIdAsync(boardPage, participantId);
             mpiMasterId.Should().NotBeNull("ЕДИН должен привязать MasterId");
@@ -94,11 +94,11 @@ public class E2E_VosuDemandTests : BrowserFixture
             await boardPage.WaitForTimeoutAsync(1000);
 
             // Заполняем текст требования
-            var textarea = await boardPage.WaitForSelectorAsync("textarea", new() { Timeout = 10000 });
+            var textarea = await boardPage.WaitForSelectorAsync("textarea", new() { Timeout = DefaultTimeout });
             await textarea!.FillAsync("Требование о созыве внеочередного общего собрания участников для рассмотрения вопроса о смене генерального директора");
 
             // Ставим галочку
-            var checkbox = await boardPage.WaitForSelectorAsync("#agreeWarning", new() { Timeout = 5000 });
+            var checkbox = await boardPage.WaitForSelectorAsync("#agreeWarning", new() { Timeout = DefaultTimeout });
             await checkbox!.ClickAsync();
             await boardPage.WaitForTimeoutAsync(500);
 
@@ -118,13 +118,13 @@ public class E2E_VosuDemandTests : BrowserFixture
 
             var notification = await boardPage.WaitForSelectorAsync(
                 "text=Требование участника о созыве ВОСУ",
-                new() { Timeout = 10000 });
+                new() { Timeout = DefaultTimeout });
             notification.Should().NotBeNull("уведомление должно отображаться");
 
             // Кликаем по ссылке уведомления
             var link = await boardPage.WaitForSelectorAsync(
                 "a:text('Требование участника о созыве ВОСУ')",
-                new() { Timeout = 5000 });
+                new() { Timeout = DefaultTimeout });
             if (link is not null)
             {
                 await link.ClickAsync();
@@ -136,7 +136,7 @@ public class E2E_VosuDemandTests : BrowserFixture
                 await boardPage.ClickAsync("text=Требования участников");
                 await AuthHelper.WaitForBlazorReady(boardPage);
                 await boardPage.WaitForTimeoutAsync(2000);
-                var row = await boardPage.WaitForSelectorAsync("table tbody tr", new() { Timeout = 5000 });
+                var row = await boardPage.WaitForSelectorAsync("table tbody tr", new() { Timeout = DefaultTimeout });
                 if (row is not null)
                 {
                     await row.ClickAsync();
@@ -145,27 +145,27 @@ public class E2E_VosuDemandTests : BrowserFixture
                 }
             }
 
-            await boardPage.WaitForSelectorAsync("text=Дедлайн решения", new() { Timeout = 10000 });
+            await boardPage.WaitForSelectorAsync("text=Дедлайн решения", new() { Timeout = DefaultTimeout });
 
             boardPage.Dialog += async (_, dialog) => await dialog.AcceptAsync();
             await boardPage.ClickAsync("button:text('Принять требование')");
             await boardPage.WaitForTimeoutAsync(5000);
 
-            await boardPage.WaitForSelectorAsync("text=Перейти к плану ВОСУ", new() { Timeout = 10000 });
+            await boardPage.WaitForSelectorAsync("text=Перейти к плану ВОСУ", new() { Timeout = DefaultTimeout });
 
             // ── Шаг 5: ГД проверяет пометку инициирующего требования ────
             await boardPage.WaitForSelectorAsync(
                 "text=Данное требование инициировало созыв ВОСУ",
-                new() { Timeout = 5000 });
+                new() { Timeout = DefaultTimeout });
 
             // ── Шаг 6: ГД формирует уведомления ВОСУ ──────────────────
             // Проверяем наличие панели уведомлений
             await boardPage.WaitForSelectorAsync(
                 "text=Формирование уведомлений участникам ВОСУ",
-                new() { Timeout = 5000 });
+                new() { Timeout = DefaultTimeout });
 
             // Заполняем дату проведения
-            var dateInput = await boardPage.WaitForSelectorAsync("input[type='date']", new() { Timeout = 5000 });
+            var dateInput = await boardPage.WaitForSelectorAsync("input[type='date']", new() { Timeout = DefaultTimeout });
             dateInput.Should().NotBeNull("поле даты должно быть");
             await dateInput!.FillAsync("2026-06-15");
 
@@ -178,14 +178,14 @@ public class E2E_VosuDemandTests : BrowserFixture
             // Заполняем место проведения
             var venueInput = await boardPage.WaitForSelectorAsync(
                 "input[placeholder*='Место']",
-                new() { Timeout = 5000 });
+                new() { Timeout = DefaultTimeout });
             venueInput.Should().NotBeNull("поле места проведения должно быть");
             await venueInput!.FillAsync("г. Москва, ул. Тверская, д. 1, переговорная № 3");
 
             // Заполняем повестку
             var agendaTextarea = await boardPage.WaitForSelectorAsync(
                 "textarea[placeholder*='Повестка']",
-                new() { Timeout = 5000 });
+                new() { Timeout = DefaultTimeout });
             agendaTextarea.Should().NotBeNull("поле повестки должно быть");
             await agendaTextarea!.FillAsync("1. Избрание Председателя ВОСУ\n2. Досрочное прекращение полномочий ГД");
 
@@ -196,7 +196,7 @@ public class E2E_VosuDemandTests : BrowserFixture
             // ── Шаг 7: Проверяем таблицу уведомлений ──────────────────
             await boardPage.WaitForSelectorAsync(
                 "text=Сформированные уведомления",
-                new() { Timeout = 10000 });
+                new() { Timeout = DefaultTimeout });
 
             // Проверяем наличие ссылок скачивания
             var downloadLinks = await boardPage.QuerySelectorAllAsync(

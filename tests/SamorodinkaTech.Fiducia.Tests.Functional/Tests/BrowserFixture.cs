@@ -1,4 +1,5 @@
 using Microsoft.Playwright;
+using SamorodinkaTech.Fiducia.Tests.Functional.Helpers;
 
 namespace SamorodinkaTech.Fiducia.Tests.Functional;
 
@@ -9,6 +10,9 @@ namespace SamorodinkaTech.Fiducia.Tests.Functional;
 public class BrowserFixture
 {
     private readonly GlobalFixture _globalFixture;
+
+    /// <summary>Единый таймаут ожидания элементов (мс) из конфигурации.</summary>
+    protected static int DefaultTimeout => GlobalFixture.TestOptions.TimeoutMs;
 
     public BrowserFixture(GlobalFixture globalFixture)
     {

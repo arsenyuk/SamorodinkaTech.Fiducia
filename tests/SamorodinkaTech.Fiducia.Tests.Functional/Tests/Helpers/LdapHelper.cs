@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using Microsoft.Playwright;
+using SamorodinkaTech.Fiducia.Tests.Functional;
 
 namespace SamorodinkaTech.Fiducia.Tests.Functional.Helpers;
 
@@ -14,7 +15,7 @@ public static class LdapHelper
     private const string LdapAdminPassword = "admin";
     private const string UsersOu = "ou=users";
     private const string GroupsOu = "ou=groups";
-    private const int DefaultTimeout = 15_000;
+    private static int DefaultTimeout => GlobalFixture.TestOptions.TimeoutMs;
 
     /// <summary>
     /// Удалить ВСЕ тестовые учётные записи из LDAP (ou=users).

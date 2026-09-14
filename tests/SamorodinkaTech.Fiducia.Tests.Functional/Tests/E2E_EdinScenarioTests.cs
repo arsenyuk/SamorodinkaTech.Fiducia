@@ -78,7 +78,7 @@ public class E2E_EdinScenarioTests : BrowserFixture
 
             // ── Шаг 6: Ожидание ЕДИН binding ────────────────────────────
             // (fire-and-forget: TriggerEdinBindingAsync)
-            await EdinTestHelper.WaitForEdinBindingAsync(boardPage, participantId, timeoutSeconds: 15);
+            await EdinTestHelper.WaitForEdinBindingAsync(boardPage, participantId, timeoutSeconds: 5);
 
             var mpiMasterId = await EdinTestHelper.GetParticipantMpiMasterIdAsync(boardPage, participantId);
             mpiMasterId.Should().NotBeNull("ЕДИН должен привязать MasterId");
@@ -154,7 +154,7 @@ public class E2E_EdinScenarioTests : BrowserFixture
                 sharePercent: 100m,
                 shareAmount: 10000m);
 
-            await EdinTestHelper.WaitForEdinBindingAsync(boardPage, participantId1, timeoutSeconds: 15);
+            await EdinTestHelper.WaitForEdinBindingAsync(boardPage, participantId1, timeoutSeconds: 5);
             var masterId1 = await EdinTestHelper.GetParticipantMpiMasterIdAsync(boardPage, participantId1);
             masterId1.Should().NotBeNull("Первый ЕДИН binding должен завершиться");
 
@@ -169,7 +169,7 @@ public class E2E_EdinScenarioTests : BrowserFixture
                 sharePercent: 0m,
                 shareAmount: 0m);
 
-            await EdinTestHelper.WaitForEdinBindingAsync(boardPage, participantId2, timeoutSeconds: 15);
+            await EdinTestHelper.WaitForEdinBindingAsync(boardPage, participantId2, timeoutSeconds: 5);
 
             // ── Шаг 8: Проверить, что MasterId совпадает ────────────────
             var masterId2 = await EdinTestHelper.GetParticipantMpiMasterIdAsync(boardPage, participantId2);

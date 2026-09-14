@@ -1,4 +1,5 @@
 using Microsoft.Playwright;
+using Microsoft.Extensions.Configuration;
 using SamorodinkaTech.Fiducia.Tests.Functional.Helpers;
 
 namespace SamorodinkaTech.Fiducia.Tests.Functional;
@@ -26,11 +27,23 @@ public class GlobalFixture : IAsyncLifetime
     /// <summary>Установить флаг ошибки.</summary>
     public static void MarkFailed() => _hasFailed = true;
 
+    /// <summary>Конфигурация E2E-тестов (таймауты и т.п.).</summary>
+    public static E2ETestOptions TestOptions { get; private set; } = new();
+
     public ValueTask InitializeAsync()
     {
         return new ValueTask(Task.Run(async () =>
         {
             Console.WriteLine("[GlobalFixture] Инициализация...");
+
+            // 0. Загрузка конфигурации
+            var config = new ConfigurationBuilder()
+                .AddJsonFile("appsettings.test.json", optional: true)
+                .Build();
+            var timeoutStr = config["E2ETest:TimeoutMs"];
+            var timeoutMs = int.TryParse(timeoutStr, out var t) ? t : 5000;
+            TestOptions = new E2ETestOptions { TimeoutMs = timeoutMs };
+            Console.WriteLine($"[GlobalFixture] TimeoutMs = {TestOptions.TimeoutMs}");
 
             // 1. Запуск инфраструктуры (Docker, порталы)
             await InfrastructureHelper.EnsureInfrastructureReadyAsync();

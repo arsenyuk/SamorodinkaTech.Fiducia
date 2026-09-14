@@ -61,7 +61,7 @@ public class US001_AuthorizationTests : BrowserFixture
     private async Task AssertLoginDropdownAsync(Portal portal)
     {
         var page = await CreatePageAsync(portal, "/login");
-        var select = await page.WaitForSelectorAsync("select.form-select", new() { State = WaitForSelectorState.Visible, Timeout = 10_000 });
+        var select = await page.WaitForSelectorAsync("select.form-select", new() { State = WaitForSelectorState.Visible, Timeout = DefaultTimeout });
         select.Should().NotBeNull();
     }
 }

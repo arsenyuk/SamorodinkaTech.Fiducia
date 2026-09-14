@@ -1,5 +1,6 @@
 using FluentAssertions;
 using Microsoft.Playwright;
+using SamorodinkaTech.Fiducia.Tests.Functional;
 
 namespace SamorodinkaTech.Fiducia.Tests.Functional.Helpers;
 
@@ -8,12 +9,12 @@ namespace SamorodinkaTech.Fiducia.Tests.Functional.Helpers;
 /// </summary>
 public static class EdinTestHelper
 {
-    private const int DefaultTimeout = 15_000;
+    private static int DefaultTimeout => GlobalFixture.TestOptions.TimeoutMs;
 
     /// <summary>
     /// Ожидает привязки MPI MasterId к EcosystemParticipant через fire-and-forget хук.
     /// </summary>
-    public static async Task WaitForEdinBindingAsync(IPage page, Guid participantId, int timeoutSeconds = 15)
+    public static async Task WaitForEdinBindingAsync(IPage page, Guid participantId, int timeoutSeconds = 5)
     {
         var deadline = DateTime.UtcNow.AddSeconds(timeoutSeconds);
 

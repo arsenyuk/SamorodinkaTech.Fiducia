@@ -1,5 +1,6 @@
 using FluentAssertions;
 using Microsoft.Playwright;
+using SamorodinkaTech.Fiducia.Tests.Functional;
 
 namespace SamorodinkaTech.Fiducia.Tests.Functional.Helpers;
 
@@ -8,7 +9,7 @@ namespace SamorodinkaTech.Fiducia.Tests.Functional.Helpers;
 /// </summary>
 public static class AuthHelper
 {
-    private const int DefaultTimeout = 15_000;
+    private static int DefaultTimeout => GlobalFixture.TestOptions.TimeoutMs;
 
     /// <summary>
     /// Вход в Admin Console: ввести логин и пароль, кликнуть "Войти".
@@ -150,11 +151,12 @@ public static class AuthHelper
     /// Дождаться полной готовности Blazor Server (гидрация + SignalR).
     /// Проверяет наличие и видимость script blazor.server.js.
     /// </summary>
-    public static async Task WaitForBlazorReady(IPage page, int timeoutMs = DefaultTimeout)
+    public static async Task WaitForBlazorReady(IPage page, int timeoutMs = 0)
     {
+        var effectiveTimeout = timeoutMs > 0 ? timeoutMs : GlobalFixture.TestOptions.TimeoutMs;
         await page.WaitForFunctionAsync(
             @"() => !!document.querySelector('script[src*=""blazor.server.js""]')",
             null,
-            new PageWaitForFunctionOptions { Timeout = timeoutMs });
+            new PageWaitForFunctionOptions { Timeout = effectiveTimeout });
     }
 }

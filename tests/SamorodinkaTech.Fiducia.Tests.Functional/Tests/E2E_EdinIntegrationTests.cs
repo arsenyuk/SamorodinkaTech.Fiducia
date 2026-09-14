@@ -36,7 +36,7 @@ public class E2E_EdinIntegrationTests : BrowserFixture
             await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
 
             // Ожидание рендеринга таблицы
-            await page.WaitForSelectorAsync("th", new PageWaitForSelectorOptions { Timeout = 10_000 });
+            await page.WaitForSelectorAsync("th", new PageWaitForSelectorOptions { Timeout = DefaultTimeout });
 
             // Проверка UI-элемента (ADR-027: правило 1)
             var header = await page.QuerySelectorAsync("th:has-text('ЕДИН')");
@@ -80,13 +80,13 @@ public class E2E_EdinIntegrationTests : BrowserFixture
             await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
 
             // Ожидание загрузки таблицы
-            await page.WaitForSelectorAsync("tbody tr", new PageWaitForSelectorOptions { Timeout = 10_000 });
+            await page.WaitForSelectorAsync("tbody tr", new PageWaitForSelectorOptions { Timeout = DefaultTimeout });
 
             // Клик по первому пользователю (Blazor @onclick на <tr>)
             await page.ClickAsync("tbody tr");
 
             // Ожидание загрузки карточки пользователя
-            await page.WaitForSelectorAsync("button:text('УЗ')", new PageWaitForSelectorOptions { Timeout = 10_000 });
+            await page.WaitForSelectorAsync("button:text('УЗ')", new PageWaitForSelectorOptions { Timeout = DefaultTimeout });
 
             // Проверка наличия вкладки «ЕДИН»
             var edinTab = await page.QuerySelectorAsync("button:text('ЕДИН')");
@@ -124,9 +124,9 @@ public class E2E_EdinIntegrationTests : BrowserFixture
             await AuthHelper.WaitForBlazorReady(page);
             await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
 
-            await page.WaitForSelectorAsync("tbody tr", new PageWaitForSelectorOptions { Timeout = 10_000 });
+            await page.WaitForSelectorAsync("tbody tr", new PageWaitForSelectorOptions { Timeout = DefaultTimeout });
             await page.ClickAsync("tbody tr");
-            await page.WaitForSelectorAsync("button:text('УЗ')", new PageWaitForSelectorOptions { Timeout = 10_000 });
+            await page.WaitForSelectorAsync("button:text('УЗ')", new PageWaitForSelectorOptions { Timeout = DefaultTimeout });
 
             var edinTab = await page.QuerySelectorAsync("button:text('ЕДИН')");
             edinTab.Should().NotBeNull("вкладка ЕДИН должна присутствовать");
@@ -137,7 +137,7 @@ public class E2E_EdinIntegrationTests : BrowserFixture
             await page.WaitForFunctionAsync(
                 "() => document.body.innerText.includes('MPI MasterId') || document.body.innerText.includes('Не привязан')",
                 null,
-                new PageWaitForFunctionOptions { Timeout = 10_000 });
+                new PageWaitForFunctionOptions { Timeout = DefaultTimeout });
 
             var content = await page.ContentAsync();
             content.Should().Match(

@@ -40,7 +40,7 @@ public class US021_DocumentCatalogTests : BrowserFixture
             await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
 
             // Ожидание рендера Blazor-компонента (SignalR circuit)
-            await page.WaitForSelectorAsync("h3", new() { Timeout = 10_000 });
+            await page.WaitForSelectorAsync("h3", new() { Timeout = DefaultTimeout });
 
             var content = await page.ContentAsync();
 
@@ -78,7 +78,7 @@ public class US021_DocumentCatalogTests : BrowserFixture
             await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
 
             // Ожидание рендера Blazor-компонента
-            await page.WaitForSelectorAsync("h3", new() { Timeout = 10_000 });
+            await page.WaitForSelectorAsync("h3", new() { Timeout = DefaultTimeout });
 
             var content = await page.ContentAsync();
 
@@ -115,7 +115,7 @@ public class US021_DocumentCatalogTests : BrowserFixture
             await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
 
             // Ожидание рендера Blazor-компонента
-            await page.WaitForSelectorAsync("h3", new() { Timeout = 10_000 });
+            await page.WaitForSelectorAsync("h3", new() { Timeout = DefaultTimeout });
 
             var content = await page.ContentAsync();
 
@@ -283,7 +283,7 @@ public class US021_DocumentCatalogTests : BrowserFixture
         participantId.Should().NotBeEmpty("участник должен быть создан");
 
         // 4. Ожидание ЕДИН binding → роль PARTICIPANT назначается автоматически
-        await EdinTestHelper.WaitForEdinBindingAsync(participantPage, participantId, timeoutSeconds: 15);
+        await EdinTestHelper.WaitForEdinBindingAsync(participantPage, participantId, timeoutSeconds: 5);
 
         Console.WriteLine($"[US021] Участник {participantFullName} зарегистрирован (PARTICIPANT).");
 
