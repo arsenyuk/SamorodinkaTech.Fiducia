@@ -3,7 +3,7 @@
 @inject HttpClient Http
 @inject NavigationManager Nav
 @inject ILogger<AgendaOsu> Logger
-@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "LE_ADMIN")]
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "LE_ADMIN,CEO,LAWYER")]
 
 <PageTitle>Fiducia — Повестка ОСУ</PageTitle>
 

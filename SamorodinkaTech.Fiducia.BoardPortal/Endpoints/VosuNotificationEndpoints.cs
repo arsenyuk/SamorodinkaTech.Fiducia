@@ -36,6 +36,10 @@ public static class VosuNotificationEndpoints
             var logger = loggerFactory.CreateLogger("VosuNotifications.Send");
             try
             {
+                // Проверка роли CEO
+                if (!http.User.IsInRole("CEO"))
+                    return Results.Forbid();
+
                 await using var ctx = await dbFactory.CreateDbContextAsync();
 
                 var leId = await LegalEntityHelper.GetLegalEntityIdAsync(ctx, http);
@@ -259,6 +263,10 @@ public static class VosuNotificationEndpoints
             var logger = loggerFactory.CreateLogger("OosuNotifications.Send");
             try
             {
+                // Проверка роли CEO
+                if (!http.User.IsInRole("CEO"))
+                    return Results.Forbid();
+
                 await using var ctx = await dbFactory.CreateDbContextAsync();
 
                 var leId = await LegalEntityHelper.GetLegalEntityIdAsync(ctx, http);

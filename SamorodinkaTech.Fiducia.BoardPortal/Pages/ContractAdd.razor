@@ -10,7 +10,7 @@
 @inject NavigationManager Navigation
 @inject HttpClient Http
 @inject IHttpContextAccessor HttpContextAccessor
-@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "LE_ADMIN")]
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "LE_ADMIN,CEO,LAWYER")]
 
 <PageTitle>Fiducia — Новый договор</PageTitle>
 

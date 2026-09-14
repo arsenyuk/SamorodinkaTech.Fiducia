@@ -174,17 +174,29 @@
                 return;
             }
 
+            // Проверка наличия роли в claims
+            var role = result.Claims.GetValueOrDefault("role");
+            if (string.IsNullOrEmpty(role))
+            {
+                _errorMessage = "Учётная запись не имеет роли в системе. Обратитесь к администратору.";
+                Logger.LogWarning("[LOGIN] Учётная запись {Login} (UserId={UserId}) не имеет роли в claims",
+                    result.Login, result.UserId);
+                await SecurityAuditService.LogEventAsync("LOGIN_FAILED", userIp,
+                    $"Вход запрещён: учётная запись {result.Login} не имеет роли в системе",
+                    userId: result.UserId, login: result.Login, entityName: "User", cancellationToken: default);
+                return;
+            }
+
             // Сохранение данных пользователя в localStorage
             Logger.LogDebug("[LOGIN] Сохранение данных в localStorage");
             await JS.InvokeVoidAsync("localStorage.setItem", "currentUserId", result.UserId?.ToString() ?? "");
             await JS.InvokeVoidAsync("localStorage.setItem", "currentUserName", result.UserName ?? "");
             await JS.InvokeVoidAsync("localStorage.setItem", "currentUserLogin", result.Login ?? "");
-            await JS.InvokeVoidAsync("localStorage.setItem", "currentUserRole", result.Claims.GetValueOrDefault("role", "MEMBER_BOARD"));
+            await JS.InvokeVoidAsync("localStorage.setItem", "currentUserRole", role);
             await JS.InvokeVoidAsync("localStorage.setItem", "greetingShownAt", DateTime.UtcNow.ToString("o"));
 
             // Установка HttpOnly JWT cookie (УПД.15) через браузерный fetch
             // (серверный HttpClient не доставляет Set-Cookie до браузера)
-            var role = result.Claims.GetValueOrDefault("role", "MEMBER_BOARD");
             var token = SessionService.GenerateToken(result.UserId!.Value, role);
             Logger.LogDebug("[LOGIN] JWT сгенерирован: UserId={UserId}, Role ={RefRole}, TokenLength={Len}",
                 result.UserId, role, token.Length);

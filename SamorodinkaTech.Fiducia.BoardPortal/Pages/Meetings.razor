@@ -5,7 +5,7 @@
 @using SamorodinkaTech.Fiducia.Domain.Enums
 @inject IApplicationDbContext DbContext
 @inject ILogger<Meetings> Logger
-@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "LE_ADMIN")]
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "LE_ADMIN,CEO,LAWYER,MEMBER_BOARD,CHAIR_BOARD,EXTERNAL_DIRECTOR")]
 
 <PageTitle>Fiducia — Созывы заседаний СД</PageTitle>
 
