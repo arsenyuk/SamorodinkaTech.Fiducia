@@ -29,16 +29,8 @@ public class US021_DocumentCatalogTests : BrowserFixture
         var page = await CreateBoardPortalPageAsync();
         try
         {
-            // Сидировать ЮЛ 1 (создаёт пользователей через Admin Console)
-            var adminPage = await CreateAdminConsolePageAsync();
-            try
-            {
-                await CharterTestSeeder.EnsureSeededAsync(adminPage, 1);
-            }
-            finally
-            {
-                await adminPage.CloseAsync();
-            }
+            // Подготовка: Admin Console + регистрация участника через Board Portal
+            await SetupParticipantAsync(page, 1);
 
             // Логин как PARTICIPANT (zhirov.at1 — участник ЮЛ 1)
             await AuthHelper.LoginAsBoardUserAsync(page, "zhirov.at1");
@@ -46,6 +38,9 @@ public class US021_DocumentCatalogTests : BrowserFixture
             await page.GotoAsync(PortalUrls.GetUrl(Portal.BoardPortal, "/documents/catalog"));
             await AuthHelper.WaitForBlazorReady(page);
             await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+
+            // Ожидание рендера Blazor-компонента (SignalR circuit)
+            await page.WaitForSelectorAsync("h3", new() { Timeout = 10_000 });
 
             var content = await page.ContentAsync();
 
@@ -74,22 +69,16 @@ public class US021_DocumentCatalogTests : BrowserFixture
         var page = await CreateBoardPortalPageAsync();
         try
         {
-            // Сидировать ЮЛ 1
-            var adminPage = await CreateAdminConsolePageAsync();
-            try
-            {
-                await CharterTestSeeder.EnsureSeededAsync(adminPage, 1);
-            }
-            finally
-            {
-                await adminPage.CloseAsync();
-            }
+            await SetupParticipantAsync(page, 1);
 
             await AuthHelper.LoginAsBoardUserAsync(page, "zhirov.at1");
 
             await page.GotoAsync(PortalUrls.GetUrl(Portal.BoardPortal, "/documents/catalog"));
             await AuthHelper.WaitForBlazorReady(page);
             await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+
+            // Ожидание рендера Blazor-компонента
+            await page.WaitForSelectorAsync("h3", new() { Timeout = 10_000 });
 
             var content = await page.ContentAsync();
 
@@ -117,22 +106,16 @@ public class US021_DocumentCatalogTests : BrowserFixture
         var page = await CreateBoardPortalPageAsync();
         try
         {
-            // Сидировать ЮЛ 1
-            var adminPage = await CreateAdminConsolePageAsync();
-            try
-            {
-                await CharterTestSeeder.EnsureSeededAsync(adminPage, 1);
-            }
-            finally
-            {
-                await adminPage.CloseAsync();
-            }
+            await SetupParticipantAsync(page, 1);
 
             await AuthHelper.LoginAsBoardUserAsync(page, "zhirov.at1");
 
             await page.GotoAsync(PortalUrls.GetUrl(Portal.BoardPortal, "/documents/catalog"));
             await AuthHelper.WaitForBlazorReady(page);
             await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+
+            // Ожидание рендера Blazor-компонента
+            await page.WaitForSelectorAsync("h3", new() { Timeout = 10_000 });
 
             var content = await page.ContentAsync();
 
@@ -156,16 +139,7 @@ public class US021_DocumentCatalogTests : BrowserFixture
         var page = await CreateBoardPortalPageAsync();
         try
         {
-            // Сидировать ЮЛ 1
-            var adminPage = await CreateAdminConsolePageAsync();
-            try
-            {
-                await CharterTestSeeder.EnsureSeededAsync(adminPage, 1);
-            }
-            finally
-            {
-                await adminPage.CloseAsync();
-            }
+            await SetupParticipantAsync(page, 1);
 
             await AuthHelper.LoginAsBoardUserAsync(page, "zhirov.at1");
 
@@ -201,16 +175,7 @@ public class US021_DocumentCatalogTests : BrowserFixture
         var page = await CreateBoardPortalPageAsync();
         try
         {
-            // Сидировать ЮЛ 1
-            var adminPage = await CreateAdminConsolePageAsync();
-            try
-            {
-                await CharterTestSeeder.EnsureSeededAsync(adminPage, 1);
-            }
-            finally
-            {
-                await adminPage.CloseAsync();
-            }
+            await SetupParticipantAsync(page, 1);
 
             await AuthHelper.LoginAsBoardUserAsync(page, "zhirov.at1");
 
@@ -235,5 +200,95 @@ public class US021_DocumentCatalogTests : BrowserFixture
         {
             await page.CloseAsync();
         }
+    }
+
+    /// <summary>
+    /// Подготовка тестовых данных: сидирование ЮЛ + регистрация участника через Board Portal.
+    /// 1. Admin Console: ЮЛ + LE_ADMIN (CharterTestSeeder)
+    /// 2. Admin Console: User для участника (AddEmployeeAsync) — создаёт запись в `users`
+    /// 3. Board Portal: GD регистрирует участника с ПДн → ЕДИН binding → PARTICIPANT
+    /// </summary>
+    private async Task SetupParticipantAsync(IPage participantPage, int charterNumber)
+    {
+        var entity = CharterTestDataFixed.LegalEntities[charterNumber - 1];
+        var persons = CharterTestDataFixed.PersonsByEntity[charterNumber];
+
+        // 1. Admin Console: создание ЮЛ + LE_ADMIN
+        var adminPage = await CreateAdminConsolePageAsync();
+        try
+        {
+            await CharterTestSeeder.EnsureSeededAsync(adminPage, charterNumber);
+            // Логин SYS_ADMIN нужен для навигации (no-op сидирования не навигирует)
+            if (!adminPage.Url.Contains("/access-management"))
+            {
+                await AuthHelper.LoginAsAdminAsync(adminPage, CharterTestDataFixed.SysAdminLogin);
+            }
+            await AdminConsoleHelper.NavigateToLegalEntityAsync(adminPage, entity.Name);
+
+            // 2. Создание User для участника в Admin Console (нужен для BasicProvider)
+            var p = persons.Participants[0];
+            if (p.Login != entity.AdminUser.Login)
+            {
+                var nameParts = p.FullName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                if (nameParts.Length >= 3)
+                {
+                    await AdminConsoleHelper.AddEmployeeAsync(
+                        adminPage,
+                        nameParts[0], nameParts[1], nameParts[2],
+                        "Участник", p.Login,
+                        CharterTestDataFixed.RoleLeAdmin);
+                }
+            }
+        }
+        finally
+        {
+            await adminPage.CloseAsync();
+        }
+
+        // 3. Board Portal: GD (LE_ADMIN) регистрирует участника с ПДн
+        var gdLogin = persons.Gd?.Login ?? entity.AdminUser.Login;
+        await AuthHelper.LoginAsBoardUserAsync(participantPage, gdLogin);
+        participantPage.Url.Should().Contain("/main");
+
+        // Поиск существующего EcosystemParticipant по ФИО (создан через Admin Console)
+        var participantFullName = persons.Participants[0].FullName;
+        var ecoId = await participantPage.EvaluateAsync<Guid?>(
+            $@"async () => {{
+                const response = await fetch('/api/participants/eco-search?name={Uri.EscapeDataString(participantFullName)}', {{
+                    credentials: 'same-origin'
+                }});
+                if (!response.ok) return null;
+                const data = await response.json();
+                if (data && data.length > 0 && data[0].id) return data[0].id;
+                return null;
+            }}");
+
+        // Уникальные ПДн на основе номера ЮЛ
+        var passportSeries = (1000 + charterNumber).ToString();
+        var passportNumber = (100000 + charterNumber * 111).ToString();
+        var personInn = $"770{charterNumber:D5}000";
+
+        var participantId = await BoardPortalHelper.AddParticipantWithPersonalDataAsync(
+            participantPage,
+            fullName: participantFullName,
+            dulTypeCode: "21",
+            passportSeries: passportSeries,
+            passportNumber: passportNumber,
+            personInn: personInn,
+            participantType: "FL",
+            sharePercent: persons.Participants[0].SharePercent,
+            shareAmount: persons.Participants[0].SharePercent * 100m,
+            ecosystemParticipantId: ecoId);
+
+        participantId.Should().NotBeEmpty("участник должен быть создан");
+
+        // 4. Ожидание ЕДИН binding → роль PARTICIPANT назначается автоматически
+        await EdinTestHelper.WaitForEdinBindingAsync(participantPage, participantId, timeoutSeconds: 15);
+
+        Console.WriteLine($"[US021] Участник {participantFullName} зарегистрирован (PARTICIPANT).");
+
+        // 5. Выход GD — чтобы участник мог залогиниться
+        await participantPage.GotoAsync(PortalUrls.GetUrl(Portal.BoardPortal, "/logout"));
+        await AuthHelper.WaitForBlazorReady(participantPage);
     }
 }

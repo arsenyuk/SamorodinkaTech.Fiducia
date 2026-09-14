@@ -1,0 +1,28 @@
+@using System.Security.Claims
+@inject NavigationManager Nav
+@inject ILogger<NotAuthorizedView> Logger
+
+<p role="alert">У вас нет доступа к этой странице.</p>
+
+@code {
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthenticationState { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationState!;
+        var user = authState.User;
+
+        var login = user.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                    ?? user.Identity?.Name
+                    ?? "anonymous";
+        var roles = string.Join(", ", user.Claims
+            .Where(c => c.Type == ClaimTypes.Role)
+            .Select(c => c.Value));
+        var page = Nav.Uri;
+
+        Logger.LogWarning(
+            "ACCESS_DENIED: пользователь {Login} (роли: {Roles}) попытался перейти на {Page}",
+            login, string.IsNullOrEmpty(roles) ? "нет ролей" : roles, page);
+    }
+}

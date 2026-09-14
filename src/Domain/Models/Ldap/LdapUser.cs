@@ -37,4 +37,7 @@ public class LdapUser
 
     /// <summary>Дата создания учётной записи в LDAP-каталоге (whenCreated AD / createTimestamp OpenLDAP).</summary>
     public DateTime? LdapCreatedAt { get; init; }
+
+    /// <summary>Идентификатор мастер-записи MPI (mpiMasterId). Источник: ЕДИН API через seed-mpi.sh.</summary>
+    public Guid? MpiMasterId { get; init; }
 }

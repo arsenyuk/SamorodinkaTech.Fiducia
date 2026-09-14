@@ -5,9 +5,9 @@ namespace SamorodinkaTech.Fiducia.Tests.Functional.Helpers;
 
 /// <summary>
 /// Сидер базы данных для E2E-тестов уставов.
-/// Создаёт ЮЛ и назначает роли через UI. Пользователи создаются автоматически
-/// при первом входе через LDAP (auto-provisioning в LdapAuthProvider).
-/// Использует per-entity идемпотентность: каждый ЮЛ создаётся один раз.
+/// Создаёт ЮЛ и LE_ADMIN в Admin Console.
+/// Регистрация участников (PARTICIPANT) выполняется тестами через Board Portal —
+/// см. docs/e2e-register-participant.md.
 /// </summary>
 public static class CharterTestSeeder
 {
@@ -60,13 +60,12 @@ public static class CharterTestSeeder
 
         var entity = CharterTestDataFixed.LegalEntities[charterNumber - 1];
 
-        // ── Создание ЮЛ + назначение ролей ───────────────────────────
+        // ── Создание ЮЛ ─────────────────────────────────────────────
         Console.WriteLine($"[Seeder] ЮЛ {charterNumber}: создание ЮЛ...");
         Console.WriteLine($"[Seeder] ЮЛ {charterNumber}: {entity.Name} (ИНН {entity.Inn})...");
         await AdminConsoleHelper.CreateLegalEntityAsync(adminPage, entity.Name, entity.Inn);
 
         // ── Установка ОКОПФ (ООО = 12300) ──────────────────────────
-        // Извлекаем ID ЮЛ из URL (?le={id})
         var selectedLeId = await adminPage.EvaluateAsync<string?>(
             @"() => {
                 const url = new URL(window.location.href);
@@ -78,18 +77,13 @@ public static class CharterTestSeeder
             await AdminConsoleHelper.SetOkopfAsync(adminPage, leGuid, "12300");
         }
 
-        // ── Добавление сотрудников (User + EcosystemParticipant + Employee) ──
-        Console.WriteLine($"[Seeder] ЮЛ {charterNumber}: добавление сотрудников...");
-
-        // Администратор — страница уже на /access-management?le={id}
+        // ── Добавление LE_ADMIN в Admin Console ────────────────────
+        Console.WriteLine($"[Seeder] ЮЛ {charterNumber}: добавление LE_ADMIN...");
         await AdminConsoleHelper.AddEmployeeAsync(
             adminPage,
             entity.AdminUser.LastName, entity.AdminUser.FirstName, entity.AdminUser.MiddleName,
             entity.AdminUser.Position, entity.AdminUser.Login,
             CharterTestDataFixed.RoleLeAdmin);
-
-        // ГД НЕ назначается в Admin Console — роль CEO привязывается
-        // при создании BoardParticipant через Board Portal (флаг is_general_director).
 
         Console.WriteLine($"[Seeder] ЮЛ {charterNumber}: сидирование завершено.");
     }

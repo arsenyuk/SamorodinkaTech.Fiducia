@@ -4,6 +4,7 @@
 @inject HttpClient Http
 @inject ILogger<BoardSetupWizard> Logger
 @inject NavigationManager Navigation
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "LE_ADMIN")]
 
 <h3>Совет директоров — настройка состава</h3>
 

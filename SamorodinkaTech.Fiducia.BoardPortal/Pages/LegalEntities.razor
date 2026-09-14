@@ -12,6 +12,7 @@
 @inject IHttpContextAccessor HttpContextAccessor
 @inject HttpClient Http
 @inject IJSRuntime JS
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "LE_ADMIN")]
 
 <h3>Юридическое лицо</h3>
 

@@ -3,6 +3,7 @@
 @inject IDbContextFactory<SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext> DbFactory
 @inject ILogger<ElectionChair> Logger
 @inject IJSRuntime JS
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "PARTICIPANT")]
 
 <PageTitle>Fiducia — Предложения на должность Председателя СД</PageTitle>
 

@@ -4,6 +4,7 @@
 @using SamorodinkaTech.Fiducia.Domain.Interfaces
 @inject IApplicationDbContext DbContext
 @inject NavigationManager Navigation
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "SYS_ADMIN,LE_ADMIN")]
 
 <PageTitle>Fiducia — Пользователь</PageTitle>
 

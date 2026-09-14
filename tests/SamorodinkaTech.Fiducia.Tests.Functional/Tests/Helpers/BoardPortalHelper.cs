@@ -574,6 +574,7 @@ public static class BoardPortalHelper
     public static async Task<Guid> AddParticipantWithPersonalDataAsync(
         IPage page,
         string fullName,
+        string? dulTypeCode = null,
         string? passportSeries = null,
         string? passportNumber = null,
         string? personInn = null,
@@ -589,6 +590,7 @@ public static class BoardPortalHelper
 
         var sharePercentJson = sharePercent?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "null";
         var shareAmountJson = shareAmount?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "null";
+        var dulTypeCodeJson = dulTypeCode != null ? $"'{EscapeJs(dulTypeCode)}'" : "null";
         var passportSeriesJson = passportSeries != null ? $"'{EscapeJs(passportSeries)}'" : "null";
         var passportNumberJson = passportNumber != null ? $"'{EscapeJs(passportNumber)}'" : "null";
         var personInnJson = personInn != null ? $"'{EscapeJs(personInn)}'" : "null";
@@ -606,8 +608,9 @@ public static class BoardPortalHelper
                         lastName: '{EscapeJs(lastName)}',
                         firstName: '{EscapeJs(firstName)}',
                         middleName: {middleNameJson},
-                        passportSeries: {passportSeriesJson},
-                        passportNumber: {passportNumberJson},
+                        dulTypeCode: {dulTypeCodeJson},
+                        dulSeries: {passportSeriesJson},
+                        dulNumber: {passportNumberJson},
                         personInn: {personInnJson},
                         sharePercent: {sharePercentJson},
                         shareAmount: {shareAmountJson},

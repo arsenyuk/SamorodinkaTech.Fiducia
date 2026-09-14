@@ -351,7 +351,8 @@ public class LdapService : ILdapService
             MemberOf = GetMultiStringAttr(entry, "memberOf"),
             IsActive = ParseUserAccountControl(entry),
             AccountExpiresAt = ParseAccountExpires(entry),
-            LdapCreatedAt = ParseCreatedAt(entry)
+            LdapCreatedAt = ParseCreatedAt(entry),
+            MpiMasterId = ParseGuidAttr(entry, "mpiMasterId")
         };
     }
 
@@ -391,6 +392,13 @@ public class LdapService : ILdapService
         return entry.Attributes.Contains(name)
             ? entry.Attributes[name][0] as string
             : null;
+    }
+
+    private static Guid? ParseGuidAttr(SearchResultEntry entry, string name)
+    {
+        if (!entry.Attributes.Contains(name)) return null;
+        var raw = entry.Attributes[name][0] as string;
+        return Guid.TryParse(raw, out var result) ? result : null;
     }
 
     private static IReadOnlyList<string> GetMultiStringAttr(

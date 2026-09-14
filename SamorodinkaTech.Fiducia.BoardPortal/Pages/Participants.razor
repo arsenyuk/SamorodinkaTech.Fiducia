@@ -8,7 +8,7 @@
 @inject ILogger<Participants> Logger
 @inject NavigationManager Nav
 @inject IJSRuntime JS
-@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "LE_ADMIN")]
 
 <PageTitle>Fiducia — Участники</PageTitle>
 

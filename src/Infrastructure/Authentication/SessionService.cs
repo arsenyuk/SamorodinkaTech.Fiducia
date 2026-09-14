@@ -30,12 +30,17 @@ public class SessionService : ISessionService
     /// <inheritdoc />
     public string GenerateToken(Guid userId, string role)
     {
-        var claims = new[]
+        // Разбиваем roles на отдельные claims (для IsInRole)
+        var roles = role.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        var claims = new List<Claim>
         {
             new Claim(ClaimTypes.NameIdentifier, userId.ToString()),
-            new Claim(ClaimTypes.Role, role),
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
         };
+        foreach (var r in roles)
+        {
+            claims.Add(new Claim(ClaimTypes.Role, r));
+        }
 
         var token = new JwtSecurityToken(
             issuer: "Fiducia",

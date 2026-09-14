@@ -2,6 +2,7 @@
 @using SamorodinkaTech.Fiducia.Domain.Entities
 @using SamorodinkaTech.Fiducia.Domain.Interfaces
 @inject IApplicationDbContext DbContext
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "SYS_ADMIN,LE_ADMIN")]
 
 <PageTitle>Fiducia — Отправленные уведомления</PageTitle>
 

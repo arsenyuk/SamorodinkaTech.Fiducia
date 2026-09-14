@@ -1,4 +1,5 @@
 @page "/print/{MeetingId:int}"
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "PARTICIPANT")]
 
 <PageTitle>Fiducia — Печатные формы</PageTitle>
 

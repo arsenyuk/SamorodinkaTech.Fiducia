@@ -688,6 +688,17 @@ Api → Application → Domain ← Infrastructure
   `SecretKey`, `ConnectionString` (с паролем) и любых других полей,
   компрометация которых создаёт риск для безопасности.
 
+### Правило: логирование отказов в доступе (КРИТИЧНО)
+
+Каждый отказ в доступе (403, `[Authorize]` на странице) **обязан** записываться в лог
+с указанием: логин пользователя, роли, страница. Использовать компонент `NotAuthorizedView`
+(не `<p>У вас нет доступа</p>` напрямую).
+
+Формат лога: `ACCESS_DENIED: пользователь {Login} (роли: {Roles}) попытался перейти на {Page}`
+
+Без логирования отказы в доступе недоступны для диагностики — страница просто не рендерится
+без видимых ошибок в логах приложения.
+
 ### Правило: проверять реальную структуру API перед моделированием (КРИТИЧНО)
 
 Зафиксирован инцидент: при расширении модели `SparkFounder` ассистент изобрёл
@@ -1842,6 +1853,26 @@ hot-reload **не работает** в Blazor Server. Нужен kill + пер�
 
 - Каждая страница справочника (`ref_*`) в Admin Console **обязана** иметь проверку загрузки в `PageVerificationHelper.VerifyAdminConsolePagesAsync`.
 - Проверка выполняется **строго один раз** за прогон E2E-тестов.
+
+#### Регистрация участника для E2E-тестов (КРИТИЧНО)
+
+Полная инструкция: [docs/e2e-register-participant.md](docs/e2e-register-participant.md)
+
+**Правило:** Для доступа к страницам Board Portal с ролью `PARTICIPANT` участник **обязан**
+быть зарегистрирован через Board Portal с ПДн (паспорт + ИНН). Три шага обязательны:
+
+1. **Admin Console:** `AddEmployeeAsync` → создаёт **User** в `users` таблице (LE_ADMIN)
+2. **LDAP/SQL:** заполнить `mpi_master_id` в User (из `seed-mpi.sh` или напрямую)
+3. **Board Portal:** `AddParticipantWithPersonalDataAsync` + ЕДИН-привязка → создаёт **BoardParticipant** + роль PARTICIPANT
+
+Роль PARTICIPANT **не назначается** через Admin Console (`is_assignable = FALSE`).
+Назначение происходит автоматически при ЕДИН-привязке (требует `mpi_master_id` в User).
+
+**Запрещено:**
+- Пытаться назначить PARTICIPANT через dropdown в Admin Console
+- Создавать User без `mpi_master_id` — ЕДИН binding не сможет связать User с EcosystemParticipant
+- Рассчитывать на auto-provisioning при первом входе — `BasicProvider` требует User в `users` таблице
+- Создавать участников в Admin Console с ролью CEO — ГД назначается через Board Portal
 
 #### Создание новых тестов — пошаговый алгоритм
 

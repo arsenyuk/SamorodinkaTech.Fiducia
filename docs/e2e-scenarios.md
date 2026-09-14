@@ -12,46 +12,46 @@
 
 ## Статус E2E-тестов
 
-> **Дата проверки:** 07.09.2026
-> **Среда:** Требуется запущенное приложение (Admin Console + Board Portal) + PostgreSQL + Redis + LDAP + браузер (Playwright + Chromium)
+> **Дата проверки:** 13.09.2026 (третий прогон)
+> **Среда:** .NET 10 SDK + Playwright Chromium (headless=false) + PostgreSQL + LDAP
 
 | # | Сценарий / Класс | E2E-класс | Статус | Причина (если не пройден) |
 |---|------------------|-----------|--------|---------------------------|
-| 1 | Типовой устав (01) | `E2E_StandardCharterTests::StandardCharter01_CompleteFlow` | ✅ Пройден 07.09 | Исправлены: `AddEmployeeAsync` + текст "Подтверждение решений" |
-| 2 | Типовой устав (02) | `E2E_StandardCharterTests::StandardCharter02_CompleteFlow` | ✅ Пройден 07.09 | — |
-| 3 | Типовой устав (03) | `E2E_StandardCharterTests::StandardCharter03_CompleteFlow` | ✅ Пройден 07.09 | — |
-| 4 | Типовой устав (04) | `E2E_StandardCharterTests::StandardCharter04_CompleteFlow` | ✅ Пройден 07.09 | — |
-| 5 | Типовой устав (05) | `E2E_StandardCharterTests::StandardCharter05_CompleteFlow` | ✅ Пройден 07.09 | — |
-| 6 | Типовой устав (06) | `E2E_StandardCharterTests::StandardCharter06_CompleteFlow` | ✅ Пройден 07.09 | — |
-| 7 | Типовой устав (07–36) | `E2E_StandardCharterTests` | ✅ Пройден 07.09 | Исправлено: `EnsureEntitySelectedAsync` выбор нужного ЮЛ |
-| 5 | Нетиповой устав: ExitAllowed | `E2E_NonStandardCharterTests::NonStandardCharter_ExitAllowed` | ✅ Пройден 07.09 | Исправлены: `AddEmployeeAsync` + текст "Переход доли наследникам" |
-| 6 | Нетиповой устав: ExitMinSharePercent | `E2E_NonStandardCharterTests::NonStandardCharter_ExitMinSharePercent` | ✅ Пройден 07.09 | — |
-| 7 | Нетиповой устав: ExitMaxSharePercent | `E2E_NonStandardCharterTests::NonStandardCharter_ExitMaxSharePercent` | ✅ Пройден 07.09 | — |
-| 8 | Нетиповой устав: ExitConditionDescription | `E2E_NonStandardCharterTests::NonStandardCharter_ExitConditionDescription` | ✅ Пройден 07.09 | — |
-| 9 | Нетиповой устав: TransferToParticipants | `E2E_NonStandardCharterTests::NonStandardCharter_TransferToParticipants` | ✅ Пройден 07.09 | — |
-| 10 | Нетиповой устав: ExitRequiresUnanimousOsu | `E2E_NonStandardCharterTests::NonStandardCharter_ExitRequiresUnanimousOsu` | ✅ Пройден 07.09 | — |
-| 11 | Нетиповой устав: прочие (8 тестов) | `E2E_NonStandardCharterTests` | ✅ Пройден 8 из 8 (07.09) | ExecutiveBody, HasBoardOfDirectors, BoardDecidesConveningOsu, VosuThresholdPercent, AllParameters, TransferToThirdParties, PreemptiveRight, InheritanceWithoutConsent |
-| 11 | ЕИО: ГД — наёмный | `E2E_NonStandardCharterTests::Model1_HiredCeo` | ✅ Пройден 07.09 | — |
-| 12 | ЕИО: ГД — участник | `E2E_NonStandardCharterTests::Model2_CeoParticipant` | ✅ Пройден 07.09 | — |
-| 13 | ЕИО: Управляющий ИП | `E2E_NonStandardCharterTests::Model3_ManagerIp` | ✅ Пройден 07.09 | — |
-| 14 | ЕИО: Упр. организация | `E2E_NonStandardCharterTests::Model4_ManagingOrg` | ✅ Пройден 07.09 | — |
-| 15 | ЕИО: Все — директора | `E2E_NonStandardCharterTests::Model5_AllParticipantsDirectors` | ✅ Пройден 07.09 | — |
-| 16 | ЕИО: Все совместно | `E2E_NonStandardCharterTests::Model6_AllParticipantsJoint` | ✅ Пройден 07.09 | — |
-| 17 | ЕИО: Несколько ЕИО | `E2E_NonStandardCharterTests::Model7_MultipleEio` | ✅ Пройден 07.09 | — |
-| 18 | Авторизация | `US001_AuthorizationTests` | ✅ Пройден 6 из 6 (07.09) | LoginPage_ShowsSelectDropdown, AdminConsoleLoginPage_LoadsBlazorShell, LoginPage_ShowsNoSidebar, PublicLanding_Present, OnboardingPage_Rendered, ProposalPage_RenderedForAnonymousUsers |
+| 1 | Типовой устав (01) | `E2E_StandardCharterTests::StandardCharter01_CompleteFlow` | ❌ Каскадный 13.09 | `GlobalFixture.HasFailed` |
+| 2 | Типовой устав (02) | `E2E_StandardCharterTests::StandardCharter02_CompleteFlow` | ❌ Каскадный 13.09 | `GlobalFixture.HasFailed` |
+| 3 | Типовой устав (03) | `E2E_StandardCharterTests::StandardCharter03_CompleteFlow` | ❌ Каскадный 13.09 | `GlobalFixture.HasFailed` |
+| 4 | Типовой устав (04) | `E2E_StandardCharterTests::StandardCharter04_CompleteFlow` | ❌ Каскадный 13.09 | `GlobalFixture.HasFailed` |
+| 5 | Типовой устав (05) | `E2E_StandardCharterTests::StandardCharter05_CompleteFlow` | ❌ Каскадный 13.09 | `GlobalFixture.HasFailed` |
+| 6 | Типовой устав (06) | `E2E_StandardCharterTests::StandardCharter06_CompleteFlow` | ❌ Каскадный 13.09 | `GlobalFixture.HasFailed` |
+| 7 | Типовой устав (07–36) | `E2E_StandardCharterTests` | ❌ Каскадный 13.09 | `GlobalFixture.HasFailed` (36 тестов) |
+| 5 | Нетиповой устав: ExitAllowed | `E2E_NonStandardCharterTests::NonStandardCharter_ExitAllowed` | ❌ Каскадный 13.09 | `GlobalFixture.HasFailed` |
+| 6 | Нетиповой устав: ExitMinSharePercent | `E2E_NonStandardCharterTests::NonStandardCharter_ExitMinSharePercent` | ❌ Каскадный 13.09 | `GlobalFixture.HasFailed` |
+| 7 | Нетиповой устав: ExitMaxSharePercent | `E2E_NonStandardCharterTests::NonStandardCharter_ExitMaxSharePercent` | ❌ Каскадный 13.09 | `GlobalFixture.HasFailed` |
+| 8 | Нетиповой устав: ExitConditionDescription | `E2E_NonStandardCharterTests::NonStandardCharter_ExitConditionDescription` | ❌ Каскадный 13.09 | `GlobalFixture.HasFailed` |
+| 9 | Нетиповой устав: TransferToParticipants | `E2E_NonStandardCharterTests::NonStandardCharter_TransferToParticipants` | ❌ Каскадный 13.09 | `GlobalFixture.HasFailed` |
+| 10 | Нетиповой устав: ExitRequiresUnanimousOsu | `E2E_NonStandardCharterTests::NonStandardCharter_ExitRequiresUnanimousOsu` | ❌ Каскадный 13.09 | `GlobalFixture.HasFailed` |
+| 11 | Нетиповой устав: прочие (8 тестов) | `E2E_NonStandardCharterTests` | ❌ Каскадный 13.09 | `GlobalFixture.HasFailed` (20 тестов) |
+| 11 | ЕИО: ГД — наёмный | `E2E_NonStandardCharterTests::Model1_HiredCeo` | ❌ Каскадный 13.09 | `GlobalFixture.HasFailed` |
+| 12 | ЕИО: ГД — участник | `E2E_NonStandardCharterTests::Model2_CeoParticipant` | ❌ Каскадный 13.09 | `GlobalFixture.HasFailed` |
+| 13 | ЕИО: Управляющий ИП | `E2E_NonStandardCharterTests::Model3_ManagerIp` | ❌ Каскадный 13.09 | `GlobalFixture.HasFailed` |
+| 14 | ЕИО: Упр. организация | `E2E_NonStandardCharterTests::Model4_ManagingOrg` | ❌ Каскадный 13.09 | `GlobalFixture.HasFailed` |
+| 15 | ЕИО: Все — директора | `E2E_NonStandardCharterTests::Model5_AllParticipantsDirectors` | ❌ Каскадный 13.09 | `GlobalFixture.HasFailed` |
+| 16 | ЕИО: Все совместно | `E2E_NonStandardCharterTests::Model6_AllParticipantsJoint` | ❌ Каскадный 13.09 | `GlobalFixture.HasFailed` |
+| 17 | ЕИО: Несколько ЕИО | `E2E_NonStandardCharterTests::Model7_MultipleEio` | ❌ Каскадный 13.09 | `GlobalFixture.HasFailed` |
+| 18 | Авторизация | `US001_AuthorizationTests` | ✅ Пройден 6 из 6 (13.09) | LoginPage_ShowsSelectDropdown, AdminConsoleLoginPage_LoadsBlazorShell, LoginPage_ShowsNoSidebar, PublicLanding_Present, OnboardingPage_Rendered, ProposalPage_RenderedForAnonymousUsers |
 | 19 | Заседания СД | `US002_MeetingTests` | ⏳ Не запущен | — |
 | 20 | Комитеты | `US004_CommitteeTests` | ⏳ Не запущен | — |
 | 21 | Голосование | `US005_VotingTests` | ⏳ Не запущен | — |
 | 22 | Оповещения | `US010_NotificationTests` | ⏳ Не запущен | — |
-| 23 | Требования участника | `US020_ShareRequestTests` | ✅ Пройден 5 из 5 (08.09) | ShouldLoadWithExpectedContent, ShouldHaveCreateButton, ShouldNotShowNotFound, ApiShouldReturn200, ShareRequestTypes_ApiShouldReturn200 |
-| 24 | Каталог документов | `US021_DocumentCatalogTests` | ✅ Пройден 5 из 5 (08.09) | ShouldLoadWithExpectedContent, ShouldHaveAccordionOrEmptyState, ShouldNotShowNotFound, ApiShouldReturn200, ApiShouldReturnGroups |
+| 23 | Требования участника | `US020_ShareRequestTests` | ✅ Пройден 5 из 5 (13.09) | ShouldLoadWithExpectedContent, ShouldHaveCreateButton, ShouldNotShowNotFound, ApiShouldReturn200, ShareRequestTypes_ApiShouldReturn200 |
+| 24 | Каталог документов | `US021_DocumentCatalogTests` | ✅ Пройден 5 из 5 (13.09) | ShouldLoadWithExpectedContent, ShouldHaveAccordionOrEmptyState, ShouldNotShowNotFound, ApiShouldReturn200, ApiShouldReturnGroups |
 | 25 | ОСУ | `US022_OsuMeetingTests` | ⏳ Не запущен | — |
-| 26 | Участники ООО | `US023_ParticipantTests` | ✅ Пройден 5 из 5 (08.09) | ShouldLoadWithExpectedContent, ShouldHaveTabsForLLC, ShouldNotShowNotFound, ApiShouldReturn200, ApiShouldReturnArray |
+| 26 | Участники ООО | `US023_ParticipantTests` | ✅ Пройден 5 из 5 (13.09) | ShouldLoadWithExpectedContent, ShouldHaveTabsForLLC, ShouldNotShowNotFound, ApiShouldReturn200, ApiShouldReturnArray |
 | 27 | Договоры | `US024_ContractTests` | ⏳ Не запущен | — |
-| 28 | Ген. директор (таб) | `E2E_GeneralDirectorTests` | ✅ Пройден 6 из 6 (07.09) | TabVisible, TwoParticipants, SaveWithSnils, ExecBodyB_TabNotVisible, ExecBodyC_TabNotVisible, StandardCharter_ExecBodyA_TabVisible |
-| 29 | Управление пользователями | `E2E_UserManagementTests` | ✅ Пройден 3 из 3 (07.09) | AddEmployee_LdapNotFound, AddEmployee_LdapFoundButNoRole, AddEmployee_LdapFoundAndRoleSelected |
-| 30 | ЕДИН-интеграция | `E2E_EdinIntegrationTests` | ✅ Пройден 3 из 3 (07.09) | UsersList_ShouldHaveEdinColumn, UserDetail_ShouldHaveEdinTab, EdinTab_ShouldShowMpiMasterIdOrNotLinked |
-| 31 | ЕДИН-сценарии | `E2E_EdinScenarioTests` | ✅ Пройден 2 из 2 (07.09) | Scenario1_AdminCreatesLeAndBindsEdin, Scenario2_DeduplicationViaEdin |
+| 28 | Ген. директор (таб) | `E2E_GeneralDirectorTests` | ❌ Каскадный 13.09 | `GlobalFixture.HasFailed` (6 тестов) |
+| 29 | Управление пользователями | `E2E_UserManagementTests` | ✅ Пройден 4 из 4 (13.09) | AddEmployee_LdapNotFound, AddEmployee_LdapFoundButNoRole, AddEmployee_LdapFoundAndRoleSelected, EmployeeList_ShouldShowFullNameAndLogin |
+| 30 | ЕДИН-интеграция | `E2E_EdinIntegrationTests` | ✅ Пройден 3 из 3 (13.09) | UsersList_ShouldHaveEdinColumn, UserDetail_ShouldHaveEdinTab, EdinTab_ShouldShowMpiMasterIdOrNotLinked |
+| 31 | ЕДИН-сценарии | `E2E_EdinScenarioTests` | ✅ Пройден 2 из 2 (13.09) | Scenario1_AdminCreatesLeAndBindsEdin, Scenario2_DeduplicationViaEdin |
 
 ### Легенда статусов
 
@@ -66,17 +66,17 @@
 ### Запуск тестов
 
 ```bash
-# Все E2E-тесты
-dotnet test tests/SamorodinkaTech.Fiducia.Tests.Functional --filter "E2E"
+# Все E2E-тесты (MTP runner — .NET 10 SDK)
+dotnet run --project tests/SamorodinkaTech.Fiducia.Tests.Functional
 
-# Все US-тесты
-dotnet test tests/SamorodinkaTech.Fiducia.Tests.Functional --filter "US"
+# Список всех тестов
+dotnet run --project tests/SamorodinkaTech.Fiducia.Tests.Functional -- --list-tests
 
-# Конкретный тест
-dotnet test --filter "FullyQualifiedName~E2E_StandardCharterTests"
+# Конкретный тест (через фильтр MTP)
+dotnet run --project tests/SamorodinkaTech.Fiducia.Tests.Functional -- --filter "US001_AuthorizationTests"
 
-# С логированием в файл
-dotnet test tests/SamorodinkaTech.Fiducia.Tests.Functional > /tmp/e2e-results.log 2>&1
+# С видео-записью (для отладки)
+# Добавить в BrowserFixture: Headless = false, RecordVideoDir = "videos/"
 ```
 
 ---

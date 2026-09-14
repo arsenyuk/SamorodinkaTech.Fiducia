@@ -6,6 +6,7 @@
 @using SamorodinkaTech.Fiducia.Timeline.Models
 @inject IDbContextFactory<SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext> DbFactory
 @inject ILogger<OrgPlan> Logger
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "PARTICIPANT")]
 
 <div style="display:flex; flex-direction:column; height:calc(100vh - 80px)">
 <h3>План организационных мероприятий</h3>

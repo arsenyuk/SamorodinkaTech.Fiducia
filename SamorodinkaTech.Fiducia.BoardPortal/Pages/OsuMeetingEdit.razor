@@ -14,7 +14,7 @@
 @inject SamorodinkaTech.Fiducia.Domain.Interfaces.ITemplateInstantiationService TemplateInstSvc
 @inject SamorodinkaTech.Fiducia.Domain.Interfaces.IMeetingSaveService MeetingSaveSvc
 @inject SamorodinkaTech.Fiducia.Domain.Interfaces.IMeetingLoadService MeetingLoadSvc
-@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "LE_ADMIN")]
 
 <h3>
     @{

@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using SamorodinkaTech.Fiducia.Domain.Entities;
 using SamorodinkaTech.Fiducia.Domain.Interfaces;
 
 namespace SamorodinkaTech.Fiducia.Infrastructure.Services;
@@ -135,24 +136,54 @@ public class EdinBindingService : IEdinBindingService
             participant.User.MpiMasterId = masterId;
         }
 
-        // Поиск УЗ: в БД по mpi_master_id (источник: LDAP/AD синхронизация)
+        // Привязка: если participant уже связан с User — используем его
         Guid? linkedUserId = null;
         string? userSource = null;
 
-        var existingUserByMpi = await _dbContext.Users
-            .FirstOrDefaultAsync(u => u.MpiMasterId == masterId, ct);
-
-        if (existingUserByMpi is not null)
+        if (participant.UserId.HasValue)
         {
-            linkedUserId = existingUserByMpi.Id;
-            userSource = "db";
-            _logger.LogInformation("ЕДИН: УЗ найдена в БД по MPI MasterId={MasterId}: User={UserId}",
-                masterId, existingUserByMpi.Id);
+            linkedUserId = participant.UserId.Value;
+            userSource = "direct_link";
+        }
+        else
+        {
+            // Поиск УЗ: в БД по mpi_master_id (источник: LDAP/AD синхронизация)
+            var existingUserByMpi = await _dbContext.Users
+                .FirstOrDefaultAsync(u => u.MpiMasterId == masterId, ct);
+
+            if (existingUserByMpi is not null)
+            {
+                linkedUserId = existingUserByMpi.Id;
+                userSource = "db";
+                _logger.LogInformation("ЕДИН: УЗ найдена в БД по MPI MasterId={MasterId}: User={UserId}",
+                    masterId, existingUserByMpi.Id);
+            }
         }
 
         if (linkedUserId.HasValue)
         {
             participant.UserId = linkedUserId.Value;
+        }
+
+        // Назначение роли PARTICIPANT при успешной ЕДИН-привязке
+        if (linkedUserId.HasValue)
+        {
+            var participantRole = await _dbContext.Roles
+                .FirstOrDefaultAsync(r => r.Code == "PARTICIPANT", ct);
+            if (participantRole is not null)
+            {
+                var hasRole = await _dbContext.UserRoles
+                    .AnyAsync(ur => ur.UserId == linkedUserId.Value && ur.RoleId == participantRole.Id, ct);
+                if (!hasRole)
+                {
+                    _dbContext.UserRoles.Add(new UserRole
+                    {
+                        UserId = linkedUserId.Value,
+                        RoleId = participantRole.Id
+                    });
+                    _logger.LogInformation("ЕДИН: роль PARTICIPANT назначена для User={UserId}", linkedUserId.Value);
+                }
+            }
         }
 
         await _dbContext.SaveChangesAsync(ct);

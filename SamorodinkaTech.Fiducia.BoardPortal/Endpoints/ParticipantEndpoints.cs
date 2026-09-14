@@ -275,13 +275,24 @@ public static class ParticipantEndpoints
                             };
                             ctx.EcosystemPersons.Add(ecoPerson);
 
-                            // Ищем существующий User для привязки к EcosystemParticipant
+                            // Ищем существующий User участника (по ФИО), а НЕ вызывающего (GD/LE_ADMIN)
                             Guid? existingUserId = null;
                             if (userId.HasValue)
                             {
-                                var existingUser = await ctx.Users.FindAsync(userId.Value);
-                                if (existingUser is not null)
-                                    existingUserId = existingUser.Id;
+                                var participantUser = await ctx.Users
+                                    .FirstOrDefaultAsync(u => u.LastName == dto.LastName
+                                                           && u.FirstName == dto.FirstName
+                                                           && !u.IsSystem);
+                                if (participantUser is not null)
+                                {
+                                    existingUserId = participantUser.Id;
+                                }
+                                else
+                                {
+                                    var callerUser = await ctx.Users.FindAsync(userId.Value);
+                                    if (callerUser is not null)
+                                        existingUserId = callerUser.Id;
+                                }
                             }
 
                             var ecoParticipant = new EcosystemParticipant

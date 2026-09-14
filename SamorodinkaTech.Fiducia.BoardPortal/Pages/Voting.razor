@@ -3,6 +3,7 @@
 @using SamorodinkaTech.Fiducia.Domain.Interfaces
 @using SamorodinkaTech.Fiducia.Domain.Enums
 @inject IApplicationDbContext DbContext
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "PARTICIPANT")]
 
 <PageTitle>Fiducia — Голосование</PageTitle>
 

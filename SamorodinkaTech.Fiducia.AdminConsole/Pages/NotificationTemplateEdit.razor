@@ -6,6 +6,7 @@
 @inject IApplicationDbContext DbContext
 @inject NavigationManager Nav
 @inject IJSRuntime JS
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "SYS_ADMIN,LE_ADMIN")]
 
 <PageTitle>Fiducia — Редактирование шаблона</PageTitle>
 

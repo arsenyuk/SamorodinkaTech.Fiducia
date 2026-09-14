@@ -4,6 +4,7 @@
 @using SamorodinkaTech.Fiducia.Domain.Enums
 @inject SamorodinkaTech.Fiducia.Domain.Interfaces.IApplicationDbContext DbContext
 @inject ILogger<Committees> Logger
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "MEMBER_BOARD,CHAIR_BOARD,COMMITTEE_CHAIR,COMMITTEE_MEMBER,SYS_ADMIN")]
 
 <PageTitle>Fiducia — Комитеты</PageTitle>
 
