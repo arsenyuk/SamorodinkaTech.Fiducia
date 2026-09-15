@@ -104,6 +104,14 @@ else
     echo "  ЕДИН (mnemonios) уже запущен."
 fi
 
+# Mailpit (SMTP)
+if ! docker ps --filter "name=fiducia-mailpit" --format "{{.Names}}" | grep -q fiducia-mailpit; then
+    echo "  Запуск Mailpit (SMTP)..."
+    docker compose up -d mailpit
+else
+    echo "  Mailpit уже запущен."
+fi
+
 # ── Шаг 5: Ожидание готовности ──────────────────────────────────────────────
 echo "=== [5/8] Ожидание готовности сервисов ==="
 
@@ -144,6 +152,20 @@ for i in $(seq 1 30); do
     fi
     if [ "$i" -eq 30 ]; then
         echo "❌ не готов после 30 попыток"
+        exit 1
+    fi
+    sleep 2
+done
+
+# Mailpit (SMTP)
+echo -n "  Mailpit (SMTP): "
+for i in $(seq 1 15); do
+    if curl -s -o /dev/null -w "%{http_code}" http://localhost:8025/ 2>/dev/null | grep -qE "^[234]"; then
+        echo "✅ готов"
+        break
+    fi
+    if [ "$i" -eq 15 ]; then
+        echo "❌ не готов после 15 попыток"
         exit 1
     fi
     sleep 2

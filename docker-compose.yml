@@ -86,6 +86,17 @@ services:
       mnemonios-postgres:
         condition: service_healthy
 
+  # Mailpit — локальный SMTP-сервер для разработки
+  # Web UI: http://localhost:8025
+  # SMTP: localhost:1025
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: fiducia-mailpit
+    restart: unless-stopped
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+
 volumes:
   postgres_data:
   minio_data:
