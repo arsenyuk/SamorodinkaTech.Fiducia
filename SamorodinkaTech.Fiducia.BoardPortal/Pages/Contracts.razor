@@ -295,6 +295,11 @@
                     .Select(x => new { x.RefOkopf!.Code, x.ShortName })
                     .FirstOrDefaultAsync();
                 _isLlc = OkopfTypeMapper.IsLlc(le?.Code);
+                if (_isLlc)
+                {
+                    Navigation.NavigateTo("/main");
+                    return;
+                }
                 _isPjsc = OkopfTypeMapper.IsPjsc(le?.Code);
                 _isNjsc = OkopfTypeMapper.IsNjsc(le?.Code);
                 _legalEntityName = le?.ShortName;

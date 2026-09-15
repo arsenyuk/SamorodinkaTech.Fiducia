@@ -311,6 +311,21 @@
         {
             await using var ctx = await DbFactory.CreateDbContextAsync();
             _measurementUnits = await ctx.RefMeasurementUnits.OrderBy(x => x.SortOrder).ToListAsync();
+
+            var leId = await LegalEntityHelper.GetLegalEntityIdAsync(ctx, JS);
+            if (leId is not null && leId != Guid.Empty)
+            {
+                var le = await ctx.LegalEntities
+                    .Where(x => x.Id == leId.Value)
+                    .Select(x => new { x.RefOkopf!.Code })
+                    .FirstOrDefaultAsync();
+                var okopfCode = le?.Code;
+                if (OkopfTypeMapper.IsLlc(okopfCode))
+                {
+                    Navigation.NavigateTo("/main");
+                    return;
+                }
+            }
         }
         catch { }
 

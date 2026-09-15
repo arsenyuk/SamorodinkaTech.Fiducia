@@ -2,6 +2,7 @@
 @using Microsoft.EntityFrameworkCore
 @using SamorodinkaTech.Fiducia.Domain.Entities
 @using SamorodinkaTech.Fiducia.Domain.Enums
+@using SamorodinkaTech.Fiducia.Domain.Validation
 @inject IDbContextFactory<SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext> DbFactory
 @inject HttpClient Http
 @inject ILogger<ContractEdit> Logger
@@ -217,9 +218,16 @@
             {
                 var le = await ctx.LegalEntities
                     .Where(x => x.Id == leId.Value)
-                    .Select(x => new { x.ShortName })
+                    .Select(x => new { x.ShortName, x.RefOkopf!.Code })
                     .FirstOrDefaultAsync();
                 _legalEntityName = le?.ShortName;
+
+                var okopfCode = le?.Code;
+                if (OkopfTypeMapper.IsLlc(okopfCode))
+                {
+                    Navigation.NavigateTo("/main");
+                    return;
+                }
             }
             _measurementUnits = await ctx.RefMeasurementUnits.OrderBy(x => x.SortOrder).ToListAsync();
         }
