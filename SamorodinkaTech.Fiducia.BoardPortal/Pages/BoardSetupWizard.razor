@@ -4,8 +4,8 @@
 @inject HttpClient Http
 @inject ILogger<BoardSetupWizard> Logger
 @inject NavigationManager Navigation
-@inject IJSRuntime JS
-@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "LE_ADMIN")]
+@inject IHttpContextAccessor HttpContextAccessor
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "CEO,LAWYER,LE_ADMIN")]
 
 <h3>Совет директоров — настройка состава</h3>
 
@@ -187,7 +187,16 @@ else
     protected override async Task OnInitializedAsync()
     {
         await using var ctx = await DbFactory.CreateDbContextAsync();
-        var leId = await LegalEntityHelper.GetLegalEntityIdAsync(ctx, JS);
+
+        var http = HttpContextAccessor.HttpContext;
+        if (http is null)
+        {
+            _loadError = "Не удалось определить HTTP-контекст.";
+            _loading = false;
+            return;
+        }
+
+        var leId = await LegalEntityHelper.GetLegalEntityIdAsync(ctx, http);
         if (leId is null)
         {
             _loadError = "Пользователь не привязан к юридическому лицу. Обратитесь к администратору.";
@@ -207,7 +216,7 @@ else
         try
         {
             var response = await Http.GetFromJsonAsync<BoardSetupLoadResult>(
-                $"/api/v1/board-setup?legalEntityId={_legalEntityId}");
+                "/api/v1/board-setup");
 
             if (response is null)
             {

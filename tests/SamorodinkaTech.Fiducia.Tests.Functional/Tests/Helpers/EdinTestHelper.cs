@@ -78,8 +78,10 @@ public static class EdinTestHelper
 
         // Находим select для ролей и выбираем роль по коду
         // Select содержит option вида "Роль (CODE)" — ищем по тексту
-        await adminPage.SelectOptionAsync(
-            "select.form-select",
+        var roleSelect = adminPage.Locator("select.form-select");
+        if (await roleSelect.CountAsync() == 0)
+            throw new InvalidOperationException($"Не найден select ролей (select.form-select) на странице назначения роли {roleCode}");
+        await roleSelect.SelectOptionAsync(
             new SelectOptionValue { Label = roleCode });
 
         await adminPage.WaitForTimeoutAsync(500);

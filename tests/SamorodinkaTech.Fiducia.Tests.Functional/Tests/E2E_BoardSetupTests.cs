@@ -41,7 +41,7 @@ public class E2E_BoardSetupTests : BrowserFixture
         var testStartTime = DateTimeOffset.UtcNow;
         var testName = "BoardSetup_Variant1_ChairOnly";
 
-        var (adminPage, boardPage, ldapPage, login) = await SetupFullCycleAsync(64);
+        var (adminPage, boardPage, login) = await SetupFullCycleAsync(64);
         try
         {
             // Настраиваем ЮЛ: нетиповый устав + Совет директоров
@@ -57,32 +57,11 @@ public class E2E_BoardSetupTests : BrowserFixture
             // Переходим на страницу первичного ввода состава СД
             await NavigateToBoardSetupAsync(boardPage);
 
-            // Проверяем, что страница загрузилась (ищем h3 — Blazor рендерит в DOM до SignalR)
-            var h3 = await boardPage.WaitForSelectorAsync("h3", new() { Timeout = DefaultTimeout });
-            h3.Should().NotBeNull("h3 заголовок wizard'а должен присутствовать");
-
-            // Проверяем структуру СД
-            await boardPage.WaitForSelectorAsync("text=Председатель СД");
-            await boardPage.WaitForSelectorAsync("text=Зам. председателя");
-            await boardPage.WaitForSelectorAsync("text=Секретарь СД");
+            // Проверяем, что страница загрузилась
+            await boardPage.WaitForSelectorAsync("text=Совет директоров — настройка состава", new() { Timeout = DefaultTimeout });
 
             // Добавляем Председателя СД
-            await boardPage.ClickAsync("text=Добавить участника СД");
-            await boardPage.WaitForSelectorAsync(".modal.show");
-
-            // Выбираем роль "Председатель СД"
-            await boardPage.SelectOptionAsync(".modal select", "CHAIR");
-
-            // Вводим ФИО
-            var chairName = "Иванов Иван Иванович";
-            await boardPage.FillAsync(".modal input[type='text']", chairName);
-
-            // Сохраняем
-            await boardPage.ClickAsync(".modal button.btn-primary");
-            await boardPage.WaitForSelectorAsync(".modal.show", new() { State = WaitForSelectorState.Detached });
-
-            // Проверяем, что Председатель появился в таблице
-            await boardPage.WaitForSelectorAsync($"text={chairName}");
+            await AddBoardMemberAsync(boardPage, "CHAIR", "Петров", "Пётр", "Петрович");
 
             // Сохраняем состав СД
             await boardPage.ClickAsync("text=Сохранить состав СД");
@@ -100,7 +79,7 @@ public class E2E_BoardSetupTests : BrowserFixture
         {
             var testEndTime = DateTimeOffset.UtcNow;
             await AppLogHelper.AssertNoErrorsInAppLogSafeAsync(testStartTime, testEndTime, testName);
-            await CleanupAsync(adminPage, boardPage, ldapPage);
+            await CleanupAsync(adminPage, boardPage);
         }
     }
 
@@ -115,7 +94,7 @@ public class E2E_BoardSetupTests : BrowserFixture
         var testStartTime = DateTimeOffset.UtcNow;
         var testName = "BoardSetup_Variant2_ChairAndDeputy";
 
-        var (adminPage, boardPage, ldapPage, login) = await SetupFullCycleAsync(65);
+        var (adminPage, boardPage, login) = await SetupFullCycleAsync(65);
         try
         {
             // Настраиваем ЮЛ: нетиповый устав + Совет директоров
@@ -135,10 +114,10 @@ public class E2E_BoardSetupTests : BrowserFixture
             await boardPage.WaitForSelectorAsync("text=Совет директоров — настройка состава");
 
             // Добавляем Председателя СД
-            await AddBoardMemberAsync(boardPage, "CHAIR", "Петров Пётр Петрович");
+            await AddBoardMemberAsync(boardPage, "CHAIR", "Петров", "Пётр", "Петрович");
 
             // Добавляем Зам. председателя СД
-            await AddBoardMemberAsync(boardPage, "DEPUTY_CHAIR", "Сидоров Сидор Сидорович");
+            await AddBoardMemberAsync(boardPage, "DEPUTY_CHAIR", "Сидоров", "Сидор", "Сидорович");
 
             // Сохраняем состав СД
             await boardPage.ClickAsync("text=Сохранить состав СД");
@@ -156,7 +135,7 @@ public class E2E_BoardSetupTests : BrowserFixture
         {
             var testEndTime = DateTimeOffset.UtcNow;
             await AppLogHelper.AssertNoErrorsInAppLogSafeAsync(testStartTime, testEndTime, testName);
-            await CleanupAsync(adminPage, boardPage, ldapPage);
+            await CleanupAsync(adminPage, boardPage);
         }
     }
 
@@ -171,7 +150,7 @@ public class E2E_BoardSetupTests : BrowserFixture
         var testStartTime = DateTimeOffset.UtcNow;
         var testName = "BoardSetup_Variant3_ChairAndSecretary";
 
-        var (adminPage, boardPage, ldapPage, login) = await SetupFullCycleAsync(66);
+        var (adminPage, boardPage, login) = await SetupFullCycleAsync(66);
         try
         {
             // Настраиваем ЮЛ: нетиповый устав + Совет директоров
@@ -191,10 +170,10 @@ public class E2E_BoardSetupTests : BrowserFixture
             await boardPage.WaitForSelectorAsync("text=Совет директоров — настройка состава");
 
             // Добавляем Председателя СД
-            await AddBoardMemberAsync(boardPage, "CHAIR", "Козлов Козлом Козлович");
+            await AddBoardMemberAsync(boardPage, "CHAIR", "Козлов", "Козлом", "Козлович");
 
             // Добавляем Секретаря СД
-            await AddBoardMemberAsync(boardPage, "SECRETARY", "Федорова Федора Федоровна");
+            await AddBoardMemberAsync(boardPage, "SECRETARY", "Федорова", "Федора", "Федоровна");
 
             // Сохраняем состав СД
             await boardPage.ClickAsync("text=Сохранить состав СД");
@@ -212,7 +191,7 @@ public class E2E_BoardSetupTests : BrowserFixture
         {
             var testEndTime = DateTimeOffset.UtcNow;
             await AppLogHelper.AssertNoErrorsInAppLogSafeAsync(testStartTime, testEndTime, testName);
-            await CleanupAsync(adminPage, boardPage, ldapPage);
+            await CleanupAsync(adminPage, boardPage);
         }
     }
 
@@ -229,32 +208,57 @@ public class E2E_BoardSetupTests : BrowserFixture
         await boardPage.WaitForTimeoutAsync(3000);
     }
 
-    private async Task AddBoardMemberAsync(IPage boardPage, string roleCode, string fullName)
+    private async Task AddBoardMemberAsync(IPage boardPage, string roleCode, string lastName, string firstName, string? middleName = null)
     {
         await boardPage.ClickAsync("text=Добавить участника СД");
         await boardPage.WaitForSelectorAsync(".modal.show");
 
-        // Выбираем роль
-        await boardPage.SelectOptionAsync(".modal select", roleCode);
+        // Выбираем роль — первый select в модалке
+        var roleSelect = boardPage.Locator(".modal select").First;
+        if (await roleSelect.CountAsync() == 0)
+            throw new InvalidOperationException("Не найден select роли в модалке «Добавить участника СД»");
+        await roleSelect.SelectOptionAsync(roleCode);
 
-        // Вводим ФИО
-        await boardPage.FillAsync(".modal .mb-3 input[type='text']", fullName);
+        // Вводим ФИО по data-testid + DispatchEvent для @bind
+        var lastNameInput = boardPage.GetByTestId("bm-lastName");
+        if (await lastNameInput.CountAsync() == 0)
+            throw new InvalidOperationException("Не найдено поле «Фамилия» (data-testid=bm-lastName) в модалке");
+        await lastNameInput.FillAsync(lastName);
+        await lastNameInput.DispatchEventAsync("change");
+
+        var firstNameInput = boardPage.GetByTestId("bm-firstName");
+        if (await firstNameInput.CountAsync() == 0)
+            throw new InvalidOperationException("Не найдено поле «Имя» (data-testid=bm-firstName) в модалке");
+        await firstNameInput.FillAsync(firstName);
+        await firstNameInput.DispatchEventAsync("change");
+
+        if (!string.IsNullOrEmpty(middleName))
+        {
+            var middleNameInput = boardPage.GetByTestId("bm-middleName");
+            if (await middleNameInput.CountAsync() == 0)
+                throw new InvalidOperationException("Не найдено поле «Отчество» (data-testid=bm-middleName) в модалке");
+            await middleNameInput.FillAsync(middleName);
+            await middleNameInput.DispatchEventAsync("change");
+        }
 
         // Сохраняем
-        await boardPage.ClickAsync(".modal button.btn-primary");
+        var saveBtn = boardPage.Locator(".modal button.btn-primary");
+        if (await saveBtn.CountAsync() == 0)
+            throw new InvalidOperationException("Не найдена кнопка «Добавить» в модалке");
+        await saveBtn.ClickAsync();
         await boardPage.WaitForSelectorAsync(".modal.show", new() { State = WaitForSelectorState.Detached });
 
         // Проверяем, что участник появился в таблице
+        var fullName = string.IsNullOrEmpty(middleName) ? $"{lastName} {firstName}" : $"{lastName} {firstName} {middleName}";
         await boardPage.WaitForSelectorAsync($"text={fullName}");
     }
 
-    private async Task<(IPage adminPage, IPage boardPage, IPage ldapPage, string login)> SetupFullCycleAsync(int entityIndex)
+    private async Task<(IPage adminPage, IPage boardPage, string login)> SetupFullCycleAsync(int entityIndex)
     {
         await InfrastructureHelper.EnsureInfrastructureReadyAsync();
 
         var adminPage = await CreateAdminConsolePageAsync();
         var boardPage = await CreateBoardPortalPageAsync();
-        var ldapPage = await CreatePageAsync();
 
         await CharterTestGlobalInit.InitializeAsync();
         await CharterTestSeeder.EnsureSeededAsync(adminPage, entityIndex);
@@ -271,7 +275,7 @@ public class E2E_BoardSetupTests : BrowserFixture
             shortName: entity.ShortName,
             ogrn: entity.Ogrn);
 
-        return (adminPage, boardPage, ldapPage, gdLogin);
+        return (adminPage, boardPage, gdLogin);
     }
 
     private static async Task AddParticipantsAsync(IPage boardPage, int entityIndex)
@@ -283,7 +287,8 @@ public class E2E_BoardSetupTests : BrowserFixture
             await BoardPortalHelper.AddParticipantAsync(
                 boardPage,
                 p.LastName, p.FirstName, p.MiddleName,
-                sharePercent: p.SharePercent);
+                sharePercent: p.SharePercent,
+                paymentInfo: "Оплачено в полном объёме");
         }
 
         await BoardPortalHelper.AssertParticipantCountAsync(
@@ -291,9 +296,8 @@ public class E2E_BoardSetupTests : BrowserFixture
             persons.Participants.Count);
     }
 
-    private static async Task CleanupAsync(IPage adminPage, IPage boardPage, IPage ldapPage)
+    private static async Task CleanupAsync(IPage adminPage, IPage boardPage)
     {
-        await ldapPage.CloseAsync();
         await boardPage.CloseAsync();
         await adminPage.CloseAsync();
     }

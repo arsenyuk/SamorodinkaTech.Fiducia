@@ -1,5 +1,6 @@
 @inject IDbContextFactory<FiduciaDbContext> DbFactory
 @inject IEdinApiClient EdinApi
+@inject ILogger<AddBoardMemberDialog> Logger
 
 @if (Visible)
 {
@@ -33,9 +34,37 @@
                     <h6 class="mb-3">Личные данные</h6>
 
                     <div class="mb-3 row">
-                        <label class="col-sm-4 col-form-label">ФИО *</label>
+                        <label for="bm-lastName" class="col-sm-4 col-form-label">Фамилия *</label>
                         <div class="col-sm-8">
-                            <input type="text" class="form-control" @bind="_fullName" placeholder="Фамилия Имя Отчество">
+                            <input id="bm-lastName" data-testid="bm-lastName" type="text" class="form-control" @bind="_lastName">
+                        </div>
+                    </div>
+
+                    <div class="mb-3 row">
+                        <label for="bm-firstName" class="col-sm-4 col-form-label">Имя *</label>
+                        <div class="col-sm-8">
+                            <input id="bm-firstName" data-testid="bm-firstName" type="text" class="form-control" @bind="_firstName">
+                        </div>
+                    </div>
+
+                    <div class="mb-3 row">
+                        <label for="bm-middleName" class="col-sm-4 col-form-label">Отчество</label>
+                        <div class="col-sm-8">
+                            <input id="bm-middleName" data-testid="bm-middleName" type="text" class="form-control" @bind="_middleName">
+                        </div>
+                    </div>
+
+                    <div class="mb-3 row">
+                        <label for="bm-inn" class="col-sm-4 col-form-label">ИНН</label>
+                        <div class="col-sm-8">
+                            <input id="bm-inn" type="text" class="form-control" @bind="_personInn" maxlength="12">
+                        </div>
+                    </div>
+
+                    <div class="mb-3 row">
+                        <label for="bm-snils" class="col-sm-4 col-form-label">СНИЛС</label>
+                        <div class="col-sm-8">
+                            <input id="bm-snils" type="text" class="form-control" @bind="_snils" maxlength="14" placeholder="XXX-XXX-XXX XX">
                         </div>
                     </div>
 
@@ -63,20 +92,6 @@
                         <label class="col-sm-4 col-form-label">Номер паспорта</label>
                         <div class="col-sm-8">
                             <input type="text" class="form-control" @bind="_passportNumber" maxlength="10">
-                        </div>
-                    </div>
-
-                    <div class="mb-3 row">
-                        <label class="col-sm-4 col-form-label">ИНН</label>
-                        <div class="col-sm-8">
-                            <input type="text" class="form-control" @bind="_personInn" maxlength="12">
-                        </div>
-                    </div>
-
-                    <div class="mb-3 row">
-                        <label class="col-sm-4 col-form-label">СНИЛС</label>
-                        <div class="col-sm-8">
-                            <input type="text" class="form-control" @bind="_snils" maxlength="14" placeholder="XXX-XXX-XXX XX">
                         </div>
                     </div>
 
@@ -114,7 +129,9 @@
     [Parameter] public EventCallback OnClose { get; set; }
 
     private string _roleCode = "";
-    private string _fullName = "";
+    private string _lastName = "";
+    private string _firstName = "";
+    private string? _middleName;
     private Guid? _dulTypeId;
     private string _passportSeries = "";
     private string _passportNumber = "";
@@ -127,14 +144,16 @@
     private List<RefBoardRole> _availableRoles = new();
     private List<RefDulType> _dulTypes = new();
 
+    /// <summary>GUID типа ДУЛ «Паспорт гражданина РФ» (code=21).</summary>
+    private static readonly Guid PassportRfId = new("ffffffff-ffff-ffff-ffff-ffffffffff10");
+
     private bool CanSave
     {
         get
         {
-            if (string.IsNullOrWhiteSpace(_roleCode) || string.IsNullOrWhiteSpace(_fullName))
+            if (string.IsNullOrWhiteSpace(_roleCode) || string.IsNullOrWhiteSpace(_lastName) || string.IsNullOrWhiteSpace(_firstName))
                 return false;
-            var parts = _fullName.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
-            return parts.Length >= 2;
+            return true;
         }
     }
 
@@ -153,6 +172,10 @@
         ).ToList();
 
         _dulTypes = await ctx.RefDulTypes.OrderBy(d => d.Name).ToListAsync();
+
+        // Дефолт: Паспорт гражданина РФ
+        if (_dulTypeId is null)
+            _dulTypeId = PassportRfId;
     }
 
     private async Task SaveAsync()
@@ -163,95 +186,105 @@
         try
         {
             await using var ctx = await DbFactory.CreateDbContextAsync();
+            await using var transaction = await ctx.Database.BeginTransactionAsync();
 
-            // Определяем participant_type
-            var participantType = "FL";
-
-            // Создаём Person для ФЛ/ИП
-            Guid? personId = null;
-            if (!string.IsNullOrWhiteSpace(_fullName.Trim()))
+            try
             {
-                var nameParts = _fullName.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
-                var person = new Person
+                var participantType = "FL";
+
+                Guid? personId = null;
+                if (!string.IsNullOrWhiteSpace(_lastName) && !string.IsNullOrWhiteSpace(_firstName))
+                {
+                    var person = new Person
+                    {
+                        Id = Guid.NewGuid(),
+                        LastName = _lastName.Trim(),
+                        FirstName = _firstName.Trim(),
+                        MiddleName = string.IsNullOrWhiteSpace(_middleName) ? null : _middleName.Trim(),
+                        Inn = _personInn,
+                        Snils = _snils,
+                        CreatedAt = DateTime.UtcNow,
+                        UpdatedAt = DateTime.UtcNow
+                    };
+                    ctx.Persons.Add(person);
+                    personId = person.Id;
+                }
+
+                var participant = new BoardParticipant
                 {
                     Id = Guid.NewGuid(),
-                    LastName = nameParts.ElementAtOrDefault(0) ?? "",
-                    FirstName = nameParts.ElementAtOrDefault(1) ?? "",
-                    MiddleName = nameParts.ElementAtOrDefault(2),
-                    Inn = _personInn,
-                    Snils = _snils,
-                    CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow
-                };
-                ctx.Persons.Add(person);
-                personId = person.Id;
-            }
-
-            var participant = new BoardParticipant
-            {
-                Id = Guid.NewGuid(),
-                LegalEntityId = LegalEntityId,
-                ParticipantType = participantType,
-                PersonId = personId,
-                IsActive = true,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
-            };
-
-            // Добавляем ДУЛ как отдельный документ
-            if (_dulTypeId.HasValue && !string.IsNullOrEmpty(_passportNumber) && personId.HasValue)
-            {
-                var idoc = new IdentityDocument
-                {
-                    Id = Guid.NewGuid(),
-                    PersonId = personId.Value,
-                    DulTypeId = _dulTypeId.Value,
-                    Series = _passportSeries,
-                    Number = _passportNumber,
+                    LegalEntityId = LegalEntityId,
+                    ParticipantType = participantType,
+                    PersonId = personId,
                     IsActive = true,
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow
                 };
-                ctx.IdentityDocuments.Add(idoc);
+
+                if (_dulTypeId.HasValue && !string.IsNullOrEmpty(_passportNumber) && personId.HasValue)
+                {
+                    var idoc = new IdentityDocument
+                    {
+                        Id = Guid.NewGuid(),
+                        PersonId = personId.Value,
+                        DulTypeId = _dulTypeId.Value,
+                        Series = _passportSeries,
+                        Number = _passportNumber,
+                        IsActive = true,
+                        CreatedAt = DateTime.UtcNow,
+                        UpdatedAt = DateTime.UtcNow
+                    };
+                    ctx.IdentityDocuments.Add(idoc);
+                }
+
+                ctx.BoardParticipants.Add(participant);
+
+                var role = await ctx.BoardRoles.FirstOrDefaultAsync(r => r.Code == _roleCode);
+                if (role is null)
+                {
+                    await transaction.RollbackAsync();
+                    _error = $"Неизвестная роль: {_roleCode}";
+                    _saving = false;
+                    return;
+                }
+
+                var participantRole = new BoardParticipantRole
+                {
+                    Id = Guid.NewGuid(),
+                    ParticipantId = participant.Id,
+                    RoleId = role.Id,
+                    AssignedAt = DateTime.UtcNow
+                };
+
+                ctx.BoardParticipantRoles.Add(participantRole);
+                await ctx.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                _ = TryEdinBindingAsync(ctx, participant);
+
+                var fullName = string.IsNullOrWhiteSpace(_middleName)
+                    ? $"{_lastName.Trim()} {_firstName.Trim()}"
+                    : $"{_lastName.Trim()} {_firstName.Trim()} {_middleName.Trim()}";
+
+                await OnSaved.InvokeAsync(new BoardSetupResult
+                {
+                    ParticipantId = participant.Id,
+                    FullName = fullName,
+                    RoleCode = _roleCode,
+                    RoleName = role.Name
+                });
+
+                Reset();
             }
-
-            ctx.BoardParticipants.Add(participant);
-
-            // Назначаем роль
-            var role = await ctx.BoardRoles.FirstOrDefaultAsync(r => r.Code == _roleCode);
-            if (role is null)
+            catch
             {
-                _error = $"Неизвестная роль: {_roleCode}";
-                _saving = false;
-                return;
+                await transaction.RollbackAsync();
+                throw;
             }
-
-            var participantRole = new BoardParticipantRole
-            {
-                Id = Guid.NewGuid(),
-                ParticipantId = participant.Id,
-                RoleId = role.Id,
-                AssignedAt = DateTime.UtcNow
-            };
-
-            ctx.BoardParticipantRoles.Add(participantRole);
-            await ctx.SaveChangesAsync();
-
-            // ЕДИН: попытка привязки (fire-and-forget)
-            _ = TryEdinBindingAsync(ctx, participant);
-
-            await OnSaved.InvokeAsync(new BoardSetupResult
-            {
-                ParticipantId = participant.Id,
-                FullName = participant.Person?.FullName,
-                RoleCode = _roleCode,
-                RoleName = role.Name
-            });
-
-            Reset();
         }
         catch (Exception ex)
         {
+            Logger.LogWarning(ex, "Ошибка добавления участника СД: {_roleCode} {_lastName} {_firstName}", _roleCode, _lastName, _firstName);
             _error = ex.InnerException?.Message ?? ex.Message;
         }
         finally
@@ -306,8 +339,10 @@
     private void Reset()
     {
         _roleCode = "";
-        _fullName = "";
-        _dulTypeId = null;
+        _lastName = "";
+        _firstName = "";
+        _middleName = null;
+        _dulTypeId = PassportRfId;
         _passportSeries = "";
         _passportNumber = "";
         _personInn = "";

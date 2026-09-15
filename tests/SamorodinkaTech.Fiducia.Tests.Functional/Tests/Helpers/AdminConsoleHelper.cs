@@ -54,10 +54,14 @@ public static class AdminConsoleHelper
 
         // Fill + change event для Blazor @bind (@onchange)
         var nameInput = page.GetByTestId("le-name");
+        if (await nameInput.CountAsync() == 0)
+            throw new InvalidOperationException("Не найдено поле «Наименование ЮЛ» (data-testid=le-name) в модалке создания ЮЛ");
         await nameInput.FillAsync(name);
         await nameInput.DispatchEventAsync("change");
 
         var innInput = page.GetByTestId("le-inn");
+        if (await innInput.CountAsync() == 0)
+            throw new InvalidOperationException("Не найдено поле «ИНН» (data-testid=le-inn) в модалке создания ЮЛ");
         await innInput.FillAsync(inn);
         await innInput.DispatchEventAsync("change");
 

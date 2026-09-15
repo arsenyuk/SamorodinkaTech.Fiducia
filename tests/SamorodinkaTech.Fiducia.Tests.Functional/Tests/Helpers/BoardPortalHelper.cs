@@ -450,7 +450,8 @@ public static class BoardPortalHelper
         decimal? shareAmount = null,
         string? dulTypeCode = null,
         string? dulSeries = null,
-        string? dulNumber = null)
+        string? dulNumber = null,
+        string? paymentInfo = null)
     {
         var sharePercentJson = sharePercent?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "null";
         var shareAmountJson = shareAmount?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "null";
@@ -458,6 +459,7 @@ public static class BoardPortalHelper
         var dulSeriesJson = dulSeries != null ? $"'{EscapeJs(dulSeries)}'" : "null";
         var dulNumberJson = dulNumber != null ? $"'{EscapeJs(dulNumber)}'" : "null";
         var middleNameJson = middleName != null ? $"'{EscapeJs(middleName)}'" : "null";
+        var paymentInfoJson = paymentInfo != null ? $"'{EscapeJs(paymentInfo)}'" : "null";
 
         var result = await page.EvaluateAsync<AddParticipantResponse>(
             $@"async () => {{
@@ -474,7 +476,8 @@ public static class BoardPortalHelper
                         shareAmount: {shareAmountJson},
                         dulTypeCode: {dulTypeCodeJson},
                         dulSeries: {dulSeriesJson},
-                        dulNumber: {dulNumberJson}
+                        dulNumber: {dulNumberJson},
+                        paymentInfo: {paymentInfoJson}
                     }})
                 }});
                 if (!response.ok) {{

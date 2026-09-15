@@ -46,4 +46,28 @@ public class BrowserFixture
         if (GlobalFixture.HasFailed)
             Assert.Skip("Предыдущий тест завершился с ошибкой — пропуск");
     }
+
+    /// <summary>
+    /// Убедиться, что элемент найден на странице. Если не найден — выбросить исключение с описанием.
+    /// </summary>
+    protected static async Task<ILocator> RequireLocatorAsync(IPage page, string selector, string fieldName)
+    {
+        var locator = page.Locator(selector);
+        var count = await locator.CountAsync();
+        if (count == 0)
+            throw new InvalidOperationException($"Не найден элемент «{fieldName}» (селектор: {selector})");
+        return locator;
+    }
+
+    /// <summary>
+    /// Убедиться, что элемент с data-testid найден. Если не найден — исключение.
+    /// </summary>
+    protected static async Task<ILocator> RequireByTestIdAsync(IPage page, string testId, string fieldName)
+    {
+        var locator = page.GetByTestId(testId);
+        var count = await locator.CountAsync();
+        if (count == 0)
+            throw new InvalidOperationException($"Не найден элемент «{fieldName}» (data-testid={testId})");
+        return locator;
+    }
 }

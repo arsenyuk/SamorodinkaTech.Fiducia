@@ -24,11 +24,17 @@ public static class AuthHelper
         await page.WaitForTimeoutAsync(2000);
 
         // Логин
-        await page.FillAsync("input[type='text']", login);
+        var loginInput = page.Locator("input[type='text']");
+        if (await loginInput.CountAsync() == 0)
+            throw new InvalidOperationException("Не найдено поле логина на странице авторизации Admin Console");
+        await loginInput.FillAsync(login);
         await page.WaitForTimeoutAsync(500);
 
         // Пароль
-        await page.FillAsync("input[type='password']", password);
+        var passwordInput = page.Locator("input[type='password']");
+        if (await passwordInput.CountAsync() == 0)
+            throw new InvalidOperationException("Не найдено поле пароля на странице авторизации Admin Console");
+        await passwordInput.FillAsync(password);
         await page.WaitForTimeoutAsync(1000);
 
         // Ждём, пока кнопка станет доступной (Blazor гидрировался и CanLogin=true)
@@ -71,11 +77,17 @@ public static class AuthHelper
         await page.WaitForTimeoutAsync(2000);
 
         // Логин
-        await page.FillAsync("input[type='text']", login);
+        var loginInput = page.Locator("input[type='text']");
+        if (await loginInput.CountAsync() == 0)
+            throw new InvalidOperationException("Не найдено поле логина на странице авторизации Board Portal");
+        await loginInput.FillAsync(login);
         await page.WaitForTimeoutAsync(500);
 
         // Пароль
-        await page.FillAsync("input[type='password']", password);
+        var passwordInput = page.Locator("input[type='password']");
+        if (await passwordInput.CountAsync() == 0)
+            throw new InvalidOperationException("Не найдено поле пароля на странице авторизации Board Portal");
+        await passwordInput.FillAsync(password);
         await page.WaitForTimeoutAsync(1000);
 
         // Ждём, пока кнопка станет доступной

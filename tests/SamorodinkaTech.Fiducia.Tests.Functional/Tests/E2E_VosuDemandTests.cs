@@ -166,12 +166,14 @@ public class E2E_VosuDemandTests : BrowserFixture
 
             // Заполняем дату проведения
             var dateInput = await boardPage.WaitForSelectorAsync("input[type='date']", new() { Timeout = DefaultTimeout });
-            dateInput.Should().NotBeNull("поле даты должно быть");
-            await dateInput!.FillAsync("2026-06-15");
+            if (dateInput is null)
+                throw new InvalidOperationException("Не найдено поле «Дата проведения» (input[type='date'])");
+            await dateInput.FillAsync("2026-06-15");
 
             // Заполняем время начала
             var timeInputs = await boardPage.QuerySelectorAllAsync("input[type='time']");
-            timeInputs.Count.Should().BeGreaterOrEqualTo(2, "должны быть поля времени начала и регистрации");
+            if (timeInputs.Count < 2)
+                throw new InvalidOperationException($"Найдено {timeInputs.Count} полей времени, ожидалось минимум 2");
             await timeInputs[0].FillAsync("14:00");
             await timeInputs[1].FillAsync("13:30");
 
@@ -179,15 +181,17 @@ public class E2E_VosuDemandTests : BrowserFixture
             var venueInput = await boardPage.WaitForSelectorAsync(
                 "input[placeholder*='Место']",
                 new() { Timeout = DefaultTimeout });
-            venueInput.Should().NotBeNull("поле места проведения должно быть");
-            await venueInput!.FillAsync("г. Москва, ул. Тверская, д. 1, переговорная № 3");
+            if (venueInput is null)
+                throw new InvalidOperationException("Не найдено поле «Место проведения» (input[placeholder*='Место'])");
+            await venueInput.FillAsync("г. Москва, ул. Тверская, д. 1, переговорная № 3");
 
             // Заполняем повестку
             var agendaTextarea = await boardPage.WaitForSelectorAsync(
                 "textarea[placeholder*='Повестка']",
                 new() { Timeout = DefaultTimeout });
-            agendaTextarea.Should().NotBeNull("поле повестки должно быть");
-            await agendaTextarea!.FillAsync("1. Избрание Председателя ВОСУ\n2. Досрочное прекращение полномочий ГД");
+            if (agendaTextarea is null)
+                throw new InvalidOperationException("Не найдено поле «Повестка» (textarea[placeholder*='Повестка'])");
+            await agendaTextarea.FillAsync("1. Избрание Председателя ВОСУ\n2. Досрочное прекращение полномочий ГД");
 
             // Нажимаем «Сформировать уведомления»
             await boardPage.ClickAsync("button:text('Сформировать уведомления')");

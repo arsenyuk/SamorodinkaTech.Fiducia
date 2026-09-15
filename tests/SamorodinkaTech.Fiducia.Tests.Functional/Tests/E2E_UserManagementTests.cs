@@ -35,7 +35,7 @@ public class E2E_UserManagementTests : BrowserFixture
         await page.WaitForSelectorAsync(".modal.show", new() { Timeout = DefaultTimeout });
 
         // Ввести несуществующий логин
-        var searchInput = page.Locator(".modal .input-group input.form-control");
+        var searchInput = await RequireLocatorAsync(page, ".modal .input-group input.form-control", "Поле поиска логина в модалке");
         await searchInput.FillAsync("nonexistent_user_xyz_999");
         await searchInput.DispatchEventAsync("change");
 
@@ -79,7 +79,7 @@ public class E2E_UserManagementTests : BrowserFixture
         await page.WaitForSelectorAsync(".modal.show", new() { Timeout = DefaultTimeout });
 
         // Ввести существующий логин
-        var searchInput = page.Locator(".modal .input-group input.form-control");
+        var searchInput = await RequireLocatorAsync(page, ".modal .input-group input.form-control", "Поле поиска логина в модалке");
         await searchInput.FillAsync("nechaev.va");
         await searchInput.DispatchEventAsync("change");
 
@@ -133,7 +133,7 @@ public class E2E_UserManagementTests : BrowserFixture
         await page.WaitForSelectorAsync(".modal.show", new() { Timeout = DefaultTimeout });
 
         // Ввести существующий логин
-        var searchInput = page.Locator(".modal .input-group input.form-control");
+        var searchInput = await RequireLocatorAsync(page, ".modal .input-group input.form-control", "Поле поиска логина в модалке");
         await searchInput.FillAsync("nechaev.va");
         await searchInput.DispatchEventAsync("change");
 
@@ -152,7 +152,8 @@ public class E2E_UserManagementTests : BrowserFixture
             new() { Timeout = DefaultTimeout });
 
         // Выбрать роль
-        await page.SelectOptionAsync(".modal .modal-body select.form-select", "LE_ADMIN");
+        var roleSelect = await RequireLocatorAsync(page, ".modal .modal-body select.form-select", "Select роли в модалке");
+        await roleSelect.SelectOptionAsync("LE_ADMIN");
         await page.WaitForTimeoutAsync(500);
 
         // Кнопка «Добавить» активна
