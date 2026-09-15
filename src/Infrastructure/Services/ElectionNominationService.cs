@@ -107,14 +107,19 @@ public class ElectionNominationService : IElectionNominationService
 
             if (!consentMap.ContainsKey(candidacy.CandidateMemberId))
             {
-                _context.ElectionConsents.Add(new ElectionConsent
+                var consent = new ElectionConsent
                 {
                     Id = Guid.NewGuid(),
                     ProposalId = proposalId,
                     CandidateMemberId = candidacy.CandidateMemberId,
                     ConsentToken = token,
                     ConsentGiven = false
-                });
+                };
+                _context.ElectionConsents.Add(consent);
+
+                _logger.LogDebug(
+                    "DB_CREATE ElectionConsent Id={ConsentId} ProposalId={ProposalId} CandidateMemberId={CandidateId}",
+                    consent.Id, consent.ProposalId, consent.CandidateMemberId);
             }
 
             var (title, body) = notificationType switch

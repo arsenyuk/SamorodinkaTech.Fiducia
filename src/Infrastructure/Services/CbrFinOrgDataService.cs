@@ -68,7 +68,7 @@ public class CbrFinOrgDataService : ICbrFinOrgDataService
         }
 
         // 3. Сохранить/обновить в БД
-        await UpsertOrganizationAsync(ctx, org, innStr, cancellationToken);
+        await UpsertOrganizationAsync(ctx, org, innStr, _logger, cancellationToken);
         await ReplaceLicensesAsync(ctx, innStr, org.Licenses, cancellationToken);
         await ctx.SaveChangesAsync(cancellationToken);
 
@@ -84,6 +84,7 @@ public class CbrFinOrgDataService : ICbrFinOrgDataService
         FiduciaDbContext ctx,
         CbrFinOrgOrganization org,
         string inn,
+        ILogger logger,
         CancellationToken ct)
     {
         var existing = await ctx.ExtCbrFinOrgOrganizations
@@ -91,7 +92,7 @@ public class CbrFinOrgDataService : ICbrFinOrgDataService
 
         if (existing is null)
         {
-            ctx.ExtCbrFinOrgOrganizations.Add(new ExtCbrFinOrgOrganization
+            var cbrOrg = new ExtCbrFinOrgOrganization
             {
                 Id = Guid.NewGuid(),
                 Inn = inn,
@@ -120,7 +121,12 @@ public class CbrFinOrgDataService : ICbrFinOrgDataService
                 WebSites = org.WebSites.Count > 0 ? string.Join(",", org.WebSites) : null,
                 Error = org.Error,
                 FetchedAt = DateTime.UtcNow
-            });
+            };
+            ctx.ExtCbrFinOrgOrganizations.Add(cbrOrg);
+
+            logger.LogDebug(
+                "DB_CREATE ExtCbrFinOrgOrganization Id={Id} Inn={Inn} CbrId={CbrId} FullName={Name}",
+                cbrOrg.Id, cbrOrg.Inn, cbrOrg.CbrId, cbrOrg.FullName);
         }
         else
         {

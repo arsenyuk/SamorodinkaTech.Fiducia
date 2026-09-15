@@ -75,6 +75,10 @@ public class TemplateInstantiationService : ITemplateInstantiationService
         };
         ctx.OrgIntents.Add(intent);
 
+        _logger.LogDebug(
+            "DB_CREATE OrgIntent Id={IntentId} LegalEntityId={LegalEntityId} TemplateIntentId={TemplateId} Name={Name}",
+            intent.Id, intent.LegalEntityId, intent.TemplateIntentId, intent.Name);
+
         var taskCount = 0;
         var triggerDate = DateOnly.FromDateTime(DateTime.Today);
         var holidays = WorkingDayHelper.GetHolidays(triggerDate.Year);
@@ -128,6 +132,11 @@ public class TemplateInstantiationService : ITemplateInstantiationService
                     PlannedEnd = stageEnd
                 };
                 ctx.OrgStages.Add(stage);
+
+                _logger.LogDebug(
+                    "DB_CREATE OrgStage Id={StageId} IntentId={IntentId} Name={Name} PlannedStart={Start} PlannedEnd={End}",
+                    stage.Id, stage.IntentId, stage.Name, stage.PlannedStart, stage.PlannedEnd);
+
                 stageMap[ts.Id] = stage.Id;
 
                 var stageTasks = new List<OrgTask>();
@@ -170,6 +179,11 @@ public class TemplateInstantiationService : ITemplateInstantiationService
                             AssignedBoardRoleId = to.AssignedBoardRoleId
                         };
                         ctx.OrgTasks.Add(task);
+
+                        _logger.LogDebug(
+                            "DB_CREATE OrgTask Id={TaskId} StageId={StageId} Name={Name} PlannedStart={Start} PlannedEnd={End}",
+                            task.Id, task.StageId, task.Name, task.PlannedStart, task.PlannedEnd);
+
                         taskMap[to.Id] = task.Id;
                         stageTasks.Add(task);
                         taskCount++;

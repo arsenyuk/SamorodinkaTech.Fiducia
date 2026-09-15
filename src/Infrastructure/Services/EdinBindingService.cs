@@ -176,11 +176,17 @@ public class EdinBindingService : IEdinBindingService
                     .AnyAsync(ur => ur.UserId == linkedUserId.Value && ur.RoleId == participantRole.Id, ct);
                 if (!hasRole)
                 {
-                    _dbContext.UserRoles.Add(new UserRole
+                    var userRole = new UserRole
                     {
                         UserId = linkedUserId.Value,
                         RoleId = participantRole.Id
-                    });
+                    };
+                    _dbContext.UserRoles.Add(userRole);
+
+                    _logger.LogDebug(
+                        "DB_CREATE UserRole UserId={UserId} RoleId={RoleId} RoleCode=PARTICIPANT",
+                        userRole.UserId, userRole.RoleId);
+
                     _logger.LogInformation("ЕДИН: роль PARTICIPANT назначена для User={UserId}", linkedUserId.Value);
                 }
             }

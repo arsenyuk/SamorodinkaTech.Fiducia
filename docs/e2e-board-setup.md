@@ -112,4 +112,4 @@ AddBoardMemberAsync(boardPage, "SECRETARY", "Федорова Федора Фе�
 
 **Корневая причина:** Страница `/board-setup?leId={id}` требует параметр `leId` в URL. Без него `BoardSetupWizard.razor` показывает ошибку «Не указано юридическое лицо (параметр leId)» и не загружает wizard.
 
-**Статус:** Тесты `BoardSetup_Variant1/2/3` не пройдены. Требуется исправление навигации на страницу wizard — передавать `legalEntityId` из БД после сидирования ЮЛ.
+**Статус:** Тесты `BoardSetup_Variant1/2/3` пройдены ✅

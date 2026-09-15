@@ -585,7 +585,8 @@ public static class BoardPortalHelper
         string participantType = "FL",
         decimal? sharePercent = null,
         decimal? shareAmount = null,
-        Guid? ecosystemParticipantId = null)
+        Guid? ecosystemParticipantId = null,
+        string? paymentInfo = null)
     {
         var nameParts = fullName.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
         var lastName = nameParts.ElementAtOrDefault(0) ?? "";
@@ -600,6 +601,7 @@ public static class BoardPortalHelper
         var personInnJson = personInn != null ? $"'{EscapeJs(personInn)}'" : "null";
         var ecoIdJson = ecosystemParticipantId.HasValue ? $"'{ecosystemParticipantId.Value}'" : "null";
         var middleNameJson = middleName != null ? $"'{EscapeJs(middleName)}'" : "null";
+        var paymentInfoJson = paymentInfo != null ? $"'{EscapeJs(paymentInfo)}'" : "null";
 
         var result = await page.EvaluateAsync<AddParticipantResponse>(
             $@"async () => {{
@@ -618,7 +620,8 @@ public static class BoardPortalHelper
                         personInn: {personInnJson},
                         sharePercent: {sharePercentJson},
                         shareAmount: {shareAmountJson},
-                        ecosystemParticipantId: {ecoIdJson}
+                        ecosystemParticipantId: {ecoIdJson},
+                        paymentInfo: {paymentInfoJson}
                     }})
                 }});
                 if (!response.ok) {{

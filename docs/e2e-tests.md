@@ -76,7 +76,7 @@
 |----------------|-----|----------|----------|--------|
 | Типовой устав | — | `E2E_StandardCharter_ExecBody{A,B,C}_{Notarial,Sign}Tests` (6 файлов) | [e2e-standard-charter.md](e2e-standard-charter.md) | ✅ Реализован |
 | Нетиповой устав + модели ЕИО | — | `E2E_NonStandardCharterTests` | [e2e-nonstandard-charter.md](e2e-nonstandard-charter.md) | ✅ Реализован |
-| Первичный ввод состава СД | — | `E2E_BoardSetupTests` | [e2e-board-setup.md](e2e-board-setup.md) | ❌ Не пройден (страница /board-setup не загружает wizard) |
+| Первичный ввод состава СД | — | `E2E_BoardSetupTests` | [e2e-board-setup.md](e2e-board-setup.md) | ✅ Реализован |
 | Генеральный директор | — | `E2E_GeneralDirectorTests` | [e2e-general-director.md](e2e-general-director.md) | ✅ Реализован |
 
 ### Участники (ООО)
@@ -141,9 +141,9 @@
 | Модель ЕИО: Все участники — директора | — | `E2E_NonStandardCharterTests::Model5_AllParticipantsDirectors` | [e2e-nonstandard-charter.md](e2e-nonstandard-charter.md) | ✅ Реализован |
 | Модель ЕИО: Все участники совместно | — | `E2E_NonStandardCharterTests::Model6_AllParticipantsJoint` | [e2e-nonstandard-charter.md](e2e-nonstandard-charter.md) | ✅ Реализован |
 | Модель ЕИО: Несколько ЕИО (п. 3 ст. 65.3 ГК РФ) | — | `E2E_NonStandardCharterTests::Model7_MultipleEio` | [e2e-nonstandard-charter.md](e2e-nonstandard-charter.md) | ✅ Реализован |
-| Первичный ввод состава СД: Вариант 1 (только Председатель) | — | `E2E_BoardSetupTests::BoardSetup_Variant1_ChairOnly` | [e2e-board-setup.md](e2e-board-setup.md) | ❌ Не пройден (страница /board-setup не загружает wizard) |
-| Первичный ввод состава СД: Вариант 2 (Председатель + Зам.) | — | `E2E_BoardSetupTests::BoardSetup_Variant2_ChairAndDeputy` | [e2e-board-setup.md](e2e-board-setup.md) | ❌ Не пройден (страница /board-setup не загружает wizard) |
-| Первичный ввод состава СД: Вариант 3 (Председатель + Секретарь) | — | `E2E_BoardSetupTests::BoardSetup_Variant3_ChairAndSecretary` | [e2e-board-setup.md](e2e-board-setup.md) | ❌ Не пройден (страница /board-setup не загружает wizard) |
+| Первичный ввод состава СД: Вариант 1 (только Председатель) | — | `E2E_BoardSetupTests::BoardSetup_Variant1_ChairOnly` | [e2e-board-setup.md](e2e-board-setup.md) | ✅ Реализован |
+| Первичный ввод состава СД: Вариант 2 (Председатель + Зам.) | — | `E2E_BoardSetupTests::BoardSetup_Variant2_ChairAndDeputy` | [e2e-board-setup.md](e2e-board-setup.md) | ✅ Реализован |
+| Первичный ввод состава СД: Вариант 3 (Председатель + Секретарь) | — | `E2E_BoardSetupTests::BoardSetup_Variant3_ChairAndSecretary` | [e2e-board-setup.md](e2e-board-setup.md) | ✅ Реализован |
 | Коллективное требование (ВОСУ) | — | `E2E_VosuDemandTests` | [e2e-vosu-demand.md](e2e-vosu-demand.md) | ✅ Реализован |
 | Изменение сведений участника (ДУЛ): регистрация → информирование → версионирование | — | `E2E_ParticipantDulChangeTests::DulChange_ParticipantUpdatesPassport_ShouldVersionDocument` | [e2e-participant-dul-change.md](e2e-participant-dul-change.md) | 🔄 Реализован, требует проверки |
 
@@ -210,6 +210,34 @@ public class US0XX_FeatureTests : BrowserFixture
 ---
 
 ## Запуск тестов
+
+### Подготовка окружения (обязательно перед первым запуском)
+
+```bash
+# Полная подготовка: Docker, БД, seed, сборка
+./prepare-e2e.sh
+
+# С запуском порталов после подготовки
+./prepare-e2e.sh --with-portals
+
+# Без сброса БД mnemonios (если не требуется)
+./prepare-e2e.sh --skip-mnemonios
+
+# Без seed MPI (если ЕДИН не нужен)
+./prepare-e2e.sh --skip-mpi
+```
+
+Скрипт выполняет:
+1. Остановка порталов
+2. Загрузка `.env`
+3. Сборка решения (`dotnet build`)
+4. Запуск Docker-контейнеров (PostgreSQL, LDAP, ЕДИН)
+5. Ожидание готовности сервисов
+6. Сброс БД Fiducia (schema + seed)
+7. Сброс БД mnemonios (schema + seed)
+8. Seed MPI (ЕДИН API → LDAP)
+
+### Запуск тестов
 
 ```bash
 # Все функциональные тесты (MTP runner — .NET 10 SDK)

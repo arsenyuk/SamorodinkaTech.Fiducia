@@ -39,42 +39,9 @@ public class E2E_VosuDemandTests : BrowserFixture
             var participantLogin = participant.Login;
             var participantFullName = participant.FullName;
 
-            // ── Шаг 1: ГД добавляет BoardParticipant для участника ──────
-            // ГД (ivanov.tm) залогинен после SetupFullCycle
-            await AuthHelper.LoginAsBoardUserAsync(boardPage, gdLogin);
-            boardPage.Url.Should().Contain("/main");
-
-            // Ищем существующий EcosystemParticipant по ФИО (создан через Admin Console)
-            var ecoId = await boardPage.EvaluateAsync<Guid?>(
-                $@"async () => {{
-                    const response = await fetch('/api/participants/eco-search?name={Uri.EscapeDataString(participantFullName)}', {{
-                        credentials: 'same-origin'
-                    }});
-                    if (!response.ok) return null;
-                    const data = await response.json();
-                    if (data && data.length > 0 && data[0].id) return data[0].id;
-                    return null;
-                }}");
-
-            var participantId = await BoardPortalHelper.AddParticipantWithPersonalDataAsync(
-                boardPage,
-                fullName: participantFullName,
-                passportSeries: "21",
-                passportNumber: "4600",
-                personInn: "781234567890",
-                participantType: "FL",
-                sharePercent: 100m,
-                shareAmount: 100000m,
-                ecosystemParticipantId: ecoId);
-
-            participantId.Should().NotBeEmpty("участник должен быть создан");
-
-            // ── Шаг 2: Ожидание ЕДИН binding ──────────────────────────
-            // Роль PARTICIPANT назначается автоматически при привязке
-            await EdinTestHelper.WaitForEdinBindingAsync(boardPage, participantId, timeoutSeconds: 5);
-
-            var mpiMasterId = await EdinTestHelper.GetParticipantMpiMasterIdAsync(boardPage, participantId);
-            mpiMasterId.Should().NotBeNull("ЕДИН должен привязать MasterId");
+            // ── Подготовка: participant + GD ──────────────────────────
+            var (participantId, _) = await E2ETestSetupHelper.SetupFullTestAsync(
+                adminPage, boardPage, 67);
 
             // ── Шаг 3: Участник подаёт требование DEMAND_VOSU ──────────
             await AuthHelper.LoginAsBoardUserAsync(boardPage, participantLogin);
@@ -122,12 +89,12 @@ public class E2E_VosuDemandTests : BrowserFixture
             await boardPage.WaitForTimeoutAsync(2000);
 
             var notification = await boardPage.WaitForRequiredSelectorAsync(
-                "text=Требование участника о созыве ВОСУ",
+                "text=Требование направлено ГД",
                 "Уведомление о требовании");
 
             // Кликаем по ссылке уведомления
             var link = await boardPage.WaitForSelectorAsync(
-                "a:text('Требование участника о созыве ВОСУ')",
+                "a:text('Требование направлено ГД')",
                 new() { Timeout = DefaultTimeout });
             if (link is not null)
             {

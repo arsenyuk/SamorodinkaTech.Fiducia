@@ -1,0 +1,40 @@
+{
+  "persons": [
+    {
+      "login": "ivanov.tm",
+      "lastName": "Иванов",
+      "firstName": "Тимур",
+      "middleName": "Романович",
+      "inn": "781234567890",
+      "snils": "123-456-789 00",
+      "dulType": "21",
+      "dulSeries": "4515",
+      "dulNumber": "123456",
+      "ldapUid": "ivanov.tm",
+      "ldapDn": "cn=Иванов Тимур Романович,ou=Users,dc=fiducia,dc=local",
+      "fullName": "Иванов Тимур Романович",
+      "position": "Генеральный директор",
+      "sharePercent": null,
+      "isDirector": false,
+      "roles": ["LE_ADMIN", "CEO"]
+    },
+    {
+      "login": "petrova.ms67",
+      "lastName": "Петрова",
+      "firstName": "Мария",
+      "middleName": "Сергеевна",
+      "inn": "781234567891",
+      "snils": "234-567-890 00",
+      "dulType": "21",
+      "dulSeries": "4515",
+      "dulNumber": "234567",
+      "ldapUid": "petrova.ms67",
+      "ldapDn": "cn=Петрова Мария Сергеевна,ou=Users,dc=fiducia,dc=local",
+      "fullName": "Петрова Мария Сергеевна",
+      "position": null,
+      "sharePercent": 40,
+      "isDirector": false,
+      "roles": ["PARTICIPANT"]
+    }
+  ]
+}

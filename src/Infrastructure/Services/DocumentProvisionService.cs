@@ -98,6 +98,11 @@ public class DocumentProvisionService : IDocumentProvisionService
                 Status = "pending"
             };
             ctx.ShareRequestItems.Add(item);
+
+            _logger.LogDebug(
+                "DB_CREATE ShareRequestItem Id={ItemId} ShareRequestId={RequestId} Title={Title}",
+                item.Id, item.ShareRequestId, item.Title);
+
             await ctx.SaveChangesAsync(ct);
 
             // Ищем и прикрепляем файлы для каждого типа в группе
@@ -110,12 +115,17 @@ public class DocumentProvisionService : IDocumentProvisionService
                         .AnyAsync(f => f.ShareRequestItemId == item.Id && f.FileId == fileId, ct);
                     if (exists) continue;
 
-                    ctx.ShareRequestItemFiles.Add(new ShareRequestItemFile
+                    var itemFile = new ShareRequestItemFile
                     {
                         Id = Guid.NewGuid(),
                         ShareRequestItemId = item.Id,
                         FileId = fileId
-                    });
+                    };
+                    ctx.ShareRequestItemFiles.Add(itemFile);
+
+                    _logger.LogDebug(
+                        "DB_CREATE ShareRequestItemFile Id={Id} ShareRequestItemId={ItemId} FileId={FileId}",
+                        itemFile.Id, itemFile.ShareRequestItemId, itemFile.FileId);
                 }
             }
 

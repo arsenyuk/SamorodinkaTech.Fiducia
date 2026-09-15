@@ -778,6 +778,7 @@ public static class ShareRequestEndpoints
                     await ctx.SaveChangesAsync();
                     await NotifyCeoAsync(ctx, entity, logger);
                     await NotifyInitiatorAsync(ctx, entity, logger);
+                    await ctx.SaveChangesAsync();
                 }
 
                 // Если требование направлено СД — создаём пункт повестки заседания СД

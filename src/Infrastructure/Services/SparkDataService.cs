@@ -111,17 +111,17 @@ public class SparkDataService : ISparkDataService
 
         if (company is not null)
         {
-            UpsertCompany(ctx, inn, company);
+            UpsertCompany(ctx, inn, company, _logger);
             okopfCode = await UpdateOkopfIfFound(ctx, company, legalEntityId, cancellationToken);
         }
 
         if (manager is not null)
-            UpsertManager(ctx, inn, manager);
+            UpsertManager(ctx, inn, manager, _logger);
         else
             await FillManagerFromCache(ctx, inn, cancellationToken);
 
         if (founders.Count > 0)
-            ReplaceFounders(ctx, inn, founders);
+            ReplaceFounders(ctx, inn, founders, _logger);
 
         await ctx.SaveChangesAsync(cancellationToken);
 
@@ -137,12 +137,12 @@ public class SparkDataService : ISparkDataService
 
     // ── Приватные методы сохранения ───────────────────────────────
 
-    private static void UpsertCompany(FiduciaDbContext ctx, string inn, SparkCompany company)
+    private static void UpsertCompany(FiduciaDbContext ctx, string inn, SparkCompany company, ILogger logger)
     {
         var existing = ctx.ExtSparkCompanies.FirstOrDefault(x => x.Inn == inn);
         if (existing is null)
         {
-            ctx.ExtSparkCompanies.Add(new ExtSparkCompany
+            var sparkCompany = new ExtSparkCompany
             {
                 Id = Guid.NewGuid(),
                 Inn = company.Inn,
@@ -155,7 +155,12 @@ public class SparkDataService : ISparkDataService
                 Status = company.Status,
                 RegistrationDate = company.RegistrationDate,
                 FetchedAt = DateTime.UtcNow
-            });
+            };
+            ctx.ExtSparkCompanies.Add(sparkCompany);
+
+            logger.LogDebug(
+                "DB_CREATE ExtSparkCompany Id={Id} Inn={Inn} FullName={Name}",
+                sparkCompany.Id, sparkCompany.Inn, sparkCompany.FullName);
         }
         else
         {
@@ -171,12 +176,12 @@ public class SparkDataService : ISparkDataService
         }
     }
 
-    private static void UpsertManager(FiduciaDbContext ctx, string inn, SparkManager manager)
+    private static void UpsertManager(FiduciaDbContext ctx, string inn, SparkManager manager, ILogger logger)
     {
         var existing = ctx.ExtSparkManagers.FirstOrDefault(x => x.Inn == inn);
         if (existing is null)
         {
-            ctx.ExtSparkManagers.Add(new ExtSparkManager
+            var sparkManager = new ExtSparkManager
             {
                 Id = Guid.NewGuid(),
                 Inn = inn,
@@ -185,7 +190,12 @@ public class SparkDataService : ISparkDataService
                 PersonInn = manager.Inn,
                 StartDate = manager.ActualDate,
                 FetchedAt = DateTime.UtcNow
-            });
+            };
+            ctx.ExtSparkManagers.Add(sparkManager);
+
+            logger.LogDebug(
+                "DB_CREATE ExtSparkManager Id={Id} Inn={Inn} FullName={Name} Position={Position}",
+                sparkManager.Id, sparkManager.Inn, sparkManager.FullName, sparkManager.Position);
         }
         else
         {
@@ -197,14 +207,14 @@ public class SparkDataService : ISparkDataService
         }
     }
 
-    private static void ReplaceFounders(FiduciaDbContext ctx, string inn, List<SparkFounder> founders)
+    private static void ReplaceFounders(FiduciaDbContext ctx, string inn, List<SparkFounder> founders, ILogger logger)
     {
         var existing = ctx.ExtSparkFounders.Where(x => x.Inn == inn).ToList();
         ctx.ExtSparkFounders.RemoveRange(existing);
 
         foreach (var f in founders)
         {
-            ctx.ExtSparkFounders.Add(new ExtSparkFounder
+            var founder = new ExtSparkFounder
             {
                 Id = Guid.NewGuid(),
                 Inn = inn,
@@ -225,7 +235,12 @@ public class SparkDataService : ISparkDataService
                 EntryDate = f.EntryDate,
                 ExitDate = f.ExitDate,
                 FetchedAt = DateTime.UtcNow
-            });
+            };
+            ctx.ExtSparkFounders.Add(founder);
+
+            logger.LogDebug(
+                "DB_CREATE ExtSparkFounder Id={Id} Inn={Inn} Name={Name} FounderInn={FounderInn}",
+                founder.Id, founder.Inn, founder.Name, founder.FounderInn);
         }
     }
 

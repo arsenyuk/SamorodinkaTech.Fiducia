@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using SamorodinkaTech.Fiducia.Domain.Entities;
 using SamorodinkaTech.Fiducia.Domain.Interfaces;
 using SamorodinkaTech.Fiducia.Infrastructure.Persistence;
@@ -11,10 +12,12 @@ namespace SamorodinkaTech.Fiducia.Infrastructure.Services;
 public class MeetingSaveService : IMeetingSaveService
 {
     private readonly IDbContextFactory<FiduciaDbContext> _dbFactory;
+    private readonly ILogger<MeetingSaveService> _logger;
 
-    public MeetingSaveService(IDbContextFactory<FiduciaDbContext> dbFactory)
+    public MeetingSaveService(IDbContextFactory<FiduciaDbContext> dbFactory, ILogger<MeetingSaveService> logger)
     {
         _dbFactory = dbFactory;
+        _logger = logger;
     }
 
     /// <inheritdoc />
@@ -93,6 +96,10 @@ public class MeetingSaveService : IMeetingSaveService
                 StatusId = draftStatus?.Id ?? Guid.Empty
             };
             ctx.BoardsOfDirectors.Add(board);
+
+            _logger.LogDebug(
+                "DB_CREATE BoardOfDirectors Id={Id} OsaMeetingId={MeetingId} ElectionYear={Year}",
+                board.Id, board.OsaMeetingId, board.ElectionYear);
         }
         else
         {
@@ -132,9 +139,13 @@ public class MeetingSaveService : IMeetingSaveService
                 };
                 ctx.BoardMembers.Add(member);
 
+                _logger.LogDebug(
+                    "DB_CREATE BoardMember Id={Id} OsaMeetingId={MeetingId} FullName={Name} UserId={UserId}",
+                    member.Id, member.OsaMeetingId, member.FullName, member.UserId);
+
                 if (row.RoleId.HasValue && row.StartedAt is not null && DateOnly.TryParse(row.StartedAt, out var startedAt))
                 {
-                    ctx.BoardMemberAppointments.Add(new BoardMemberAppointment
+                    var appointment = new BoardMemberAppointment
                     {
                         Id = Guid.NewGuid(),
                         BoardMemberId = member.Id,
@@ -142,7 +153,12 @@ public class MeetingSaveService : IMeetingSaveService
                         RoleCode = roles.FirstOrDefault(r => r.Id == row.RoleId.Value)?.Code ?? "",
                         StartedAt = startedAt,
                         StatusId = draftStatusId
-                    });
+                    };
+                    ctx.BoardMemberAppointments.Add(appointment);
+
+                    _logger.LogDebug(
+                        "DB_CREATE BoardMemberAppointment Id={Id} BoardMemberId={MemberId} RoleCode={RoleCode} StartedAt={Start}",
+                        appointment.Id, appointment.BoardMemberId, appointment.RoleCode, appointment.StartedAt);
                 }
             }
         }

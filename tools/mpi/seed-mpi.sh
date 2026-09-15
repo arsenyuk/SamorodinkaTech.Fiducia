@@ -15,7 +15,7 @@ LDAP_BASE="dc=fiducia,dc=local"
 LDAP_BIND_DN="cn=admin,${LDAP_BASE}"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PERSONS_FILE="${SCRIPT_DIR}/test-persons.json"
+PERSONS_FILE="${SCRIPT_DIR}/../test-data.json"
 OUTPUT_LDIF="${SCRIPT_DIR}/generated-mpi.ldif"
 
 # ── Проверка зависимостей ──────────────────────────────────────────────────
@@ -42,7 +42,7 @@ for i in $(seq 1 30); do
 done
 
 # ── Чтение тестовых лиц ───────────────────────────────────────────────────
-PERSON_COUNT=$(jq length "$PERSONS_FILE")
+PERSON_COUNT=$(jq '.persons | length' "$PERSONS_FILE")
 echo "Обработка ${PERSON_COUNT} тестовых лиц..."
 
 # ── Генерация LDIF ────────────────────────────────────────────────────────
@@ -53,16 +53,16 @@ SUCCESS=0
 FAIL=0
 
 for i in $(seq 0 $((PERSON_COUNT - 1))); do
-    LOGIN=$(jq -r ".[$i].login" "$PERSONS_FILE")
-    LAST_NAME=$(jq -r ".[$i].lastName" "$PERSONS_FILE")
-    FIRST_NAME=$(jq -r ".[$i].firstName" "$PERSONS_FILE")
-    MIDDLE_NAME=$(jq -r ".[$i].middleName // empty" "$PERSONS_FILE")
-    INN=$(jq -r ".[$i].inn // empty" "$PERSONS_FILE")
-    SNILS=$(jq -r ".[$i].snils // empty" "$PERSONS_FILE")
-    DUL_TYPE=$(jq -r ".[$i].dulType // empty" "$PERSONS_FILE")
-    DUL_SERIES=$(jq -r ".[$i].dulSeries // empty" "$PERSONS_FILE")
-    DUL_NUMBER=$(jq -r ".[$i].dulNumber // empty" "$PERSONS_FILE")
-    LDAP_DN=$(jq -r ".[$i].ldapDn" "$PERSONS_FILE")
+    LOGIN=$(jq -r ".persons[$i].login" "$PERSONS_FILE")
+    LAST_NAME=$(jq -r ".persons[$i].lastName" "$PERSONS_FILE")
+    FIRST_NAME=$(jq -r ".persons[$i].firstName" "$PERSONS_FILE")
+    MIDDLE_NAME=$(jq -r ".persons[$i].middleName // empty" "$PERSONS_FILE")
+    INN=$(jq -r ".persons[$i].inn // empty" "$PERSONS_FILE")
+    SNILS=$(jq -r ".persons[$i].snils // empty" "$PERSONS_FILE")
+    DUL_TYPE=$(jq -r ".persons[$i].dulType // empty" "$PERSONS_FILE")
+    DUL_SERIES=$(jq -r ".persons[$i].dulSeries // empty" "$PERSONS_FILE")
+    DUL_NUMBER=$(jq -r ".persons[$i].dulNumber // empty" "$PERSONS_FILE")
+    LDAP_DN=$(jq -r ".persons[$i].ldapDn" "$PERSONS_FILE")
 
     echo -n "  [${LOGIN}] Resolve: ${LAST_NAME} ${FIRST_NAME}... "
 

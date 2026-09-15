@@ -58,6 +58,11 @@ public class NotificationService : INotificationService
         };
 
         _context.Notifications.Add(notification);
+
+        _logger.LogDebug(
+            "DB_CREATE Notification Id={NotificationId} Type={NotificationType} UserId={UserId} CommitteeId={CommitteeId} MeetingId={MeetingId}",
+            notification.Id, notification.NotificationType, notification.UserId, notification.CommitteeId, notification.MeetingId);
+
         await _context.SaveChangesAsync(cancellationToken);
 
         _logger.LogInformation(
@@ -106,6 +111,10 @@ public class NotificationService : INotificationService
         {
             _context.Notifications.Add(notification);
         }
+
+        _logger.LogDebug(
+            "DB_CREATE Notifications batch Count={Count} Type={NotificationType} UserIds={UserIds}",
+            notifications.Count, notificationType, string.Join(",", distinctUserIds));
 
         await _context.SaveChangesAsync(cancellationToken);
 

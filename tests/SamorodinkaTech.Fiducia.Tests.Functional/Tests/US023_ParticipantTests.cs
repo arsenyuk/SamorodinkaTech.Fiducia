@@ -460,90 +460,38 @@ public class US023_ParticipantTests : BrowserFixture
     }
 
     /// <summary>
-    /// 1. Admin Console: ЮЛ + LE_ADMIN (CharterTestSeeder)
-    /// 2. Admin Console: User для участника (AddEmployeeAsync) — создаёт запись в `users`
-    /// 3. Board Portal: GD регистрирует участника с ПДн → ЕДИН binding → PARTICIPANT
+    /// Регистрация участника с ПДн через Admin Console + Board Portal.
+    /// Использует E2ETestSetupHelper для дедупликации логики.
     /// </summary>
     private async Task SetupParticipantAsync(IPage participantPage, int charterNumber)
     {
-        var entity = CharterTestDataFixed.LegalEntities[charterNumber - 1];
         var persons = CharterTestDataFixed.PersonsByEntity[charterNumber];
+        var participant = persons.Participants[0];
 
-        // 1. Admin Console: создание ЮЛ + LE_ADMIN
         var adminPage = await CreateAdminConsolePageAsync();
         try
         {
             await CharterTestSeeder.EnsureSeededAsync(adminPage, charterNumber);
-            // Логин SYS_ADMIN нужен для навигации (no-op сидирования не навигирует)
+
+            // Навигация к ЮЛ для AddEmployeeAsync
+            var entity = CharterTestDataFixed.LegalEntities[charterNumber - 1];
             if (!adminPage.Url.Contains("/access-management"))
             {
                 await AuthHelper.LoginAsAdminAsync(adminPage, CharterTestDataFixed.SysAdminLogin);
             }
             await AdminConsoleHelper.NavigateToLegalEntityAsync(adminPage, entity.Name);
 
-            // 2. Создание User для участника в Admin Console (нужен для BasicProvider)
-            var p = persons.Participants[0];
-            if (p.Login != entity.AdminUser.Login)
-            {
-                var nameParts = p.FullName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-                if (nameParts.Length >= 3)
-                {
-                    await AdminConsoleHelper.AddEmployeeAsync(
-                        adminPage,
-                        nameParts[0], nameParts[1], nameParts[2],
-                        "Участник", p.Login,
-                        CharterTestDataFixed.RoleLeAdmin);
-                }
-            }
+            // Используем E2ETestSetupHelper для регистрации участника
+            await E2ETestSetupHelper.SetupParticipantAsync(adminPage, participantPage, participant, charterNumber);
         }
         finally
         {
             await adminPage.CloseAsync();
         }
 
-        // 3. Board Portal: GD (LE_ADMIN) регистрирует участника с ПДн
-        var gdLogin = persons.Gd?.Login ?? entity.AdminUser.Login;
+        // Выход GD — чтобы участник мог залогиниться
+        var gdLogin = persons.Gd?.Login ?? persons.Participants[0].Login;
         await AuthHelper.LoginAsBoardUserAsync(participantPage, gdLogin);
-        participantPage.Url.Should().Contain("/main");
-
-        // Поиск существующего EcosystemParticipant по ФИО (создан через Admin Console)
-        var participantFullName = persons.Participants[0].FullName;
-        var ecoId = await participantPage.EvaluateAsync<Guid?>(
-            $@"async () => {{
-                const response = await fetch('/api/participants/eco-search?name={Uri.EscapeDataString(participantFullName)}', {{
-                    credentials: 'same-origin'
-                }});
-                if (!response.ok) return null;
-                const data = await response.json();
-                if (data && data.length > 0 && data[0].id) return data[0].id;
-                return null;
-            }}");
-
-        // Уникальные ПДн на основе номера ЮЛ
-        var passportSeries = (1000 + charterNumber).ToString();
-        var passportNumber = (100000 + charterNumber * 111).ToString();
-        var personInn = $"770{charterNumber:D5}000";
-
-        var participantId = await BoardPortalHelper.AddParticipantWithPersonalDataAsync(
-            participantPage,
-            fullName: participantFullName,
-            dulTypeCode: "21",
-            passportSeries: passportSeries,
-            passportNumber: passportNumber,
-            personInn: personInn,
-            participantType: "FL",
-            sharePercent: persons.Participants[0].SharePercent,
-            shareAmount: persons.Participants[0].SharePercent * 100m,
-            ecosystemParticipantId: ecoId);
-
-        participantId.Should().NotBeEmpty("участник должен быть создан");
-
-        // 4. Ожидание ЕДИН binding → роль PARTICIPANT назначается автоматически
-        await EdinTestHelper.WaitForEdinBindingAsync(participantPage, participantId, timeoutSeconds: 5);
-
-        Console.WriteLine($"[US023] Участник {participantFullName} зарегистрирован (PARTICIPANT).");
-
-        // 5. Выход GD — чтобы участник мог залогиниться
         await participantPage.GotoAsync(PortalUrls.GetUrl(Portal.BoardPortal, "/logout"));
         await AuthHelper.WaitForBlazorReady(participantPage);
     }

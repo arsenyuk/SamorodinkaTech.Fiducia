@@ -79,6 +79,11 @@ namespace SamorodinkaTech.Fiducia.Infrastructure.Services
                 Extension = Path.GetExtension(fileName)?.TrimStart('.')
             };
             ctx.Files.Add(fileEntry);
+
+            _logger.LogDebug(
+                "DB_CREATE FileEntry Id={FileId} UploadId={UploadId} OriginalName={FileName} ContentType={ContentType} SizeBytes={Size}",
+                fileEntry.Id, uploadId, fileName, contentType, totalSizeBytes);
+
             await ctx.SaveChangesAsync(cancellationToken);
 
             _logger.LogInformation("Инициирована загрузка: uploadId={UploadId}, file={FileName}, size={Size}",

@@ -701,11 +701,12 @@ public static class CharterTestDataFixed
             ]),
         // ── Требование участника о созыве ВОСУ (67) ────
         [67] = new(
-            Gd: new() { Uid = "ivanov.tm", Login = "ivanov.tm", FullName = "Иванов Тимур Романович", LastName = "Иванов", FirstName = "Тимур", MiddleName = "Романович", Position = "Генеральный директор" },
+            Gd: new() { Uid = "ivanov.tm", Login = "ivanov.tm", FullName = "Иванов Тимур Романович", LastName = "Иванов", FirstName = "Тимур", MiddleName = "Романович", Position = "Генеральный директор",
+                         DulTypeCode = "21", DulSeries = "4515", DulNumber = "123456" },
             Participants:
             [
                 PersonData.CreateParticipantWithDul("Петрова Мария Сергеевна", 40m,
-                    "21", "4690", "999999", login: "petrova.ms67") with { Uid = "petrova.ms67" },
+                    "21", "4515", "234567", login: "petrova.ms67") with { Uid = "petrova.ms67" },
             ]),
         // ── Изменение сведений участника / версионирование ДУЛ (68) ────
         [68] = new(
