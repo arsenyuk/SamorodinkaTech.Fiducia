@@ -84,7 +84,7 @@ public class E2E_VosuDemandTests : BrowserFixture
             await AuthHelper.LoginAsBoardUserAsync(boardPage, gdLogin);
             boardPage.Url.Should().Contain("/main");
 
-            await boardPage.ClickAsync("text=Оповещения");
+            await boardPage.ClickAsync("a[title='Оповещения']");
             await AuthHelper.WaitForBlazorReady(boardPage);
             await boardPage.WaitForTimeoutAsync(2000);
 

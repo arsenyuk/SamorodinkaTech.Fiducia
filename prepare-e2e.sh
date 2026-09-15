@@ -173,7 +173,7 @@ fi
 # ── Шаг 8: Seed MPI ─────────────────────────────────────────────────────────
 if [ "$SKIP_MPI" = false ]; then
     echo "=== [8/8] Seed MPI (ЕДИН API → LDAP) ==="
-    if bash tools/mpi/seed-mpi.sh http://localhost:5010 localhost admin; then
+    if bash tools/mpi/seed-mpi.sh http://localhost:5010 localhost admin --output /tmp/generated-mpi.ldif; then
         echo "  ✅ Seed MPI завершён."
     else
         echo "  ⚠️  Seed MPI завершился с ошибкой. Проверьте логи mnemonios."

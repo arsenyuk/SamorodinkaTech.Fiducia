@@ -453,6 +453,10 @@ public static class BoardPortalHelper
         string? dulNumber = null,
         string? paymentInfo = null)
     {
+        // Автоматически добавляем paymentInfo при неполной оплате
+        if (sharePercent is not null && sharePercent < 100 && string.IsNullOrEmpty(paymentInfo))
+            paymentInfo = "Оплачено полностью";
+
         var sharePercentJson = sharePercent?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "null";
         var shareAmountJson = shareAmount?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "null";
         var dulTypeCodeJson = dulTypeCode != null ? $"'{EscapeJs(dulTypeCode)}'" : "null";
@@ -592,6 +596,10 @@ public static class BoardPortalHelper
         var lastName = nameParts.ElementAtOrDefault(0) ?? "";
         var firstName = nameParts.ElementAtOrDefault(1) ?? "";
         var middleName = nameParts.Length > 2 ? string.Join(' ', nameParts.Skip(2)) : null;
+
+        // Автоматически добавляем paymentInfo при неполной оплате
+        if (sharePercent is not null && sharePercent < 100 && string.IsNullOrEmpty(paymentInfo))
+            paymentInfo = "Оплачено полностью";
 
         var sharePercentJson = sharePercent?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "null";
         var shareAmountJson = shareAmount?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "null";

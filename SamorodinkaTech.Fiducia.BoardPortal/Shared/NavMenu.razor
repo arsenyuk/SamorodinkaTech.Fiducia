@@ -127,15 +127,7 @@
             </div>
         }
 
-        @* ── Оповещения и план ─────────────────────────────────── *@
-        @if (_isCeo || _isMemberBoard || _isParticipant)
-        {
-            <div class="nav-item px-3">
-                <NavLink class="nav-link" href="notifications">
-                    <span class="oi oi-bell" aria-hidden="true"></span> Оповещения
-                </NavLink>
-            </div>
-        }
+        @* ── План ──────────────────────────────────────────────────── *@
         @if (_isCeo || _isLawyer || _isMemberBoard || _isSecretary || _isExternalDirector || _isParticipant || _isLeAdmin)
         {
             <div class="nav-item px-3">

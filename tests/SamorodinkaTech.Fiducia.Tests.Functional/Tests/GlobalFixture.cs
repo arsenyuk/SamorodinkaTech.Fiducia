@@ -13,6 +13,7 @@ public class GlobalFixture : IAsyncLifetime
 {
     private IPlaywright _playwright = null!;
     private IBrowser _browser = null!;
+    private bool _headless;
     private static volatile bool _hasFailed;
 
     /// <summary>Публичный доступ к Playwright для тестов.</summary>
@@ -50,7 +51,9 @@ public class GlobalFixture : IAsyncLifetime
 
             // 2. Создание Playwright и браузера
             _playwright = await Microsoft.Playwright.Playwright.CreateAsync();
-            _browser = await _playwright.Chromium.LaunchAsync(new() { Headless = false });
+            var headed = Environment.GetEnvironmentVariable("PLAYWRIGHT_HEADED");
+            _headless = string.IsNullOrEmpty(headed) || headed == "1";
+            _browser = await _playwright.Chromium.LaunchAsync(new() { Headless = _headless });
 
             // 3. Сброс БД + пересоздание LDAP-пользователей (один раз, через CLI — без браузера)
             await CharterTestGlobalInit.InitializeAsync();
@@ -63,9 +66,12 @@ public class GlobalFixture : IAsyncLifetime
     {
         return new ValueTask(Task.Run(async () =>
         {
-            if (_browser is not null)
-                await _browser.CloseAsync();
-            _playwright?.Dispose();
+            if (_headless)
+            {
+                if (_browser is not null)
+                    await _browser.CloseAsync();
+                _playwright?.Dispose();
+            }
         }));
     }
 }

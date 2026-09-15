@@ -95,9 +95,7 @@ User.Login → EcosystemParticipant.Login → LegalEntityId
 
 | Роль | Доступ к странице `/notifications` |
 |------|:---:|
-| CEO (ГД) | Да |
-| MEMBER_BOARD (Член СД) | Да |
-| PARTICIPANT (Участник) | Да |
+| Все авторизованные | Да |
 
 ### Роли без определённых прав в Board Portal
 

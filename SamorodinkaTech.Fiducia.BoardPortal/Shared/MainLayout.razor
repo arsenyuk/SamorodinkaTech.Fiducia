@@ -22,6 +22,15 @@ else
             <div class="top-row px-4 d-flex justify-content-between align-items-center">
                 <h5 class="mb-0">@_legalEntityName</h5>
                 <div class="d-flex align-items-center gap-3">
+                    <a href="/notifications" class="text-decoration-none position-relative" title="Оповещения">
+                        <span class="oi oi-bell" aria-hidden="true"></span>
+                        @if (_unreadCount > 0)
+                        {
+                            <span class="badge bg-danger position-absolute top-0 start-100 translate-middle" style="font-size:0.65rem; font-weight:bold;">
+                                @(_unreadCount > 9 ? "\u221E" : _unreadCount.ToString())
+                            </span>
+                        }
+                    </a>
                     <span>@_userName</span>
                     <a href="/logout" class="btn btn-sm btn-outline-secondary">Выход</a>
                 </div>
@@ -50,6 +59,7 @@ else
     private string _legalEntityName = "Fiducia Board Portal";
     private bool _isInitialized;
     private ErrorBoundary? _errorBoundary;
+    private int _unreadCount;
     [Inject] private NavigationManager NavigationManager { get; set; } = default!;
 
     private bool _isPublicPage => IsPublicUrl(NavigationManager.Uri);
@@ -98,6 +108,15 @@ else
                 {
                     NavigationManager.NavigateTo("/login", true);
                     return;
+                }
+
+                // Загружаем количество непрочитанных оповещений
+                if (!string.IsNullOrEmpty(userId) && Guid.TryParse(userId, out var uid))
+                {
+                    await using var ctx = await DbFactory.CreateDbContextAsync();
+                    _unreadCount = await ctx.Notifications
+                        .Where(n => n.UserId == uid && !n.IsRead)
+                        .CountAsync();
                 }
             }
             catch { }

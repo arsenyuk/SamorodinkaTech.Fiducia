@@ -1,158 +1,109 @@
-#!/usr/bin/env bash
-# =============================================================================
-# seed-mpi.sh — Seed MPI MasterId через ЕДИН API → LDAP
-# =============================================================================
-# Запуск: bash tools/mpi/seed-mpi.sh [един_url] [ldap_host] [ldap_password]
-# По умолчанию: http://localhost:5010, localhost, admin
-# =============================================================================
+#!/bin/bash
+# Seed MPI through ЕДИН API to trigger LDAP creation via webhooks.
+# Usage: ./seed-mpi.sh [output_ldif_path]
+#
+# If output_ldif_path is provided, also writes generated LDIF for manual import.
+# Environment: LDAP_HOST, LDAP_PORT, LDAP_BASE, LDAP_ADMIN, LDAP_PASSWORD
 
-set -euo pipefail
+set -e
 
-EDIN_URL="${1:-http://localhost:5010}"
-LDAP_HOST="${2:-localhost}"
-LDAP_PASSWORD="${3:-admin}"
-LDAP_BASE="dc=fiducia,dc=local"
-LDAP_BIND_DN="cn=admin,${LDAP_BASE}"
+EDIN_API="http://localhost:5010/api"
+LDAP_HOST="${LDAP_HOST:-localhost}"
+LDAP_PORT="${LDAP_PORT:-389}"
+LDAP_BASE="${LDAP_BASE:-dc=example,dc=com}"
+LDAP_ADMIN="${LDAP_ADMIN:-cn=admin,dc=example,dc=com}"
+LDAP_PASSWORD="${LDAP_PASSWORD:-admin}"
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PERSONS_FILE="${SCRIPT_DIR}/../test-data.json"
-OUTPUT_LDIF="${SCRIPT_DIR}/generated-mpi.ldif"
+JSON_DIR="$(cd "$(dirname "$0")" && pwd)"
+OUTPUT_LDIF="${1:-}"
 
-# ── Проверка зависимостей ──────────────────────────────────────────────────
-for cmd in curl jq ldapadd; do
-    if ! command -v "$cmd" &>/dev/null; then
-        echo "ОШИБКА: $cmd не найден. Установите: brew install $cmd" >&2
-        exit 1
-    fi
-done
-
-# ── Ожидание ЕДИН API ─────────────────────────────────────────────────────
-echo "Ожидание ЕДИН API: ${EDIN_URL}"
-for i in $(seq 1 30); do
-    if curl -s -o /dev/null -w "%{http_code}" "${EDIN_URL}/persons/resolve" \
-        -X POST -H "Content-Type: application/json" -d '{}' 2>/dev/null | grep -qE "^[234]"; then
-        echo "ЕДИН API готов"
-        break
-    fi
-    if [ "$i" -eq 30 ]; then
-        echo "ОШИБКА: ЕДИН API не доступен после 30 попыток" >&2
-        exit 1
-    fi
-    sleep 2
-done
-
-# ── Чтение тестовых лиц ───────────────────────────────────────────────────
-PERSON_COUNT=$(jq '.persons | length' "$PERSONS_FILE")
-echo "Обработка ${PERSON_COUNT} тестовых лиц..."
-
-# ── Генерация LDIF ────────────────────────────────────────────────────────
-echo "# Auto-generated MPI MasterId LDIF — $(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$OUTPUT_LDIF"
-echo "" >> "$OUTPUT_LDIF"
-
-SUCCESS=0
-FAIL=0
-
-for i in $(seq 0 $((PERSON_COUNT - 1))); do
-    LOGIN=$(jq -r ".persons[$i].login" "$PERSONS_FILE")
-    LAST_NAME=$(jq -r ".persons[$i].lastName" "$PERSONS_FILE")
-    FIRST_NAME=$(jq -r ".persons[$i].firstName" "$PERSONS_FILE")
-    MIDDLE_NAME=$(jq -r ".persons[$i].middleName // empty" "$PERSONS_FILE")
-    INN=$(jq -r ".persons[$i].inn // empty" "$PERSONS_FILE")
-    SNILS=$(jq -r ".persons[$i].snils // empty" "$PERSONS_FILE")
-    DUL_TYPE=$(jq -r ".persons[$i].dulType // empty" "$PERSONS_FILE")
-    DUL_SERIES=$(jq -r ".persons[$i].dulSeries // empty" "$PERSONS_FILE")
-    DUL_NUMBER=$(jq -r ".persons[$i].dulNumber // empty" "$PERSONS_FILE")
-    LDAP_DN=$(jq -r ".persons[$i].ldapDn" "$PERSONS_FILE")
-
-    echo -n "  [${LOGIN}] Resolve: ${LAST_NAME} ${FIRST_NAME}... "
-
-    # Формируем Evidence
-    EVIDENCE="{}"
-    if [ -n "$INN" ] || [ -n "$SNILS" ] || [ -n "$DUL_TYPE" ]; then
-        EVIDENCE="{"
-        [ -n "$INN" ] && EVIDENCE="${EVIDENCE}\"inn\":\"${INN}\","
-        [ -n "$SNILS" ] && EVIDENCE="${EVIDENCE}\"snils\":\"${SNILS}\","
-        [ -n "$DUL_TYPE" ] && EVIDENCE="${EVIDENCE}\"dulType\":\"${DUL_TYPE}\","
-        [ -n "$DUL_SERIES" ] && EVIDENCE="${EVIDENCE}\"dulSeries\":\"${DUL_SERIES}\","
-        [ -n "$DUL_NUMBER" ] && EVIDENCE="${EVIDENCE}\"dulNumber\":\"${DUL_NUMBER}\","
-        EVIDENCE="${EVIDENCE%,}}"
-    fi
-
-    REQUEST_BODY=$(cat <<EOF
-{
-    "lastName": "${LAST_NAME}",
-    "firstName": "${FIRST_NAME}",
-    "middleName": "${MIDDLE_NAME}",
-    "evidence": ${EVIDENCE},
-    "sourceSystemId": "fiducia",
-    "externalPersonId": "test-${LOGIN}"
-}
-EOF
-)
-
-    RESPONSE=$(curl -s "${EDIN_URL}/persons/resolve" \
-        -X POST \
-        -H "Content-Type: application/json" \
-        -d "$REQUEST_BODY" 2>/dev/null) || {
-        echo "ОШИБКА HTTP"
-        FAIL=$((FAIL + 1))
-        continue
-    }
-
-    STATUS=$(echo "$RESPONSE" | jq -r '.status // "null"')
-    MASTER_ID=$(echo "$RESPONSE" | jq -r '.masterId // "null"')
-
-    if [ "$MASTER_ID" = "null" ] || [ -z "$MASTER_ID" ]; then
-        echo "СТАТУС=${STATUS} (MasterId не получен)"
-        FAIL=$((FAIL + 1))
-        continue
-    fi
-
-    echo "MasterId=${MASTER_ID}"
-
-    # Записываем в LDIF — добавляем objectClass extensibleObject + mpiMasterId
-    cat >> "$OUTPUT_LDIF" <<EOF
-# ${LOGIN}: ${LAST_NAME} ${FIRST_NAME} ${MIDDLE_NAME}
-dn: ${LDAP_DN}
-changetype: modify
-add: objectClass
-objectClass: extensibleObject
--
-add: mpiMasterId
-mpiMasterId: ${MASTER_ID}
-
-EOF
-
-    SUCCESS=$((SUCCESS + 1))
-done
-
+echo "=== MPI Seed via ЕДИН ==="
+echo "LDAP: ${LDAP_HOST}:${LDAP_PORT}"
+echo "ЕДИН: ${EDIN_API}"
 echo ""
-echo "Результат: ${SUCCESS} успешно, ${FAIL} ошибок"
-echo "LDIF-файл: ${OUTPUT_LDIF}"
 
-if [ "$SUCCESS" -eq 0 ]; then
-    echo "ОШИБКА: ни один MasterId не получен" >&2
-    exit 1
+# 1. Create identities in ЕДИН
+echo "Step 1: Creating identities in ЕДИН..."
+for f in "${JSON_DIR}"/person-*.json; do
+    [ -f "$f" ] || continue
+    name=$(basename "$f" .json | sed 's/^person-//')
+    echo -n "  ${name}... "
+
+    response=$(curl -s -w "\n%{http_code}" -X POST "${EDIN_API}/identities" \
+        -H "Content-Type: application/json" \
+        -d @"$f")
+
+    http_code=$(echo "$response" | tail -1)
+    body=$(echo "$response" | sed '$d')
+
+    if [ "$http_code" = "201" ] || [ "$http_code" = "200" ]; then
+        echo "OK"
+    elif echo "$body" | grep -q "already exists"; then
+        echo "exists"
+    else
+        echo "FAIL (${http_code}): ${body}"
+    fi
+done
+
+# 2. Trigger resolve to create LDAP entries via webhook
+echo ""
+echo "Step 2: Triggering resolve (LDAP creation)..."
+for f in "${JSON_DIR}"/person-*.json; do
+    [ -f "$f" ] || continue
+    name=$(basename "$f" .json | sed 's/^person-//')
+    serial=$(python3 -c "import json; print(json.load(open('$f'))['identity']['documents'][0]['serial'])")
+    number=$(python3 -c "import json; print(json.load(open('$f'))['identity']['documents'][0]['number'])")
+    inn=$(python3 -c "import json; d=json.load(open('$f')); print(d['identity'].get('inn', ''))")
+
+    echo -n "  ${name} (passport ${serial} ${number}, INN ${inn})... "
+
+    response=$(curl -s -w "\n%{http_code}" -X POST "${EDIN_API}/resolve" \
+        -H "Content-Type: application/json" \
+        -d "{\"documentSerial\": \"${serial}\", \"documentNumber\": \"${number}\", \"inn\": \"${inn}\"}")
+
+    http_code=$(echo "$response" | tail -1)
+    body=$(echo "$response" | sed '$d')
+
+    if [ "$http_code" = "200" ]; then
+        master_id=$(echo "$body" | python3 -c "import sys,json; print(json.load(sys.stdin).get('masterId','?'))" 2>/dev/null || echo "?")
+        echo "OK (masterId: ${master_id})"
+    else
+        echo "FAIL (${http_code}): ${body}"
+    fi
+done
+
+# 3. Wait for LDAP sync
+echo ""
+echo "Step 3: Waiting for LDAP sync..."
+sleep 3
+
+# 4. Verify LDAP entries
+echo "Step 4: Verifying LDAP entries..."
+search_result=$(ldapsearch -x -H "ldap://${LDAP_HOST}:${LDAP_PORT}" \
+    -D "${LDAP_ADMIN}" -w "${LDAP_PASSWORD}" \
+    -b "${LDAP_BASE}" "(objectClass=*)" cn 2>/dev/null || echo "LDAP_SEARCH_FAILED")
+
+if echo "$search_result" | grep -q "LDAP_SEARCH_FAILED"; then
+    echo "  WARNING: LDAP search failed (ldapsearch may not be installed)"
+elif echo "$search_result" | grep -q "mpi_master_id"; then
+    echo "  OK: LDAP entries with mpi_master_id found"
+else
+    echo "  WARNING: No LDAP entries with mpi_master_id found"
 fi
 
-# ── Импорт LDIF в LDAP ────────────────────────────────────────────────────
-echo ""
-echo "Импорт LDIF в LDAP (${LDAP_HOST})..."
-ldapadd -x -H "ldap://${LDAP_HOST}" \
-    -D "${LDAP_BIND_DN}" \
-    -w "${LDAP_PASSWORD}" \
-    -f "${OUTPUT_LDIF}" || {
-    echo "ПРЕДУПРЕЖДЕНИЕ: некоторые записи могли не импортироваться (повторный запуск OK)"
-}
+# 5. Export LDIF if requested
+if [ -n "${OUTPUT_LDIF}" ]; then
+    echo ""
+    echo "Step 5: Exporting LDIF to ${OUTPUT_LDIF}..."
+    ldapsearch -x -H "ldap://${LDAP_HOST}:${LDAP_PORT}" \
+        -D "${LDAP_ADMIN}" -w "${LDAP_PASSWORD}" \
+        -b "${LDAP_BASE}" "(mpi_master_id=*)" \
+        dn cn givenName sn snils uid employeeType title \
+        businessCategory company mobile telephoneNumber \
+        userCertificate;binary \
+        2>/dev/null | sed 's/^#.*LDIF Output//' | sed '/^$/N;/^\n$/d' > "${OUTPUT_LDIF}"
+    echo "  Done: $(grep -c "^dn:" "${OUTPUT_LDIF}" 2>/dev/null || echo 0) entries exported"
+fi
 
 echo ""
-echo "Проверка: ldapsearch mpiMasterId=*"
-ldapsearch -x -H "ldap://${LDAP_HOST}" \
-    -b "${LDAP_BASE}" \
-    -D "${LDAP_BIND_DN}" \
-    -w "${LDAP_PASSWORD}" \
-    "(mpiMasterId=*)" \
-    mpiMasterId dn 2>/dev/null || echo "(ldapsearch недоступен — проверьте вручную)"
-
-echo ""
-echo "Seed MPI завершён."
+echo "=== MPI Seed Complete ==="

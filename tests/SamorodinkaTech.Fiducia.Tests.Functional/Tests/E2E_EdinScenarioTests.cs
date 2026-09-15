@@ -166,8 +166,8 @@ public class E2E_EdinScenarioTests : BrowserFixture
                 passportNumber: "222333",
                 personInn: "770999111000",
                 participantType: "FL",
-                sharePercent: 0m,
-                shareAmount: 0m);
+                sharePercent: 1m,
+                shareAmount: 1000m);
 
             await EdinTestHelper.WaitForEdinBindingAsync(boardPage, participantId2, timeoutSeconds: 5);
 
