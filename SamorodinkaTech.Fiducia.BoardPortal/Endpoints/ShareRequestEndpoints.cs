@@ -1039,8 +1039,10 @@ public static class ShareRequestEndpoints
                 var isBoardMember = user?.UserRoles?.Any(ur =>
                     ur.Role?.Code == "MEMBER_BOARD" || ur.Role?.Code == "CHAIR_BOARD") ?? false;
 
-                var request = await ctx.ShareRequests.FindAsync(id);
-                if (request is null || request.LegalEntityId != leId)
+                var request = await ctx.ShareRequests
+                    .Include(r => r.RequestType)
+                    .FirstOrDefaultAsync(r => r.Id == id && r.LegalEntityId == leId);
+                if (request is null)
                     return Results.NotFound();
 
                 // Требования на рассмотрении СД могут решать только члены СД
@@ -1107,6 +1109,8 @@ public static class ShareRequestEndpoints
                 await ctx.SaveChangesAsync();
 
                 // Если требование принято и тип = DEMAND_VOSU — создаём план ВОСУ
+                logger.LogInformation("DECIDE_CHECK Decision={Decision} RequestTypeCode={RequestTypeCode} IsCollective={IsCollective}",
+                    dto.Decision, request.RequestType?.Code, request.IsCollective);
                 if (dto.Decision == "ACCEPTED" && request.RequestType?.Code == "DEMAND_VOSU")
                 {
                     var templateService = http.RequestServices.GetRequiredService<ITemplateInstantiationService>();
@@ -1946,6 +1950,8 @@ public static class ShareRequestEndpoints
                 return null;
             }
 
+            await ctx.SaveChangesAsync();
+
             // Находим созданный OrgIntent (последний для данного ЮЛ с кодом VOSU)
             var orgIntent = await ctx.OrgIntents
                 .Include(i => i.TemplateIntent)
@@ -1987,6 +1993,8 @@ public static class ShareRequestEndpoints
                 logger.LogWarning("Шаблон VOSA не найден или нет задач для ЮЛ {LegalEntityId}", legalEntityId);
                 return null;
             }
+
+            await ctx.SaveChangesAsync();
 
             // Находим созданный OrgIntent (последний для данного ЮЛ с кодом VOSA)
             var orgIntent = await ctx.OrgIntents

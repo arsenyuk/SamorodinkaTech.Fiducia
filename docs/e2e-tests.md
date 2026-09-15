@@ -14,9 +14,9 @@
 
 ## Результаты последнего прогона
 
-**Дата:** 2026-09-14 (четвёртый прогон — после реализации email)
-**Среда:** .NET 10 SDK (10.0.300) + Playwright Chromium (headless=false)
-**Итого:** 100 тестов → **50 пройдено**, 50 сбой (каскадные + known issue)
+**Дата:** 2026-09-14 (четвёртый прогон — после реализации email) + ручной прогон VosuDemand
+**Среда:** .NET 10 SDK (10.0.300) + Playwright Chromium (headed)
+**Итого:** 100 тестов → **51 пройден**, 49 сбой (каскадные + known issue)
 
 ### Изменения (с предыдущего прогона)
 
@@ -43,7 +43,8 @@
 | `E2E_GeneralDirectorTests` | 6 | ✅ Все пройдены |
 | `E2E_StandardCharter_ExecBodyA_SignTests` | 6 | ✅ Все пройдены |
 | `Helpers.LoginTest` | 1 | ✅ Пройден |
-| **Итого** | **50** | |
+| `E2E_VosuDemandTests` | 1 | ✅ Пройден (2026-09-14, ручной прогон headed) |
+| **Итого** | **51** | |
 
 ### Неработоспособные тесты (50)
 
@@ -56,9 +57,8 @@
 | `E2E_StandardCharter_ExecBodyC_SignTests` | 6 | Каскадный | `GlobalFixture.HasFailed` |
 | `E2E_CustomCharterTests` | 20 | Каскадный | `GlobalFixture.HasFailed` |
 | `E2E_BoardSetupTests` | 3 | Known issue | Страница `/board-setup` не загружает wizard (ADMIN-88) |
-| `E2E_VosuDemandTests` | 1 | Каскадный | `GlobalFixture.HasFailed` |
 | `E2E_ParticipantDulChangeTests` | 1 | Каскадный | `GlobalFixture.HasFailed` |
-| **Итого** | **50** | | |
+| **Итого** | **49** | | |
 
 ---
 
@@ -92,7 +92,7 @@
 | Доля 100% без оплаты — допустимо (201) | US-023 | `US023_ParticipantTests::BoardPortal_ParticipantFl_FullyPaidNoPayment_ShouldAccept` | [e2e-participant-list.md](e2e-participant-list.md) | ✅ Реализован |
 | Требования участника | US-020 | `US020_ShareRequestTests` | [e2e-share-request.md](e2e-share-request.md) | ✅ Реализован |
 | Каталог предоставленных документов | US-021 | `US021_DocumentCatalogTests` | [e2e-document-catalog.md](e2e-document-catalog.md) | ✅ Реализован |
-| Требование о созыве ВОСУ | — | `E2E_VosuDemandTests` | [e2e-vosu-demand.md](e2e-vosu-demand.md) | ✅ Реализован |
+| Требование о созыве ВОСУ | — | `E2E_VosuDemandTests` | [e2e-vosu-demand.md](e2e-vosu-demand.md) | ✅ Пройден (2026-09-14) |
 | Изменение сведений участника / версионирование ДУЛ | — | `E2E_ParticipantDulChangeTests` | [e2e-participant-dul-change.md](e2e-participant-dul-change.md) | 🔄 Реализован, требует проверки |
 
 ### Администрирование
@@ -144,7 +144,7 @@
 | Первичный ввод состава СД: Вариант 1 (только Председатель) | — | `E2E_BoardSetupTests::BoardSetup_Variant1_ChairOnly` | [e2e-board-setup.md](e2e-board-setup.md) | ✅ Реализован |
 | Первичный ввод состава СД: Вариант 2 (Председатель + Зам.) | — | `E2E_BoardSetupTests::BoardSetup_Variant2_ChairAndDeputy` | [e2e-board-setup.md](e2e-board-setup.md) | ✅ Реализован |
 | Первичный ввод состава СД: Вариант 3 (Председатель + Секретарь) | — | `E2E_BoardSetupTests::BoardSetup_Variant3_ChairAndSecretary` | [e2e-board-setup.md](e2e-board-setup.md) | ✅ Реализован |
-| Коллективное требование (ВОСУ) | — | `E2E_VosuDemandTests` | [e2e-vosu-demand.md](e2e-vosu-demand.md) | ✅ Реализован |
+| Коллективное требование (ВОСУ) | — | `E2E_VosuDemandTests` | [e2e-vosu-demand.md](e2e-vosu-demand.md) | ✅ Пройден (2026-09-14) |
 | Изменение сведений участника (ДУЛ): регистрация → информирование → версионирование | — | `E2E_ParticipantDulChangeTests::DulChange_ParticipantUpdatesPassport_ShouldVersionDocument` | [e2e-participant-dul-change.md](e2e-participant-dul-change.md) | 🔄 Реализован, требует проверки |
 
 ---

@@ -89,18 +89,24 @@ public class E2E_VosuDemandTests : BrowserFixture
             await boardPage.WaitForTimeoutAsync(2000);
 
             var notification = await boardPage.WaitForRequiredSelectorAsync(
-                "text=Требование направлено ГД",
+                "text=Требование участника о созыве ВОСУ",
                 "Уведомление о требовании");
 
-            // Кликаем по ссылке уведомления
+            // Кликаем по ссылке уведомления (исключая sidebar-ссылку)
             var link = await boardPage.WaitForSelectorAsync(
-                "a:text('Требование направлено ГД')",
+                ".border-start a[href*='ceo-demands']",
                 new() { Timeout = DefaultTimeout });
             if (link is not null)
             {
                 await link.ClickAsync();
                 await AuthHelper.WaitForBlazorReady(boardPage);
                 await boardPage.WaitForTimeoutAsync(3000);
+                Console.WriteLine($"[VosuDemand] URL после клика по уведомлению: {boardPage.Url}");
+                var pageContent = await boardPage.ContentAsync();
+                var hasDeadline = pageContent.Contains("Дедлайн решения");
+                var hasNotFound = pageContent.Contains("Требование не найдено");
+                var hasError = pageContent.Contains("Ошибка загрузки");
+                Console.WriteLine($"[VosuDemand] Дедлайн решения={hasDeadline}, НеНайдено={hasNotFound}, Ошибка={hasError}");
             }
             else
             {
@@ -121,6 +127,7 @@ public class E2E_VosuDemandTests : BrowserFixture
             boardPage.Dialog += async (_, dialog) => await dialog.AcceptAsync();
             await boardPage.ClickAsync("button:text('Принять требование')");
             await boardPage.WaitForTimeoutAsync(5000);
+            Console.WriteLine($"[VosuDemand] URL после принятия: {boardPage.Url}");
 
             await boardPage.WaitForSelectorAsync("text=Перейти к плану ВОСУ", new() { Timeout = DefaultTimeout });
 
@@ -150,13 +157,13 @@ public class E2E_VosuDemandTests : BrowserFixture
 
             // Заполняем место проведения
             var venueInput = await boardPage.WaitForRequiredSelectorAsync(
-                "input[placeholder*='Место']",
+                "input[placeholder*='Пятницкая']",
                 "Место проведения");
             await venueInput.FillAsync("г. Москва, ул. Тверская, д. 1, переговорная № 3");
 
             // Заполняем повестку
             var agendaTextarea = await boardPage.WaitForRequiredSelectorAsync(
-                "textarea[placeholder*='Повестка']",
+                "textarea[placeholder*='Избрание']",
                 "Повестка");
             await agendaTextarea.FillAsync("1. Избрание Председателя ВОСУ\n2. Досрочное прекращение полномочий ГД");
 

@@ -1700,6 +1700,7 @@
 
                 // Устанавливаем флаг на выбранного участника
                 var gdParticipant = await ctx.BoardParticipants
+                    .Include(p => p.EcosystemParticipant)
                     .FirstOrDefaultAsync(p => p.Id == _selectedGdParticipantId.Value);
                 if (gdParticipant is not null)
                 {
@@ -1707,6 +1708,29 @@
                     if (gdParticipant.Person is not null)
                         gdParticipant.Person.Snils = _gdSnils;
                     gdParticipant.UpdatedAt = DateTime.UtcNow;
+
+                    // Назначаем роль CEO синхронно (не зависит от ЕДИН)
+                    if (gdParticipant.EcosystemParticipant?.UserId.HasValue == true)
+                    {
+                        var ceoRole = await ctx.Roles.FirstOrDefaultAsync(r => r.Code == "CEO");
+                        if (ceoRole is not null)
+                        {
+                            var hasCeo = await ctx.UserRoles
+                                .AnyAsync(ur => ur.UserId == gdParticipant.EcosystemParticipant.UserId.Value
+                                             && ur.RoleId == ceoRole.Id);
+                            if (!hasCeo)
+                            {
+                                ctx.UserRoles.Add(new UserRole
+                                {
+                                    Id = Guid.NewGuid(),
+                                    UserId = gdParticipant.EcosystemParticipant.UserId.Value,
+                                    RoleId = ceoRole.Id
+                                });
+                                Logger.LogInformation("Назначена роль CEO для User={UserId} в ЮЛ {LeId}",
+                                    gdParticipant.EcosystemParticipant.UserId.Value, selectedEntity.Id);
+                            }
+                        }
+                    }
                 }
             }
 

@@ -276,6 +276,25 @@ if (builder.Configuration.GetValue<bool>("Edin:Enabled"))
 // SMTP — отправка email-писем (опционально)
 // Все настройки — в appsettings.json, секция Smtp (ADR-022)
 builder.Services.Configure<SmtpOptions>(builder.Configuration.GetSection("Smtp"));
+builder.Services.PostConfigure<SmtpOptions>(options =>
+{
+    var host = Environment.GetEnvironmentVariable("SMTP_HOST");
+    if (!string.IsNullOrEmpty(host)) options.Host = host;
+    var port = Environment.GetEnvironmentVariable("SMTP_PORT");
+    if (int.TryParse(port, out var p)) options.Port = p;
+    var user = Environment.GetEnvironmentVariable("SMTP_USER");
+    if (!string.IsNullOrEmpty(user)) options.User = user;
+    var password = Environment.GetEnvironmentVariable("SMTP_PASSWORD");
+    if (!string.IsNullOrEmpty(password)) options.Password = password;
+    var from = Environment.GetEnvironmentVariable("SMTP_FROM");
+    if (!string.IsNullOrEmpty(from)) options.From = from;
+    var useSsl = Environment.GetEnvironmentVariable("SMTP_USE_SSL");
+    if (bool.TryParse(useSsl, out var ssl)) options.UseSsl = ssl;
+    var devOverride = Environment.GetEnvironmentVariable("SMTP_DEV_OVERRIDE_TO");
+    if (!string.IsNullOrEmpty(devOverride)) options.DevOverrideTo = devOverride;
+    var enabled = Environment.GetEnvironmentVariable("SMTP_ENABLED");
+    if (bool.TryParse(enabled, out var e)) options.Enabled = e;
+});
 if (builder.Configuration.GetValue<bool>("Smtp:Enabled"))
 {
     builder.Services.AddScoped<IEmailService>(sp =>

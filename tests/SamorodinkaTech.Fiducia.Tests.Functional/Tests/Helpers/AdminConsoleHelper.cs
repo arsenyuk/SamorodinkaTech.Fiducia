@@ -243,44 +243,57 @@ public static class AdminConsoleHelper
     /// </summary>
     private static async Task<string?> FindLegalEntityIdByNameAsync(IPage page, string legalEntityName)
     {
-        await page.GotoAsync(PortalUrls.GetUrl(Portal.AdminConsole, "/legal-entities"));
-        await AuthHelper.WaitForBlazorReady(page);
-        await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        for (int attempt = 0; attempt < 3; attempt++)
+        {
+            await page.GotoAsync(PortalUrls.GetUrl(Portal.AdminConsole, "/legal-entities"));
+            await AuthHelper.WaitForBlazorReady(page);
+            await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+            await page.WaitForTimeoutAsync(1000);
 
-        await page.WaitForSelectorAsync("tbody tr", new PageWaitForSelectorOptions { Timeout = DefaultTimeout });
+            try
+            {
+                await page.WaitForSelectorAsync("tbody tr", new PageWaitForSelectorOptions { Timeout = DefaultTimeout });
+            }
+            catch
+            {
+                if (attempt < 2) continue;
+                return null;
+            }
 
-        // Извлекаем ID из onclick-атрибута Blazor (data属性)
-        // Blazor генерирует onclick с NavigateTo(...), но проще — кликнуть и дождаться URL
-        var rowFound = await page.EvaluateAsync<bool>(
-            $@"() => {{
-                const rows = document.querySelectorAll('tbody tr');
-                for (const row of rows) {{
-                    if (row.textContent.includes('{EscapeJs(legalEntityName)}')) {{
-                        row.click();
-                        return true;
+            var rowFound = await page.EvaluateAsync<bool>(
+                $@"() => {{
+                    const rows = document.querySelectorAll('tbody tr');
+                    for (const row of rows) {{
+                        if (row.textContent.includes('{EscapeJs(legalEntityName)}')) {{
+                            row.click();
+                            return true;
+                        }}
                     }}
-                }}
-                return false;
-            }}");
+                    return false;
+                }}");
 
-        if (!rowFound) return null;
+            if (!rowFound)
+            {
+                if (attempt < 2) continue;
+                return null;
+            }
 
-        // Ждём навигации на /access-management
-        try
-        {
-            await page.WaitForURLAsync("**/access-management**", new PageWaitForURLOptions { Timeout = DefaultTimeout });
-        }
-        catch
-        {
-            return null;
-        }
+            try
+            {
+                await page.WaitForURLAsync("**/access-management**", new PageWaitForURLOptions { Timeout = DefaultTimeout });
+            }
+            catch
+            {
+                if (attempt < 2) continue;
+                return null;
+            }
 
-        // Извлекаем le из URL
-        var url = page.Url;
-        if (url.Contains("le="))
-        {
-            var leParam = url.Split("le=").Last().Split('&')[0];
-            return leParam;
+            var url = page.Url;
+            if (url.Contains("le="))
+            {
+                var leParam = url.Split("le=").Last().Split('&')[0];
+                return leParam;
+            }
         }
         return null;
     }
