@@ -93,8 +93,8 @@ public static class ShareRequestEndpoints
                             => $"Выход разрешён участникам с долей ≤ {charter.ExitAllowedMaxSharePercent}%",
                         "PREEMPTIVE_LIST" when !(charter?.PreemptiveRight ?? true) => "Преимущественное право не действует",
                         "NOTARY_LIST_MAINTENANCE" when extraSettings?.NotaryListApproved == true => "Ведение списка через нотариат уже утверждено",
-                        "CONVERT_STANDARD_TO_CUSTOM_CHARTER" when !(le?.StandardCharterId.HasValue ?? false) => "Текущий устав уже является нетиповым",
-                        "CHANGE_STANDARD_CHARTER_NUMBER" when !(le?.StandardCharterId.HasValue ?? false) => "Текущий устав уже является нетиповым",
+                        "CONVERT_STANDARD_TO_CUSTOM_CHARTER" when !(le?.StandardCharterId.HasValue ?? false) => "Текущий устав уже является индивидуальным",
+                        "CHANGE_STANDARD_CHARTER_NUMBER" when !(le?.StandardCharterId.HasValue ?? false) => "Текущий устав уже является индивидуальным",
                         "CHANGE_CUSTOM_CHARTER_PROVISION" when le?.StandardCharterId.HasValue ?? true => "Текущий устав является типовым — используйте «Изменить номер типового устава»",
                         _ => null
                     }
@@ -2104,7 +2104,7 @@ public static class ShareRequestEndpoints
     {
         var le = await ctx.LegalEntities.FirstOrDefaultAsync(x => x.Id == leId);
         if (le?.StandardCharterId is null)
-            return "Текущий устав уже является нетиповым";
+            return "Текущий устав уже является индивидуальным";
 
         if (string.IsNullOrEmpty(dto.Payload))
             return "Необходимо приложить файл проекта устава";
@@ -2140,7 +2140,7 @@ public static class ShareRequestEndpoints
     {
         var le = await ctx.LegalEntities.FirstOrDefaultAsync(x => x.Id == leId);
         if (le?.StandardCharterId is not null)
-            return "Устав является типовым; используйте требование «Изменить номер типового устава» или «Изменить типовой устав на нетиповой»";
+            return "Устав является типовым; используйте требование «Изменить номер типового устава» или «Изменить типовой устав на индивидуальный»";
         return null;
     }
 

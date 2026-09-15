@@ -6,11 +6,11 @@ namespace SamorodinkaTech.Fiducia.Tests.Functional;
 
 /// <summary>
 /// Сквозные E2E-тесты для первичного ввода состава Совета директоров.
-/// Тест проверяет wizard назначения ролей в СД для ООО с нетиповым уставом.
+/// Тест проверяет wizard назначения ролей в СД для ООО с индивидуальным уставом.
 /// БД сбрасывается ОДИН раз перед прогоном всех тестов.
 /// Тестовый сценарий:
 /// 1. Логин ГД в Board Portal
-/// 2. Настройка ЮЛ: нетиповый устав + Совет директоров
+/// 2. Настройка ЮЛ: индивидуальный устав + Совет директоров
 /// 3. Добавление участников общества
 /// 4. Переход на страницу первичного ввода состава СД
 /// 5. Добавление Председателя СД
@@ -44,8 +44,8 @@ public class E2E_BoardSetupTests : BrowserFixture
         var (adminPage, boardPage, login) = await SetupFullCycleAsync(64);
         try
         {
-            // Настраиваем ЮЛ: нетиповый устав + Совет директоров
-            await BoardPortalHelper.SelectNonStandardCharterAsync(boardPage);
+            // Настраиваем ЮЛ: индивидуальный устав + Совет директоров
+            await BoardPortalHelper.SelectCustomCharterAsync(boardPage);
             await BoardPortalHelper.ConfigureCharterParameterAsync(boardPage, "has-board", "true");
 
             // Добавляем участников общества
@@ -97,8 +97,8 @@ public class E2E_BoardSetupTests : BrowserFixture
         var (adminPage, boardPage, login) = await SetupFullCycleAsync(65);
         try
         {
-            // Настраиваем ЮЛ: нетиповый устав + Совет директоров
-            await BoardPortalHelper.SelectNonStandardCharterAsync(boardPage);
+            // Настраиваем ЮЛ: индивидуальный устав + Совет директоров
+            await BoardPortalHelper.SelectCustomCharterAsync(boardPage);
             await BoardPortalHelper.ConfigureCharterParameterAsync(boardPage, "has-board", "true");
 
             // Добавляем участников общества
@@ -153,8 +153,8 @@ public class E2E_BoardSetupTests : BrowserFixture
         var (adminPage, boardPage, login) = await SetupFullCycleAsync(66);
         try
         {
-            // Настраиваем ЮЛ: нетиповый устав + Совет директоров
-            await BoardPortalHelper.SelectNonStandardCharterAsync(boardPage);
+            // Настраиваем ЮЛ: индивидуальный устав + Совет директоров
+            await BoardPortalHelper.SelectCustomCharterAsync(boardPage);
             await BoardPortalHelper.ConfigureCharterParameterAsync(boardPage, "has-board", "true");
 
             // Добавляем участников общества

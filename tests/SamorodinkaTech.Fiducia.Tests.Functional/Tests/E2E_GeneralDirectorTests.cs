@@ -24,7 +24,7 @@ public class E2E_GeneralDirectorTests : BrowserFixture
     // ══════════════════════════════════════════════════════════════════════
 
     /// <summary>
-    /// Тест 58: Вкладка «ГД» видна для нетипового устава с ExecutiveBody=A.
+    /// Тест 58: Вкладка «ГД» видна для индивидуального устава с ExecutiveBody=A.
     /// Назначение одного участника ГД + ввод СНИЛС + сохранение.
     /// </summary>
     [Fact]
@@ -38,9 +38,9 @@ public class E2E_GeneralDirectorTests : BrowserFixture
         var (adminPage, boardPage, ldapPage, login) = await SetupFullCycleAsync(58);
         try
         {
-            // Выбираем нетиповой устав
-            await BoardPortalHelper.SelectNonStandardCharterAsync(boardPage);
-            // ExecutiveBody = A (по умолчанию для нетипового устава)
+            // Выбираем индивидуальный устав
+            await BoardPortalHelper.SelectCustomCharterAsync(boardPage);
+            // ExecutiveBody = A (по умолчанию для индивидуального устава)
             await BoardPortalHelper.SetExecutiveBodyAsync(boardPage, "A");
 
             // Добавляем участника
@@ -97,7 +97,7 @@ public class E2E_GeneralDirectorTests : BrowserFixture
         var (adminPage, boardPage, ldapPage, login) = await SetupFullCycleAsync(59);
         try
         {
-            await BoardPortalHelper.SelectNonStandardCharterAsync(boardPage);
+            await BoardPortalHelper.SelectCustomCharterAsync(boardPage);
             await BoardPortalHelper.SetExecutiveBodyAsync(boardPage, "A");
             await AddParticipantsAsync(boardPage, 59);
 
@@ -145,7 +145,7 @@ public class E2E_GeneralDirectorTests : BrowserFixture
         var (adminPage, boardPage, ldapPage, login) = await SetupFullCycleAsync(60);
         try
         {
-            await BoardPortalHelper.SelectNonStandardCharterAsync(boardPage);
+            await BoardPortalHelper.SelectCustomCharterAsync(boardPage);
             await BoardPortalHelper.SetExecutiveBodyAsync(boardPage, "A");
             await AddParticipantsAsync(boardPage, 60);
 
@@ -193,7 +193,7 @@ public class E2E_GeneralDirectorTests : BrowserFixture
         var (adminPage, boardPage, ldapPage, login) = await SetupFullCycleAsync(61);
         try
         {
-            await BoardPortalHelper.SelectNonStandardCharterAsync(boardPage);
+            await BoardPortalHelper.SelectCustomCharterAsync(boardPage);
             await BoardPortalHelper.SetExecutiveBodyAsync(boardPage, "B");
             await AddParticipantsAsync(boardPage, 61);
 
@@ -231,7 +231,7 @@ public class E2E_GeneralDirectorTests : BrowserFixture
         var (adminPage, boardPage, ldapPage, login) = await SetupFullCycleAsync(62);
         try
         {
-            await BoardPortalHelper.SelectNonStandardCharterAsync(boardPage);
+            await BoardPortalHelper.SelectCustomCharterAsync(boardPage);
             await BoardPortalHelper.SetExecutiveBodyAsync(boardPage, "C");
             await AddParticipantsAsync(boardPage, 62);
 

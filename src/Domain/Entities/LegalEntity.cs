@@ -16,7 +16,7 @@ public class LegalEntity
     public Guid? OkopfId { get; set; }
     public RefOkopf? RefOkopf { get; set; }
 
-    /// <summary>Внешний ключ на типовой устав (standard_charter_id). null = нетиповой (индивидуальный) устав.</summary>
+    /// <summary>Внешний ключ на типовой устав (standard_charter_id). null = индивидуальный устав.</summary>
     public Guid? StandardCharterId { get; set; }
     public RefStandardCharter? StandardCharter { get; set; }
 }

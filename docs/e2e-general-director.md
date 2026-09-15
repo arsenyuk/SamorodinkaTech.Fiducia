@@ -6,7 +6,7 @@
 
 ### Бизнес-условие
 
-На странице ЮЛ в Board Portal находится вкладка «ГД» (генеральный директор). Вкладка видна только при ExecutiveBody=A (ГД — отдельное лицо) для нетипового или типового устава. Администратор назначает участника генеральным директором, вводит СНИЛС, проверяет сохранение данных. При ExecutiveBody=B/C вкладка не отображается.
+На странице ЮЛ в Board Portal находится вкладка «ГД» (генеральный директор). Вкладка видна только при ExecutiveBody=A (ГД — отдельное лицо) для индивидуального или типового устава. Администратор назначает участника генеральным директором, вводит СНИЛС, проверяет сохранение данных. При ExecutiveBody=B/C вкладка не отображается.
 
 ### Кто что делает
 
@@ -57,7 +57,7 @@
 
 ```
 SetupFullCycleAsync(entityIndex)
-BoardPortalHelper.SelectNonStandardCharterAsync(boardPage)  // или SelectStandardCharterAsync
+BoardPortalHelper.SelectCustomCharterAsync(boardPage)  // или SelectStandardCharterAsync
 BoardPortalHelper.SetExecutiveBodyAsync(boardPage, executiveBodyType)
 BoardPortalHelper.AddParticipantAsync(boardPage, ...)  // с ДУЛ
 ```

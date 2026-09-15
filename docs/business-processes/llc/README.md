@@ -1,6 +1,6 @@
 # ООО
 
-- [Нетиповой устав](non-standard-charter.md)
+- [Индивидуальный устав](custom-charter.md)
 - [Влияние параметров типового устава на бизнес-процессы](standard-charter-impact.md)
 - [Устав ООО — ограничения на продажу долей](llc-charter-restrictions.md)
 - [Покупка и продажа доли в ООО](llc-share-purchase-sale.md)
@@ -22,7 +22,7 @@
 | Каталог предоставленных документов | `US021_DocumentCatalogTests` | ✅ Реализован |
 | Участники ООО (список) | `US023_ParticipantTests` | ✅ Реализован |
 | Типовой устав | `E2E_StandardCharter_ExecBody*Tests` | ✅ Реализован |
-| Нетиповой устав | `E2E_NonStandardCharterTests` | ✅ Реализован |
+| Индивидуальный устав | `E2E_CustomCharterTests` | ✅ Реализован |
 | Первичный ввод состава СД | `E2E_BoardSetupTests` | ✅ Реализован |
 | Генеральный директор | `E2E_GeneralDirectorTests` | ✅ Реализован |
 | ЕДИН-интеграция | `E2E_EdinIntegrationTests` | ✅ Реализован |

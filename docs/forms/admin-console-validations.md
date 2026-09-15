@@ -28,7 +28,7 @@
 | ФИО руководителя | Required (`IsNullOrWhiteSpace`) | "Укажите ФИО руководителя." | [`LegalEntityValidatorTests`](../e2e-tests.md#маппинг-us--e2e-класс) |
 | Должность руководителя | Required (`IsNullOrWhiteSpace`) | "Укажите должность руководителя." | [`LegalEntityValidatorTests`](../e2e-tests.md#маппинг-us--e2e-класс) |
 | Дата окончания окна ГОСА | >= даты начала | "Дата окончания окна ГОСА не может быть раньше даты начала." | [`LegalEntityValidatorTests::Gosa_EndBeforeStart`](../e2e-tests.md#маппинг-us--e2e-класс) |
-| Окно ГОСА (ПАО) | В диапазоне 01.03–30.06 | "Для ПАО окно ГОСА должно находиться в пределах 01.03–30.06." | [`LegalEntityValidatorTests::Gosa_PAO_*`](../e2e-tests.md#маппинг-us--e2e-класс), `E2E_StandardCharter_ExecBody*Tests`, `E2E_NonStandardCharterTests` |
+| Окно ГОСА (ПАО) | В диапазоне 01.03–30.06 | "Для ПАО окно ГОСА должно находиться в пределах 01.03–30.06." | [`LegalEntityValidatorTests::Gosa_PAO_*`](../e2e-tests.md#маппинг-us--e2e-класс), `E2E_StandardCharter_ExecBody*Tests`, `E2E_CustomCharterTests` |
 | Окно ГОСА (НАО) | Фиксировано 01.03–30.06 | "Для НАО интервал ГОСА фиксирован: 01.03–30.06." | [`LegalEntityValidatorTests::Gosa_NAO_*`](../e2e-tests.md#маппинг-us--e2e-класс) |
 | Типовой устав | 2 цифры, 01–36 | "Номер типового устава должен быть от 01 до 36." | `E2E_StandardCharter_ExecBody*Tests` (36 тестов) |
 | Типовой устав | Только для ООО | "Типовой устав применим только для ООО." | `E2E_StandardCharter_ExecBody*Tests` |
@@ -106,8 +106,8 @@
 
 | Поле | Правило | Сообщение | Тесты |
 |------|---------|-----------|-------|
-| Наименование | Required | "Введите наименование." | `E2E_StandardCharter_ExecBody*Tests`, `E2E_NonStandardCharterTests` |
-| ИНН | Required | "Введите ИНН." | `E2E_StandardCharter_ExecBody*Tests`, `E2E_NonStandardCharterTests` |
+| Наименование | Required | "Введите наименование." | `E2E_StandardCharter_ExecBody*Tests`, `E2E_CustomCharterTests` |
+| ИНН | Required | "Введите ИНН." | `E2E_StandardCharter_ExecBody*Tests`, `E2E_CustomCharterTests` |
 | ИНН | 10 или 12 цифр | "ИНН: 10 или 12 цифр." | — (нет теста) |
 | ИНН | DB: уникальность | "ИНН {inn} уже существует." | — (нет теста) |
 
@@ -206,8 +206,8 @@
 | Endpoint | Поле | Правило | Сообщение | Тесты |
 |----------|------|---------|-----------|-------|
 | `POST /api/session/login` | Token | Required | "Token is required" | [`US001_AuthorizationTests`](../e2e-tests.md#авторизация-и-безопасность) |
-| `POST /api/legal-entities/{id}/gosa-window` | Даты ГОСА | Валидность для ОКОПФ | "Недопустимый интервал ГОСА для данной ОПФ" | `E2E_StandardCharter_ExecBody*Tests`, `E2E_NonStandardCharterTests` |
-| `POST /api/board/members` | HasBoardOfDirectors | true | "Для данного юрлица Совет директоров отключён" | `E2E_NonStandardCharterTests::NonStandardCharter_HasBoardOfDirectors` |
+| `POST /api/legal-entities/{id}/gosa-window` | Даты ГОСА | Валидность для ОКОПФ | "Недопустимый интервал ГОСА для данной ОПФ" | `E2E_StandardCharter_ExecBody*Tests`, `E2E_CustomCharterTests` |
+| `POST /api/board/members` | HasBoardOfDirectors | true | "Для данного юрлица Совет директоров отключён" | `E2E_CustomCharterTests::CustomCharter_HasBoardOfDirectors` |
 | `POST /api/files/upload` | Request | Not null | "Invalid request" | — (нет теста) |
 | `POST /api/files/upload/chunk` | Параметры | uploadId, chunkIndex, file | "Missing parameters" / "Invalid chunkIndex" | — (нет теста) |
 | `POST /api/files/upload/complete` | Request | Not null | "Invalid request" | — (нет теста) |

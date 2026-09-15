@@ -1,7 +1,7 @@
 namespace SamorodinkaTech.Fiducia.Domain.Entities;
 
 /// <summary>
-/// Параметры устава ООО — для типового и нетипового (legal_entity_charter).
+/// Параметры устава ООО — для типового и индивидуального (legal_entity_charter).
 /// 1:1 связь с LegalEntity. При типовом уставе параметры копируются из RefStandardCharter.
 /// </summary>
 public class LegalEntityCharter
@@ -17,13 +17,13 @@ public class LegalEntityCharter
 
     /// <summary>
     /// Минимальная доля участника для права на выход (exit_allowed_min_share_percent).
-    /// NULL — выход разрешён всем. Только для нетипового устава.
+    /// NULL — выход разрешён всем. Только для индивидуального устава.
     /// </summary>
     public decimal? ExitAllowedMinSharePercent { get; set; }
 
     /// <summary>
     /// Максимальная доля участника для права на выход (exit_allowed_max_share_percent).
-    /// NULL — без ограничения по максимуму. Только для нетипового устава.
+    /// NULL — без ограничения по максимуму. Только для индивидуального устава.
     /// </summary>
     public decimal? ExitAllowedMaxSharePercent { get; set; }
 
@@ -84,10 +84,10 @@ public class LegalEntityCharter
     /// <summary>Наличие ревизионной комиссии — >15 участников ООО или ПАО/НАО≥50 (has_revision_commission). null — не указано.</summary>
     public bool? HasRevisionCommission { get; set; }
 
-    /// <summary>Наличие Совета директоров — для ООО с нетиповым уставом (has_board_of_directors).</summary>
+    /// <summary>Наличие Совета директоров — для ООО с индивидуальным уставом (has_board_of_directors).</summary>
     public bool HasBoardOfDirectors { get; set; }
 
-    /// <summary>Идентификатор срока полномочий ГД (gd_term_id). Только для нетипового устава с executive_body = 'A'.</summary>
+    /// <summary>Идентификатор срока полномочий ГД (gd_term_id). Только для индивидуального устава с executive_body = 'A'.</summary>
     public Guid? GdTermId { get; set; }
 
     /// <summary>Срок полномочий ГД.</summary>
@@ -97,6 +97,6 @@ public class LegalEntityCharter
     public decimal? VosuThresholdPercent { get; set; }
 
     /// <summary>СД принимает решение о созыве ОСУ (board_decides_convening_osu).
-    /// Для ООО с нетиповым уставом. Определяет流向 требований участников: если включено — СД вместо ГД.</summary>
+    /// Для ООО с индивидуальным уставом. Определяет流向 требований участников: если включено — СД вместо ГД.</summary>
     public bool BoardDecidesConveningOsu { get; set; }
 }

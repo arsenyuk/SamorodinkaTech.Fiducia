@@ -65,7 +65,7 @@ public class TplOrgTaskOffer
     /// <summary>Включать только при наличии Положения о СД (require_board_regulation). null — без проверки.</summary>
     public bool? RequireBoardRegulation { get; set; }
 
-    /// <summary>Включать только для нетипового устава (require_custom_charter). null — без проверки.</summary>
+    /// <summary>Включать только для индивидуального устава (require_custom_charter). null — без проверки.</summary>
     public bool? RequireCustomCharter { get; set; }
 
     /// <summary>Включать только для исполнительного органа типа A — гендиректор (require_executive_body_a). null — без проверки.</summary>

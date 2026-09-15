@@ -33,6 +33,6 @@ public record LegalEntitySaveValidationModel
     /// <summary>ФИО руководителя.</summary>
     public string? FullName { get; set; }
 
-    /// <summary>Номер типового устава в формате ФНС: «01»–«36» (null = нетиповой).</summary>
+    /// <summary>Номер типового устава в формате ФНС: «01»–«36» (null = индивидуальный).</summary>
     public string? StandardCharterNumber { get; set; }
 }

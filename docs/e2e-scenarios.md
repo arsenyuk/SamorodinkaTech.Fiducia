@@ -24,20 +24,20 @@
 | 5 | Типовой устав (05) | `E2E_StandardCharter_ExecBodyA_NotarialTests::StandardCharter05_CompleteFlow` | ❌ Каскадный 13.09 | `GlobalFixture.HasFailed` |
 | 6 | Типовой устав (06) | `E2E_StandardCharter_ExecBodyA_NotarialTests::StandardCharter06_CompleteFlow` | ❌ Каскадный 13.09 | `GlobalFixture.HasFailed` |
 | 7 | Типовой устав (07–36) | `E2E_StandardCharter_ExecBody{A,B,C}_{Notarial,Sign}Tests` (6 файлов) | ❌ Каскадный 13.09 | `GlobalFixture.HasFailed` (36 тестов) |
-| 5 | Нетиповой устав: ExitAllowed | `E2E_NonStandardCharterTests::NonStandardCharter_ExitAllowed` | ❌ Каскадный 13.09 | `GlobalFixture.HasFailed` |
-| 6 | Нетиповой устав: ExitMinSharePercent | `E2E_NonStandardCharterTests::NonStandardCharter_ExitMinSharePercent` | ❌ Каскадный 13.09 | `GlobalFixture.HasFailed` |
-| 7 | Нетиповой устав: ExitMaxSharePercent | `E2E_NonStandardCharterTests::NonStandardCharter_ExitMaxSharePercent` | ❌ Каскадный 13.09 | `GlobalFixture.HasFailed` |
-| 8 | Нетиповой устав: ExitConditionDescription | `E2E_NonStandardCharterTests::NonStandardCharter_ExitConditionDescription` | ❌ Каскадный 13.09 | `GlobalFixture.HasFailed` |
-| 9 | Нетиповой устав: TransferToParticipants | `E2E_NonStandardCharterTests::NonStandardCharter_TransferToParticipants` | ❌ Каскадный 13.09 | `GlobalFixture.HasFailed` |
-| 10 | Нетиповой устав: ExitRequiresUnanimousOsu | `E2E_NonStandardCharterTests::NonStandardCharter_ExitRequiresUnanimousOsu` | ❌ Каскадный 13.09 | `GlobalFixture.HasFailed` |
-| 11 | Нетиповой устав: прочие (8 тестов) | `E2E_NonStandardCharterTests` | ❌ Каскадный 13.09 | `GlobalFixture.HasFailed` (20 тестов) |
-| 11 | ЕИО: ГД — наёмный | `E2E_NonStandardCharterTests::Model1_HiredCeo` | ❌ Каскадный 13.09 | `GlobalFixture.HasFailed` |
-| 12 | ЕИО: ГД — участник | `E2E_NonStandardCharterTests::Model2_CeoParticipant` | ❌ Каскадный 13.09 | `GlobalFixture.HasFailed` |
-| 13 | ЕИО: Управляющий ИП | `E2E_NonStandardCharterTests::Model3_ManagerIp` | ❌ Каскадный 13.09 | `GlobalFixture.HasFailed` |
-| 14 | ЕИО: Упр. организация | `E2E_NonStandardCharterTests::Model4_ManagingOrg` | ❌ Каскадный 13.09 | `GlobalFixture.HasFailed` |
-| 15 | ЕИО: Все — директора | `E2E_NonStandardCharterTests::Model5_AllParticipantsDirectors` | ❌ Каскадный 13.09 | `GlobalFixture.HasFailed` |
-| 16 | ЕИО: Все совместно | `E2E_NonStandardCharterTests::Model6_AllParticipantsJoint` | ❌ Каскадный 13.09 | `GlobalFixture.HasFailed` |
-| 17 | ЕИО: Несколько ЕИО | `E2E_NonStandardCharterTests::Model7_MultipleEio` | ❌ Каскадный 13.09 | `GlobalFixture.HasFailed` |
+| 5 | Индивидуальный устав: ExitAllowed | `E2E_CustomCharterTests::CustomCharter_ExitAllowed` | ❌ Каскадный 13.09 | `GlobalFixture.HasFailed` |
+| 6 | Индивидуальный устав: ExitMinSharePercent | `E2E_CustomCharterTests::CustomCharter_ExitMinSharePercent` | ❌ Каскадный 13.09 | `GlobalFixture.HasFailed` |
+| 7 | Индивидуальный устав: ExitMaxSharePercent | `E2E_CustomCharterTests::CustomCharter_ExitMaxSharePercent` | ❌ Каскадный 13.09 | `GlobalFixture.HasFailed` |
+| 8 | Индивидуальный устав: ExitConditionDescription | `E2E_CustomCharterTests::CustomCharter_ExitConditionDescription` | ❌ Каскадный 13.09 | `GlobalFixture.HasFailed` |
+| 9 | Индивидуальный устав: TransferToParticipants | `E2E_CustomCharterTests::CustomCharter_TransferToParticipants` | ❌ Каскадный 13.09 | `GlobalFixture.HasFailed` |
+| 10 | Индивидуальный устав: ExitRequiresUnanimousOsu | `E2E_CustomCharterTests::CustomCharter_ExitRequiresUnanimousOsu` | ❌ Каскадный 13.09 | `GlobalFixture.HasFailed` |
+| 11 | Индивидуальный устав: прочие (8 тестов) | `E2E_CustomCharterTests` | ❌ Каскадный 13.09 | `GlobalFixture.HasFailed` (20 тестов) |
+| 11 | ЕИО: ГД — наёмный | `E2E_CustomCharterTests::Model1_HiredCeo` | ❌ Каскадный 13.09 | `GlobalFixture.HasFailed` |
+| 12 | ЕИО: ГД — участник | `E2E_CustomCharterTests::Model2_CeoParticipant` | ❌ Каскадный 13.09 | `GlobalFixture.HasFailed` |
+| 13 | ЕИО: Управляющий ИП | `E2E_CustomCharterTests::Model3_ManagerIp` | ❌ Каскадный 13.09 | `GlobalFixture.HasFailed` |
+| 14 | ЕИО: Упр. организация | `E2E_CustomCharterTests::Model4_ManagingOrg` | ❌ Каскадный 13.09 | `GlobalFixture.HasFailed` |
+| 15 | ЕИО: Все — директора | `E2E_CustomCharterTests::Model5_AllParticipantsDirectors` | ❌ Каскадный 13.09 | `GlobalFixture.HasFailed` |
+| 16 | ЕИО: Все совместно | `E2E_CustomCharterTests::Model6_AllParticipantsJoint` | ❌ Каскадный 13.09 | `GlobalFixture.HasFailed` |
+| 17 | ЕИО: Несколько ЕИО | `E2E_CustomCharterTests::Model7_MultipleEio` | ❌ Каскадный 13.09 | `GlobalFixture.HasFailed` |
 | 18 | Авторизация | `US001_AuthorizationTests` | ✅ Пройден 6 из 6 (13.09) | LoginPage_ShowsSelectDropdown, AdminConsoleLoginPage_LoadsBlazorShell, LoginPage_ShowsNoSidebar, PublicLanding_Present, OnboardingPage_Rendered, ProposalPage_RenderedForAnonymousUsers |
 | 19 | Заседания СД | `US002_MeetingTests` | ⏳ Не запущен | — |
 | 20 | Комитеты | `US004_CommitteeTests` | ⏳ Не запущен | — |
@@ -100,16 +100,16 @@ dotnet run --project tests/SamorodinkaTech.Fiducia.Tests.Functional -- --filter 
 
 ---
 
-## Сценарий 2: Заведение ЮЛ с нетиповым уставом
+## Сценарий 2: Заведение ЮЛ с индивидуальным уставом
 
-**Цель:** Администратор создаёт юридическое лицо с индивидуальным (нетиповым) уставом и настраивает его параметры вручную.
+**Цель:** Администратор создаёт юридическое лицо с индивидуальным уставом и настраивает его параметры вручную.
 
 **Шаги:**
 1. Администратор входит в Admin Console
 2. Создаёт новое юридическое лицо (наименование, ИНН)
 3. Устанавливает ОКОПФ (12300 — ООО)
 4. Назначает роли пользователям
-5. В Board Portal: на странице ЮЛ выбирает «Нетиповой устав»
+5. В Board Portal: на странице ЮЛ выбирает «Индивидуальный устав»
 6. Настраивает параметры устава:
    - Выход участника из общества (разрешён/запрещён, условия)
    - Переход доли к участникам
@@ -120,9 +120,9 @@ dotnet run --project tests/SamorodinkaTech.Fiducia.Tests.Functional -- --filter 
 7. Сохраняет настройки
 8. Проверяет, что все параметры сохранены и отображаются корректно
 
-**Ожидаемый результат:** ЮЛ создано с нетиповым уставом. Все настроенные параметры сохранены и доступны для просмотра.
+**Ожидаемый результат:** ЮЛ создано с индивидуальным уставом. Все настроенные параметры сохранены и доступны для просмотра.
 
-**E2E-тест:** `E2E_NonStandardCharterTests` (14 тестов)
+**E2E-тест:** `E2E_CustomCharterTests` (14 тестов)
 
 ---
 
@@ -131,7 +131,7 @@ dotnet run --project tests/SamorodinkaTech.Fiducia.Tests.Functional -- --filter 
 Каждый сценарий описывает настройку одного из 7 вариантов организации единоличного исполнительного органа (ЕИО) ООО.
 
 **Общие предусловия для всех вариантов:**
-- ЮЛ создано с нетиповым уставом
+- ЮЛ создано с индивидуальным уставом
 - ОКОПФ установлен (12300 — ООО)
 - Роли назначены
 
@@ -158,7 +158,7 @@ dotnet run --project tests/SamorodinkaTech.Fiducia.Tests.Functional -- --filter 
 - Должность: Генеральный директор
 - Срок полномочий: определяется уставом
 
-**E2E-тест:** `E2E_NonStandardCharterTests::Model1_HiredCeo`
+**E2E-тест:** `E2E_CustomCharterTests::Model1_HiredCeo`
 
 ---
 
@@ -175,7 +175,7 @@ dotnet run --project tests/SamorodinkaTech.Fiducia.Tests.Functional -- --filter 
 - ФИО руководителя: участник общества (одно из лиц, добавленных в реестр участников)
 - Должность: Генеральный директор
 
-**E2E-тест:** `E2E_NonStandardCharterTests::Model2_CeoParticipant`
+**E2E-тест:** `E2E_CustomCharterTests::Model2_CeoParticipant`
 
 ---
 
@@ -192,7 +192,7 @@ dotnet run --project tests/SamorodinkaTech.Fiducia.Tests.Functional -- --filter 
 - ФИО управляющего
 - Реквизиты договора управления
 
-**E2E-тест:** `E2E_NonStandardCharterTests::Model3_ManagerIp`
+**E2E-тест:** `E2E_CustomCharterTests::Model3_ManagerIp`
 
 ---
 
@@ -209,7 +209,7 @@ dotnet run --project tests/SamorodinkaTech.Fiducia.Tests.Functional -- --filter 
 - Наименование управляющей организации
 - Реквизиты договора управления
 
-**E2E-тест:** `E2E_NonStandardCharterTests::Model4_ManagingOrg`
+**E2E-тест:** `E2E_CustomCharterTests::Model4_ManagingOrg`
 
 ---
 
@@ -225,7 +225,7 @@ dotnet run --project tests/SamorodinkaTech.Fiducia.Tests.Functional -- --filter 
 - Тип ЕИО: **B** (Каждый участник — директор)
 - Участники общества: каждый добавляется как директор
 
-**E2E-тест:** `E2E_NonStandardCharterTests::Model5_AllParticipantsDirectors`
+**E2E-тест:** `E2E_CustomCharterTests::Model5_AllParticipantsDirectors`
 
 ---
 
@@ -241,7 +241,7 @@ dotnet run --project tests/SamorodinkaTech.Fiducia.Tests.Functional -- --filter 
 - Тип ЕИО: **C** (Все участники совместно)
 - Участники общества: каждый добавляется как совместно действующий директор
 
-**E2E-тест:** `E2E_NonStandardCharterTests::Model6_AllParticipantsJoint`
+**E2E-тест:** `E2E_CustomCharterTests::Model6_AllParticipantsJoint`
 
 ---
 
@@ -258,7 +258,7 @@ dotnet run --project tests/SamorodinkaTech.Fiducia.Tests.Functional -- --filter 
 - Количество ЕИО и состав лиц
 - Режим действия: совместно или независимо
 
-**E2E-тест:** `E2E_NonStandardCharterTests::Model7_MultipleEio`
+**E2E-тест:** `E2E_CustomCharterTests::Model7_MultipleEio`
 
 ---
 
@@ -281,7 +281,7 @@ dotnet run --project tests/SamorodinkaTech.Fiducia.Tests.Functional -- --filter 
 
 **Проблема:** Тест искал "Переход доли **к** наследникам", а в странице "Переход доли наследникам" (без "к").
 
-**Исправление:** Замена текста в `AssertNonStandardCharterFieldsVisibleAsync`.
+**Исправление:** Замена текста в `AssertCustomCharterFieldsVisibleAsync`.
 
 **Файл:** `tests/.../Helpers/BoardPortalHelper.cs` (строка 377)
 

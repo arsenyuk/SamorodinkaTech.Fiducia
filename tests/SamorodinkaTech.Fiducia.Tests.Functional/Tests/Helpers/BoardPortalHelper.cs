@@ -236,7 +236,7 @@ public static class BoardPortalHelper
     /// Выбрать "Нетиповой устав" на вкладке "Устав" страницы /legal-entities.
     /// Выбирает option с value="" или text containing "Нетиповой" в first select.
     /// </summary>
-    public static async Task SelectNonStandardCharterAsync(IPage page)
+    public static async Task SelectCustomCharterAsync(IPage page)
     {
         if (!page.Url.Contains("/legal-entities"))
         {
@@ -267,11 +267,11 @@ public static class BoardPortalHelper
                 }}", emptyValue);
         }
         await AuthHelper.WaitForBlazorReady(page);
-        await page.WaitForTimeoutAsync(1000); // Ждём появления полей нетипового устава
+        await page.WaitForTimeoutAsync(1000); // Ждём появления полей индивидуального устава
     }
 
     /// <summary>
-    /// Настроить параметр нетипового устава по data-testid атрибуту.
+    /// Настроить параметр индивидуального устава по data-testid атрибуту.
     /// Поддерживает: checkbox (toggle), select (dropdown), input (text/number).
     /// </summary>
     public static async Task ConfigureCharterParameterAsync(
@@ -341,10 +341,10 @@ public static class BoardPortalHelper
     }
 
     /// <summary>
-    /// Проверить, что на странице отображаются поля нетипового устава
+    /// Проверить, что на странице отображаются поля индивидуального устава
     /// (а не выпадающий список типовых уставов 01-36).
     /// </summary>
-    public static async Task AssertNonStandardCharterFieldsVisibleAsync(IPage page)
+    public static async Task AssertCustomCharterFieldsVisibleAsync(IPage page)
     {
         // Раскрываем все секции аккордеона, чтобы проверить содержимое
         await page.EvaluateAsync(
@@ -358,7 +358,7 @@ public static class BoardPortalHelper
 
         var content = await page.ContentAsync();
 
-        // Все 17 параметров нетипового устава
+        // Все 17 параметров индивидуального устава
         content.Should().Contain("Исполнительный орган",
             "Нетиповой устав: 'Исполнительный орган'");
         content.Should().Contain("Выход участника",
@@ -402,15 +402,15 @@ public static class BoardPortalHelper
                 return false;
             }");
         hasBoardOption.Should().BeTrue(
-            "Совет директоров должен быть доступен при нетиповом уставе");
+            "Совет директоров должен быть доступен при индивидуальном уставе");
     }
 
     // ══════════════════════════════════════════════════════════════════════
-    // Тип исполнительного органа (нетиповой устав)
+    // Тип исполнительного органа (индивидуальный устав)
     // ══════════════════════════════════════════════════════════════════════
 
     /// <summary>
-    /// Установить тип исполнительного органа (A/B/C/D/E/F) в select на странице нетипового устава.
+    /// Установить тип исполнительного органа (A/B/C/D/E/F) в select на странице индивидуального устава.
     /// Select использует @bind="_executiveBodyStr" — устанавливаем value через JS.
     /// </summary>
     public static async Task SetExecutiveBodyAsync(IPage page, string executiveBodyType)
@@ -516,9 +516,9 @@ public static class BoardPortalHelper
     }
 
     /// <summary>
-    /// Добавить N участников для нетипового устава.
+    /// Добавить N участников для индивидуального устава.
     /// </summary>
-    public static async Task AddParticipantsForNonStandardCharterAsync(
+    public static async Task AddParticipantsForCustomCharterAsync(
         IPage page,
         int testIndex,
         int count)
@@ -527,7 +527,7 @@ public static class BoardPortalHelper
 
         for (var i = 0; i < count; i++)
         {
-            var (lastName, firstName, middleName) = NonStandardCharterTestData.GetParticipantNameParts(testIndex, i + 1);
+            var (lastName, firstName, middleName) = CustomCharterTestData.GetParticipantNameParts(testIndex, i + 1);
             var sharePercent = percents[i];
 
             await AddParticipantAsync(page, lastName, firstName, middleName, sharePercent: sharePercent);

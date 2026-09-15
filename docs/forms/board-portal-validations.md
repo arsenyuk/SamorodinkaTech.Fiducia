@@ -103,10 +103,10 @@
 
 | Поле | Правило | Сообщение | Тесты |
 |------|---------|-----------|-------|
-| ФИО руководителя | Required | "Укажите ФИО руководителя." | [`LegalEntityValidatorTests::Director_*`](../e2e-tests.md#маппинг-us--e2e-класс), `E2E_StandardCharter_ExecBody*Tests`, `E2E_NonStandardCharterTests` |
-| Должность руководителя | Required | "Укажите должность руководителя." | [`LegalEntityValidatorTests::Director_*`](../e2e-tests.md#маппинг-us--e2e-класс), `E2E_StandardCharter_ExecBody*Tests`, `E2E_NonStandardCharterTests` |
+| ФИО руководителя | Required | "Укажите ФИО руководителя." | [`LegalEntityValidatorTests::Director_*`](../e2e-tests.md#маппинг-us--e2e-класс), `E2E_StandardCharter_ExecBody*Tests`, `E2E_CustomCharterTests` |
+| Должность руководителя | Required | "Укажите должность руководителя." | [`LegalEntityValidatorTests::Director_*`](../e2e-tests.md#маппинг-us--e2e-класс), `E2E_StandardCharter_ExecBody*Tests`, `E2E_CustomCharterTests` |
 | Окно ГОСА | End >= Start | "Дата окончания окна ГОСА не может быть раньше даты начала." | [`LegalEntityValidatorTests::Gosa_*`](../e2e-tests.md#маппинг-us--e2e-класс) |
-| Окно ГОСА (ПАО) | 01.03-30.06 | "Для ПАО окно ГОСА должно находиться в пределах 01.03-30.06." | [`LegalEntityValidatorTests::Gosa_PAO_*`](../e2e-tests.md#маппинг-us--e2e-класс), `E2E_StandardCharter_ExecBody*Tests`, `E2E_NonStandardCharterTests` |
+| Окно ГОСА (ПАО) | 01.03-30.06 | "Для ПАО окно ГОСА должно находиться в пределах 01.03-30.06." | [`LegalEntityValidatorTests::Gosa_PAO_*`](../e2e-tests.md#маппинг-us--e2e-класс), `E2E_StandardCharter_ExecBody*Tests`, `E2E_CustomCharterTests` |
 | Окно ГОСА (НАО) | Фиксировано 01.03-30.06 | "Для НАО интервал ГОСА фиксирован: 01.03-30.06." | [`LegalEntityValidatorTests::Gosa_NAO_*`](../e2e-tests.md#маппинг-us--e2e-класс) |
 | Типовой устав | 01-36, 2 цифры | "Номер типового устава должен быть от 01 до 36." | `E2E_StandardCharter_ExecBody*Tests` (36 тестов) |
 | Типовой устав | Только для ООО | "Типовой устав применим только для ООО." | `E2E_StandardCharter_ExecBody*Tests` |
@@ -117,7 +117,7 @@
 | Кворум комитета | 1-100% (если задано) | "Кворум комитета должен быть от 1 до 100%" | — (нет теста) |
 | Кворум совместного заседания | 1-100% (если задано) | "Кворум совместного заседания должен быть от 1 до 100%" | — (нет теста) |
 | Кворум СД | >= 50% | "Кворум не может быть менее 50% (п. 2 ст. 68 208-ФЗ)" | — (нет теста) |
-| Интервал ГОСА (ОКОПФ) | Валидность для типа ЮЛ | "Недопустимый интервал ГОСА для данной ОПФ" | `E2E_StandardCharter_ExecBody*Tests`, `E2E_NonStandardCharterTests` |
+| Интервал ГОСА (ОКОПФ) | Валидность для типа ЮЛ | "Недопустимый интервал ГОСА для данной ОПФ" | `E2E_StandardCharter_ExecBody*Tests`, `E2E_CustomCharterTests` |
 
 ---
 
@@ -273,11 +273,11 @@ Unit-тесты: [`OsaMeetingValidatorTests`](../e2e-tests.md#маппинг-us-
 | EXIT_APPLICATION | Доля <= макс. | "Ваша доля ({n}%) выше максимальной для выхода ({m}%)" | [`US020_ShareRequestTests`](../e2e-tests.md#участники-ооо) |
 | CHANGE_STANDARD_CHARTER_NUMBER | Номер типового сейчас | "Текущий устав не является типовым" | [`US020_ShareRequestTests`](../e2e-tests.md#участники-ооо) |
 | CHANGE_STANDARD_CHARTER_NUMBER | Номер отличается | "Новый номер типового устава должен отличаться от текущего" | [`US020_ShareRequestTests`](../e2e-tests.md#участники-ооо) |
-| CONVERT_TO_CUSTOM | Нетиповой сейчас | "Текущий устав уже является нетиповым" | [`US020_ShareRequestTests`](../e2e-tests.md#участники-ооо) |
+| CONVERT_TO_CUSTOM | Нетиповой сейчас | "Текущий устав уже является индивидуальным" | [`US020_ShareRequestTests`](../e2e-tests.md#участники-ооо) |
 | CONVERT_TO_CUSTOM | Файл устава | "Необходимо приложить файл проекта устава" | [`US020_ShareRequestTests`](../e2e-tests.md#участники-ооо) |
 | CONVERT_TO_NJSC | Сейчас ООО | "Преобразование в НАО доступно только для ООО" | [`US020_ShareRequestTests`](../e2e-tests.md#участники-ооо) |
 | CONVERT_TO_PJSC | Сейчас НАО | "Преобразование в ПАО доступно только для НАО" | [`US020_ShareRequestTests`](../e2e-tests.md#участники-ооо) |
-| CHANGE_CHARTER_PROVISION | Нетиповой устав | "Устав является типовым; используйте требование «Изменить номер...»" | [`US020_ShareRequestTests`](../e2e-tests.md#участники-ооо) |
+| CHANGE_CHARTER_PROVISION | Индивидуальный устав | "Устав является типовым; используйте требование «Изменить номер...»" | [`US020_ShareRequestTests`](../e2e-tests.md#участники-ооо) |
 | DEMAND_VOSU | Доля >= порога устава | "Доля участника ({n}%) ниже порога устава ({m}%)" | [`US020_ShareRequestTests`](../e2e-tests.md#участники-ооо) |
 
 ---

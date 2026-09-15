@@ -818,7 +818,7 @@
 | `require_all_sign_confirmation` | BOOLEAN | Только при подписании всеми (nullable) |
 | `require_committees` | BOOLEAN | Только при наличии комитетов (nullable) |
 | `require_board_regulation` | BOOLEAN | Только при Положении о СД (nullable) |
-| `require_custom_charter` | BOOLEAN | Только для нетипового устава (nullable) |
+| `require_custom_charter` | BOOLEAN | Только для индивидуального устава (nullable) |
 | `require_executive_body_a` | BOOLEAN | Только для гендиректора (nullable) |
 | `require_board_of_directors` | BOOLEAN | Только при наличии СД (nullable) |
 | `require_document_flow_legal_electronic` | BOOLEAN | Только при ЮЗЭДО (nullable) |

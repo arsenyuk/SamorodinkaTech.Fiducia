@@ -1,9 +1,9 @@
 namespace SamorodinkaTech.Fiducia.Tests.Functional.Helpers;
 
 /// <summary>
-/// Тестовые данные для параметризованных E2E-тестов нетипового устава ООО.
+/// Тестовые данные для параметризованных E2E-тестов индивидуального устава ООО.
 /// </summary>
-public static class NonStandardCharterTestData
+public static class CustomCharterTestData
 {
     // LDAP user data
     public const string LdapUid = "test.ns.charter";
@@ -24,7 +24,7 @@ public static class NonStandardCharterTestData
     public const string RoleCeo = "CEO";
 
     // ══════════════════════════════════════════════════════════════════════
-    // Параметры нетипового устава ( LegalEntityCharter fields )
+    // Параметры индивидуального устава ( LegalEntityCharter fields )
     // ══════════════════════════════════════════════════════════════════════
 
     /// <summary>Выход участника: разрешён, мин. доля 5%, макс. 40%, требует единогласия ОСУ.</summary>
@@ -57,7 +57,7 @@ public static class NonStandardCharterTestData
     /// <summary>Тип единоличного исполнительного органа: A / B / C.</summary>
     public const string ExecutiveBody = "A";
 
-    /// <summary>Совет директоров — только для нетипового устава.</summary>
+    /// <summary>Совет директоров — только для индивидуального устава.</summary>
     public const string HasBoardOfDirectors = "true";
 
     /// <summary>СД принимает решение о созыве ОСУ.</summary>
@@ -88,7 +88,7 @@ public static class NonStandardCharterTestData
     }
 
     public static string GetLegalEntityName(int testIndex) =>
-        $"Общество с ограниченной ответственностью «Нетиповой Устав {testIndex:D2}»";
+        $"Общество с ограниченной ответственностью «Индивидуальный Устав {testIndex:D2}»";
 
     public static string GetLegalEntityInn(int testIndex) =>
         $"78{testIndex:D2}987654";
@@ -100,11 +100,11 @@ public static class NonStandardCharterTestData
         $"2{testIndex:D2}987654321";
 
     // ══════════════════════════════════════════════════════════════════════
-    // Тестовые данные участников (нетиповой устав = ExecutiveBody A)
+    // Тестовые данные участников (индивидуальный устав = ExecutiveBody A)
     // ══════════════════════════════════════════════════════════════════════
 
     /// <summary>
-    /// Сгенерировать ФИО участника для нетипового устава.
+    /// Сгенерировать ФИО участника для индивидуального устава.
     /// </summary>
     public static string GetParticipantFullName(int testIndex, int participantIndex) =>
         $"Участник {participantIndex} Нетиповой{testIndex:D2}";

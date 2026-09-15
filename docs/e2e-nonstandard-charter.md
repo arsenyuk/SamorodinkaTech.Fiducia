@@ -1,4 +1,4 @@
-# E2E-тест: Нетиповые уставы ООО и модели ЕИО
+# E2E-тест: Индивидуальные уставы ООО и модели ЕИО
 
 > **Связанные документы:** [Сквозные тесты](e2e-tests.md)
 
@@ -6,7 +6,7 @@
 
 ### Бизнес-условие
 
-ООО может иметь индивидуальный (нетиповой) устав с настраиваемыми параметрами. Администратор настраивает каждый параметр отдельно (13 параметров) и проверяет его сохранение. Также проверяются 7 моделей организации единоличного исполнительного органа (ЕИО).
+ООО может иметь индивидуальный устав с настраиваемыми параметрами. Администратор настраивает каждый параметр отдельно (13 параметров) и проверяет его сохранение. Также проверяются 7 моделей организации единоличного исполнительного органа (ЕИО).
 
 ### Кто что делает
 
@@ -14,7 +14,7 @@
 |-----|----------|-------------|
 | 0 | Подготовка окружения | Автоматически |
 | 1 | Логин в Board Portal | ГД |
-| 2 | Заполнение полей ЮЛ + выбор нетипового устава | ГД |
+| 2 | Заполнение полей ЮЛ + выбор индивидуального устава | ГД |
 | 3 | Настройка параметра устава / выбор модели ЕИО | ГД |
 | 4 | Добавление участников общества | ГД |
 | 5 | Сохранение | ГД |
@@ -43,20 +43,20 @@
 
 | # | Метод | Параметр | Значение |
 |---|-------|----------|----------|
-| 1 | `NonStandardCharter_ExitAllowed` | exit-allowed | `true` |
-| 2 | `NonStandardCharter_ExitMinSharePercent` | exit-min-share | `5` |
-| 3 | `NonStandardCharter_ExitMaxSharePercent` | exit-max-share | `40` |
-| 4 | `NonStandardCharter_ExitConditionDescription` | exit-condition | `по истечении 2 лет с момента вступления` |
-| 5 | `NonStandardCharter_ExitRequiresUnanimousOsu` | exit-unanimous | `true` |
-| 6 | `NonStandardCharter_TransferToParticipants` | transfer-participants | `true` |
-| 7 | `NonStandardCharter_TransferToThirdParties` | transfer-third-parties | `CONSENT` |
-| 8 | `NonStandardCharter_PreemptiveRight` | preemptive-right | `true` |
-| 9 | `NonStandardCharter_InheritanceWithoutConsent` | inheritance | `true` |
-| 10 | `NonStandardCharter_ExecutiveBody` | executive-body | `A` |
-| 11 | `NonStandardCharter_HasBoardOfDirectors` | has-board | `true` (+ проверка вкладки СД) |
-| 12 | `NonStandardCharter_BoardDecidesConveningOsu` | board-convenes-osu | `true` |
-| 13 | `NonStandardCharter_VosuThresholdPercent` | vosu-threshold | `5` |
-| 14 | `NonStandardCharter_AllParameters` | все 13 параметров | комбинация |
+| 1 | `CustomCharter_ExitAllowed` | exit-allowed | `true` |
+| 2 | `CustomCharter_ExitMinSharePercent` | exit-min-share | `5` |
+| 3 | `CustomCharter_ExitMaxSharePercent` | exit-max-share | `40` |
+| 4 | `CustomCharter_ExitConditionDescription` | exit-condition | `по истечении 2 лет с момента вступления` |
+| 5 | `CustomCharter_ExitRequiresUnanimousOsu` | exit-unanimous | `true` |
+| 6 | `CustomCharter_TransferToParticipants` | transfer-participants | `true` |
+| 7 | `CustomCharter_TransferToThirdParties` | transfer-third-parties | `CONSENT` |
+| 8 | `CustomCharter_PreemptiveRight` | preemptive-right | `true` |
+| 9 | `CustomCharter_InheritanceWithoutConsent` | inheritance | `true` |
+| 10 | `CustomCharter_ExecutiveBody` | executive-body | `A` |
+| 11 | `CustomCharter_HasBoardOfDirectors` | has-board | `true` (+ проверка вкладки СД) |
+| 12 | `CustomCharter_BoardDecidesConveningOsu` | board-convenes-osu | `true` |
+| 13 | `CustomCharter_VosuThresholdPercent` | vosu-threshold | `5` |
+| 14 | `CustomCharter_AllParameters` | все 13 параметров | комбинация |
 
 ---
 
@@ -86,10 +86,10 @@ AuthHelper.LoginAsBoardUserAsync(boardPage, gdLogin)
 BoardPortalHelper.FillLegalEntityFieldsAsync(boardPage, entity)
 ```
 
-### Шаг 1: Выбор нетипового устава
+### Шаг 1: Выбор индивидуального устава
 
 ```
-BoardPortalHelper.SelectNonStandardCharterAsync(boardPage)
+BoardPortalHelper.SelectCustomCharterAsync(boardPage)
 ```
 
 ### Шаг 2: Настройка параметра
@@ -129,7 +129,7 @@ AuditLogHelper.AssertNoNotFoundAsync(from: testStartTime)
 
 | Файл | Назначение |
 |------|-----------|
-| `tests/.../E2E_NonStandardCharterTests.cs` | E2E-тест (21 метод) |
+| `tests/.../E2E_CustomCharterTests.cs` | E2E-тест (21 метод) |
 | `tests/.../Helpers/CharterTestDataFixed.cs` | Тестовые данные (entityIndex 37–57) |
-| `tests/.../Helpers/NonStandardCharterTestData.cs` | Константы параметров устава |
-| `tests/.../Helpers/BoardPortalHelper.cs` | Хелперы: SelectNonStandardCharter, ConfigureCharterParameter, SetExecutiveBody |
+| `tests/.../Helpers/CustomCharterTestData.cs` | Константы параметров устава |
+| `tests/.../Helpers/BoardPortalHelper.cs` | Хелперы: SelectCustomCharter, ConfigureCharterParameter, SetExecutiveBody |

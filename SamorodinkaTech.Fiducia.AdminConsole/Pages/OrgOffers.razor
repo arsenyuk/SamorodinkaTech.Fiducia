@@ -118,7 +118,7 @@
                         <div class="form-check form-check-inline">
                             <input class="form-check-input" type="checkbox" id="pred_custom"
                                    @bind="_editCustomCharter" />
-                            <label class="form-check-label small" for="pred_custom">Нетиповой устав</label>
+                            <label class="form-check-label small" for="pred_custom">Индивидуальный устав</label>
                         </div>
                         <div class="form-check form-check-inline">
                             <input class="form-check-input" type="checkbox" id="pred_exec_a"
@@ -173,7 +173,7 @@
                 @if (s.RequireAllSignConfirmation == true) { <span class="badge bg-secondary me-1">подп.всеми</span> }
                 @if (s.RequireCommittees == true) { <span class="badge bg-secondary me-1">комитеты</span> }
                 @if (s.RequireBoardRegulation == true) { <span class="badge bg-secondary me-1">положение</span> }
-                @if (s.RequireCustomCharter == true) { <span class="badge bg-secondary me-1">нетиповой</span> }
+                @if (s.RequireCustomCharter == true) { <span class="badge bg-secondary me-1">индивидуальный</span> }
                 @if (s.RequireExecutiveBodyA == true) { <span class="badge bg-secondary me-1">гендир</span> }
                 @if (s.RequireBoardOfDirectors == true) { <span class="badge bg-secondary me-1">СД</span> }
                 @if (s.RequireDocumentFlowLegalElectronic == true) { <span class="badge bg-secondary me-1">ЮЗЭДО</span> }

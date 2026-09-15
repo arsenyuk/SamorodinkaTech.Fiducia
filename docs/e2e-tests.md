@@ -54,7 +54,7 @@
 | `E2E_StandardCharter_ExecBodyB_SignTests` | 6 | Каскадный | `GlobalFixture.HasFailed` |
 | `E2E_StandardCharter_ExecBodyC_NotarialTests` | 6 | Каскадный | `GlobalFixture.HasFailed` |
 | `E2E_StandardCharter_ExecBodyC_SignTests` | 6 | Каскадный | `GlobalFixture.HasFailed` |
-| `E2E_NonStandardCharterTests` | 20 | Каскадный | `GlobalFixture.HasFailed` |
+| `E2E_CustomCharterTests` | 20 | Каскадный | `GlobalFixture.HasFailed` |
 | `E2E_BoardSetupTests` | 3 | Known issue | Страница `/board-setup` не загружает wizard (ADMIN-88) |
 | `E2E_VosuDemandTests` | 1 | Каскадный | `GlobalFixture.HasFailed` |
 | `E2E_ParticipantDulChangeTests` | 1 | Каскадный | `GlobalFixture.HasFailed` |
@@ -75,7 +75,7 @@
 | Бизнес-процесс | US | E2E-тест | Документ | Статус |
 |----------------|-----|----------|----------|--------|
 | Типовой устав | — | `E2E_StandardCharter_ExecBody{A,B,C}_{Notarial,Sign}Tests` (6 файлов) | [e2e-standard-charter.md](e2e-standard-charter.md) | ✅ Реализован |
-| Нетиповой устав + модели ЕИО | — | `E2E_NonStandardCharterTests` | [e2e-nonstandard-charter.md](e2e-nonstandard-charter.md) | ✅ Реализован |
+| Индивидуальный устав + модели ЕИО | — | `E2E_CustomCharterTests` | [e2e-nonstandard-charter.md](e2e-nonstandard-charter.md) | ✅ Реализован |
 | Первичный ввод состава СД | — | `E2E_BoardSetupTests` | [e2e-board-setup.md](e2e-board-setup.md) | ✅ Реализован |
 | Генеральный директор | — | `E2E_GeneralDirectorTests` | [e2e-general-director.md](e2e-general-director.md) | ✅ Реализован |
 
@@ -133,14 +133,14 @@
 | Участники ООО | US-023 | `US023_ParticipantTests` | [e2e-participant-list.md](e2e-participant-list.md) | ✅ Реализован |
 | Договоры (включая управляющих ИП) | US-024 | `US024_ContractTests` | — | ✅ Реализован |
 | Типовой устав (выбор, просмотр, добавление участников, аудит) | — | `E2E_StandardCharter_ExecBody{A,B,C}_{Notarial,Sign}Tests` (36 variants, 6 файлов) | [e2e-standard-charter.md](e2e-standard-charter.md) | ✅ Реализован |
-| Нетиповой устав (параметризованный, добавление участников, аудит) | — | `E2E_NonStandardCharterTests` (14 tests) | [e2e-nonstandard-charter.md](e2e-nonstandard-charter.md) | ✅ Реализован |
-| Модель ЕИО: ГД — наёмный сотрудник | — | `E2E_NonStandardCharterTests::Model1_HiredCeo` | [e2e-nonstandard-charter.md](e2e-nonstandard-charter.md) | ✅ Реализован |
-| Модель ЕИО: ГД — участник общества | — | `E2E_NonStandardCharterTests::Model2_CeoParticipant` | [e2e-nonstandard-charter.md](e2e-nonstandard-charter.md) | ✅ Реализован |
-| Модель ЕИО: Управляющий — ИП (ст. 42 14-ФЗ) | — | `E2E_NonStandardCharterTests::Model3_ManagerIp` | [e2e-nonstandard-charter.md](e2e-nonstandard-charter.md) | ✅ Реализован |
-| Модель ЕИО: Управляющая организация (ст. 42 14-ФЗ) | — | `E2E_NonStandardCharterTests::Model4_ManagingOrg` | [e2e-nonstandard-charter.md](e2e-nonstandard-charter.md) | ✅ Реализован |
-| Модель ЕИО: Все участники — директора | — | `E2E_NonStandardCharterTests::Model5_AllParticipantsDirectors` | [e2e-nonstandard-charter.md](e2e-nonstandard-charter.md) | ✅ Реализован |
-| Модель ЕИО: Все участники совместно | — | `E2E_NonStandardCharterTests::Model6_AllParticipantsJoint` | [e2e-nonstandard-charter.md](e2e-nonstandard-charter.md) | ✅ Реализован |
-| Модель ЕИО: Несколько ЕИО (п. 3 ст. 65.3 ГК РФ) | — | `E2E_NonStandardCharterTests::Model7_MultipleEio` | [e2e-nonstandard-charter.md](e2e-nonstandard-charter.md) | ✅ Реализован |
+| Индивидуальный устав (параметризованный, добавление участников, аудит) | — | `E2E_CustomCharterTests` (14 tests) | [e2e-nonstandard-charter.md](e2e-nonstandard-charter.md) | ✅ Реализован |
+| Модель ЕИО: ГД — наёмный сотрудник | — | `E2E_CustomCharterTests::Model1_HiredCeo` | [e2e-nonstandard-charter.md](e2e-nonstandard-charter.md) | ✅ Реализован |
+| Модель ЕИО: ГД — участник общества | — | `E2E_CustomCharterTests::Model2_CeoParticipant` | [e2e-nonstandard-charter.md](e2e-nonstandard-charter.md) | ✅ Реализован |
+| Модель ЕИО: Управляющий — ИП (ст. 42 14-ФЗ) | — | `E2E_CustomCharterTests::Model3_ManagerIp` | [e2e-nonstandard-charter.md](e2e-nonstandard-charter.md) | ✅ Реализован |
+| Модель ЕИО: Управляющая организация (ст. 42 14-ФЗ) | — | `E2E_CustomCharterTests::Model4_ManagingOrg` | [e2e-nonstandard-charter.md](e2e-nonstandard-charter.md) | ✅ Реализован |
+| Модель ЕИО: Все участники — директора | — | `E2E_CustomCharterTests::Model5_AllParticipantsDirectors` | [e2e-nonstandard-charter.md](e2e-nonstandard-charter.md) | ✅ Реализован |
+| Модель ЕИО: Все участники совместно | — | `E2E_CustomCharterTests::Model6_AllParticipantsJoint` | [e2e-nonstandard-charter.md](e2e-nonstandard-charter.md) | ✅ Реализован |
+| Модель ЕИО: Несколько ЕИО (п. 3 ст. 65.3 ГК РФ) | — | `E2E_CustomCharterTests::Model7_MultipleEio` | [e2e-nonstandard-charter.md](e2e-nonstandard-charter.md) | ✅ Реализован |
 | Первичный ввод состава СД: Вариант 1 (только Председатель) | — | `E2E_BoardSetupTests::BoardSetup_Variant1_ChairOnly` | [e2e-board-setup.md](e2e-board-setup.md) | ✅ Реализован |
 | Первичный ввод состава СД: Вариант 2 (Председатель + Зам.) | — | `E2E_BoardSetupTests::BoardSetup_Variant2_ChairAndDeputy` | [e2e-board-setup.md](e2e-board-setup.md) | ✅ Реализован |
 | Первичный ввод состава СД: Вариант 3 (Председатель + Секретарь) | — | `E2E_BoardSetupTests::BoardSetup_Variant3_ChairAndSecretary` | [e2e-board-setup.md](e2e-board-setup.md) | ✅ Реализован |
@@ -198,7 +198,7 @@ public class US0XX_FeatureTests : BrowserFixture
 | US-021 | `US021_DocumentCatalogTests` | `Tests/US021_DocumentCatalogTests.cs` |
 | US-023 | `US023_ParticipantTests` | `Tests/US023_ParticipantTests.cs` |
 | — | `E2E_StandardCharter_ExecBody{A,B,C}_{Notarial,Sign}Tests` | `Tests/E2E_StandardCharter_ExecBody*.cs` (6 файлов) |
-| — | `E2E_NonStandardCharterTests` | `Tests/E2E_NonStandardCharterTests.cs` |
+| — | `E2E_CustomCharterTests` | `Tests/E2E_CustomCharterTests.cs` |
 | — | `E2E_BoardSetupTests` | `Tests/E2E_BoardSetupTests.cs` |
 | — | `E2E_GeneralDirectorTests` | `Tests/E2E_GeneralDirectorTests.cs` |
 | — | `E2E_EdinIntegrationTests` | `Tests/E2E_EdinIntegrationTests.cs` |

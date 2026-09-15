@@ -502,7 +502,7 @@ CREATE INDEX IF NOT EXISTS ix_pdn_consents_participant_id ON pdn_consents(ecosys
 CREATE INDEX IF NOT EXISTS ix_pdn_consents_legal_entity_id ON pdn_consents(legal_entity_id);
 CREATE UNIQUE INDEX IF NOT EXISTS ux_pdn_consents_participant_le ON pdn_consents(ecosystem_participant_id, legal_entity_id);
 
--- Параметры устава ООО (1:1 с legal_entities, обслуживает и типовой и нетиповой)
+-- Параметры устава ООО (1:1 с legal_entities, обслуживает и типовой и индивидуальный)
 CREATE TABLE IF NOT EXISTS legal_entity_charter (
     legal_entity_id uuid PRIMARY KEY REFERENCES legal_entities(id) ON DELETE RESTRICT,
     exit_allowed boolean NOT NULL DEFAULT false,

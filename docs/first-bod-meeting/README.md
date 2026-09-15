@@ -35,7 +35,7 @@ Intent (Цель) → Stage (Этап) → Offer (Шаблон задачи)
 | Подписание всеми | `require_all_sign_confirmation` | Только при подписании всеми участниками |
 | Комитеты | `require_committees` | Только при обязательных комитетах СД |
 | Положение о СД | `require_board_regulation` | Только при наличии Положения |
-| Нетиповой устав | `require_custom_charter` | Только для индивидуального устава |
+| Индивидуальный устав | `require_custom_charter` | Только для индивидуального устава |
 | Гендиректор | `require_executive_body_a` | Только для исполнительного органа типа A |
 | Совет директоров | `require_board_of_directors` | Только если сформирован СД |
 | ЮЗЭДО | `require_document_flow_legal_electronic` | Только при электронном документообороте |
