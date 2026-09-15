@@ -79,7 +79,8 @@ INSERT INTO ref_notification_type (id, code, name, category, created_at, created
     ('aa000001-0000-0000-0000-000000000018','OSA_PROTOCOL_SIGNED','Протокол ОСА подписан','OSA',CURRENT_TIMESTAMP,'00000000-0000-0000-0000-000000000000'),
     ('aa000001-0000-0000-0000-000000000019','VOSU_AGENDA_CHANGE','Изменение повестки ВОСУ','OSU',CURRENT_TIMESTAMP,'00000000-0000-0000-0000-000000000000'),
     ('aa000001-0000-0000-0000-000000000020','OOSU_MEETING_NOTIFICATION','Уведомление о проведении ООСУ','OSU',CURRENT_TIMESTAMP,'00000000-0000-0000-0000-000000000000'),
-    ('aa000001-0000-0000-0000-000000000021','CEO_RESIGNATION','Уведомление ГД об увольнении','GD',CURRENT_TIMESTAMP,'00000000-0000-0000-0000-000000000000')
+    ('aa000001-0000-0000-0000-000000000021','CEO_RESIGNATION','Уведомление ГД об увольнении','GD',CURRENT_TIMESTAMP,'00000000-0000-0000-0000-000000000000'),
+    ('aa000001-0000-0000-0000-000000000022','ECOSYSTEM_PARTICIPANT_ADDED_NO_LOGIN','Участник экосистемы добавлен (без логина)','SYSTEM',CURRENT_TIMESTAMP,'00000000-0000-0000-0000-000000000000')
 ON CONFLICT (code) DO NOTHING;
 
 INSERT INTO notification_template (id, notification_type_code, title_template, body_template, description, is_enabled) VALUES
@@ -150,7 +151,11 @@ INSERT INTO notification_template (id, notification_type_code, title_template, b
     ('bb000001-0000-0000-0000-000000000017','CEO_RESIGNATION',
      'ИМИТАЦИЯ ОТПРАВКА ПО email — Уведомление ГД об увольнении {legalEntityName}',
      'Уважаемый(-ая) {participantName}!\n\n{legalEntityName} уведомляет Вас о том, что Генеральный директор {ceoName} уведомил общество о своём увольнении.\n\nПлановая дата увольнения: {resignationDate}\n\nНа основании ст. 280 ТК РФ созывается внеочередное общее собрание участников для избрания нового Генерального директора.\n\nС уважением,\nГенеральный директор {legalEntityName}',
-     'Уведомление ГД об увольнении (ст. 280 ТК РФ)', TRUE)
+     'Уведомление ГД об увольнении (ст. 280 ТК РФ)', TRUE),
+    ('bb000001-0000-0000-0000-000000000022','ECOSYSTEM_PARTICIPANT_ADDED_NO_LOGIN',
+     'Участник добавлен в экосистему — требуется назначение логина',
+     'Уважаемый администратор!\n\nВ экосистему общества «{legalEntityName}» добавлен участник {participantFullName} (доля {sharePercent}%).\n\nУчастнику не назначен логин. Для предоставления доступа назначьте логин в Admin Console.',
+     'Уведомление LE_ADMIN о добавлении участника без логина', TRUE)
 ON CONFLICT (notification_type_code) DO NOTHING;
 
 

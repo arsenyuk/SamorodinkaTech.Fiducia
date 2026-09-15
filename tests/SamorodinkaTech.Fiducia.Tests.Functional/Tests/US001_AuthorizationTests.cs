@@ -1,5 +1,6 @@
 using FluentAssertions;
 using Microsoft.Playwright;
+using SamorodinkaTech.Fiducia.Tests.Functional.Helpers;
 
 namespace SamorodinkaTech.Fiducia.Tests.Functional;
 
@@ -61,7 +62,9 @@ public class US001_AuthorizationTests : BrowserFixture
     private async Task AssertLoginDropdownAsync(Portal portal)
     {
         var page = await CreatePageAsync(portal, "/login");
-        var select = await page.WaitForSelectorAsync("select.form-select", new() { State = WaitForSelectorState.Visible, Timeout = DefaultTimeout });
+        var select = await page.WaitForRequiredSelectorAsync(
+            "select.form-select",
+            "Dropdown авторизации");
         select.Should().NotBeNull();
     }
 }

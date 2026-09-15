@@ -30,13 +30,14 @@ public class E2E_VosuDemandTests : BrowserFixture
         var testStartTime = DateTimeOffset.UtcNow;
         var testName = "VosuDemand_ParticipantWithSufficientShare";
 
-        var (adminPage, boardPage, ldapPage) = await SetupFullCycleAsync(67);
+        var (adminPage, boardPage) = await SetupFullCycleAsync(67);
         try
         {
             var persons = CharterTestDataFixed.PersonsByEntity[67];
             var gdLogin = persons.Gd?.Login!;
-            var participantLogin = persons.Participants[0].Login;
-            var participantFullName = persons.Participants[0].FullName;
+            var participant = persons.Participants[0];
+            var participantLogin = participant.Login;
+            var participantFullName = participant.FullName;
 
             // ── Шаг 1: ГД добавляет BoardParticipant для участника ──────
             // ГД (ivanov.tm) залогинен после SetupFullCycle
@@ -59,11 +60,11 @@ public class E2E_VosuDemandTests : BrowserFixture
                 boardPage,
                 fullName: participantFullName,
                 passportSeries: "21",
-                passportNumber: "4690",
+                passportNumber: "4600",
                 personInn: "781234567890",
                 participantType: "FL",
-                sharePercent: 40m,
-                shareAmount: 40000m,
+                sharePercent: 100m,
+                shareAmount: 100000m,
                 ecosystemParticipantId: ecoId);
 
             participantId.Should().NotBeEmpty("участник должен быть создан");
@@ -94,12 +95,16 @@ public class E2E_VosuDemandTests : BrowserFixture
             await boardPage.WaitForTimeoutAsync(1000);
 
             // Заполняем текст требования
-            var textarea = await boardPage.WaitForSelectorAsync("textarea", new() { Timeout = DefaultTimeout });
-            await textarea!.FillAsync("Требование о созыве внеочередного общего собрания участников для рассмотрения вопроса о смене генерального директора");
+            var textarea = await boardPage.WaitForRequiredSelectorAsync(
+                "textarea",
+                "Текст требования");
+            await textarea.FillAsync("Требование о созыве внеочередного общего собрания участников для рассмотрения вопроса о смене генерального директора");
 
             // Ставим галочку
-            var checkbox = await boardPage.WaitForSelectorAsync("#agreeWarning", new() { Timeout = DefaultTimeout });
-            await checkbox!.ClickAsync();
+            var checkbox = await boardPage.WaitForRequiredSelectorAsync(
+                "#agreeWarning",
+                "Согласие с предупреждением");
+            await checkbox.ClickAsync();
             await boardPage.WaitForTimeoutAsync(500);
 
             // Отправляем
@@ -116,10 +121,9 @@ public class E2E_VosuDemandTests : BrowserFixture
             await AuthHelper.WaitForBlazorReady(boardPage);
             await boardPage.WaitForTimeoutAsync(2000);
 
-            var notification = await boardPage.WaitForSelectorAsync(
+            var notification = await boardPage.WaitForRequiredSelectorAsync(
                 "text=Требование участника о созыве ВОСУ",
-                new() { Timeout = DefaultTimeout });
-            notification.Should().NotBeNull("уведомление должно отображаться");
+                "Уведомление о требовании");
 
             // Кликаем по ссылке уведомления
             var link = await boardPage.WaitForSelectorAsync(
@@ -165,9 +169,9 @@ public class E2E_VosuDemandTests : BrowserFixture
                 new() { Timeout = DefaultTimeout });
 
             // Заполняем дату проведения
-            var dateInput = await boardPage.WaitForSelectorAsync("input[type='date']", new() { Timeout = DefaultTimeout });
-            if (dateInput is null)
-                throw new InvalidOperationException("Не найдено поле «Дата проведения» (input[type='date'])");
+            var dateInput = await boardPage.WaitForRequiredSelectorAsync(
+                "input[type='date']",
+                "Дата проведения");
             await dateInput.FillAsync("2026-06-15");
 
             // Заполняем время начала
@@ -178,19 +182,15 @@ public class E2E_VosuDemandTests : BrowserFixture
             await timeInputs[1].FillAsync("13:30");
 
             // Заполняем место проведения
-            var venueInput = await boardPage.WaitForSelectorAsync(
+            var venueInput = await boardPage.WaitForRequiredSelectorAsync(
                 "input[placeholder*='Место']",
-                new() { Timeout = DefaultTimeout });
-            if (venueInput is null)
-                throw new InvalidOperationException("Не найдено поле «Место проведения» (input[placeholder*='Место'])");
+                "Место проведения");
             await venueInput.FillAsync("г. Москва, ул. Тверская, д. 1, переговорная № 3");
 
             // Заполняем повестку
-            var agendaTextarea = await boardPage.WaitForSelectorAsync(
+            var agendaTextarea = await boardPage.WaitForRequiredSelectorAsync(
                 "textarea[placeholder*='Повестка']",
-                new() { Timeout = DefaultTimeout });
-            if (agendaTextarea is null)
-                throw new InvalidOperationException("Не найдено поле «Повестка» (textarea[placeholder*='Повестка'])");
+                "Повестка");
             await agendaTextarea.FillAsync("1. Избрание Председателя ВОСУ\n2. Досрочное прекращение полномочий ГД");
 
             // Нажимаем «Сформировать уведомления»
@@ -227,17 +227,16 @@ public class E2E_VosuDemandTests : BrowserFixture
         {
             var testEndTime = DateTimeOffset.UtcNow;
             await AppLogHelper.AssertNoErrorsInAppLogSafeAsync(testStartTime, testEndTime, testName);
-            await CleanupAsync(adminPage, boardPage, ldapPage);
+            await CleanupAsync(adminPage, boardPage);
         }
     }
 
-    private async Task<(IPage adminPage, IPage boardPage, IPage ldapPage)> SetupFullCycleAsync(int entityIndex)
+    private async Task<(IPage adminPage, IPage boardPage)> SetupFullCycleAsync(int entityIndex)
     {
         await InfrastructureHelper.EnsureInfrastructureReadyAsync();
 
         var adminPage = await CreateAdminConsolePageAsync();
         var boardPage = await CreateBoardPortalPageAsync();
-        var ldapPage = await CreatePageAsync();
 
         await CharterTestGlobalInit.InitializeAsync();
         await CharterTestSeeder.EnsureSeededAsync(adminPage, entityIndex);
@@ -254,12 +253,11 @@ public class E2E_VosuDemandTests : BrowserFixture
             shortName: entity.ShortName,
             ogrn: entity.Ogrn);
 
-        return (adminPage, boardPage, ldapPage);
+        return (adminPage, boardPage);
     }
 
-    private static async Task CleanupAsync(IPage adminPage, IPage boardPage, IPage ldapPage)
+    private static async Task CleanupAsync(IPage adminPage, IPage boardPage)
     {
-        await ldapPage.CloseAsync();
         await boardPage.CloseAsync();
         await adminPage.CloseAsync();
     }

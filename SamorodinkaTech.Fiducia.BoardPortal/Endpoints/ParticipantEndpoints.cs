@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 using SamorodinkaTech.Fiducia.Domain.Entities;
 using SamorodinkaTech.Fiducia.Domain.Interfaces;
+using SamorodinkaTech.Fiducia.Domain.Services;
 using SamorodinkaTech.Fiducia.Infrastructure;
 using SamorodinkaTech.Fiducia.Infrastructure.Persistence;
 
@@ -375,6 +376,42 @@ public static class ParticipantEndpoints
 
                 // ЕДИН: автоматическая привязка MasterId при наличии ПДн
                 _ = TriggerEdinBindingAsync(serviceProvider, logger, ctx, entity);
+
+                // Уведомление LE_ADMIN: участник добавлен без логина
+                if (entity.EcosystemParticipantId.HasValue)
+                {
+                    var ecoParticipant = await ctx.EcosystemParticipants
+                        .Include(ep => ep.User)
+                        .FirstOrDefaultAsync(ep => ep.Id == entity.EcosystemParticipantId.Value);
+
+                    if (ecoParticipant?.UserId is null)
+                    {
+                        var leAdminUser = await ctx.UserRoles
+                            .Include(ur => ur.User)
+                            .Where(ur => ur.Role != null && ur.Role.Code == "LE_ADMIN"
+                                         && ur.User != null && !ur.User.IsSystem)
+                            .Select(ur => ur.User)
+                            .FirstOrDefaultAsync();
+
+                        if (leAdminUser is not null)
+                        {
+                            var notificationService = serviceProvider.GetRequiredService<INotificationService>();
+                            var textBuilder = serviceProvider.GetRequiredService<NotificationTextBuilder>();
+                            var legalEntity = await ctx.LegalEntities.FindAsync(leId);
+                            var legalEntityName = legalEntity?.Name ?? "организация";
+                            var participantFullName = entity.Person?.FullName ?? $"{entity.ParticipantType}";
+
+                            var (title, body) = await textBuilder.BuildEcosystemParticipantAddedNoLoginAsync(
+                                participantFullName, entity.Shares.FirstOrDefault()?.SharePercent ?? 0m, legalEntityName);
+
+                            await notificationService.SendAsync(
+                                "ECOSYSTEM_PARTICIPANT_ADDED_NO_LOGIN",
+                                title, body,
+                                userId: leAdminUser.Id,
+                                cancellationToken: CancellationToken.None);
+                        }
+                    }
+                }
 
                 var activeCompany = await ctx.BoardParticipantCompanies
                     .FirstOrDefaultAsync(c => c.ParticipantId == entity.Id && c.IsActive);

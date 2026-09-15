@@ -89,8 +89,9 @@ public class E2E_EdinIntegrationTests : BrowserFixture
             await page.WaitForSelectorAsync("button:text('УЗ')", new PageWaitForSelectorOptions { Timeout = DefaultTimeout });
 
             // Проверка наличия вкладки «ЕДИН»
-            var edinTab = await page.QuerySelectorAsync("button:text('ЕДИН')");
-            edinTab.Should().NotBeNull("вкладка ЕДИН должна присутствовать на странице пользователя");
+            var edinTab = await page.WaitForRequiredSelectorAsync(
+                "button:text('ЕДИН')",
+                "Вкладка ЕДИН");
         }
         catch
         {
@@ -128,10 +129,11 @@ public class E2E_EdinIntegrationTests : BrowserFixture
             await page.ClickAsync("tbody tr");
             await page.WaitForSelectorAsync("button:text('УЗ')", new PageWaitForSelectorOptions { Timeout = DefaultTimeout });
 
-            var edinTab = await page.QuerySelectorAsync("button:text('ЕДИН')");
-            edinTab.Should().NotBeNull("вкладка ЕДИН должна присутствовать");
+            var edinTab = await page.WaitForRequiredSelectorAsync(
+                "button:text('ЕДИН')",
+                "Вкладка ЕДИН");
 
-            await edinTab!.ClickAsync();
+            await edinTab.ClickAsync();
 
             // Ожидание загрузки контента вкладки
             await page.WaitForFunctionAsync(

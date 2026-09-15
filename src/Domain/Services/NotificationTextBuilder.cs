@@ -322,6 +322,25 @@ public class NotificationTextBuilder
                 ApplyPlaceholders(template.BodyTemplate, placeholders));
     }
 
+    public async Task<(string Title, string Body)> BuildEcosystemParticipantAddedNoLoginAsync(
+        string participantFullName, decimal sharePercent, string legalEntityName,
+        CancellationToken ct = default)
+    {
+        var template = await GetTemplateAsync("ECOSYSTEM_PARTICIPANT_ADDED_NO_LOGIN", ct);
+        if (template is null)
+            return BuildEcosystemParticipantAddedNoLoginFallback(participantFullName, sharePercent, legalEntityName);
+
+        var placeholders = new Dictionary<string, string>
+        {
+            ["participantFullName"] = participantFullName,
+            ["sharePercent"] = sharePercent.ToString("G"),
+            ["legalEntityName"] = legalEntityName
+        };
+
+        return (ApplyPlaceholders(template.TitleTemplate, placeholders),
+                ApplyPlaceholders(template.BodyTemplate, placeholders));
+    }
+
     // ═══════════════════════════════════════════════════════════════
     // Приватные fallback-методы (дефолтные тексты, без БД)
     // ═══════════════════════════════════════════════════════════════
@@ -531,6 +550,17 @@ public class NotificationTextBuilder
             + $"На основании ст. 280 ТК РФ созывается внеочередное общее собрание участников "
             + $"для избрания нового Генерального директора.\n\n"
             + $"С уважением,\nГенеральный директор {legalEntityName}"
+        );
+    }
+
+    private static (string Title, string Body) BuildEcosystemParticipantAddedNoLoginFallback(
+        string participantFullName, decimal sharePercent, string legalEntityName)
+    {
+        return (
+            $"Участник добавлен в экосистему — требуется назначение логина",
+            $"Уважаемый администратор!\n\n"
+            + $"В экосистему общества «{legalEntityName}» добавлен участник {participantFullName} (доля {sharePercent}%).\n\n"
+            + $"Участнику не назначен логин. Для предоставления доступа назначьте логин в Admin Console."
         );
     }
 
