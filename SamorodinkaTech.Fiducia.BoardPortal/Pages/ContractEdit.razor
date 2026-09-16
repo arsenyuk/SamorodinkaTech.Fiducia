@@ -6,7 +6,6 @@
 @inject IDbContextFactory<SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext> DbFactory
 @inject HttpClient Http
 @inject ILogger<ContractEdit> Logger
-@inject IJSRuntime JS
 @inject NavigationManager Navigation
 @inject IHttpContextAccessor HttpContextAccessor
 @attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "LE_ADMIN,CEO,LAWYER")]
@@ -213,7 +212,7 @@
         try
         {
             await using var ctx = await DbFactory.CreateDbContextAsync();
-            var leId = await LegalEntityHelper.GetLegalEntityIdAsync(ctx, JS);
+            var leId = await LegalEntityHelper.GetLegalEntityIdAsync(ctx, HttpContextAccessor);
             if (leId is not null && leId != Guid.Empty)
             {
                 var le = await ctx.LegalEntities

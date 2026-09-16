@@ -1,5 +1,6 @@
 @page "/main"
 @inject IJSRuntime JS
+@inject IHttpContextAccessor HttpContextAccessor
 @inject IDbContextFactory<SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext> DbFactory
 @using Microsoft.EntityFrameworkCore
 @using SamorodinkaTech.Fiducia.Domain.Entities
@@ -129,8 +130,7 @@
     {
         if (!firstRender) return;
 
-        var role = await JS.InvokeAsync<string?>("localStorage.getItem", "currentUserRole");
-        _isParticipant = role == "PARTICIPANT";
+        _isParticipant = HttpContextAccessor.HttpContext?.User.IsInRole("PARTICIPANT") == true;
 
         var shownAt = await JS.InvokeAsync<string?>("localStorage.getItem", "greetingShownAt");
         if (string.IsNullOrEmpty(shownAt) || !DateTime.TryParse(shownAt, out var parsed) || parsed.Date != DateTime.UtcNow.Date)
@@ -152,7 +152,7 @@
         try
         {
             await using var ctx = await DbFactory.CreateDbContextAsync();
-            var leId = await LegalEntityHelper.GetLegalEntityIdAsync(ctx, JS);
+            var leId = await LegalEntityHelper.GetLegalEntityIdAsync(ctx, HttpContextAccessor);
             if (leId is null) return;
 
             // Определяем тип организации

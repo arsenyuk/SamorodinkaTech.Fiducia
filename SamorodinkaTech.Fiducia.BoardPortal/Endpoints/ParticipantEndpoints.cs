@@ -4,6 +4,7 @@ using SamorodinkaTech.Fiducia.Domain.Entities;
 using SamorodinkaTech.Fiducia.Domain.Interfaces;
 using SamorodinkaTech.Fiducia.Domain.Services;
 using SamorodinkaTech.Fiducia.Infrastructure;
+using SamorodinkaTech.Fiducia.Infrastructure.Common;
 using SamorodinkaTech.Fiducia.Infrastructure.Persistence;
 
 namespace SamorodinkaTech.Fiducia.BoardPortal;
@@ -90,8 +91,8 @@ public static class ParticipantEndpoints
         {
             await using var ctx = await dbFactory.CreateDbContextAsync();
 
-            var userIdStr = http.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-            if (!Guid.TryParse(userIdStr, out var userId))
+            var userId = UserContextHelper.GetUserIdAsync(http);
+            if (userId is null)
                 return Results.Ok(new { Id = (Guid?)null, FullName = (string?)null, SharePercent = (decimal?)null });
 
             var user = await ctx.Users.FindAsync(userId);
@@ -179,8 +180,7 @@ public static class ParticipantEndpoints
 
                 var leId = await LegalEntityHelper.GetLegalEntityIdAsync(ctx, http) ?? Guid.Empty;
 
-                var userIdStr = http.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-                Guid? userId = Guid.TryParse(userIdStr, out var uid) ? uid : null;
+                var userId = UserContextHelper.GetUserIdAsync(http);
 
                 // Валидация ФИО для ФЛ
                 if (dto.ParticipantType == "FL" || string.IsNullOrEmpty(dto.ParticipantType))
@@ -446,8 +446,7 @@ public static class ParticipantEndpoints
                 var entity = await ctx.BoardParticipants.FindAsync(id);
                 if (entity is null) return Results.NotFound();
 
-                var userIdStr = http.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-                Guid? userId = Guid.TryParse(userIdStr, out var uid) ? uid : null;
+                var userId = UserContextHelper.GetUserIdAsync(http);
 
                 // ── Валидация ──────────────────────────────────────────
                 var participantType = dto.ParticipantType ?? entity.ParticipantType;
@@ -1011,8 +1010,7 @@ public static class ParticipantEndpoints
                     return Results.BadRequest(new { error = "Юридическое лицо не определено" });
                 }
 
-                var userIdStr = http.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-                Guid? userId = Guid.TryParse(userIdStr, out var uid) ? uid : null;
+                var userId = UserContextHelper.GetUserIdAsync(http);
 
                 // Сохраняем XML
                 await using var xmlStream = file.OpenReadStream();
@@ -1217,8 +1215,7 @@ public static class ParticipantEndpoints
                     return Results.BadRequest(new { error = "Юридическое лицо не определено" });
                 }
 
-                var userIdStr = http.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-                Guid? userId = Guid.TryParse(userIdStr, out var uid) ? uid : null;
+                var userId = UserContextHelper.GetUserIdAsync(http);
 
                 // Валидация ФИО
                 if (string.IsNullOrWhiteSpace(dto.LastName))
@@ -1356,8 +1353,7 @@ public static class ParticipantEndpoints
                 var entity = await ctx.BoardParticipantChanges.FindAsync(id);
                 if (entity is null) return Results.NotFound();
 
-                var userIdStr = http.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-                Guid? userId = Guid.TryParse(userIdStr, out var uid) ? uid : null;
+                var userId = UserContextHelper.GetUserIdAsync(http);
 
                 entity.Status = dto.Status;
                 entity.ReviewComment = dto.Comment;
@@ -1508,8 +1504,8 @@ public static class ParticipantEndpoints
         }
 
         // Проверка роли PARTICIPANT
-        var userIdStr = http.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-        if (string.IsNullOrEmpty(userIdStr) || !Guid.TryParse(userIdStr, out var userId))
+        var userId = UserContextHelper.GetUserIdAsync(http);
+        if (userId is null)
         {
             await audit.LogEventAsync(AuditActionAccess, clientIp,
                 $"Доступ запрещён: пользователь не аутентифицирован, информирование об изменении сведений",
@@ -1542,8 +1538,8 @@ public static class ParticipantEndpoints
         FiduciaDbContext ctx,
         HttpContext http)
     {
-        var userIdStr = http.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-        if (string.IsNullOrEmpty(userIdStr) || !Guid.TryParse(userIdStr, out var userId))
+        var userId = UserContextHelper.GetUserIdAsync(http);
+        if (userId is null)
             return ("anonymous", "Неизвестный пользователь");
 
         var user = await ctx.Users.FindAsync(userId);

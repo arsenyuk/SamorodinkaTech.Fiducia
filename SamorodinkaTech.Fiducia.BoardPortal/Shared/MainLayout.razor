@@ -1,5 +1,6 @@
 @inherits LayoutComponentBase
 @inject IJSRuntime JS
+@inject IHttpContextAccessor HttpContextAccessor
 @inject HttpClient Http
 @inject IDbContextFactory<SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext> DbFactory
 
@@ -99,23 +100,23 @@ else
             // Гард: при отсутствии авторизации не даём оставаться на защищённых маршрутах
             try
             {
-                var userId = await JS.InvokeAsync<string>("localStorage.getItem", "currentUserId");
+                var userId = SamorodinkaTech.Fiducia.Infrastructure.Common.UserContextHelper.GetUserIdAsync(HttpContextAccessor.HttpContext!);
                 var relative = NavigationManager.ToBaseRelativePath(NavigationManager.Uri).Trim('/');
                 var isPublicRoute = string.IsNullOrEmpty(relative)
                     || relative == "/"
                     || _publicPaths.Any(p => relative.StartsWith(p.TrimStart('/'), StringComparison.OrdinalIgnoreCase));
-                if (string.IsNullOrEmpty(userId) && !isPublicRoute)
+                if (userId is null && !isPublicRoute)
                 {
                     NavigationManager.NavigateTo("/login", true);
                     return;
                 }
 
                 // Загружаем количество непрочитанных оповещений
-                if (!string.IsNullOrEmpty(userId) && Guid.TryParse(userId, out var uid))
+                if (userId.HasValue)
                 {
                     await using var ctx = await DbFactory.CreateDbContextAsync();
                     _unreadCount = await ctx.Notifications
-                        .Where(n => n.UserId == uid && !n.IsRead)
+                        .Where(n => n.UserId == userId.Value && !n.IsRead)
                         .CountAsync();
                 }
             }
@@ -124,7 +125,7 @@ else
             try
             {
                 await using var ctx = await DbFactory.CreateDbContextAsync();
-                var leId = await LegalEntityHelper.GetLegalEntityIdAsync(ctx, JS);
+                var leId = await LegalEntityHelper.GetLegalEntityIdAsync(ctx, HttpContextAccessor);
                 if (leId is not null && leId != Guid.Empty)
                 {
                     var le = await ctx.LegalEntities

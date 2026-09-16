@@ -2,6 +2,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using SamorodinkaTech.Fiducia.Domain.Interfaces;
+using SamorodinkaTech.Fiducia.Infrastructure.Common;
 using SamorodinkaTech.Fiducia.Infrastructure.Persistence;
 
 namespace SamorodinkaTech.Fiducia.Infrastructure.Middleware;
@@ -230,10 +231,5 @@ public class PageAccessAuditMiddleware
     }
 
     private static Guid? GetUserId(HttpContext context)
-    {
-        var userIdClaim = context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value
-                       ?? context.User?.FindFirst("sub")?.Value
-                       ?? context.User?.FindFirst("user_id")?.Value;
-        return Guid.TryParse(userIdClaim, out var userId) ? userId : null;
-    }
+        => UserContextHelper.GetUserIdAsync(context);
 }

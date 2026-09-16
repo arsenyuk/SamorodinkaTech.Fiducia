@@ -11,26 +11,31 @@ namespace SamorodinkaTech.Fiducia.Infrastructure.Common;
 /// </summary>
 public static class UserContextHelper
 {
+    /// <summary>Получить userId из JWT (ClaimTypes.NameIdentifier → Guid).</summary>
+    public static Guid? GetUserIdAsync(HttpContext http)
+    {
+        var userIdStr = http.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        return Guid.TryParse(userIdStr, out var userId) ? userId : null;
+    }
+
     /// <summary>Получить login из JWT ( ClaimTypes.NameIdentifier → Users.Login ).</summary>
     public static async Task<string?> GetLoginFromJwtAsync(FiduciaDbContext ctx, HttpContext http)
     {
-        var userIdStr = http.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        if (string.IsNullOrEmpty(userIdStr) || !Guid.TryParse(userIdStr, out var userId))
-            return null;
+        var userId = GetUserIdAsync(http);
+        if (userId is null) return null;
 
-        var user = await ctx.Users.FindAsync(userId);
+        var user = await ctx.Users.FindAsync(userId.Value);
         return user?.Login;
     }
 
     /// <summary>Получить ID текущего ЮЛ по JWT.</summary>
     public static async Task<Guid?> GetLegalEntityIdAsync(FiduciaDbContext ctx, HttpContext http)
     {
-        var userIdStr = http.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        if (string.IsNullOrEmpty(userIdStr) || !Guid.TryParse(userIdStr, out var userId))
-            return null;
+        var userId = GetUserIdAsync(http);
+        if (userId is null) return null;
 
         var ep = await ctx.EcosystemParticipants
-            .FirstOrDefaultAsync(ep => ep.UserId == userId);
+            .FirstOrDefaultAsync(ep => ep.UserId == userId.Value);
         return ep?.LegalEntityId;
     }
 

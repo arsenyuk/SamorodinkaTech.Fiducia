@@ -6,7 +6,6 @@
 @using SamorodinkaTech.Fiducia.Domain.Validation
 @inject IDbContextFactory<SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext> DbFactory
 @inject ILogger<ContractAdd> Logger
-@inject IJSRuntime JS
 @inject NavigationManager Navigation
 @inject HttpClient Http
 @inject IHttpContextAccessor HttpContextAccessor
@@ -312,7 +311,7 @@
             await using var ctx = await DbFactory.CreateDbContextAsync();
             _measurementUnits = await ctx.RefMeasurementUnits.OrderBy(x => x.SortOrder).ToListAsync();
 
-            var leId = await LegalEntityHelper.GetLegalEntityIdAsync(ctx, JS);
+            var leId = await LegalEntityHelper.GetLegalEntityIdAsync(ctx, HttpContextAccessor);
             if (leId is not null && leId != Guid.Empty)
             {
                 var le = await ctx.LegalEntities

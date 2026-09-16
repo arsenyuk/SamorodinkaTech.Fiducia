@@ -6,6 +6,7 @@ using SamorodinkaTech.Fiducia.Domain.Interfaces;
 using SamorodinkaTech.Fiducia.Domain.Models;
 using SamorodinkaTech.Fiducia.Domain.Validation;
 using SamorodinkaTech.Fiducia.Infrastructure;
+using SamorodinkaTech.Fiducia.Infrastructure.Common;
 using SamorodinkaTech.Fiducia.Infrastructure.Common.Exceptions;
 using SamorodinkaTech.Fiducia.Infrastructure.Persistence;
 
@@ -289,8 +290,7 @@ public static class ShareRequestEndpoints
                     return Results.BadRequest(new { error = $"Тип запроса «{requestType.Name}» не доступен для данного типа организации" });
                 }
 
-                var userIdStr = http.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-                var createdBy = Guid.TryParse(userIdStr, out var uid) ? uid : Guid.Empty;
+                var createdBy = UserContextHelper.GetUserIdAsync(http) ?? Guid.Empty;
 
                 // Находим участника: user → ecosystemParticipant → boardParticipant
                 var user = await ctx.Users.FindAsync(createdBy);
@@ -656,8 +656,7 @@ public static class ShareRequestEndpoints
                 if (error is not null) return error;
 
                 // Находим текущего участника
-                var userIdStr = http.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-                var createdBy = Guid.TryParse(userIdStr, out var uid) ? uid : Guid.Empty;
+                var createdBy = UserContextHelper.GetUserIdAsync(http) ?? Guid.Empty;
 
                 var user = await ctx.Users.FindAsync(createdBy);
                 var ecoParticipant = user is not null ? await PersonHelper.FindParticipantByUserIdAsync(ctx, user.Id) : null;
@@ -842,8 +841,7 @@ public static class ShareRequestEndpoints
                 }
 
                 // Находим текущего участника
-                var userIdStr = http.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-                var userId = Guid.TryParse(userIdStr, out var uid) ? uid : Guid.Empty;
+                var userId = UserContextHelper.GetUserIdAsync(http) ?? Guid.Empty;
 
                 var user = await ctx.Users.FindAsync(userId);
                 var ecoParticipant = user is not null ? await PersonHelper.FindParticipantByUserIdAsync(ctx, user.Id) : null;
@@ -967,8 +965,7 @@ public static class ShareRequestEndpoints
                 }
 
                 // Находим текущего участника
-                var userIdStr = http.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-                var userId = Guid.TryParse(userIdStr, out var uid) ? uid : Guid.Empty;
+                var userId = UserContextHelper.GetUserIdAsync(http) ?? Guid.Empty;
 
                 var user = await ctx.Users.FindAsync(userId);
                 var ecoParticipant = user is not null ? await PersonHelper.FindParticipantByUserIdAsync(ctx, user.Id) : null;
@@ -1029,8 +1026,7 @@ public static class ShareRequestEndpoints
                 if (error is not null) return error;
 
                 // Проверяем роль: CEO (для обычных требований) или MEMBER_BOARD/CHAIR_BOARD (для BOARD_REVIEW)
-                var userIdStr = http.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-                var userId = Guid.TryParse(userIdStr, out var uid) ? uid : Guid.Empty;
+                var userId = UserContextHelper.GetUserIdAsync(http) ?? Guid.Empty;
 
                 var user = await ctx.Users
                     .Include(u => u.UserRoles).ThenInclude(ur => ur.Role)
@@ -1230,8 +1226,7 @@ public static class ShareRequestEndpoints
                 if (error is not null) return error;
 
                 // Проверяем роль CEO
-                var userIdStr = http.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-                var userId = Guid.TryParse(userIdStr, out var uid) ? uid : Guid.Empty;
+                var userId = UserContextHelper.GetUserIdAsync(http) ?? Guid.Empty;
                 var user = await ctx.Users
                     .Include(u => u.UserRoles).ThenInclude(ur => ur.Role)
                     .FirstOrDefaultAsync(u => u.Id == userId);
@@ -1292,8 +1287,7 @@ public static class ShareRequestEndpoints
                 if (error is not null) return error;
 
                 // Проверяем роль CEO
-                var userIdStr = http.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-                var userId = Guid.TryParse(userIdStr, out var uid) ? uid : Guid.Empty;
+                var userId = UserContextHelper.GetUserIdAsync(http) ?? Guid.Empty;
                 var user = await ctx.Users
                     .Include(u => u.UserRoles).ThenInclude(ur => ur.Role)
                     .FirstOrDefaultAsync(u => u.Id == userId);
@@ -1363,8 +1357,7 @@ public static class ShareRequestEndpoints
                 if (error is not null) return error;
 
                 // Проверяем роль: MEMBER_BOARD, CHAIR_BOARD или SECRETARY
-                var userIdStr = http.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-                var userId = Guid.TryParse(userIdStr, out var uid) ? uid : Guid.Empty;
+                var userId = UserContextHelper.GetUserIdAsync(http) ?? Guid.Empty;
                 var user = await ctx.Users
                     .Include(u => u.UserRoles).ThenInclude(ur => ur.Role)
                     .FirstOrDefaultAsync(u => u.Id == userId);
@@ -1412,8 +1405,7 @@ public static class ShareRequestEndpoints
                 if (request is null)
                     return Results.NotFound();
 
-                var userIdStr = http.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-                var userId = Guid.TryParse(userIdStr, out var uid) ? uid : Guid.Empty;
+                var userId = UserContextHelper.GetUserIdAsync(http) ?? Guid.Empty;
                 var currentUser = await ctx.Users.FindAsync(userId);
                 var currentEcoParticipant = currentUser is not null ? await PersonHelper.FindParticipantByUserIdAsync(ctx, currentUser.Id) : null;
                 var currentParticipant = currentEcoParticipant is not null
@@ -1617,8 +1609,7 @@ public static class ShareRequestEndpoints
                 var (leId, error) = await ValidateAccessAsync(ctx, http, audit, logger);
                 if (error is not null) return error;
 
-                var userIdStr = http.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-                var userId = Guid.TryParse(userIdStr, out var uid) ? uid : Guid.Empty;
+                var userId = UserContextHelper.GetUserIdAsync(http) ?? Guid.Empty;
 
                 // Проверяем роль CEO
                 var user = await ctx.Users

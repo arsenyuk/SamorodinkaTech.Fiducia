@@ -5,7 +5,7 @@
 @using SamorodinkaTech.Fiducia.Domain.Entities
 @inject IDbContextFactory<SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext> DbFactory
 @inject HttpClient Http
-@inject IJSRuntime JS
+@inject IHttpContextAccessor HttpContextAccessor
 @inject ILogger<Informing> Logger
 @inject NavigationManager Nav
 @attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "PARTICIPANT")]
@@ -325,9 +325,9 @@ else
 
         try
         {
-            // Определяем текущего участника по userId из localStorage
-            var userIdStr = await JS.InvokeAsync<string?>("localStorage.getItem", "currentUserId");
-            if (string.IsNullOrEmpty(userIdStr) || !Guid.TryParse(userIdStr, out var userId))
+            // Определяем текущего участника по userId из JWT
+            var userId = SamorodinkaTech.Fiducia.Infrastructure.Common.UserContextHelper.GetUserIdAsync(HttpContextAccessor.HttpContext!);
+            if (userId is null)
             {
                 _error = "Не удалось определить пользователя.";
                 return;

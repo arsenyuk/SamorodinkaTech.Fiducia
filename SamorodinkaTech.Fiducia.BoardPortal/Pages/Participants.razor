@@ -7,7 +7,7 @@
 @inject HttpClient Http
 @inject ILogger<Participants> Logger
 @inject NavigationManager Nav
-@inject IJSRuntime JS
+@inject IHttpContextAccessor HttpContextAccessor
 @attribute [Authorize(Roles = "LE_ADMIN,CEO,LAWYER")]
 
 <PageTitle>Fiducia — Участники</PageTitle>
@@ -952,9 +952,8 @@ else
         {
             await using var ctx = await DbFactory.CreateDbContextAsync();
 
-            // Определяем ЮЛ через EcosystemParticipant по login из JWT
-            var userIdStr = await JS.InvokeAsync<string?>("localStorage.getItem", "currentUserId");
-            Guid? userId = Guid.TryParse(userIdStr, out var uid) ? uid : null;
+            // Определяем ЮЛ через EcosystemParticipant по userId из JWT
+            var userId = SamorodinkaTech.Fiducia.Infrastructure.Common.UserContextHelper.GetUserIdAsync(HttpContextAccessor.HttpContext!);
 
             Guid? leId = null;
             if (userId.HasValue)

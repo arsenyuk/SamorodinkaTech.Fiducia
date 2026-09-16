@@ -3,6 +3,7 @@ using SamorodinkaTech.Fiducia.Domain.Entities;
 using SamorodinkaTech.Fiducia.Domain.Enums;
 using SamorodinkaTech.Fiducia.Domain.Interfaces;
 using SamorodinkaTech.Fiducia.Domain.Validation;
+using SamorodinkaTech.Fiducia.Infrastructure.Common;
 using SamorodinkaTech.Fiducia.Infrastructure.FileStorage;
 using SamorodinkaTech.Fiducia.Infrastructure.Persistence;
 
@@ -488,9 +489,7 @@ public static class ContractEndpoints
                 RegistryRulesDocumentId = rulesDocId,
                 IsActive = true,
                 CreatedAt = DateTime.UtcNow,
-                CreatedBy = Guid.TryParse(
-                    http.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value,
-                    out var uid) ? uid : null
+                CreatedBy = UserContextHelper.GetUserIdAsync(http)
             };
 
             ctx.Contracts.Add(entity);

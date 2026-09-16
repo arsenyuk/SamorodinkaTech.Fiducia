@@ -8,7 +8,7 @@
 @inject ILegalEntityGosaIntervalService GosaSvc
 @inject ILogger<OsuMeetings> Logger
 @inject NavigationManager Nav
-@inject IJSRuntime JS
+@inject IHttpContextAccessor HttpContextAccessor
 @inject IConfiguration Config
 @attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "LE_ADMIN,CEO,LAWYER")]
 
@@ -221,7 +221,7 @@
         try
         {
             await using var ctx = await DbFactory.CreateDbContextAsync();
-            var leId = await LegalEntityHelper.GetLegalEntityIdAsync(ctx, JS);
+            var leId = await LegalEntityHelper.GetLegalEntityIdAsync(ctx, HttpContextAccessor);
             _currentLegalEntityId = leId ?? Guid.Empty;
 
             // Загружаем шаблон из system_settings

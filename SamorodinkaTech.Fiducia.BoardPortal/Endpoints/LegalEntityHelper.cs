@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.JSInterop;
 using SamorodinkaTech.Fiducia.Infrastructure.Common;
@@ -11,6 +12,10 @@ namespace SamorodinkaTech.Fiducia.BoardPortal;
 /// </summary>
 public static class LegalEntityHelper
 {
+    /// <summary>Получить userId из JWT ( делегирует в UserContextHelper ).</summary>
+    public static Guid? GetUserIdAsync(HttpContext http)
+        => UserContextHelper.GetUserIdAsync(http);
+
     /// <summary>
     /// Получить ID текущего ЮЛ по login пользователя.
     /// </summary>
@@ -20,6 +25,10 @@ public static class LegalEntityHelper
     /// <summary>Перегрузка для endpoints (login из JWT).</summary>
     public static async Task<Guid?> GetLegalEntityIdAsync(FiduciaDbContext ctx, HttpContext http)
         => await UserContextHelper.GetLegalEntityIdAsync(ctx, http);
+
+    /// <summary>Перегрузка для Blazor (login из JWT через HttpContextAccessor).</summary>
+    public static async Task<Guid?> GetLegalEntityIdAsync(FiduciaDbContext ctx, IHttpContextAccessor httpCtxAccessor)
+        => await UserContextHelper.GetLegalEntityIdAsync(ctx, httpCtxAccessor.HttpContext);
 
     /// <summary>Перегрузка для Blazor (login из localStorage).</summary>
     public static async Task<Guid?> GetLegalEntityIdAsync(FiduciaDbContext ctx, IJSRuntime js)

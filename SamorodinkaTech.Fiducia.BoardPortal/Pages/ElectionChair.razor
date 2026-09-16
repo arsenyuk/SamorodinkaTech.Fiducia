@@ -3,6 +3,7 @@
 @inject IDbContextFactory<SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext> DbFactory
 @inject ILogger<ElectionChair> Logger
 @inject IJSRuntime JS
+@inject IHttpContextAccessor HttpContextAccessor
 @attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "PARTICIPANT")]
 
 <PageTitle>Fiducia — Предложения на должность Председателя СД</PageTitle>
@@ -98,10 +99,10 @@
     {
         try
         {
-            var userIdStr = await JS.InvokeAsync<string>("localStorage.getItem", "currentUserId") ?? "";
+            var userId = SamorodinkaTech.Fiducia.Infrastructure.Common.UserContextHelper.GetUserIdAsync(HttpContextAccessor.HttpContext!);
             _currentUserName = await JS.InvokeAsync<string>("localStorage.getItem", "currentUserName") ?? "Гость";
 
-            await LoadAsync(userIdStr);
+            await LoadAsync(userId);
         }
         catch (Exception ex)
         {
@@ -111,7 +112,7 @@
         finally { _loading = false; }
     }
 
-    private async Task LoadAsync(string userIdStr)
+    private async Task LoadAsync(Guid? userId)
     {
         await using var ctx = await DbFactory.CreateDbContextAsync();
 
@@ -125,11 +126,11 @@
         }
 
         // Find current user's board member for this board
-        if (Guid.TryParse(userIdStr, out var userId))
+        if (userId.HasValue)
         {
             var boardMember = await ctx.BoardMembers
                 .FirstOrDefaultAsync(bm => bm.BoardOfDirectorsId == proposal.BoardOfDirectorsId 
-                    && bm.UserId == userId);
+                    && bm.UserId == userId.Value);
             _currentBoardMemberId = boardMember?.Id ?? Guid.Empty;
         }
 

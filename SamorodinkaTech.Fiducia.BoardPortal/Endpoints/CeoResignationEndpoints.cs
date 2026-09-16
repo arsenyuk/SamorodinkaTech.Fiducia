@@ -6,6 +6,7 @@ using SamorodinkaTech.Fiducia.Domain.Helpers;
 using SamorodinkaTech.Fiducia.Domain.Interfaces;
 using SamorodinkaTech.Fiducia.Domain.Models;
 using SamorodinkaTech.Fiducia.Domain.Services;
+using SamorodinkaTech.Fiducia.Infrastructure.Common;
 using SamorodinkaTech.Fiducia.Infrastructure.Common.Exceptions;
 using SamorodinkaTech.Fiducia.Infrastructure.Persistence;
 
@@ -46,9 +47,7 @@ public static class CeoResignationEndpoints
                     return Results.BadRequest(new { error = "Юридическое лицо не выбрано" });
 
                 // Получаем текущего пользователя
-                var userIdStr = http.User.FindFirst(ClaimTypes.NameIdentifier)?.Value
-                    ?? http.User.FindFirst("sub")?.Value;
-                Guid.TryParse(userIdStr, out var currentUserId);
+                var currentUserId = UserContextHelper.GetUserIdAsync(http) ?? Guid.Empty;
 
                 // Проверяем что пользователь — ГД
                 var ceoParticipant = await ctx.BoardParticipants

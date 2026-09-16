@@ -1,6 +1,7 @@
 @inherits LayoutComponentBase
 @implements IDisposable
 @inject IJSRuntime JS
+@inject IHttpContextAccessor HttpContextAccessor
 @inject HttpClient Http
 @inject NavigationManager Navigation
 @inject IWebHostEnvironment Env
@@ -88,10 +89,10 @@
             // Гард: при отсутствии авторизации не даём оставаться на защищённых маршрутах
             try
             {
-                var userId = await JS.InvokeAsync<string>("localStorage.getItem", "currentUserId");
+                var userId = SamorodinkaTech.Fiducia.Infrastructure.Common.UserContextHelper.GetUserIdAsync(HttpContextAccessor.HttpContext!);
                 var relative = Navigation.ToBaseRelativePath(Navigation.Uri).Trim('/');
                 var isAuthRoute = relative == "login" || relative == "logout";
-                if (string.IsNullOrEmpty(userId) && !isAuthRoute)
+                if (userId is null && !isAuthRoute)
                 {
                     Navigation.NavigateTo("/login", true);
                     return;

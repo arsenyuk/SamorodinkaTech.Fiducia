@@ -6,7 +6,7 @@
 @using SamorodinkaTech.Fiducia.Domain.Validation
 @inject IDbContextFactory<SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext> DbFactory
 @inject ILogger<Contracts> Logger
-@inject IJSRuntime JS
+@inject IHttpContextAccessor HttpContextAccessor
 @inject NavigationManager Navigation
 @inject HttpClient Http
 @attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "LE_ADMIN,CEO,LAWYER")]
@@ -279,15 +279,15 @@
 
     protected override async Task OnInitializedAsync()
     {
-        var role = await JS.InvokeAsync<string>("localStorage.getItem", "currentUserRole");
-        _isLawyer = role?.Contains("LAWYER", StringComparison.OrdinalIgnoreCase) == true;
-        _isCeo = role?.Contains("CEO", StringComparison.OrdinalIgnoreCase) == true;
-        _isParticipant = role?.Contains("PARTICIPANT", StringComparison.OrdinalIgnoreCase) == true;
+        var user = HttpContextAccessor.HttpContext?.User;
+        _isLawyer = user?.IsInRole("LAWYER") == true;
+        _isCeo = user?.IsInRole("CEO") == true;
+        _isParticipant = user?.IsInRole("PARTICIPANT") == true;
 
         try
         {
             await using var ctx = await DbFactory.CreateDbContextAsync();
-            var leId = await LegalEntityHelper.GetLegalEntityIdAsync(ctx, JS);
+            var leId = await LegalEntityHelper.GetLegalEntityIdAsync(ctx, HttpContextAccessor);
             if (leId is not null && leId != Guid.Empty)
             {
                 var le = await ctx.LegalEntities
@@ -321,7 +321,7 @@
         try
         {
             await using var ctx = await DbFactory.CreateDbContextAsync();
-            var leId = await LegalEntityHelper.GetLegalEntityIdAsync(ctx, JS);
+            var leId = await LegalEntityHelper.GetLegalEntityIdAsync(ctx, HttpContextAccessor);
             if (leId is null || leId == Guid.Empty) return;
 
             var items = await ctx.Contracts

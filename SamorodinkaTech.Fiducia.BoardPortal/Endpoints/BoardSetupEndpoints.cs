@@ -159,8 +159,7 @@ public static class BoardSetupEndpoints
                 if (errors.Count > 0)
                     return Results.BadRequest(new { error = "Ошибки валидации", errors });
 
-                var userIdStr = http.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-                Guid? userId = Guid.TryParse(userIdStr, out var uid) ? uid : null;
+                var userId = UserContextHelper.GetUserIdAsync(http);
 
                 // Удаляем существующие роли участников этого ЮЛ
                 var existingRoles = await ctx.BoardParticipantRoles

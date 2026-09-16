@@ -4,7 +4,7 @@
 @using SamorodinkaTech.Fiducia.Domain.Entities
 @inject IDbContextFactory<SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext> DbFactory
 @inject ILogger<ElectionConsentPage> Logger
-@inject IJSRuntime JS
+@inject IHttpContextAccessor HttpContextAccessor
 
 <PageTitle>Fiducia — Согласие на выдвижение</PageTitle>
 
@@ -132,8 +132,8 @@
     {
         try
         {
-            var userIdStr = await JS.InvokeAsync<string>("localStorage.getItem", "currentUserId") ?? "";
-            await LoadAsync(userIdStr);
+            var userId = SamorodinkaTech.Fiducia.Infrastructure.Common.UserContextHelper.GetUserIdAsync(HttpContextAccessor.HttpContext!);
+            await LoadAsync(userId);
         }
         catch (Exception ex)
         {
@@ -143,7 +143,7 @@
         finally { _loading = false; }
     }
 
-    private async Task LoadAsync(string userIdStr)
+    private async Task LoadAsync(Guid? userId)
     {
         await using var ctx = await DbFactory.CreateDbContextAsync();
 
@@ -204,7 +204,7 @@
         _candidateFullName = boardMember?.FullName ?? "Кандидат";
 
         // Проверяем, что текущий пользователь — именно этот кандидат
-        if (!Guid.TryParse(userIdStr, out var userId) || boardMember?.UserId != userId)
+        if (userId is null || boardMember?.UserId != userId.Value)
         {
             _error = "Эта ссылка предназначена для другого кандидата";
             return;

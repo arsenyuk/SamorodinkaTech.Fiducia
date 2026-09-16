@@ -6,6 +6,7 @@ using SamorodinkaTech.Fiducia.Domain.Helpers;
 using SamorodinkaTech.Fiducia.Domain.Interfaces;
 using SamorodinkaTech.Fiducia.Domain.Models;
 using SamorodinkaTech.Fiducia.Domain.Services;
+using SamorodinkaTech.Fiducia.Infrastructure.Common;
 using SamorodinkaTech.Fiducia.Infrastructure.Common.Exceptions;
 using SamorodinkaTech.Fiducia.Infrastructure.Persistence;
 
@@ -73,9 +74,7 @@ public static class VosuNotificationEndpoints
                     return Results.BadRequest(new { error = "Нет активных участников для отправки уведомления" });
 
                 // Получаем userId текущего пользователя (ГД)
-                var userIdStr = http.User.FindFirst(ClaimTypes.NameIdentifier)?.Value
-                    ?? http.User.FindFirst("sub")?.Value;
-                Guid.TryParse(userIdStr, out var currentUserId);
+                var currentUserId = UserContextHelper.GetUserIdAsync(http) ?? Guid.Empty;
 
                 var currentUser = await ctx.Users.FindAsync(currentUserId);
                 var ceoFullName = currentUser is not null
@@ -212,9 +211,7 @@ public static class VosuNotificationEndpoints
                     .CountAsync(x => x.LegalEntityId == leId.Value && x.IsActive);
 
                 // Получаем текущего ГД
-                var userIdStr = http.User.FindFirst(ClaimTypes.NameIdentifier)?.Value
-                    ?? http.User.FindFirst("sub")?.Value;
-                Guid.TryParse(userIdStr, out var currentUserId);
+                var currentUserId = UserContextHelper.GetUserIdAsync(http) ?? Guid.Empty;
                 var user = await ctx.Users.FindAsync(currentUserId);
                 var ceoName = user is not null
                     ? string.Join(" ", new[] { user.LastName, user.FirstName, user.MiddleName }
@@ -297,9 +294,7 @@ public static class VosuNotificationEndpoints
                 if (participants.Count == 0)
                     return Results.BadRequest(new { error = "Нет активных участников для отправки уведомления" });
 
-                var userIdStr = http.User.FindFirst(ClaimTypes.NameIdentifier)?.Value
-                    ?? http.User.FindFirst("sub")?.Value;
-                Guid.TryParse(userIdStr, out var currentUserId);
+                var currentUserId = UserContextHelper.GetUserIdAsync(http) ?? Guid.Empty;
 
                 var currentUser = await ctx.Users.FindAsync(currentUserId);
                 var ceoFullName = currentUser is not null
@@ -423,9 +418,7 @@ public static class VosuNotificationEndpoints
                 var participantCount = await ctx.BoardParticipants
                     .CountAsync(x => x.LegalEntityId == leId.Value && x.IsActive);
 
-                var userIdStr = http.User.FindFirst(ClaimTypes.NameIdentifier)?.Value
-                    ?? http.User.FindFirst("sub")?.Value;
-                Guid.TryParse(userIdStr, out var currentUserId);
+                var currentUserId = UserContextHelper.GetUserIdAsync(http) ?? Guid.Empty;
                 var user = await ctx.Users.FindAsync(currentUserId);
                 var ceoName = user is not null
                     ? string.Join(" ", new[] { user.LastName, user.FirstName, user.MiddleName }

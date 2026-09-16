@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using SamorodinkaTech.Fiducia.Domain.Entities;
+using SamorodinkaTech.Fiducia.Infrastructure.Common;
 using SamorodinkaTech.Fiducia.Infrastructure.Persistence;
 
 namespace SamorodinkaTech.Fiducia.BoardPortal;
@@ -353,10 +354,7 @@ public static class ShareRequestItemEndpoints
     }
 
     private static Guid? GetUserId(HttpContext http)
-    {
-        var claim = http.User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
-        return claim is not null ? Guid.Parse(claim.Value) : null;
-    }
+        => UserContextHelper.GetUserIdAsync(http);
 }
 
 public record CreateItemDto(string Title, string? Description, int SequenceNumber);
