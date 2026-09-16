@@ -38,7 +38,7 @@ public class E2E_StandardCharter_ExecBodyA_SignTests : BrowserFixture
 
         var testStartTime = DateTimeOffset.UtcNow;
 
-        var (adminPage, boardPage, ldapPage, login) = await SetupFullCycleAsync(charterNumber);
+        var (adminPage, boardPage, login) = await SetupFullCycleAsync(charterNumber);
         try
         {
             await ExecuteCharterFlowAsync(boardPage, adminPage, charterNumber, testStartTime);
@@ -54,18 +54,17 @@ public class E2E_StandardCharter_ExecBodyA_SignTests : BrowserFixture
         {
             var testEndTime = DateTimeOffset.UtcNow;
             await AppLogHelper.AssertNoErrorsInAppLogSafeAsync(testStartTime, testEndTime, testName);
-            await CleanupAsync(adminPage, boardPage, ldapPage);
+            await CleanupAsync(adminPage, boardPage);
         }
     }
 
-    private async Task<(IPage adminPage, IPage boardPage, IPage ldapPage, string login)>
+    private async Task<(IPage adminPage, IPage boardPage, string login)>
         SetupFullCycleAsync(int charterNumber)
     {
         await InfrastructureHelper.EnsureInfrastructureReadyAsync();
 
         var adminPage = await CreateAdminConsolePageAsync();
         var boardPage = await CreateBoardPortalPageAsync();
-        var ldapPage = await CreatePageAsync();
 
         await CharterTestGlobalInit.InitializeAsync();
         await CharterTestSeeder.EnsureSeededAsync(adminPage, charterNumber);
@@ -76,7 +75,7 @@ public class E2E_StandardCharter_ExecBodyA_SignTests : BrowserFixture
 
         boardPage.Url.Should().Contain("/main");
 
-        return (adminPage, boardPage, ldapPage, gdLogin);
+        return (adminPage, boardPage, gdLogin);
     }
 
     private static async Task ExecuteCharterFlowAsync(
@@ -195,9 +194,8 @@ public class E2E_StandardCharter_ExecBodyA_SignTests : BrowserFixture
         await AuditLogHelper.AssertNoNotFoundAsync(from: testStartTime);
     }
 
-    private static async Task CleanupAsync(IPage adminPage, IPage boardPage, IPage ldapPage)
+    private static async Task CleanupAsync(IPage adminPage, IPage boardPage)
     {
-        await ldapPage.CloseAsync();
         await boardPage.CloseAsync();
         await adminPage.CloseAsync();
     }

@@ -178,3 +178,28 @@ if (builder.Configuration.GetValue<bool>("StreamTelecom:Enabled"))
 - `POST /Balance/price_list.php` — список тарифов
 
 **Приоритет:** низкий
+
+## SMTP: настройка режима безопасности подключения
+
+**Статус:** открыто
+
+**Описание:**
+`SmtpEmailService.cs:61-63` — хардкод: `UseSsl=false` → `SecureSocketOptions.None`. Нет промежуточного режима `StartTls`.
+
+**Текущая реализация:**
+```csharp
+var secureSocketOptions = _options.UseSsl
+    ? SecureSocketOptions.SslOnConnect
+    : SecureSocketOptions.None;
+```
+
+**Решение:**
+- Добавить enum `SmtpSecurityMode { None, StartTls, SslOnConnect }` в `SmtpOptions`
+- Маппинг: `None` → `SecureSocketOptions.None`, `StartTls` → `SecureSocketOptions.StartTls`, `SslOnConnect` → `SecureSocketOptions.SslOnConnect`
+- Поле `SecurityMode` в `SmtpOptions` (по умолчанию `SslOnConnect`)
+- Миграция: `UseSsl: true` → `SecurityMode: SslOnConnect`, `UseSsl: false` → `SecurityMode: None`
+- Убрать deprecated-поле `UseSsl` после миграции
+
+**Файл:** `src/Infrastructure/Services/SmtpEmailService.cs`, `src/Infrastructure/Services/SmtpOptions.cs`
+
+**Приоритет:** низкий

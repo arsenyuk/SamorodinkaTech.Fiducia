@@ -60,10 +60,11 @@ public class SmtpEmailService : IEmailService
         {
             var secureSocketOptions = _options.UseSsl
                 ? SecureSocketOptions.SslOnConnect
-                : SecureSocketOptions.StartTls;
+                : SecureSocketOptions.None;
 
             await smtpClient.ConnectAsync(_options.Host, _options.Port, secureSocketOptions, cancellationToken);
-            await smtpClient.AuthenticateAsync(_options.User, _options.Password, cancellationToken);
+            if (!string.IsNullOrWhiteSpace(_options.User))
+                await smtpClient.AuthenticateAsync(_options.User, _options.Password, cancellationToken);
             await smtpClient.SendAsync(mimeMessage, cancellationToken);
             await smtpClient.DisconnectAsync(true, cancellationToken);
 

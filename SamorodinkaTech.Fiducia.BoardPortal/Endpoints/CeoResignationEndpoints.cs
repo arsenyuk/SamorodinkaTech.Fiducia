@@ -91,6 +91,7 @@ public static class CeoResignationEndpoints
                 var participants = await ctx.BoardParticipants
                     .Where(x => x.LegalEntityId == leId.Value && x.IsActive)
                     .Include(x => x.EcosystemParticipant)
+                    .Include(x => x.Person)
                     .ToListAsync();
 
                 if (participants.Count == 0)
@@ -145,7 +146,7 @@ public static class CeoResignationEndpoints
 
                     var docxBytes = await docxGenerator.GenerateAsync(docxData);
                     using var ms = new MemoryStream(docxBytes);
-                    var sanitized = Regex.Replace(participantName, @"[^\w\-]", "_");
+                    var sanitized = Regex.Replace(participantName ?? "unknown", @"[^\w\-]", "_");
                     var fileName = $"Уведомление_ГД_увольнение_{sanitized}.docx";
 
                     var storageKey = await fileStorage.SaveAsync(ms, fileName,

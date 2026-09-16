@@ -24,8 +24,10 @@ public class E2E_GeneralDirectorTests : BrowserFixture
     // ══════════════════════════════════════════════════════════════════════
 
     /// <summary>
-    /// Тест 58: Вкладка «ГД» видна для индивидуального устава с ExecutiveBody=A.
-    /// Назначение одного участника ГД + ввод СНИЛС + сохранение.
+    /// Тест 58: Назначение ГД + информирование об увольнении (ст. 280 ТК РФ).
+    /// Сценарий: индивидуальный устав → ExecBody=A → добавление участников →
+    /// назначение ГД → сохранение → переход на /ceo-resignation →
+    /// заполнение формы → отправка уведомления участникам → проверка результата.
     /// </summary>
     [Fact]
     public async Task GeneralDirector_TabVisible_ShouldAssignParticipantAndSave()
@@ -35,9 +37,10 @@ public class E2E_GeneralDirectorTests : BrowserFixture
         var testStartTime = DateTimeOffset.UtcNow;
         var testName = "GeneralDirector_TabVisible";
 
-        var (adminPage, boardPage, ldapPage, login) = await SetupFullCycleAsync(58);
+        var (adminPage, boardPage, login) = await SetupFullCycleAsync(58);
         try
         {
+            // ── Часть 1: Назначение ГД ────────────────────────────
             // Выбираем индивидуальный устав
             await BoardPortalHelper.SelectCustomCharterAsync(boardPage);
             // ExecutiveBody = A (по умолчанию для индивидуального устава)
@@ -67,6 +70,60 @@ public class E2E_GeneralDirectorTests : BrowserFixture
             // Сохраняем
             await BoardPortalHelper.SaveAndVerifyAsync(boardPage);
 
+            // ── Часть 2: ГД информирует об увольнении (ст. 280 ТК РФ) ──
+            // Повторный логин как ГД (после сохранения CEO роль назначена через ЕДИН binding)
+            var gdLogin = persons.Gd?.Login ?? persons.Participants[0].Login;
+            await AuthHelper.LoginAsBoardUserAsync(boardPage, gdLogin);
+            boardPage.Url.Should().Contain("/main");
+
+            // Навигация на страницу уведомления об увольнении
+            await boardPage.GotoAsync("http://localhost:5002/ceo-resignation");
+            await AuthHelper.WaitForBlazorReady(boardPage);
+
+            // Проверка загрузки страницы
+            await boardPage.WaitForSelectorAsync(
+                "text=Уведомление участников об увольнении Генерального директора",
+                new() { Timeout = DefaultTimeout });
+
+            // Проверка preview-данных
+            var pageContent = await boardPage.ContentAsync();
+            pageContent.Should().Contain("Статья 280 ТК РФ");
+            pageContent.Should().Contain("Участников:");
+
+            // Дата увольнения (через 45 дней — ст. 280 ТК РФ требует ≥ 30 дней)
+            var dateInput = await boardPage.WaitForSelectorAsync(
+                "input[type='date']",
+                new() { Timeout = DefaultTimeout });
+            var resignationDate = DateOnly.FromDateTime(DateTime.Today.AddDays(45));
+            // FillAsync корректно триггерит Blazor binding (как в VosuDemandTests)
+            await dateInput!.FillAsync(resignationDate.ToString("yyyy-MM-dd"));
+
+            // Проверка что textarea повестки существует и содержит данные
+            var agendaTextarea = await boardPage.WaitForSelectorAsync(
+                "textarea",
+                new() { Timeout = DefaultTimeout });
+            agendaTextarea.Should().NotBeNull("повестка ВОСУ должна быть");
+
+            // Место ознакомления
+            var reviewLocationInput = await boardPage.QuerySelectorAsync("input[placeholder*='Пятницкая']");
+            if (reviewLocationInput is not null)
+            {
+                await reviewLocationInput.FillAsync("г. Москва, ул. Тверская, д. 1, в рабочие дни с 10:00 до 16:00");
+            }
+
+            // Отправка уведомления
+            await boardPage.ClickAsync("button:text('Сформировать и отправить уведомление')");
+
+            // Проверка результата
+            await boardPage.WaitForSelectorAsync(
+                "text=Уведомление отправлено",
+                new() { Timeout = DefaultTimeout });
+
+            var resultContent = await boardPage.ContentAsync();
+            resultContent.Should().Contain("участников");
+            resultContent.Should().Contain("DOCX-файлов");
+
+            // ── Финал: проверка страниц и аудита ──────────────────
             await VerifyPagesAsync(boardPage, adminPage, testStartTime);
             await AssertAuditForGeneralDirectorAsync(login);
         }
@@ -79,7 +136,7 @@ public class E2E_GeneralDirectorTests : BrowserFixture
         {
             var testEndTime = DateTimeOffset.UtcNow;
             await AppLogHelper.AssertNoErrorsInAppLogSafeAsync(testStartTime, testEndTime, testName);
-            await CleanupAsync(adminPage, boardPage, ldapPage);
+            await CleanupAsync(adminPage, boardPage);
         }
     }
 
@@ -94,7 +151,7 @@ public class E2E_GeneralDirectorTests : BrowserFixture
         var testStartTime = DateTimeOffset.UtcNow;
         var testName = "GeneralDirector_TwoParticipants";
 
-        var (adminPage, boardPage, ldapPage, login) = await SetupFullCycleAsync(59);
+        var (adminPage, boardPage, login) = await SetupFullCycleAsync(59);
         try
         {
             await BoardPortalHelper.SelectCustomCharterAsync(boardPage);
@@ -127,7 +184,7 @@ public class E2E_GeneralDirectorTests : BrowserFixture
         {
             var testEndTime = DateTimeOffset.UtcNow;
             await AppLogHelper.AssertNoErrorsInAppLogSafeAsync(testStartTime, testEndTime, testName);
-            await CleanupAsync(adminPage, boardPage, ldapPage);
+            await CleanupAsync(adminPage, boardPage);
         }
     }
 
@@ -142,7 +199,7 @@ public class E2E_GeneralDirectorTests : BrowserFixture
         var testStartTime = DateTimeOffset.UtcNow;
         var testName = "GeneralDirector_SaveWithSnils";
 
-        var (adminPage, boardPage, ldapPage, login) = await SetupFullCycleAsync(60);
+        var (adminPage, boardPage, login) = await SetupFullCycleAsync(60);
         try
         {
             await BoardPortalHelper.SelectCustomCharterAsync(boardPage);
@@ -175,7 +232,7 @@ public class E2E_GeneralDirectorTests : BrowserFixture
         {
             var testEndTime = DateTimeOffset.UtcNow;
             await AppLogHelper.AssertNoErrorsInAppLogSafeAsync(testStartTime, testEndTime, testName);
-            await CleanupAsync(adminPage, boardPage, ldapPage);
+            await CleanupAsync(adminPage, boardPage);
         }
     }
 
@@ -190,7 +247,7 @@ public class E2E_GeneralDirectorTests : BrowserFixture
         var testStartTime = DateTimeOffset.UtcNow;
         var testName = "GeneralDirector_ExecBodyB";
 
-        var (adminPage, boardPage, ldapPage, login) = await SetupFullCycleAsync(61);
+        var (adminPage, boardPage, login) = await SetupFullCycleAsync(61);
         try
         {
             await BoardPortalHelper.SelectCustomCharterAsync(boardPage);
@@ -213,7 +270,7 @@ public class E2E_GeneralDirectorTests : BrowserFixture
         {
             var testEndTime = DateTimeOffset.UtcNow;
             await AppLogHelper.AssertNoErrorsInAppLogSafeAsync(testStartTime, testEndTime, testName);
-            await CleanupAsync(adminPage, boardPage, ldapPage);
+            await CleanupAsync(adminPage, boardPage);
         }
     }
 
@@ -228,7 +285,7 @@ public class E2E_GeneralDirectorTests : BrowserFixture
         var testStartTime = DateTimeOffset.UtcNow;
         var testName = "GeneralDirector_ExecBodyC";
 
-        var (adminPage, boardPage, ldapPage, login) = await SetupFullCycleAsync(62);
+        var (adminPage, boardPage, login) = await SetupFullCycleAsync(62);
         try
         {
             await BoardPortalHelper.SelectCustomCharterAsync(boardPage);
@@ -251,7 +308,7 @@ public class E2E_GeneralDirectorTests : BrowserFixture
         {
             var testEndTime = DateTimeOffset.UtcNow;
             await AppLogHelper.AssertNoErrorsInAppLogSafeAsync(testStartTime, testEndTime, testName);
-            await CleanupAsync(adminPage, boardPage, ldapPage);
+            await CleanupAsync(adminPage, boardPage);
         }
     }
 
@@ -266,7 +323,7 @@ public class E2E_GeneralDirectorTests : BrowserFixture
         var testStartTime = DateTimeOffset.UtcNow;
         var testName = "GeneralDirector_StandardCharter_ExecBodyA";
 
-        var (adminPage, boardPage, ldapPage, login) = await SetupFullCycleAsync(63);
+        var (adminPage, boardPage, login) = await SetupFullCycleAsync(63);
         try
         {
             // Типовой устав № 1 (ExecutiveBody=A по умолчанию)
@@ -297,7 +354,7 @@ public class E2E_GeneralDirectorTests : BrowserFixture
         {
             var testEndTime = DateTimeOffset.UtcNow;
             await AppLogHelper.AssertNoErrorsInAppLogSafeAsync(testStartTime, testEndTime, testName);
-            await CleanupAsync(adminPage, boardPage, ldapPage);
+            await CleanupAsync(adminPage, boardPage);
         }
     }
 
@@ -310,13 +367,12 @@ public class E2E_GeneralDirectorTests : BrowserFixture
         await PageVerificationHelper.VerifyBoardPortalPagesAsync(boardPage, testStartTime);
     }
 
-    private async Task<(IPage adminPage, IPage boardPage, IPage ldapPage, string login)> SetupFullCycleAsync(int entityIndex)
+    private async Task<(IPage adminPage, IPage boardPage, string login)> SetupFullCycleAsync(int entityIndex)
     {
         await InfrastructureHelper.EnsureInfrastructureReadyAsync();
 
         var adminPage = await CreateAdminConsolePageAsync();
         var boardPage = await CreateBoardPortalPageAsync();
-        var ldapPage = await CreatePageAsync();
 
         await CharterTestGlobalInit.InitializeAsync();
         await CharterTestSeeder.EnsureSeededAsync(adminPage, entityIndex);
@@ -333,7 +389,7 @@ public class E2E_GeneralDirectorTests : BrowserFixture
             shortName: entity.ShortName,
             ogrn: entity.Ogrn);
 
-        return (adminPage, boardPage, ldapPage, gdLogin);
+        return (adminPage, boardPage, gdLogin);
     }
 
     private static async Task AddParticipantsAsync(IPage boardPage, int entityIndex)
@@ -356,9 +412,8 @@ public class E2E_GeneralDirectorTests : BrowserFixture
             persons.Participants.Count);
     }
 
-    private static async Task CleanupAsync(IPage adminPage, IPage boardPage, IPage ldapPage)
+    private static async Task CleanupAsync(IPage adminPage, IPage boardPage)
     {
-        await ldapPage.CloseAsync();
         await boardPage.CloseAsync();
         await adminPage.CloseAsync();
     }

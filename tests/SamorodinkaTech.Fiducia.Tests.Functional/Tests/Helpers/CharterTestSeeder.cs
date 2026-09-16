@@ -18,7 +18,7 @@ public static class CharterTestSeeder
     /// <summary>
     /// Сидировать указанное ЮЛ (один раз). Повторный вызов для того же ЮЛ — no-op.
     /// </summary>
-    public static async Task<IPage?> EnsureSeededAsync(IPage adminPage, int charterNumber, IPage? ldapPage = null)
+    public static async Task<IPage?> EnsureSeededAsync(IPage adminPage, int charterNumber)
     {
         if (_seedingException is not null)
             throw new InvalidOperationException($"[Seeder] Сидирование завершилось ошибкой: {_seedingException.Message}", _seedingException);

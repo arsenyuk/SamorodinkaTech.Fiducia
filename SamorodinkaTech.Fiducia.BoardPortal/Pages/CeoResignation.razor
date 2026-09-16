@@ -62,7 +62,9 @@
                         @* ── Дата увольнения ────────────────────────── *@
                         <div class="mb-3">
                             <label class="form-label">Плановая дата увольнения</label>
-                            <InputDate @bind-Value="_resignationDate" class="form-control" style="width:220px" />
+                            <input type="date" class="form-control" style="width:220px"
+                                   value="@(_resignationDate?.ToString("yyyy-MM-dd") ?? "")"
+                                   @onchange="OnResignationDateChanged" />
                             @if (_resignationDate.HasValue)
                             {
                                 var daysLeft = _resignationDate.Value.DayNumber - DateOnly.FromDateTime(DateTime.Today).DayNumber;
@@ -256,6 +258,14 @@
             .Select(line => System.Text.RegularExpressions.Regex.Replace(line, @"^\d+\.\s*", ""))
             .Where(x => !string.IsNullOrWhiteSpace(x))
             .ToList();
+    }
+
+    private void OnResignationDateChanged(ChangeEventArgs e)
+    {
+        if (DateOnly.TryParse(e.Value?.ToString(), out var date))
+            _resignationDate = date;
+        else
+            _resignationDate = null;
     }
 
     private record CeoPreviewDto(

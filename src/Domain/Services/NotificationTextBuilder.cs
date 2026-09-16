@@ -31,7 +31,7 @@ public class NotificationTextBuilder
         {
             result = result.Replace($"{{{key}}}", value);
         }
-        return result;
+        return result.Replace("\\n", "\n");
     }
 
     // ═══════════════════════════════════════════════════════════════

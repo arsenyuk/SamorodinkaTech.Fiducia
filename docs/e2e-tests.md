@@ -78,6 +78,7 @@
 | Индивидуальный устав + модели ЕИО | — | `E2E_CustomCharterTests` | [e2e-nonstandard-charter.md](e2e-nonstandard-charter.md) | ✅ Реализован |
 | Первичный ввод состава СД | — | `E2E_BoardSetupTests` | [e2e-board-setup.md](e2e-board-setup.md) | ✅ Реализован |
 | Генеральный директор | — | `E2E_GeneralDirectorTests` | [e2e-general-director.md](e2e-general-director.md) | ✅ Реализован |
+| Уведомление ГД об увольнении (ст. 280 ТК РФ) | — | `E2E_GeneralDirectorTests::GeneralDirector_TabVisible_ShouldAssignParticipantAndSave` | [e2e-general-director.md](e2e-general-director.md) | ✅ Реализован |
 
 ### Участники (ООО)
 

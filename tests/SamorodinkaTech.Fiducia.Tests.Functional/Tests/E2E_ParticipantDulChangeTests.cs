@@ -28,7 +28,7 @@ public class E2E_ParticipantDulChangeTests : BrowserFixture
         var testStartTime = DateTimeOffset.UtcNow;
         var testName = "DulChange_ParticipantUpdatesPassport";
 
-        var (adminPage, boardPage, ldapPage) = await SetupFullCycleAsync(68);
+        var (adminPage, boardPage) = await SetupFullCycleAsync(68);
         try
         {
             var persons = CharterTestDataFixed.PersonsByEntity[68];
@@ -128,17 +128,16 @@ public class E2E_ParticipantDulChangeTests : BrowserFixture
         {
             var testEndTime = DateTimeOffset.UtcNow;
             await AppLogHelper.AssertNoErrorsInAppLogSafeAsync(testStartTime, testEndTime, testName);
-            await CleanupAsync(adminPage, boardPage, ldapPage);
+            await CleanupAsync(adminPage, boardPage);
         }
     }
 
-    private async Task<(IPage adminPage, IPage boardPage, IPage ldapPage)> SetupFullCycleAsync(int entityIndex)
+    private async Task<(IPage adminPage, IPage boardPage)> SetupFullCycleAsync(int entityIndex)
     {
         await InfrastructureHelper.EnsureInfrastructureReadyAsync();
 
         var adminPage = await CreateAdminConsolePageAsync();
         var boardPage = await CreateBoardPortalPageAsync();
-        var ldapPage = await CreatePageAsync();
 
         await CharterTestGlobalInit.InitializeAsync();
         await CharterTestSeeder.EnsureSeededAsync(adminPage, entityIndex);
@@ -155,12 +154,11 @@ public class E2E_ParticipantDulChangeTests : BrowserFixture
             shortName: entity.ShortName,
             ogrn: entity.Ogrn);
 
-        return (adminPage, boardPage, ldapPage);
+        return (adminPage, boardPage);
     }
 
-    private static async Task CleanupAsync(IPage adminPage, IPage boardPage, IPage ldapPage)
+    private static async Task CleanupAsync(IPage adminPage, IPage boardPage)
     {
-        await ldapPage.CloseAsync();
         await boardPage.CloseAsync();
         await adminPage.CloseAsync();
     }

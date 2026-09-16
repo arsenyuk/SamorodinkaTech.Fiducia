@@ -94,11 +94,9 @@ public static class InfrastructureHelper
         // ═══════════════════════════════════════════════════════════════════
         if (!await IsPortOpenAsync(5001))
         {
-            var envVars = new Dictionary<string, string>
-            {
-                ["ASPNETCORE_URLS"] = "http://localhost:5001",
-                ["ASPNETCORE_ENVIRONMENT"] = "Development"
-            };
+            var envVars = LoadDotEnv();
+            envVars["ASPNETCORE_URLS"] = "http://localhost:5001";
+            envVars["ASPNETCORE_ENVIRONMENT"] = "Development";
             await RunCommandAsync("dotnet", "run --project SamorodinkaTech.Fiducia.AdminConsole --no-restore --no-launch-profile",
                 timeout: TimeSpan.FromMinutes(1), background: true, environmentVariables: envVars);
         }
@@ -108,11 +106,9 @@ public static class InfrastructureHelper
         // ═══════════════════════════════════════════════════════════════════
         if (!await IsPortOpenAsync(5002))
         {
-            var envVars = new Dictionary<string, string>
-            {
-                ["ASPNETCORE_URLS"] = "http://localhost:5002",
-                ["ASPNETCORE_ENVIRONMENT"] = "Development"
-            };
+            var envVars = LoadDotEnv();
+            envVars["ASPNETCORE_URLS"] = "http://localhost:5002";
+            envVars["ASPNETCORE_ENVIRONMENT"] = "Development";
             await RunCommandAsync("dotnet", "run --project SamorodinkaTech.Fiducia.BoardPortal --no-restore --no-launch-profile",
                 timeout: TimeSpan.FromMinutes(1), background: true, environmentVariables: envVars);
         }
@@ -183,6 +179,34 @@ public static class InfrastructureHelper
         {
             return false;
         }
+    }
+
+    /// <summary>
+    /// Загрузить переменные окружения из .env файла.
+    /// </summary>
+    private static Dictionary<string, string> LoadDotEnv()
+    {
+        var envVars = new Dictionary<string, string>();
+        var envPath = Path.Combine(ProjectRoot, ".env");
+
+        if (!File.Exists(envPath))
+            return envVars;
+
+        foreach (var line in File.ReadAllLines(envPath))
+        {
+            var trimmed = line.Trim();
+            if (string.IsNullOrEmpty(trimmed) || trimmed.StartsWith('#'))
+                continue;
+
+            var eqIndex = trimmed.IndexOf('=');
+            if (eqIndex < 0) continue;
+
+            var key = trimmed[..eqIndex].Trim();
+            var value = trimmed[(eqIndex + 1)..].Trim().Trim('"');
+            envVars[key] = value;
+        }
+
+        return envVars;
     }
 
     /// <summary>

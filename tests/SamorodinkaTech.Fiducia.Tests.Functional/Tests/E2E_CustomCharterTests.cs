@@ -56,7 +56,7 @@ public class E2E_CustomCharterTests : BrowserFixture
         var testStartTime = DateTimeOffset.UtcNow;
         var testName = "CustomCharter_ExitAllowed";
 
-        var (adminPage, boardPage, ldapPage, login) = await SetupFullCycleAsync(37);
+        var (adminPage, boardPage, login) = await SetupFullCycleAsync(37);
         try
         {
             await BoardPortalHelper.SelectCustomCharterAsync(boardPage);
@@ -78,7 +78,7 @@ public class E2E_CustomCharterTests : BrowserFixture
         {
             var testEndTime = DateTimeOffset.UtcNow;
             await AppLogHelper.AssertNoErrorsInAppLogSafeAsync(testStartTime, testEndTime, testName);
-            await CleanupAsync(adminPage, boardPage, ldapPage);
+            await CleanupAsync(adminPage, boardPage);
         }
     }
 
@@ -90,7 +90,7 @@ public class E2E_CustomCharterTests : BrowserFixture
         var testStartTime = DateTimeOffset.UtcNow;
         var testName = "CustomCharter_ExitMinSharePercent";
 
-        var (adminPage, boardPage, ldapPage, login) = await SetupFullCycleAsync(38);
+        var (adminPage, boardPage, login) = await SetupFullCycleAsync(38);
         try
         {
             await BoardPortalHelper.SelectCustomCharterAsync(boardPage);
@@ -111,7 +111,7 @@ public class E2E_CustomCharterTests : BrowserFixture
         {
             var testEndTime = DateTimeOffset.UtcNow;
             await AppLogHelper.AssertNoErrorsInAppLogSafeAsync(testStartTime, testEndTime, testName);
-            await CleanupAsync(adminPage, boardPage, ldapPage);
+            await CleanupAsync(adminPage, boardPage);
         }
     }
 
@@ -123,7 +123,7 @@ public class E2E_CustomCharterTests : BrowserFixture
         var testStartTime = DateTimeOffset.UtcNow;
         var testName = "CustomCharter_ExitMaxSharePercent";
 
-        var (adminPage, boardPage, ldapPage, login) = await SetupFullCycleAsync(39);
+        var (adminPage, boardPage, login) = await SetupFullCycleAsync(39);
         try
         {
             await BoardPortalHelper.SelectCustomCharterAsync(boardPage);
@@ -144,7 +144,7 @@ public class E2E_CustomCharterTests : BrowserFixture
         {
             var testEndTime = DateTimeOffset.UtcNow;
             await AppLogHelper.AssertNoErrorsInAppLogSafeAsync(testStartTime, testEndTime, testName);
-            await CleanupAsync(adminPage, boardPage, ldapPage);
+            await CleanupAsync(adminPage, boardPage);
         }
     }
 
@@ -156,7 +156,7 @@ public class E2E_CustomCharterTests : BrowserFixture
         var testStartTime = DateTimeOffset.UtcNow;
         var testName = "CustomCharter_ExitConditionDescription";
 
-        var (adminPage, boardPage, ldapPage, login) = await SetupFullCycleAsync(40);
+        var (adminPage, boardPage, login) = await SetupFullCycleAsync(40);
         try
         {
             await BoardPortalHelper.SelectCustomCharterAsync(boardPage);
@@ -177,7 +177,7 @@ public class E2E_CustomCharterTests : BrowserFixture
         {
             var testEndTime = DateTimeOffset.UtcNow;
             await AppLogHelper.AssertNoErrorsInAppLogSafeAsync(testStartTime, testEndTime, testName);
-            await CleanupAsync(adminPage, boardPage, ldapPage);
+            await CleanupAsync(adminPage, boardPage);
         }
     }
 
@@ -189,7 +189,7 @@ public class E2E_CustomCharterTests : BrowserFixture
         var testStartTime = DateTimeOffset.UtcNow;
         var testName = "CustomCharter_ExitRequiresUnanimousOsu";
 
-        var (adminPage, boardPage, ldapPage, login) = await SetupFullCycleAsync(41);
+        var (adminPage, boardPage, login) = await SetupFullCycleAsync(41);
         try
         {
             await BoardPortalHelper.SelectCustomCharterAsync(boardPage);
@@ -210,7 +210,7 @@ public class E2E_CustomCharterTests : BrowserFixture
         {
             var testEndTime = DateTimeOffset.UtcNow;
             await AppLogHelper.AssertNoErrorsInAppLogSafeAsync(testStartTime, testEndTime, testName);
-            await CleanupAsync(adminPage, boardPage, ldapPage);
+            await CleanupAsync(adminPage, boardPage);
         }
     }
 
@@ -222,7 +222,7 @@ public class E2E_CustomCharterTests : BrowserFixture
         var testStartTime = DateTimeOffset.UtcNow;
         var testName = "CustomCharter_TransferToParticipants";
 
-        var (adminPage, boardPage, ldapPage, login) = await SetupFullCycleAsync(42);
+        var (adminPage, boardPage, login) = await SetupFullCycleAsync(42);
         try
         {
             await BoardPortalHelper.SelectCustomCharterAsync(boardPage);
@@ -242,7 +242,7 @@ public class E2E_CustomCharterTests : BrowserFixture
         {
             var testEndTime = DateTimeOffset.UtcNow;
             await AppLogHelper.AssertNoErrorsInAppLogSafeAsync(testStartTime, testEndTime, testName);
-            await CleanupAsync(adminPage, boardPage, ldapPage);
+            await CleanupAsync(adminPage, boardPage);
         }
     }
 
@@ -254,7 +254,7 @@ public class E2E_CustomCharterTests : BrowserFixture
         var testStartTime = DateTimeOffset.UtcNow;
         var testName = "CustomCharter_TransferToThirdParties";
 
-        var (adminPage, boardPage, ldapPage, login) = await SetupFullCycleAsync(43);
+        var (adminPage, boardPage, login) = await SetupFullCycleAsync(43);
         try
         {
             await BoardPortalHelper.SelectCustomCharterAsync(boardPage);
@@ -274,7 +274,7 @@ public class E2E_CustomCharterTests : BrowserFixture
         {
             var testEndTime = DateTimeOffset.UtcNow;
             await AppLogHelper.AssertNoErrorsInAppLogSafeAsync(testStartTime, testEndTime, testName);
-            await CleanupAsync(adminPage, boardPage, ldapPage);
+            await CleanupAsync(adminPage, boardPage);
         }
     }
 
@@ -286,7 +286,7 @@ public class E2E_CustomCharterTests : BrowserFixture
         var testStartTime = DateTimeOffset.UtcNow;
         var testName = "CustomCharter_PreemptiveRight";
 
-        var (adminPage, boardPage, ldapPage, login) = await SetupFullCycleAsync(44);
+        var (adminPage, boardPage, login) = await SetupFullCycleAsync(44);
         try
         {
             await BoardPortalHelper.SelectCustomCharterAsync(boardPage);
@@ -306,7 +306,7 @@ public class E2E_CustomCharterTests : BrowserFixture
         {
             var testEndTime = DateTimeOffset.UtcNow;
             await AppLogHelper.AssertNoErrorsInAppLogSafeAsync(testStartTime, testEndTime, testName);
-            await CleanupAsync(adminPage, boardPage, ldapPage);
+            await CleanupAsync(adminPage, boardPage);
         }
     }
 
@@ -318,7 +318,7 @@ public class E2E_CustomCharterTests : BrowserFixture
         var testStartTime = DateTimeOffset.UtcNow;
         var testName = "CustomCharter_InheritanceWithoutConsent";
 
-        var (adminPage, boardPage, ldapPage, login) = await SetupFullCycleAsync(45);
+        var (adminPage, boardPage, login) = await SetupFullCycleAsync(45);
         try
         {
             await BoardPortalHelper.SelectCustomCharterAsync(boardPage);
@@ -339,7 +339,7 @@ public class E2E_CustomCharterTests : BrowserFixture
         {
             var testEndTime = DateTimeOffset.UtcNow;
             await AppLogHelper.AssertNoErrorsInAppLogSafeAsync(testStartTime, testEndTime, testName);
-            await CleanupAsync(adminPage, boardPage, ldapPage);
+            await CleanupAsync(adminPage, boardPage);
         }
     }
 
@@ -351,7 +351,7 @@ public class E2E_CustomCharterTests : BrowserFixture
         var testStartTime = DateTimeOffset.UtcNow;
         var testName = "CustomCharter_ExecutiveBody";
 
-        var (adminPage, boardPage, ldapPage, login) = await SetupFullCycleAsync(46);
+        var (adminPage, boardPage, login) = await SetupFullCycleAsync(46);
         try
         {
             await BoardPortalHelper.SelectCustomCharterAsync(boardPage);
@@ -371,7 +371,7 @@ public class E2E_CustomCharterTests : BrowserFixture
         {
             var testEndTime = DateTimeOffset.UtcNow;
             await AppLogHelper.AssertNoErrorsInAppLogSafeAsync(testStartTime, testEndTime, testName);
-            await CleanupAsync(adminPage, boardPage, ldapPage);
+            await CleanupAsync(adminPage, boardPage);
         }
     }
 
@@ -381,7 +381,7 @@ public class E2E_CustomCharterTests : BrowserFixture
         var testStartTime = DateTimeOffset.UtcNow;
         var testName = "CustomCharter_HasBoardOfDirectors";
 
-        var (adminPage, boardPage, ldapPage, login) = await SetupFullCycleAsync(47);
+        var (adminPage, boardPage, login) = await SetupFullCycleAsync(47);
         try
         {
             await BoardPortalHelper.SelectCustomCharterAsync(boardPage);
@@ -402,7 +402,7 @@ public class E2E_CustomCharterTests : BrowserFixture
         {
             var testEndTime = DateTimeOffset.UtcNow;
             await AppLogHelper.AssertNoErrorsInAppLogSafeAsync(testStartTime, testEndTime, testName);
-            await CleanupAsync(adminPage, boardPage, ldapPage);
+            await CleanupAsync(adminPage, boardPage);
         }
     }
 
@@ -414,7 +414,7 @@ public class E2E_CustomCharterTests : BrowserFixture
         var testStartTime = DateTimeOffset.UtcNow;
         var testName = "CustomCharter_BoardDecidesConveningOsu";
 
-        var (adminPage, boardPage, ldapPage, login) = await SetupFullCycleAsync(48);
+        var (adminPage, boardPage, login) = await SetupFullCycleAsync(48);
         try
         {
             await BoardPortalHelper.SelectCustomCharterAsync(boardPage);
@@ -435,7 +435,7 @@ public class E2E_CustomCharterTests : BrowserFixture
         {
             var testEndTime = DateTimeOffset.UtcNow;
             await AppLogHelper.AssertNoErrorsInAppLogSafeAsync(testStartTime, testEndTime, testName);
-            await CleanupAsync(adminPage, boardPage, ldapPage);
+            await CleanupAsync(adminPage, boardPage);
         }
     }
 
@@ -447,7 +447,7 @@ public class E2E_CustomCharterTests : BrowserFixture
         var testStartTime = DateTimeOffset.UtcNow;
         var testName = "CustomCharter_VosuThresholdPercent";
 
-        var (adminPage, boardPage, ldapPage, login) = await SetupFullCycleAsync(49);
+        var (adminPage, boardPage, login) = await SetupFullCycleAsync(49);
         try
         {
             await BoardPortalHelper.SelectCustomCharterAsync(boardPage);
@@ -468,7 +468,7 @@ public class E2E_CustomCharterTests : BrowserFixture
         {
             var testEndTime = DateTimeOffset.UtcNow;
             await AppLogHelper.AssertNoErrorsInAppLogSafeAsync(testStartTime, testEndTime, testName);
-            await CleanupAsync(adminPage, boardPage, ldapPage);
+            await CleanupAsync(adminPage, boardPage);
         }
     }
 
@@ -480,7 +480,7 @@ public class E2E_CustomCharterTests : BrowserFixture
         var testStartTime = DateTimeOffset.UtcNow;
         var testName = "CustomCharter_AllParameters";
 
-        var (adminPage, boardPage, ldapPage, login) = await SetupFullCycleAsync(50);
+        var (adminPage, boardPage, login) = await SetupFullCycleAsync(50);
         try
         {
             await BoardPortalHelper.SelectCustomCharterAsync(boardPage);
@@ -516,7 +516,7 @@ public class E2E_CustomCharterTests : BrowserFixture
         {
             var testEndTime = DateTimeOffset.UtcNow;
             await AppLogHelper.AssertNoErrorsInAppLogSafeAsync(testStartTime, testEndTime, testName);
-            await CleanupAsync(adminPage, boardPage, ldapPage);
+            await CleanupAsync(adminPage, boardPage);
         }
     }
 
@@ -536,7 +536,7 @@ public class E2E_CustomCharterTests : BrowserFixture
         var testStartTime = DateTimeOffset.UtcNow;
         var testName = "CustomCharter_Model1_HiredCeo";
 
-        var (adminPage, boardPage, ldapPage, login) = await SetupFullCycleAsync(51);
+        var (adminPage, boardPage, login) = await SetupFullCycleAsync(51);
         try
         {
             await BoardPortalHelper.SelectCustomCharterAsync(boardPage);
@@ -556,7 +556,7 @@ public class E2E_CustomCharterTests : BrowserFixture
         {
             var testEndTime = DateTimeOffset.UtcNow;
             await AppLogHelper.AssertNoErrorsInAppLogSafeAsync(testStartTime, testEndTime, testName);
-            await CleanupAsync(adminPage, boardPage, ldapPage);
+            await CleanupAsync(adminPage, boardPage);
         }
     }
 
@@ -572,7 +572,7 @@ public class E2E_CustomCharterTests : BrowserFixture
         var testStartTime = DateTimeOffset.UtcNow;
         var testName = "CustomCharter_Model2_CeoParticipant";
 
-        var (adminPage, boardPage, ldapPage, login) = await SetupFullCycleAsync(52);
+        var (adminPage, boardPage, login) = await SetupFullCycleAsync(52);
         try
         {
             await BoardPortalHelper.SelectCustomCharterAsync(boardPage);
@@ -592,7 +592,7 @@ public class E2E_CustomCharterTests : BrowserFixture
         {
             var testEndTime = DateTimeOffset.UtcNow;
             await AppLogHelper.AssertNoErrorsInAppLogSafeAsync(testStartTime, testEndTime, testName);
-            await CleanupAsync(adminPage, boardPage, ldapPage);
+            await CleanupAsync(adminPage, boardPage);
         }
     }
 
@@ -608,7 +608,7 @@ public class E2E_CustomCharterTests : BrowserFixture
         var testStartTime = DateTimeOffset.UtcNow;
         var testName = "CustomCharter_Model3_ManagerIp";
 
-        var (adminPage, boardPage, ldapPage, login) = await SetupFullCycleAsync(53);
+        var (adminPage, boardPage, login) = await SetupFullCycleAsync(53);
         try
         {
             await BoardPortalHelper.SelectCustomCharterAsync(boardPage);
@@ -628,7 +628,7 @@ public class E2E_CustomCharterTests : BrowserFixture
         {
             var testEndTime = DateTimeOffset.UtcNow;
             await AppLogHelper.AssertNoErrorsInAppLogSafeAsync(testStartTime, testEndTime, testName);
-            await CleanupAsync(adminPage, boardPage, ldapPage);
+            await CleanupAsync(adminPage, boardPage);
         }
     }
 
@@ -644,7 +644,7 @@ public class E2E_CustomCharterTests : BrowserFixture
         var testStartTime = DateTimeOffset.UtcNow;
         var testName = "CustomCharter_Model4_ManagingOrg";
 
-        var (adminPage, boardPage, ldapPage, login) = await SetupFullCycleAsync(54);
+        var (adminPage, boardPage, login) = await SetupFullCycleAsync(54);
         try
         {
             await BoardPortalHelper.SelectCustomCharterAsync(boardPage);
@@ -664,7 +664,7 @@ public class E2E_CustomCharterTests : BrowserFixture
         {
             var testEndTime = DateTimeOffset.UtcNow;
             await AppLogHelper.AssertNoErrorsInAppLogSafeAsync(testStartTime, testEndTime, testName);
-            await CleanupAsync(adminPage, boardPage, ldapPage);
+            await CleanupAsync(adminPage, boardPage);
         }
     }
 
@@ -680,7 +680,7 @@ public class E2E_CustomCharterTests : BrowserFixture
         var testStartTime = DateTimeOffset.UtcNow;
         var testName = "CustomCharter_Model5_AllParticipantsDirectors";
 
-        var (adminPage, boardPage, ldapPage, login) = await SetupFullCycleAsync(55);
+        var (adminPage, boardPage, login) = await SetupFullCycleAsync(55);
         try
         {
             await BoardPortalHelper.SelectCustomCharterAsync(boardPage);
@@ -700,7 +700,7 @@ public class E2E_CustomCharterTests : BrowserFixture
         {
             var testEndTime = DateTimeOffset.UtcNow;
             await AppLogHelper.AssertNoErrorsInAppLogSafeAsync(testStartTime, testEndTime, testName);
-            await CleanupAsync(adminPage, boardPage, ldapPage);
+            await CleanupAsync(adminPage, boardPage);
         }
     }
 
@@ -716,7 +716,7 @@ public class E2E_CustomCharterTests : BrowserFixture
         var testStartTime = DateTimeOffset.UtcNow;
         var testName = "CustomCharter_Model6_AllParticipantsJoint";
 
-        var (adminPage, boardPage, ldapPage, login) = await SetupFullCycleAsync(56);
+        var (adminPage, boardPage, login) = await SetupFullCycleAsync(56);
         try
         {
             await BoardPortalHelper.SelectCustomCharterAsync(boardPage);
@@ -736,7 +736,7 @@ public class E2E_CustomCharterTests : BrowserFixture
         {
             var testEndTime = DateTimeOffset.UtcNow;
             await AppLogHelper.AssertNoErrorsInAppLogSafeAsync(testStartTime, testEndTime, testName);
-            await CleanupAsync(adminPage, boardPage, ldapPage);
+            await CleanupAsync(adminPage, boardPage);
         }
     }
 
@@ -752,7 +752,7 @@ public class E2E_CustomCharterTests : BrowserFixture
         var testStartTime = DateTimeOffset.UtcNow;
         var testName = "CustomCharter_Model7_MultipleEio";
 
-        var (adminPage, boardPage, ldapPage, login) = await SetupFullCycleAsync(57);
+        var (adminPage, boardPage, login) = await SetupFullCycleAsync(57);
         try
         {
             await BoardPortalHelper.SelectCustomCharterAsync(boardPage);
@@ -772,7 +772,7 @@ public class E2E_CustomCharterTests : BrowserFixture
         {
             var testEndTime = DateTimeOffset.UtcNow;
             await AppLogHelper.AssertNoErrorsInAppLogSafeAsync(testStartTime, testEndTime, testName);
-            await CleanupAsync(adminPage, boardPage, ldapPage);
+            await CleanupAsync(adminPage, boardPage);
         }
     }
 
@@ -785,14 +785,13 @@ public class E2E_CustomCharterTests : BrowserFixture
         await PageVerificationHelper.VerifyBoardPortalPagesAsync(boardPage, testStartTime);
     }
 
-    private async Task<(IPage adminPage, IPage boardPage, IPage ldapPage, string login)> SetupFullCycleAsync(int entityIndex)
+    private async Task<(IPage adminPage, IPage boardPage, string login)> SetupFullCycleAsync(int entityIndex)
     {
         // Инфраструктура (порталы, LDAP) должна быть запущена ДО создания страниц
         await InfrastructureHelper.EnsureInfrastructureReadyAsync();
 
         var adminPage = await CreateAdminConsolePageAsync();
         var boardPage = await CreateBoardPortalPageAsync();
-        var ldapPage = await CreatePageAsync();
 
         // Глобальная инициализация: инфраструктура + БД + LDAP (один раз)
         await CharterTestGlobalInit.InitializeAsync();
@@ -815,7 +814,7 @@ public class E2E_CustomCharterTests : BrowserFixture
             shortName: entity.ShortName,
             ogrn: entity.Ogrn);
 
-        return (adminPage, boardPage, ldapPage, gdLogin);
+        return (adminPage, boardPage, gdLogin);
     }
 
     private static async Task AddParticipantsAsync(IPage boardPage, int entityIndex)
@@ -835,9 +834,8 @@ public class E2E_CustomCharterTests : BrowserFixture
             persons.Participants.Count);
     }
 
-    private static async Task CleanupAsync(IPage adminPage, IPage boardPage, IPage ldapPage)
+    private static async Task CleanupAsync(IPage adminPage, IPage boardPage)
     {
-        await ldapPage.CloseAsync();
         await boardPage.CloseAsync();
         await adminPage.CloseAsync();
     }

@@ -155,7 +155,7 @@ INSERT INTO notification_template (id, notification_type_code, title_template, b
     ('bb000001-0000-0000-0000-000000000022','ECOSYSTEM_PARTICIPANT_ADDED_NO_LOGIN',
      'Участник добавлен в экосистему — требуется назначение логина',
      'Уважаемый администратор!\n\nВ экосистему общества «{legalEntityName}» добавлен участник {participantFullName} (доля {sharePercent}%).\n\nУчастнику не назначен логин. Для предоставления доступа назначьте логин в Admin Console.',
-     'Уведомление LE_ADMIN о добавлении участника без логина', TRUE)
+     'Уведомление Администратора ЮЛ о добавлении участника без логина', TRUE)
 ON CONFLICT (notification_type_code) DO NOTHING;
 
 

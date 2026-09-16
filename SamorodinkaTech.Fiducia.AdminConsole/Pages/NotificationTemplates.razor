@@ -57,7 +57,7 @@
         </div>
     </div>
 
-    @* ── Список шаблонов ──────────────────────────────────────── *@
+    @* ── Таблица шаблонов ──────────────────────────────────────── *@
     @if (_filteredTemplates.Count == 0)
     {
         <div class="text-center text-muted py-5">
@@ -66,33 +66,40 @@
     }
     else
     {
-        <div class="list-group">
-            @foreach (var template in _filteredTemplates)
-            {
-                <button class="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
-                        @onclick="() => EditTemplate(template.NotificationTypeCode)">
-                    <div>
-                        <span class="fw-semibold">@(template.Description ?? template.NotificationTypeCode)</span>
-                        @if (!string.IsNullOrEmpty(template.NotificationTypeCode))
-                        {
-                            <span class="text-muted small ms-2">(@template.NotificationTypeCode)</span>
-                        }
-                    </div>
-                    <div>
-                        @if (template.IsEnabled)
-                        {
-                            <span class="badge bg-success">Включён</span>
-                        }
-                        else
-                        {
-                            <span class="badge bg-secondary">Выключен</span>
-                        }
-                    </div>
-                </button>
-            }
-        </div>
+        <table class="table table-sm table-hover">
+            <thead>
+                <tr>
+                    <th>Код</th>
+                    <th>Синоним</th>
+                    <th>Статус</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var template in _filteredTemplates)
+                {
+                    <tr class="cursor-pointer" @onclick="() => EditTemplate(template.NotificationTypeCode)">
+                        <td><code>@template.NotificationTypeCode</code></td>
+                        <td>@(template.Description ?? template.NotificationTypeCode)</td>
+                        <td>
+                            @if (template.IsEnabled)
+                            {
+                                <span class="badge bg-success">Включён</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary">Выключен</span>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
     }
 </div>
+
+<style>
+    .cursor-pointer { cursor: pointer; }
+</style>
 
 @code {
     private List<NotificationTemplate> _allTemplates = new();
