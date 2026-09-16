@@ -1,9 +1,13 @@
 @page "/ceo-resignation"
 @using System.Net.Http.Json
-@inject HttpClient Http
+@using Microsoft.EntityFrameworkCore
+@using SamorodinkaTech.Fiducia.Domain.Interfaces
+@inject IDbContextFactory<SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext> DbFactory
+@inject ICeoResignationService CeoResignationService
 @inject NavigationManager Nav
 @inject IJSRuntime JS
 @inject ILogger<CeoResignation> Logger
+@inject IHttpContextAccessor HttpContextAccessor
 @attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "CEO")]
 
 <PageTitle>Fiducia — Уведомление об увольнении ГД</PageTitle>
@@ -152,6 +156,7 @@
     private bool _sending;
     private string? _error;
     private string? _success;
+    private Guid _legalEntityId;
 
     private DateOnly? _resignationDate;
     private string? _reviewLocation;
@@ -165,7 +170,43 @@
     {
         try
         {
-            _preview = await Http.GetFromJsonAsync<CeoPreviewDto>("/api/ceo-resignation/preview");
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+            var leId = await LegalEntityHelper.GetLegalEntityIdAsync(ctx, HttpContextAccessor.HttpContext!);
+            if (leId is not null)
+            {
+                _legalEntityId = leId.Value;
+                var ceoParticipant = await ctx.BoardParticipants
+                    .Where(x => x.LegalEntityId == leId.Value && x.IsGeneralDirector && x.IsActive)
+                    .Include(x => x.EcosystemParticipant)
+                    .FirstOrDefaultAsync();
+
+                if (ceoParticipant is not null)
+                {
+                    var ceoUser = ceoParticipant.EcosystemParticipant?.UserId.HasValue == true
+                        ? await ctx.Users.FindAsync(ceoParticipant.EcosystemParticipant.UserId.Value)
+                        : null;
+                    var ceoName = ceoUser is not null
+                        ? string.Join(" ", new[] { ceoUser.LastName, ceoUser.FirstName, ceoUser.MiddleName }
+                            .Where(x => !string.IsNullOrWhiteSpace(x)))
+                        : ceoParticipant.Person?.FullName ?? "";
+
+                    var participantCount = await ctx.BoardParticipants
+                        .CountAsync(x => x.LegalEntityId == leId.Value && x.IsActive);
+
+                    var legalEntity = await ctx.LegalEntities.FindAsync(leId.Value);
+
+                    _preview = new CeoPreviewDto
+                    {
+                        CeoName = ceoName,
+                        LegalEntityName = legalEntity?.Name,
+                        LegalEntityOgrn = legalEntity?.Ogrn,
+                        LegalEntityInn = legalEntity?.Inn,
+                        ParticipantCount = participantCount,
+                        MinResignationDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(MinDays))
+                    };
+                }
+            }
+
             _agendaText = DefaultAgenda;
 
             // Дата увольнения по умолчанию — через 45 дней
@@ -215,27 +256,23 @@
 
         try
         {
-            var request = new
+            var userId = LegalEntityHelper.GetUserIdAsync(HttpContextAccessor.HttpContext!) ?? Guid.Empty;
+
+            var model = new CeoResignationSendModel
             {
-                resignationDate = _resignationDate.Value,
-                reviewLocation = _reviewLocation,
-                agendaItems
+                LegalEntityId = _legalEntityId,
+                UserId = userId,
+                ResignationDate = _resignationDate.Value,
+                ReviewLocation = _reviewLocation,
+                AgendaItems = agendaItems
             };
 
-            var response = await Http.PostAsJsonAsync("/api/ceo-resignation/send", request);
-            var body = await response.Content.ReadAsStringAsync();
+            var result = await CeoResignationService.SendAsync(model);
 
-            if (!response.IsSuccessStatusCode)
-            {
-                _error = $"Ошибка ({(int)response.StatusCode}): {body}";
-                return;
-            }
-
-            var result = System.Text.Json.JsonSerializer.Deserialize<SendResultDto>(body);
-            _success = $"Уведомление отправлено: {result?.SentCount ?? 0} участников, " +
-                       $"DOCX-файлов: {result?.FileCount ?? 0}. " +
-                       $"Дата увольнения: {result?.ResignationDate:dd.MM.yyyy} " +
-                       $"(осталось {result?.DaysUntilResignation} дн.)";
+            _success = $"Уведомление отправлено: {result.SentCount} участников, " +
+                       $"DOCX-файлов: {result.FileCount}. " +
+                       $"Дата увольнения: {result.ResignationDate:dd.MM.yyyy} " +
+                       $"(осталось {result.DaysUntilResignation} дн.)";
         }
         catch (Exception ex)
         {
@@ -268,13 +305,13 @@
             _resignationDate = null;
     }
 
-    private record CeoPreviewDto(
-        string? CeoName,
-        string? LegalEntityName,
-        string? LegalEntityOgrn,
-        string? LegalEntityInn,
-        int ParticipantCount,
-        DateOnly? MinResignationDate);
-
-    private record SendResultDto(int SentCount, int FileCount, DateOnly ResignationDate, int DaysUntilResignation);
+    private class CeoPreviewDto
+    {
+        public string? CeoName { get; init; }
+        public string? LegalEntityName { get; init; }
+        public string? LegalEntityOgrn { get; init; }
+        public string? LegalEntityInn { get; init; }
+        public int ParticipantCount { get; init; }
+        public DateOnly? MinResignationDate { get; init; }
+    }
 }

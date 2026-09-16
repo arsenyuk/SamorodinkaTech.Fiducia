@@ -73,7 +73,7 @@
                     </td>
                     <td>@(e.Position ?? "—")</td>
                     <td>@e.Login</td>
-                    <td><span class="badge bg-info">@e.RoleName</span></td>
+                    <td>@foreach (var r in e.RoleName.Split(", ")) { <div><span class="badge bg-info">@r</span></div> }</td>
                     <td>
                         <span class="badge @(e.IsActive ? "bg-success" : "bg-secondary")">
                             @(e.IsActive ? "Активен" : "Неактивен")
@@ -315,7 +315,8 @@
                 var person = e.EcosystemParticipant?.EcosystemPerson;
                 var login = e.EcosystemParticipant?.User?.Login ?? "—";
                 var userId = e.EcosystemParticipant?.UserId;
-                var roleName = roles.Where(r => r.UserId == userId).Select(r => r.Role!.Name).FirstOrDefault() ?? "—";
+                var userRoles = roles.Where(r => r.UserId == userId).Select(r => r.Role!.Name).ToList();
+                var roleName = userRoles.Count > 0 ? string.Join(", ", userRoles) : "—";
                 return new EmployeeRow
                 {
                     Id = e.Id,

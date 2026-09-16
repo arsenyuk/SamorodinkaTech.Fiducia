@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.JSInterop;
 using SamorodinkaTech.Fiducia.Infrastructure.Common;
 using SamorodinkaTech.Fiducia.Infrastructure.Persistence;
 
@@ -30,27 +29,9 @@ public static class LegalEntityHelper
     public static async Task<Guid?> GetLegalEntityIdAsync(FiduciaDbContext ctx, IHttpContextAccessor httpCtxAccessor)
         => await UserContextHelper.GetLegalEntityIdAsync(ctx, httpCtxAccessor.HttpContext);
 
-    /// <summary>Перегрузка для Blazor (login из localStorage).</summary>
-    public static async Task<Guid?> GetLegalEntityIdAsync(FiduciaDbContext ctx, IJSRuntime js)
-    {
-        var login = await GetLoginFromLocalStorageAsync(ctx, js);
-        return await UserContextHelper.GetLegalEntityIdAsync(ctx, login);
-    }
-
     /// <summary>Получить login из JWT.</summary>
     public static async Task<string?> GetLoginFromJwtAsync(FiduciaDbContext ctx, HttpContext http)
         => await UserContextHelper.GetLoginFromJwtAsync(ctx, http);
-
-    /// <summary>Получить login из localStorage.</summary>
-    public static async Task<string?> GetLoginFromLocalStorageAsync(FiduciaDbContext ctx, IJSRuntime js)
-    {
-        var userIdStr = await js.InvokeAsync<string?>("localStorage.getItem", "currentUserId");
-        if (string.IsNullOrEmpty(userIdStr) || !Guid.TryParse(userIdStr, out var userId))
-            return null;
-
-        var user = await ctx.Users.FindAsync(userId);
-        return user?.Login;
-    }
 
     /// <summary>Получить login и ФИО из JWT.</summary>
     public static async Task<(string? login, string fullName)> GetUserInfoAsync(FiduciaDbContext ctx, HttpContext http)

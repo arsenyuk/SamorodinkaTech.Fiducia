@@ -1,7 +1,8 @@
 @page "/board-setup"
 @using Microsoft.EntityFrameworkCore
+@using SamorodinkaTech.Fiducia.Domain.Interfaces
 @inject IDbContextFactory<FiduciaDbContext> DbFactory
-@inject HttpClient Http
+@inject IBoardSetupService BoardSetupService
 @inject ILogger<BoardSetupWizard> Logger
 @inject NavigationManager Navigation
 @inject IHttpContextAccessor HttpContextAccessor
@@ -215,28 +216,31 @@ else
 
         try
         {
-            var response = await Http.GetFromJsonAsync<BoardSetupLoadResult>(
-                "/api/v1/board-setup");
+            await using var ctx = await DbFactory.CreateDbContextAsync();
 
-            if (response is null)
+            var boardSettings = await ctx.LegalEntityBoardSettings.FirstOrDefaultAsync();
+            var charter = await ctx.LegalEntityCharters.FirstOrDefaultAsync(c => c.LegalEntityId == _legalEntityId);
+
+            _deputyChairProvided = boardSettings?.DeputyChairProvided ?? false;
+            _secretaryProvided = boardSettings?.SecretaryProvided ?? false;
+            _secretarySignsProtocols = boardSettings?.SecretarySignsProtocols ?? false;
+
+            var roles = await ctx.BoardParticipantRoles
+                .Include(r => r.Participant)
+                    .ThenInclude(p => p!.Person)
+                .Include(r => r.Role)
+                .Where(r => r.Participant != null && r.Participant.LegalEntityId == _legalEntityId && r.Participant.IsActive)
+                .ToListAsync();
+
+            _assignments = roles.Select(r => new BoardAssignmentRow
             {
-                _loadError = "Не удалось загрузить данные";
-                return;
-            }
-
-            _deputyChairProvided = response.DeputyChairProvided;
-            _secretaryProvided = response.SecretaryProvided;
-            _secretarySignsProtocols = response.SecretarySignsProtocols;
-
-            _assignments = response.Assignments?.Select(a => new BoardAssignmentRow
-            {
-                ParticipantId = a.ParticipantId,
-                FullName = a.FullName,
-                PersonInn = a.PersonInn,
-                RoleCode = a.RoleCode,
-                RoleName = a.RoleName,
-                EcosystemBound = a.EcosystemBound
-            }).ToList() ?? new();
+                ParticipantId = r.ParticipantId,
+                FullName = r.Participant?.Person?.FullName,
+                PersonInn = r.Participant?.Person?.Inn,
+                RoleCode = r.Role?.Code ?? "",
+                RoleName = r.Role?.Name ?? "",
+                EcosystemBound = r.Participant?.EcosystemParticipantId.HasValue ?? false
+            }).ToList();
         }
         catch (Exception ex)
         {
@@ -338,29 +342,23 @@ else
 
         try
         {
-            var request = new
+            var userId = LegalEntityHelper.GetUserIdAsync(HttpContextAccessor.HttpContext!) ?? Guid.Empty;
+
+            var model = new BoardSetupSaveModel
             {
                 LegalEntityId = _legalEntityId,
-                Assignments = _assignments.Select(a => new
+                UserId = userId,
+                Assignments = _assignments.Select(a => new BoardSetupAssignmentModel
                 {
                     ParticipantId = a.ParticipantId,
                     RoleCode = a.RoleCode
                 }).ToList()
             };
 
-            var response = await Http.PostAsJsonAsync("/api/v1/board-setup/save", request);
+            await BoardSetupService.SaveAsync(model);
 
-            if (response.IsSuccessStatusCode)
-            {
-                _saveSuccess = true;
-                _saveResult = "Состав Совета директоров успешно сохранён";
-            }
-            else
-            {
-                var body = await response.Content.ReadAsStringAsync();
-                _saveSuccess = false;
-                _saveResult = $"Ошибка ({(int)response.StatusCode}): {body}";
-            }
+            _saveSuccess = true;
+            _saveResult = "Состав Совета директоров успешно сохранён";
         }
         catch (Exception ex)
         {

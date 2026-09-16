@@ -2,11 +2,14 @@
 @attribute [Microsoft.AspNetCore.Authorization.AllowAnonymous]
 @layout AuthLayout
 @using SamorodinkaTech.Fiducia.Domain.Interfaces
+@using SamorodinkaTech.Fiducia.Infrastructure.Common
 @inject IJSRuntime JS
 @inject NavigationManager NavigationManager
 @inject ILogger<Logout> Logger
 @inject ISecurityAuditService SecurityAuditService
 @inject IClientIpProvider ClientIpProvider
+@inject IHttpContextAccessor HttpContextAccessor
+@inject IDbContextFactory<SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext> DbFactory
 
 <PageTitle>Fiducia — Выход</PageTitle>
 
@@ -56,8 +59,8 @@
         if (firstRender && !_isInitialized)
         {
             _isInitialized = true;
-            var userId = await JS.InvokeAsync<string>("localStorage.getItem", "currentUserId");
-            if (string.IsNullOrEmpty(userId))
+            var userId = UserContextHelper.GetUserIdAsync(HttpContextAccessor.HttpContext!);
+            if (userId is null)
             {
                 NavigationManager.NavigateTo("/login");
             }
@@ -74,19 +77,20 @@
         _isLoggingOut = true;
         StateHasChanged();
 
-        // Получение данных пользователя для аудита (без падений при отсутствии данных)
-        var userIdRaw = await JS.InvokeAsync<string>("localStorage.getItem", "currentUserId");
-        var userName = await JS.InvokeAsync<string>("localStorage.getItem", "currentUserName");
-        var userIp = ClientIpProvider.GetClientIp();
-        if (!string.IsNullOrWhiteSpace(userIdRaw))
+        // Получение данных пользователя для аудита
+        var auditUserId = UserContextHelper.GetUserIdAsync(HttpContextAccessor.HttpContext!);
+        string? userName = null;
+        if (auditUserId.HasValue)
         {
-            if (Guid.TryParse(userIdRaw, out var parsedUserId))
-            {
-                await SecurityAuditService.LogEventAsync("LOGOUT", userIp,
-                    $"Выход пользователя: {userName}",
-                    userId: parsedUserId, login: userName, entityName: "User", cancellationToken: default);
-            }
-            // если userIdRaw не int — пропускаем аудит, но не роняем выход
+            await using var auditCtx = await DbFactory.CreateDbContextAsync();
+            userName = await UserContextHelper.GetFullNameAsync(auditCtx, auditUserId.Value);
+        }
+        var userIp = ClientIpProvider.GetClientIp();
+        if (auditUserId.HasValue)
+        {
+            await SecurityAuditService.LogEventAsync("LOGOUT", userIp,
+                $"Выход пользователя: {userName}",
+                userId: auditUserId.Value, login: userName, entityName: "User", cancellationToken: default);
         }
 
         // УПД.15: вызов endpoint выхода (всегда возвращает 200 OK)
@@ -104,10 +108,7 @@
             "document.cookie = name + '=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;SameSite=Strict'; });" +
             "document.cookie = 'SessionToken=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;SameSite=Strict';");
 
-        // Очистка localStorage
-        await JS.InvokeVoidAsync("localStorage.removeItem", "currentUserId");
-        await JS.InvokeVoidAsync("localStorage.removeItem", "currentUserName");
-        await JS.InvokeVoidAsync("localStorage.removeItem", "currentUserRole");
+        // Очистка greetingShownAt в localStorage
         await JS.InvokeVoidAsync("localStorage.removeItem", "greetingShownAt");
 
         NavigationManager.NavigateTo("/login");

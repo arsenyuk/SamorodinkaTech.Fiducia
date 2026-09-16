@@ -127,6 +127,26 @@ builder.Services.AddScoped<IDocumentProvisionService, DocumentProvisionService>(
 builder.Services.AddScoped<IMeetingSaveService, MeetingSaveService>();
 builder.Services.AddScoped<IMeetingLoadService, MeetingLoadService>();
 
+// Participant read service — чтение данных участников без loopback HTTP
+builder.Services.AddScoped<IParticipantReadService, ParticipantReadService>();
+
+// Participant write service — запись данных участников без loopback HTTP
+builder.Services.AddScoped<IParticipantWriteService, ParticipantWriteService>();
+
+// Share request read service — чтение данных заявок без loopback HTTP
+builder.Services.AddScoped<IShareRequestReadService, ShareRequestReadService>();
+
+// Share request write service — запись данных заявок без loopback HTTP
+builder.Services.AddScoped<IShareRequestWriteService, ShareRequestWriteService>();
+
+// Write services — замена loopback HTTP-вызовов (POST/PUT/DELETE)
+builder.Services.AddScoped<IContractService, ContractService>();
+builder.Services.AddScoped<IAgendaItemService, AgendaItemService>();
+builder.Services.AddScoped<IBoardSetupService, BoardSetupService>();
+builder.Services.AddScoped<IVosuNotificationService, VosuNotificationService>();
+builder.Services.AddScoped<IOosuNotificationService, OosuNotificationService>();
+builder.Services.AddScoped<ICeoResignationService, CeoResignationService>();
+
 // Уведомления ВОСУ/ООСУ: текстовые шаблоны + генерация DOCX
 builder.Services.AddScoped<NotificationTextBuilder>();
 builder.Services.AddScoped<IVosuNotificationDocxGenerator, VosuNotificationDocxGenerator>();

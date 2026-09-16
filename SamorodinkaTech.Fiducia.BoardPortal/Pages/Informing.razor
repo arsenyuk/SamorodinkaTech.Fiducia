@@ -8,6 +8,9 @@
 @inject IHttpContextAccessor HttpContextAccessor
 @inject ILogger<Informing> Logger
 @inject NavigationManager Nav
+@inject IParticipantReadService ParticipantRead
+@inject IParticipantWriteService ParticipantWrite
+@using SamorodinkaTech.Fiducia.Domain.Interfaces
 @attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "PARTICIPANT")]
 
 <PageTitle>Fiducia — Информирование</PageTitle>
@@ -333,20 +336,41 @@ else
                 return;
             }
 
-            // Ищем участника через user → person_id → board_participant
-            var participants = await Http.GetFromJsonAsync<List<ParticipantRow>>("/api/participants") ?? new();
-            _currentParticipant = participants.FirstOrDefault();
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+            var leId = await LegalEntityHelper.GetLegalEntityIdAsync(ctx, HttpContextAccessor);
+            if (leId is null)
+            {
+                _error = "Не удалось определить юридическое лицо.";
+                return;
+            }
 
-            await using var dulCtx = await DbFactory.CreateDbContextAsync();
-            _dulTypes = await dulCtx.RefDulTypes.OrderBy(t => t.SortOrder).ToListAsync();
+            // Ищем участника через ParticipantReadService
+            var participants = await ParticipantRead.GetByLegalEntityAsync(leId.Value);
+            var matched = participants.FirstOrDefault(p => p.EcosystemParticipant?.UserId == userId);
+
+            if (matched is not null)
+            {
+                // Загружаем Person и IdentityDocument для текущего участника
+                Person? person = null;
+                if (matched.PersonId.HasValue)
+                    person = await ctx.Persons.FindAsync(matched.PersonId.Value);
+
+                IdentityDocument? identityDoc = null;
+                if (person is not null)
+                    identityDoc = await ctx.IdentityDocuments.FirstOrDefaultAsync(d => d.PersonId == person.Id && d.IsActive);
+
+                _currentParticipant = MapToParticipantRow(matched, person, identityDoc);
+            }
+
+            _dulTypes = await ctx.RefDulTypes.OrderBy(t => t.SortOrder).ToListAsync();
 
             if (_currentParticipant is not null)
             {
-                // Предзаполнение формы текущими данными
                 PreFillForm(_currentParticipant);
             }
 
-            _myChanges = await Http.GetFromJsonAsync<List<ChangeRow>>("/api/participant-changes") ?? new();
+            var changes = await ParticipantRead.GetChangesAsync(leId.Value);
+            _myChanges = changes.Select(MapToChangeRow).ToList();
         }
         catch (Exception ex)
         {
@@ -408,63 +432,56 @@ else
 
         try
         {
-            // Загружаем документ
-            Guid? documentFileId = null;
-            string? documentOriginalName = null;
+            var userId = SamorodinkaTech.Fiducia.Infrastructure.Common.UserContextHelper.GetUserIdAsync(HttpContextAccessor.HttpContext!) ?? Guid.Empty;
+            var clientIp = HttpContextAccessor.HttpContext?.Connection?.RemoteIpAddress?.ToString() ?? "unknown";
 
+            var leId = await LegalEntityHelper.GetLegalEntityIdAsync(
+                await DbFactory.CreateDbContextAsync(), HttpContextAccessor);
+            if (leId is null)
+            {
+                _error = "Не удалось определить юридическое лицо.";
+                return;
+            }
+
+            // Создаём запись информирования
+            var model = new ChangeCreateModel
+            {
+                LegalEntityId = leId.Value,
+                ParticipantId = _currentParticipant.Id,
+                ParticipantType = _currentParticipant.ParticipantType ?? "FL",
+                LastName = _formLastName,
+                FirstName = _formFirstName,
+                MiddleName = _formMiddleName,
+                DulTypeId = _currentParticipant.DulTypeId,
+                PassportSeries = _formPassportSeries ?? _currentParticipant.DulSeries,
+                PassportNumber = _formPassportNumber ?? _currentParticipant.DulNumber,
+                PassportIssuedBy = _formPassportIssuedBy ?? _currentParticipant.PassportIssuedBy,
+                PassportDepartmentCode = _formPassportDepartmentCode ?? _currentParticipant.PassportDepartmentCode,
+                PassportRegistrationAddress = _formPassportRegistrationAddress ?? _currentParticipant.PassportRegistrationAddress,
+                PersonInn = _formPersonInn ?? _currentParticipant.PersonInn,
+                Citizenship = _formCitizenship ?? _currentParticipant.Citizenship,
+                CompanyName = _formCompanyName ?? _currentParticipant.CompanyName,
+                CompanyInn = _formCompanyInn ?? _currentParticipant.CompanyInn,
+                CompanyOgrn = _formCompanyOgrn ?? _currentParticipant.CompanyOgrn,
+                CompanyKpp = _formCompanyKpp ?? _currentParticipant.CompanyKpp,
+                CompanyAddress = _formCompanyAddress ?? _currentParticipant.CompanyAddress,
+                Ogrnip = _formOgrnip ?? _currentParticipant.Ogrnip,
+                SharePercent = _formSharePercent ?? _currentParticipant.SharePercent,
+                ShareAmount = _formShareAmount ?? _currentParticipant.ShareAmount,
+                Source = "electronic"
+            };
+
+            var changeId = await ParticipantWrite.CreateChangeAsync(model, userId, clientIp);
+
+            // Загружаем документ (если выбран)
             if (_selectedDocument is not null)
             {
-                using var content = new MultipartFormDataContent();
                 using var stream = _selectedDocument.OpenReadStream(10 * 1024 * 1024);
                 using var ms = new MemoryStream();
                 await stream.CopyToAsync(ms);
                 ms.Position = 0;
-                var bytes = ms.ToArray();
-                content.Add(new ByteArrayContent(bytes), "file", _selectedDocumentName ?? "document.pdf");
-
-                var docResponse = await Http.PostAsync("/api/participant-changes/upload-document", content);
-                if (docResponse.IsSuccessStatusCode)
-                {
-                    var docResult = await docResponse.Content.ReadFromJsonAsync<UploadDocumentResult>();
-                    documentFileId = docResult?.FileId;
-                    documentOriginalName = docResult?.OriginalName;
-                }
-            }
-
-            // Создаём запись
-            var dto = new
-            {
-                participantId = _currentParticipant.Id,
-                participantType = _currentParticipant.ParticipantType ?? "FL",
-                lastName = _formLastName,
-                firstName = _formFirstName,
-                middleName = _formMiddleName,
-                dulTypeId = _currentParticipant.DulTypeId,
-                passportSeries = _formPassportSeries ?? _currentParticipant.DulSeries,
-                passportNumber = _formPassportNumber ?? _currentParticipant.DulNumber,
-                passportIssuedBy = _formPassportIssuedBy ?? _currentParticipant.PassportIssuedBy,
-                passportDepartmentCode = _formPassportDepartmentCode ?? _currentParticipant.PassportDepartmentCode,
-                passportRegistrationAddress = _formPassportRegistrationAddress ?? _currentParticipant.PassportRegistrationAddress,
-                personInn = _formPersonInn ?? _currentParticipant.PersonInn,
-                citizenship = _formCitizenship ?? _currentParticipant.Citizenship,
-                companyName = _formCompanyName ?? _currentParticipant.CompanyName,
-                companyInn = _formCompanyInn ?? _currentParticipant.CompanyInn,
-                companyOgrn = _formCompanyOgrn ?? _currentParticipant.CompanyOgrn,
-                companyKpp = _formCompanyKpp ?? _currentParticipant.CompanyKpp,
-                companyAddress = _formCompanyAddress ?? _currentParticipant.CompanyAddress,
-                ogrnip = _formOgrnip ?? _currentParticipant.Ogrnip,
-                sharePercent = _formSharePercent ?? _currentParticipant.SharePercent,
-                shareAmount = _formShareAmount ?? _currentParticipant.ShareAmount,
-                documentFileId,
-                documentOriginalName
-            };
-
-            var response = await Http.PostAsJsonAsync("/api/participant-changes", dto);
-            if (!response.IsSuccessStatusCode)
-            {
-                var body = await response.Content.ReadAsStringAsync();
-                _error = $"Ошибка ({(int)response.StatusCode}): {body}";
-                return;
+                var contentType = _selectedDocument.ContentType ?? "application/octet-stream";
+                await ParticipantWrite.UploadChangeDocumentAsync(changeId, ms, _selectedDocumentName ?? "document.pdf", contentType, userId, clientIp);
             }
 
             _success = "Информирование успешно подано.";
@@ -474,7 +491,7 @@ else
         catch (Exception ex)
         {
             Logger.LogWarning(ex, "Ошибка подачи информирования");
-            _error = "Не удалось отправить информирование.";
+            _error = ex.Message;
         }
         finally
         {
@@ -535,4 +552,47 @@ else
     }
 
     private List<RefDulType>? _dulTypes;
+
+    private static ParticipantRow MapToParticipantRow(BoardParticipant bp, Person? person, IdentityDocument? doc)
+    {
+        var activeCompany = bp.Companies.FirstOrDefault();
+        var activeShare = bp.Shares.FirstOrDefault();
+
+        return new ParticipantRow
+        {
+            Id = bp.Id,
+            ParticipantType = bp.ParticipantType,
+            FullName = person?.FullName,
+            LastName = person?.LastName,
+            FirstName = person?.FirstName,
+            MiddleName = person?.MiddleName,
+            DulTypeId = doc?.DulTypeId,
+            DulSeries = doc?.Series,
+            DulNumber = doc?.Number,
+            PassportIssuedBy = doc?.IssuedBy,
+            PassportDepartmentCode = doc?.DepartmentCode,
+            PassportRegistrationAddress = doc?.RegistrationAddress,
+            PersonInn = person?.Inn,
+            Citizenship = person?.Citizenship,
+            CompanyName = activeCompany?.CompanyName ?? bp.CompanyName,
+            CompanyInn = activeCompany?.CompanyInn ?? bp.CompanyInn,
+            CompanyOgrn = activeCompany?.CompanyOgrn ?? bp.CompanyOgrn,
+            CompanyKpp = activeCompany?.CompanyKpp ?? bp.CompanyKpp,
+            CompanyAddress = activeCompany?.CompanyAddress ?? bp.CompanyAddress,
+            Ogrnip = person?.Ogrnip,
+            SharePercent = activeShare?.SharePercent,
+            ShareAmount = activeShare?.ShareAmount,
+        };
+    }
+
+    private static ChangeRow MapToChangeRow(BoardParticipantChange c) => new()
+    {
+        Id = c.Id,
+        ParticipantId = c.ParticipantId,
+        ParticipantType = c.ParticipantType,
+        DocumentOriginalName = c.DocumentOriginalName,
+        SubmittedAt = c.SubmittedAt.ToString("dd.MM.yyyy HH:mm"),
+        Status = c.Status,
+        ReviewComment = c.ReviewComment,
+    };
 }

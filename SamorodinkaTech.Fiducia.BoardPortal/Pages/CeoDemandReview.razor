@@ -1,6 +1,6 @@
 @page "/ceo-demands"
-@using System.Net.Http.Json
-@inject HttpClient Http
+@using SamorodinkaTech.Fiducia.Domain.Interfaces
+@inject IShareRequestReadService ShareRequestRead
 @inject NavigationManager Nav
 @inject ILogger<CeoDemandReview> Logger
 @attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "CEO")]
@@ -75,7 +75,15 @@
     {
         try
         {
-            _demands = await Http.GetFromJsonAsync<List<DemandDto>>("/api/share-requests/ceo-review") ?? new();
+            var items = await ShareRequestRead.GetCeoReviewListAsync();
+            _demands = items.Select(x => new DemandDto
+            {
+                Id = x.Id,
+                RequestTypeName = x.RequestTypeName,
+                InitiatorName = x.ParticipantName,
+                CollectiveStatus = x.Status,
+                CreatedAt = x.CreatedAt
+            }).ToList();
         }
         catch (Exception ex)
         {
@@ -114,12 +122,14 @@
         return new($"<span class='badge bg-danger'>Просрочено {Math.Floor(daysElapsed - 5)} дн.</span>");
     }
 
-    private record DemandDto(
-        Guid Id,
-        string? RequestTypeName,
-        string? InitiatorName,
-        decimal TotalSupportPercent,
-        string? CollectiveStatus,
-        DateTime CreatedAt,
-        DateTime? SubmittedToCeoAt);
+    private record DemandDto
+    {
+        public Guid Id { get; init; }
+        public string? RequestTypeName { get; init; }
+        public string? InitiatorName { get; init; }
+        public decimal TotalSupportPercent { get; init; }
+        public string? CollectiveStatus { get; init; }
+        public DateTime CreatedAt { get; init; }
+        public DateTime? SubmittedToCeoAt { get; init; }
+    }
 }

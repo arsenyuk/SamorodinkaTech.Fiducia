@@ -3,6 +3,7 @@
 @inject IHttpContextAccessor HttpContextAccessor
 @inject HttpClient Http
 @inject IDbContextFactory<SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext> DbFactory
+@using SamorodinkaTech.Fiducia.Infrastructure.Common
 
 <PageTitle>Fiducia — Board Portal</PageTitle>
 
@@ -95,12 +96,17 @@ else
         if (firstRender && !_isInitialized)
         {
             _isInitialized = true;
-            _userName = await JS.InvokeAsync<string>("localStorage.getItem", "currentUserName") ?? "Гость";
+
+            var userId = UserContextHelper.GetUserIdAsync(HttpContextAccessor.HttpContext!);
+            if (userId.HasValue)
+            {
+                await using var ctx = await DbFactory.CreateDbContextAsync();
+                _userName = await UserContextHelper.GetFullNameAsync(ctx, userId.Value);
+            }
 
             // Гард: при отсутствии авторизации не даём оставаться на защищённых маршрутах
             try
             {
-                var userId = SamorodinkaTech.Fiducia.Infrastructure.Common.UserContextHelper.GetUserIdAsync(HttpContextAccessor.HttpContext!);
                 var relative = NavigationManager.ToBaseRelativePath(NavigationManager.Uri).Trim('/');
                 var isPublicRoute = string.IsNullOrEmpty(relative)
                     || relative == "/"

@@ -2,7 +2,7 @@
 @using Microsoft.EntityFrameworkCore
 @inject IDbContextFactory<SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext> DbFactory
 @inject ILogger<BoardRoles> Logger
-@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "SYS_ADMIN")]
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "SYS_ADMIN,LE_ADMIN")]
 @using SamorodinkaTech.Fiducia.Domain.Entities
 
 <h3>Должности в Совете директоров</h3>

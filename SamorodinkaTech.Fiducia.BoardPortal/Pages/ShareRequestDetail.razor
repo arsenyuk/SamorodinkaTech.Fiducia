@@ -1,10 +1,11 @@
 @page "/share-requests/{Id:guid}"
-@using System.Net.Http.Json
 @using System.Text.Json
+@using SamorodinkaTech.Fiducia.Domain.Interfaces
 @using SamorodinkaTech.Fiducia.SharedComponents.Components
-@inject HttpClient Http
 @inject NavigationManager Nav
 @inject ILogger<ShareRequestDetail> Logger
+@inject IShareRequestReadService ShareRequestRead
+@inject IShareRequestWriteService ShareRequestWrite
 @attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "PARTICIPANT,CEO")]
 
 <PageTitle>Fiducia — Детали запроса</PageTitle>
@@ -326,12 +327,13 @@ else
     {
         try
         {
-            _request = await Http.GetFromJsonAsync<ShareRequestDto>($"/api/share-requests/{Id}");
+            var entity = await ShareRequestRead.GetDetailAsync(Id);
+            _request = entity is not null ? MapToShareRequestDto(entity) : null;
 
             // Загружаем справочники для отображения REQUEST_INFORMATION
             try
             {
-                var refData = await Http.GetFromJsonAsync<RefDataDto>("/api/share-requests/ref-data");
+                var refData = await ShareRequestRead.GetRefDataAsync();
                 if (refData?.DocumentGroups is not null)
                 {
                     foreach (var group in refData.DocumentGroups)
@@ -372,18 +374,18 @@ else
 
             if (_request?.RequestTypeCode == "PREEMPTIVE_LIST" && _request.Status == "completed")
             {
-                _resultParticipants = await Http.GetFromJsonAsync<List<ParticipantResultDto>>(
-                    $"/api/share-requests/{Id}/result") ?? new();
+                var resultEntities = await ShareRequestRead.GetResultAsync(Id);
+                _resultParticipants = resultEntities.Select(MapToParticipantResultDto).ToList();
             }
 
-            var filesResponse = await Http.GetFromJsonAsync<List<FileDto>>($"/api/share-requests/{Id}/files");
-            _files = filesResponse ?? new();
+            var fileEntities = await ShareRequestRead.GetFilesAsync(Id);
+            _files = fileEntities.Select(MapToFileDto).ToList();
 
             // Загружаем пункты требования
             try
             {
-                var itemsResponse = await Http.GetFromJsonAsync<List<ItemDto>>($"/api/share-requests/{Id}/items");
-                _items = itemsResponse ?? new();
+                var itemEntities = await ShareRequestRead.GetItemsAsync(Id);
+                _items = itemEntities.Select(MapToItemDto).ToList();
             }
             catch { /* пункты могут отсутствовать для старых требований */ }
         }
@@ -399,10 +401,14 @@ else
 
     private async Task SubmitRequestAsync()
     {
-        var confirmed = await Http.PostAsJsonAsync($"/api/share-requests/{Id}/submit", new { });
-        if (confirmed.IsSuccessStatusCode)
+        try
         {
+            await ShareRequestWrite.SubmitAsync(Id);
             Nav.NavigateTo($"/share-requests/{Id}", forceLoad: true);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Ошибка отправки запроса {Id}", Id);
         }
     }
 
@@ -431,10 +437,25 @@ else
     private record FileDto(Guid Id, Guid FileId, string FileName, long SizeBytes, string? ContentType, DateTime CreatedAt);
     private record ItemDto(Guid Id, int SequenceNumber, string Title, string? Description, string Status, string? RejectionReason, List<ItemFileDto> Files);
     private record ItemFileDto(Guid Id, Guid FileId, string FileName, long SizeBytes, string? ContentType);
-    private record RefDataDto(List<DocumentGroupDto>? DocumentGroups, List<AccessMethodDto>? AccessMethods);
-    private record DocumentGroupDto(string Code, string Name, List<DocumentTypeDto> Documents);
-    private record DocumentTypeDto(Guid Id, string Code, string Name, string GroupCode, string GroupName, bool IsElectronicAvailable, int StorageYears);
-    private record AccessMethodDto(Guid Id, string Code, string Name, string? Description, int? DeadlineDays);
+
+    private static ShareRequestDto MapToShareRequestDto(Domain.Entities.ShareRequest r)
+        => new(r.Id, r.RequestTypeId, r.RequestType?.Code, r.RequestType?.Name,
+            r.Status, r.Payload, r.CreatedAt, r.CompletedAt, r.RevokedAt,
+            r.RevokedByNotarized, r.VisibleToAll, r.CeoComment, r.ReviewLocation,
+            r.DecisionStatus, r.DecisionComment, r.DecidedAt);
+
+    private static ParticipantResultDto MapToParticipantResultDto(Domain.Interfaces.ShareRequestParticipantResult p)
+        => new(Guid.Empty, p.FullName, p.CompanyName, p.ParticipantType ?? "", p.SharePercent, p.ShareAmount);
+
+    private static FileDto MapToFileDto(Domain.Entities.ShareRequestFile f)
+        => new(f.Id, f.FileId, f.File?.OriginalName ?? "", f.File?.SizeBytes ?? 0, f.File?.ContentType, f.File?.CreatedAt ?? DateTime.MinValue);
+
+    private static ItemDto MapToItemDto(Domain.Entities.ShareRequestItem i)
+        => new(i.Id, i.SequenceNumber, i.Title, i.Description, i.Status, i.RejectionReason,
+            i.Files.Select(MapToItemFileDto).ToList());
+
+    private static ItemFileDto MapToItemFileDto(Domain.Entities.ShareRequestItemFile f)
+        => new(f.Id, f.FileId, f.File?.OriginalName ?? "", f.File?.SizeBytes ?? 0, f.File?.ContentType);
 
     private static string FormatSize(long bytes)
     {

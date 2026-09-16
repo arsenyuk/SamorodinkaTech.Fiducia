@@ -1,7 +1,8 @@
 @page "/ceo-demands/{Id:guid}"
-@using System.Net.Http.Json
 @using System.Text.Json
-@inject HttpClient Http
+@using SamorodinkaTech.Fiducia.Domain.Interfaces
+@inject IShareRequestReadService ShareRequestRead
+@inject IShareRequestWriteService ShareRequestWrite
 @inject NavigationManager Nav
 @inject IJSRuntime JS
 @inject ILogger<CeoDemandDetail> Logger
@@ -281,7 +282,33 @@
     {
         try
         {
-            _demand = await Http.GetFromJsonAsync<DemandDetailDto>($"/api/share-requests/ceo/{Id}");
+            var ceoDetail = await ShareRequestRead.GetCeoDemandAsync(Id);
+            if (ceoDetail is not null)
+            {
+                var r = ceoDetail.Request;
+                var isInitiatingDemand = ceoDetail.Request.OrgIntentId.HasValue;
+
+                _demand = new DemandDetailDto
+                {
+                    Id = r.Id,
+                    RequestTypeName = r.RequestType?.Name,
+                    RequestTypeCode = r.RequestType?.Code,
+                    InitiatorName = ceoDetail.Participant?.Person?.FullName
+                                    ?? ceoDetail.Participant?.CompanyName,
+                    Payload = r.Payload,
+                    Status = r.Status,
+                    CollectiveStatus = r.CollectiveStatus,
+                    ThresholdPercent = r.ThresholdPercent,
+                    TotalSupportPercent = r.TotalSupportPercent,
+                    SupporterCount = r.SupporterCount,
+                    CreatedAt = r.CreatedAt,
+                    SubmittedToCeoAt = r.SubmittedToCeoAt,
+                    CeoDecisionAt = r.CeoDecisionAt,
+                    CeoComment = r.CeoComment,
+                    OrgIntentId = r.OrgIntentId,
+                    IsInitiatingDemand = isInitiatingDemand
+                };
+            }
 
             // Загружаем уведомления, если требование принято и тип DEMAND_VOSU
             if (_demand?.CollectiveStatus == "ACCEPTED"
@@ -313,17 +340,9 @@
 
         try
         {
-            var dto = new { Decision = decision, Comment = _ceoComment };
-            var response = await Http.PostAsJsonAsync($"/api/share-requests/{Id}/decide", dto);
-            if (response.IsSuccessStatusCode)
-            {
-                Nav.NavigateTo($"/ceo-demands/{Id}", forceLoad: true);
-            }
-            else
-            {
-                var body = await response.Content.ReadAsStringAsync();
-                _error = $"Ошибка: {body}";
-            }
+            var approved = decision == "ACCEPTED";
+            await ShareRequestWrite.DecideAsync(Id, approved, _ceoComment);
+            Nav.NavigateTo($"/ceo-demands/{Id}", forceLoad: true);
         }
         catch (Exception ex)
         {
@@ -359,26 +378,9 @@
 
         try
         {
-            var dto = new
-            {
-                meetingDate = _meetingDate,
-                meetingStartTime = _meetingStartTime,
-                meetingVenue = _meetingVenue,
-                registrationStartTime = _registrationStartTime,
-                agendaItems,
-                reviewLocation = _reviewLocation
-            };
+            var count = await ShareRequestWrite.GenerateVosuNotificationsAsync(Id);
 
-            var response = await Http.PostAsJsonAsync($"/api/share-requests/{Id}/generate-vosu-notifications", dto);
-            var body = await response.Content.ReadAsStringAsync();
-
-            if (!response.IsSuccessStatusCode)
-            {
-                _error = $"Ошибка ({(int)response.StatusCode}): {body}";
-                return;
-            }
-
-            _success = "Уведомления успешно сформированы";
+            _success = $"Уведомления успешно сформированы ({count} шт.)";
             await LoadNotificationsAsync();
         }
         catch (Exception ex)
@@ -397,8 +399,17 @@
     {
         try
         {
-            var result = await Http.GetFromJsonAsync<List<NotificationDto>>($"/api/share-requests/{Id}/notifications");
-            _notifications = result ?? new();
+            var vosuNotifications = await ShareRequestRead.GetVosuNotificationsAsync(Id);
+            _notifications = vosuNotifications.Select(n => new NotificationDto(
+                n.Id,
+                n.BoardParticipantId,
+                n.BoardParticipant?.ParticipantType == "FL"
+                    ? n.BoardParticipant?.Person?.FullName
+                    : n.BoardParticipant?.CompanyName,
+                n.FileId,
+                n.File?.OriginalName,
+                n.CreatedAt
+            )).ToList();
         }
         catch (Exception ex)
         {
@@ -461,23 +472,25 @@
         _ => new($"<span class='badge bg-secondary fs-6'>{status}</span>")
     };
 
-    private record DemandDetailDto(
-        Guid Id,
-        string? RequestTypeName,
-        string? RequestTypeCode,
-        string? InitiatorName,
-        string? Payload,
-        string? Status,
-        string? CollectiveStatus,
-        decimal? ThresholdPercent,
-        decimal TotalSupportPercent,
-        int SupporterCount,
-        DateTime CreatedAt,
-        DateTime? SubmittedToCeoAt,
-        DateTime? CeoDecisionAt,
-        string? CeoComment,
-        Guid? OrgIntentId,
-        bool IsInitiatingDemand);
+    private class DemandDetailDto
+    {
+        public Guid Id { get; init; }
+        public string? RequestTypeName { get; init; }
+        public string? RequestTypeCode { get; init; }
+        public string? InitiatorName { get; init; }
+        public string? Payload { get; init; }
+        public string? Status { get; init; }
+        public string? CollectiveStatus { get; init; }
+        public decimal? ThresholdPercent { get; init; }
+        public decimal TotalSupportPercent { get; init; }
+        public int SupporterCount { get; init; }
+        public DateTime CreatedAt { get; init; }
+        public DateTime? SubmittedToCeoAt { get; init; }
+        public DateTime? CeoDecisionAt { get; init; }
+        public string? CeoComment { get; init; }
+        public Guid? OrgIntentId { get; init; }
+        public bool IsInitiatingDemand { get; init; }
+    }
 
     private record NotificationDto(
         Guid Id,

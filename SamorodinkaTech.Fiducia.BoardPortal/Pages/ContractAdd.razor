@@ -3,11 +3,13 @@
 @using Microsoft.EntityFrameworkCore
 @using SamorodinkaTech.Fiducia.Domain.Entities
 @using SamorodinkaTech.Fiducia.Domain.Enums
+@using SamorodinkaTech.Fiducia.Domain.Interfaces
 @using SamorodinkaTech.Fiducia.Domain.Validation
 @inject IDbContextFactory<SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext> DbFactory
 @inject ILogger<ContractAdd> Logger
 @inject NavigationManager Navigation
 @inject HttpClient Http
+@inject IContractService ContractService
 @inject IHttpContextAccessor HttpContextAccessor
 @attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "LE_ADMIN,CEO,LAWYER")]
 
@@ -274,6 +276,7 @@
     private string? _validationMessage;
     private string? _sparkWarning;
     private SparkResult? _sparkResult;
+    private Guid _legalEntityId;
 
     private string _formInn = "";
     private string? _formManagerName;
@@ -314,6 +317,8 @@
             var leId = await LegalEntityHelper.GetLegalEntityIdAsync(ctx, HttpContextAccessor);
             if (leId is not null && leId != Guid.Empty)
             {
+                _legalEntityId = leId.Value;
+
                 var le = await ctx.LegalEntities
                     .Where(x => x.Id == leId.Value)
                     .Select(x => new { x.RefOkopf!.Code })
@@ -442,50 +447,48 @@
 
         try
         {
-            using var content = new MultipartFormDataContent();
-            content.Add(new StringContent(_selectedType!), "contractType");
-            content.Add(new StringContent(_formInn.Trim()), "counterpartyInn");
-            content.Add(new StringContent(_formManagerName ?? _formInn.Trim()), "counterpartyName");
-            content.Add(new StringContent(_formIsIndefinite ? "true" : "false"), "isIndefinite");
-            if (!string.IsNullOrEmpty(_formContractNumber))
-                content.Add(new StringContent(_formContractNumber), "contractNumber");
-            if (_formContractDate.HasValue)
-                content.Add(new StringContent(_formContractDate.Value.ToString("yyyy-MM-dd")), "contractDate");
-            if (_formValidFrom.HasValue)
-                content.Add(new StringContent(_formValidFrom.Value.ToString("yyyy-MM-dd")), "contractValidFrom");
-            if (_formValidTo.HasValue)
-                content.Add(new StringContent(_formValidTo.Value.ToString("yyyy-MM-dd")), "contractValidTo");
+            var userId = LegalEntityHelper.GetUserIdAsync(HttpContextAccessor.HttpContext!) ?? Guid.Empty;
 
-            // MANAGEMENT_IP: ОГРНИП
-            if (_selectedType == "MANAGEMENT_IP" && !string.IsNullOrEmpty(_formOgrnip))
-                content.Add(new StringContent(_formOgrnip), "managerOgrnip");
-
-            // REGISTRAR: поля реестра
-            if (_selectedType == "REGISTRAR")
+            var model = new ContractCreateModel
             {
-                if (_formRegistryPrepDays.HasValue) content.Add(new StringContent(_formRegistryPrepDays.Value.ToString()), "registryPreparationDays");
-                if (!string.IsNullOrEmpty(_formRegistryPrepUnit)) content.Add(new StringContent(_formRegistryPrepUnit), "registryPreparationUnit");
-                if (_formDividendRegPrepDays.HasValue) content.Add(new StringContent(_formDividendRegPrepDays.Value.ToString()), "dividendRegistryPreparationDays");
-                if (!string.IsNullOrEmpty(_formDividendRegPrepUnit)) content.Add(new StringContent(_formDividendRegPrepUnit), "dividendRegistryPreparationUnit");
-                if (!string.IsNullOrEmpty(_formRegistryRulesUrl)) content.Add(new StringContent(_formRegistryRulesUrl), "registryRulesUrl");
-            }
+                LegalEntityId = _legalEntityId,
+                UserId = userId,
+                ContractType = Enum.Parse<ContractType>(_selectedType!),
+                CounterpartyName = _formManagerName ?? _formInn.Trim(),
+                CounterpartyInn = _formInn.Trim(),
+                ContractNumber = _formContractNumber,
+                ContractDate = _formContractDate,
+                ContractValidFrom = _formValidFrom,
+                ContractValidTo = _formValidTo,
+                IsIndefinite = _formIsIndefinite,
+                ManagerOgrnip = _formOgrnip,
+                RegistryPreparationDays = _formRegistryPrepDays,
+                RegistryPreparationUnit = _formRegistryPrepUnit,
+                DividendRegistryPreparationDays = _formDividendRegPrepDays,
+                DividendRegistryPreparationUnit = _formDividendRegPrepUnit,
+                RegistryRulesUrl = _formRegistryRulesUrl
+            };
 
+            MemoryStream? fileMs = null;
+            string? fileName = null;
             if (_selectedFile is not null)
             {
-                var stream = _selectedFile.OpenReadStream(maxAllowedSize: 52_428_800);
-                var fileContent = new StreamContent(stream);
-                content.Add(fileContent, "file", _selectedFile.Name);
+                fileMs = new MemoryStream();
+                var bs = _selectedFile.OpenReadStream(maxAllowedSize: 52_428_800);
+                await Task.Run(async () => await bs.CopyToAsync(fileMs).ConfigureAwait(false));
+                fileMs.Position = 0;
+                fileName = _selectedFile.Name;
             }
 
-            var response = await Http.PostAsync("/api/contracts", content);
-            if (response.IsSuccessStatusCode)
+            try
             {
+                await ContractService.CreateAsync(model, fileMs, fileName);
                 Navigation.NavigateTo("/contracts");
             }
-            else
+            finally
             {
-                var body = await response.Content.ReadAsStringAsync();
-                _formError = $"Ошибка сохранения: {body}";
+                if (fileMs is not null)
+                    await fileMs.DisposeAsync();
             }
         }
         catch (Exception ex)

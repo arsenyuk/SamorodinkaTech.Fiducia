@@ -9,11 +9,13 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
-# Загрузка переменных окружения из .env
+# Загрузка переменных окружения из .env (без интерпретации спецсимволов)
 if [ -f .env ]; then
-    set -a
-    source .env
-    set +a
+    while IFS= read -r line; do
+        # Пропускаем комментарии и пустые строки
+        [[ "$line" =~ ^#.*$ || -z "$line" ]] && continue
+        export "$line"
+    done < .env
     echo "=== Переменные окружения загружены из .env ==="
 fi
 

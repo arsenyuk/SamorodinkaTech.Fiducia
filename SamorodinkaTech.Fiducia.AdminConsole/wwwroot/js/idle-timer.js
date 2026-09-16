@@ -23,10 +23,7 @@ window.idleTimer = {
         // Вызов endpoint выхода (всегда возвращает 200 OK)
         fetch('/api/session/logout', { method: 'POST' })
             .finally(function () {
-                // Очистка localStorage
-                localStorage.removeItem('currentUserId');
-                localStorage.removeItem('currentUserName');
-                localStorage.removeItem('currentUserRole');
+                // Очистка greetingShownAt в localStorage
                 localStorage.removeItem('greetingShownAt');
 
                 // Очистка cookie

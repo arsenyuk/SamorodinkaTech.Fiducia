@@ -1,7 +1,7 @@
 @page "/standard-charters"
 @using Microsoft.EntityFrameworkCore
 @inject IDbContextFactory<SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext> DbFactory
-@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "SYS_ADMIN")]
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "SYS_ADMIN,LE_ADMIN")]
 
 <h3>Типовые уставы ООО</h3>
 

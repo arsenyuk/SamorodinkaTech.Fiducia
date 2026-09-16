@@ -4,6 +4,7 @@
 @inject IDbContextFactory<SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext> DbFactory
 @using Microsoft.EntityFrameworkCore
 @using SamorodinkaTech.Fiducia.Domain.Entities
+@using SamorodinkaTech.Fiducia.Infrastructure.Common
 @attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "LE_ADMIN")]
 
 <PageTitle>Fiducia — Главная</PageTitle>
@@ -135,7 +136,13 @@
         var shownAt = await JS.InvokeAsync<string?>("localStorage.getItem", "greetingShownAt");
         if (string.IsNullOrEmpty(shownAt) || !DateTime.TryParse(shownAt, out var parsed) || parsed.Date != DateTime.UtcNow.Date)
         {
-            var userName = await JS.InvokeAsync<string?>("localStorage.getItem", "currentUserName") ?? "";
+            var userId = SamorodinkaTech.Fiducia.Infrastructure.Common.UserContextHelper.GetUserIdAsync(HttpContextAccessor.HttpContext!);
+            var userName = "";
+            if (userId.HasValue)
+            {
+                await using var ctx = await DbFactory.CreateDbContextAsync();
+                userName = await UserContextHelper.GetFullNameAsync(ctx, userId.Value);
+            }
             var prefix = GetGreetingPrefix(DateTime.UtcNow.Hour);
             _greetingText = string.IsNullOrWhiteSpace(userName)
                 ? $"{prefix}!"

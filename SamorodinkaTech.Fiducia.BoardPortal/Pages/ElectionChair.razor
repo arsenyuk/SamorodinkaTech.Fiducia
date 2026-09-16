@@ -1,8 +1,8 @@
 @page "/election/chair/{ProposalId:guid}"
 @using Microsoft.EntityFrameworkCore
+@using SamorodinkaTech.Fiducia.Infrastructure.Common
 @inject IDbContextFactory<SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext> DbFactory
 @inject ILogger<ElectionChair> Logger
-@inject IJSRuntime JS
 @inject IHttpContextAccessor HttpContextAccessor
 @attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "PARTICIPANT")]
 
@@ -100,7 +100,11 @@
         try
         {
             var userId = SamorodinkaTech.Fiducia.Infrastructure.Common.UserContextHelper.GetUserIdAsync(HttpContextAccessor.HttpContext!);
-            _currentUserName = await JS.InvokeAsync<string>("localStorage.getItem", "currentUserName") ?? "Гость";
+            if (userId.HasValue)
+            {
+                await using var ctx = await DbFactory.CreateDbContextAsync();
+                _currentUserName = await UserContextHelper.GetFullNameAsync(ctx, userId.Value);
+            }
 
             await LoadAsync(userId);
         }

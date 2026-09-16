@@ -28,14 +28,15 @@
 
 Admin Console доступен для `SYS_ADMIN` и `LE_ADMIN`. API-эндпоинты проверяют `RequireRole("SYS_ADMIN")`.
 
-**Scope LE_ADMIN:** Администратор ЮЛ видит только те юридические лица, в которых он является `EcosystemParticipant` (связь через `User.Login → EcosystemParticipants.LegalEntityId`).
+**Scope LE_ADMIN:** Администратор ЮЛ видит только те юридические лица, в которых он является `EcosystemParticipant` (связь через `User.Login → EcosystemParticipants.LegalEntityId`). Доступны: Главная, Общества, Сотрудники и доступ, Справочники (просмотр).
 
 | Раздел | Путь | Доступ | Меню |
 |--------|------|--------|------|
-| Общества (список ЮЛ) | `/legal-entities` | SYS_ADMIN, LE_ADMIN | Первый пункт |
+| Главная | `/main` | SYS_ADMIN, LE_ADMIN | Первый пункт (после входа) |
+| Общества (список ЮЛ) | `/legal-entities` | SYS_ADMIN, LE_ADMIN | Общества |
 | Сотрудники и доступ | `/access-management?le={id}` | SYS_ADMIN, LE_ADMIN | Через Общества |
+| Справочники | `/dictionaries` | SYS_ADMIN, LE_ADMIN | Справочники |
 | Пользователи | `/users` | SYS_ADMIN | Не в меню (прямой URL) |
-| Справочник ролей | `/roles` | SYS_ADMIN | Через Справочники |
 | Советы директоров | `/board-of-directors-list` | SYS_ADMIN | Совет СД |
 | Общие собрания (ОСА/ОСУ) | `/osa` | SYS_ADMIN | Через Справочники |
 | Шаблоны уведомлений | `/notification-templates` | SYS_ADMIN | Шаблоны уведомлений |

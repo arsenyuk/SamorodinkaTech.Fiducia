@@ -2,9 +2,10 @@
 @using Microsoft.EntityFrameworkCore
 @using SamorodinkaTech.Fiducia.Domain.Entities
 @using SamorodinkaTech.Fiducia.Domain.Enums
+@using SamorodinkaTech.Fiducia.Domain.Interfaces
 @using SamorodinkaTech.Fiducia.Domain.Validation
 @inject IDbContextFactory<SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext> DbFactory
-@inject HttpClient Http
+@inject IContractService ContractService
 @inject ILogger<ContractEdit> Logger
 @inject NavigationManager Navigation
 @inject IHttpContextAccessor HttpContextAccessor
@@ -240,28 +241,55 @@
         _loading = true;
         try
         {
-            var response = await Http.GetAsync($"/api/contracts/{Id}");
-            if (response.IsSuccessStatusCode)
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+            var c = await ctx.Contracts
+                .Include(x => x.LegalEntity)
+                .Include(x => x.RegistryPreparationUnit)
+                .Include(x => x.DividendRegistryPreparationUnit)
+                .Include(x => x.ManagerLegalEntity)
+                .FirstOrDefaultAsync(x => x.Id == Id);
+
+            if (c is not null)
             {
-                _contract = await response.Content.ReadFromJsonAsync<ContractDto>();
-                if (_contract is not null)
+                _contract = new ContractDto
                 {
-                    _formManagerName = _contract.ManagerFullName ?? _contract.CounterpartyName;
-                    _formOgrnip = _contract.ManagerOgrnip;
-                    _formContractNumber = _contract.ContractNumber;
-                    _formIsIndefinite = _contract.IsIndefinite;
-                    if (DateOnly.TryParse(_contract.ContractValidFrom, out var vf))
-                        _formValidFrom = vf;
-                    if (DateOnly.TryParse(_contract.ContractValidTo, out var vt))
-                        _formValidTo = vt;
-                    if (DateOnly.TryParse(_contract.ContractDate, out var cd))
-                        _formContractDate = cd;
-                    _formRegistryPrepDays = _contract.RegistryPreparationDays;
-                    _formRegistryPrepUnit = _contract.RegistryPreparationUnit;
-                    _formDividendRegPrepDays = _contract.DividendRegistryPreparationDays;
-                    _formDividendRegPrepUnit = _contract.DividendRegistryPreparationUnit;
-                    _formRegistryRulesUrl = _contract.RegistryRulesUrl;
-                }
+                    Id = c.Id,
+                    ContractType = c.ContractType.ToString(),
+                    CounterpartyName = c.CounterpartyName,
+                    CounterpartyInn = c.CounterpartyInn,
+                    ContractNumber = c.ContractNumber,
+                    ContractDate = c.ContractDate?.ToString("yyyy-MM-dd"),
+                    ContractValidFrom = c.ContractValidFrom?.ToString("yyyy-MM-dd"),
+                    ContractValidTo = c.ContractValidTo?.ToString("yyyy-MM-dd"),
+                    IsIndefinite = c.IsIndefinite,
+                    ContractDocumentId = c.ContractDocumentId,
+                    RegistryPreparationDays = c.RegistryPreparationDays,
+                    RegistryPreparationUnit = c.RegistryPreparationUnit?.Code,
+                    DividendRegistryPreparationDays = c.DividendRegistryPreparationDays,
+                    DividendRegistryPreparationUnit = c.DividendRegistryPreparationUnit?.Code,
+                    RegistryRulesUrl = c.RegistryRulesUrl,
+                    RegistryRulesDocumentId = c.RegistryRulesDocumentId,
+                    ManagerOgrnip = c.ManagerOgrnip,
+                    ManagerLegalEntityId = c.ManagerLegalEntityId,
+                    ManagerFullName = c.ManagerLegalEntity?.Name,
+                    ManagerInn = c.ManagerLegalEntity?.Inn,
+                    IsActive = c.IsActive
+                };
+                _formManagerName = _contract.ManagerFullName ?? _contract.CounterpartyName;
+                _formOgrnip = _contract.ManagerOgrnip;
+                _formContractNumber = _contract.ContractNumber;
+                _formIsIndefinite = _contract.IsIndefinite;
+                if (DateOnly.TryParse(_contract.ContractValidFrom, out var vf))
+                    _formValidFrom = vf;
+                if (DateOnly.TryParse(_contract.ContractValidTo, out var vt))
+                    _formValidTo = vt;
+                if (DateOnly.TryParse(_contract.ContractDate, out var cd))
+                    _formContractDate = cd;
+                _formRegistryPrepDays = _contract.RegistryPreparationDays;
+                _formRegistryPrepUnit = _contract.RegistryPreparationUnit;
+                _formDividendRegPrepDays = _contract.DividendRegistryPreparationDays;
+                _formDividendRegPrepUnit = _contract.DividendRegistryPreparationUnit;
+                _formRegistryRulesUrl = _contract.RegistryRulesUrl;
             }
         }
         catch (Exception ex)
@@ -286,47 +314,41 @@
 
         try
         {
-            using var content = new MultipartFormDataContent();
-            content.Add(new StringContent(_formIsIndefinite ? "true" : "false"), "isIndefinite");
-            if (!string.IsNullOrEmpty(_formContractNumber))
-                content.Add(new StringContent(_formContractNumber), "contractNumber");
-            if (_formContractDate.HasValue)
-                content.Add(new StringContent(_formContractDate.Value.ToString("yyyy-MM-dd")), "contractDate");
-            if (_formValidFrom.HasValue)
-                content.Add(new StringContent(_formValidFrom.Value.ToString("yyyy-MM-dd")), "contractValidFrom");
-            if (_formValidTo.HasValue)
-                content.Add(new StringContent(_formValidTo.Value.ToString("yyyy-MM-dd")), "contractValidTo");
-
-            // MANAGEMENT_IP: ОГРНИП
-            if (_contract?.ContractType == "MANAGEMENT_IP" && !string.IsNullOrEmpty(_formOgrnip))
-                content.Add(new StringContent(_formOgrnip), "managerOgrnip");
-
-            // REGISTRAR: поля реестра
-            if (_contract?.ContractType == "REGISTRAR")
+            var model = new ContractUpdateModel
             {
-                if (_formRegistryPrepDays.HasValue) content.Add(new StringContent(_formRegistryPrepDays.Value.ToString()), "registryPreparationDays");
-                if (!string.IsNullOrEmpty(_formRegistryPrepUnit)) content.Add(new StringContent(_formRegistryPrepUnit), "registryPreparationUnit");
-                if (_formDividendRegPrepDays.HasValue) content.Add(new StringContent(_formDividendRegPrepDays.Value.ToString()), "dividendRegistryPreparationDays");
-                if (!string.IsNullOrEmpty(_formDividendRegPrepUnit)) content.Add(new StringContent(_formDividendRegPrepUnit), "dividendRegistryPreparationUnit");
-                if (!string.IsNullOrEmpty(_formRegistryRulesUrl)) content.Add(new StringContent(_formRegistryRulesUrl), "registryRulesUrl");
-            }
+                ContractNumber = _formContractNumber,
+                ContractDate = _formContractDate,
+                ContractValidFrom = _formValidFrom,
+                ContractValidTo = _formValidTo,
+                IsIndefinite = _formIsIndefinite,
+                ManagerOgrnip = _formOgrnip,
+                RegistryPreparationDays = _formRegistryPrepDays,
+                RegistryPreparationUnit = _formRegistryPrepUnit,
+                DividendRegistryPreparationDays = _formDividendRegPrepDays,
+                DividendRegistryPreparationUnit = _formDividendRegPrepUnit,
+                RegistryRulesUrl = _formRegistryRulesUrl
+            };
 
+            MemoryStream? fileMs = null;
+            string? fileName = null;
             if (_selectedFile is not null)
             {
-                var stream = _selectedFile.OpenReadStream(maxAllowedSize: 52_428_800);
-                var fileContent = new StreamContent(stream);
-                content.Add(fileContent, "file", _selectedFile.Name);
+                fileMs = new MemoryStream();
+                var bs = _selectedFile.OpenReadStream(maxAllowedSize: 52_428_800);
+                await Task.Run(async () => await bs.CopyToAsync(fileMs).ConfigureAwait(false));
+                fileMs.Position = 0;
+                fileName = _selectedFile.Name;
             }
 
-            var response = await Http.PutAsync($"/api/contracts/{Id}", content);
-            if (response.IsSuccessStatusCode)
+            try
             {
+                await ContractService.UpdateAsync(Id, model, fileMs, fileName);
                 Navigation.NavigateTo("/contracts");
             }
-            else
+            finally
             {
-                var body = await response.Content.ReadAsStringAsync();
-                _formError = $"Ошибка сохранения: {body}";
+                if (fileMs is not null)
+                    await fileMs.DisposeAsync();
             }
         }
         catch (Exception ex)

@@ -3,7 +3,10 @@
 @using Microsoft.AspNetCore.Components.Forms
 @using System.Net.Http.Json
 @using SamorodinkaTech.Fiducia.Domain.Entities
+@using SamorodinkaTech.Fiducia.Domain.Interfaces
 @inject IDbContextFactory<SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext> DbFactory
+@inject IParticipantReadService ParticipantRead
+@inject IParticipantWriteService ParticipantWrite
 @inject HttpClient Http
 @inject ILogger<Participants> Logger
 @inject NavigationManager Nav
@@ -858,6 +861,7 @@ else
     private bool _isLLC;
     private bool _notaryListApproved;
     private string? _error;
+    private Guid _leId;
     private int _activeTab;
     private bool _loading = true;
     private string _statusFilter = "active";
@@ -973,6 +977,8 @@ else
                 return;
             }
 
+            _leId = leId.Value;
+
             var le = await ctx.LegalEntities
                 .Include(x => x.RefOkopf)
                 .FirstOrDefaultAsync(x => x.Id == leId.Value);
@@ -1016,11 +1022,11 @@ else
 
         try
         {
-            var participants = await Http.GetFromJsonAsync<List<ParticipantRow>>("/api/participants");
-            _participants = participants ?? new();
+            var entities = await ParticipantRead.GetByLegalEntityAsync(_leId);
+            _participants = entities.Select(MapParticipantToRow).ToList();
 
-            var treasury = await Http.GetFromJsonAsync<List<TreasuryRow>>("/api/treasury-shares");
-            _treasuryShares = treasury ?? new();
+            var treasuryEntities = await ParticipantRead.GetTreasuryAsync(_leId);
+            _treasuryShares = treasuryEntities.Select(MapTreasuryToRow).ToList();
         }
         catch (Exception ex)
         {
@@ -1040,8 +1046,8 @@ else
 
         try
         {
-            var uploads = await Http.GetFromJsonAsync<List<RegistryUploadRow>>("/api/registry-uploads");
-            _registryUploads = uploads ?? new();
+            var uploads = await ParticipantRead.GetRegistryUploadsAsync(_leId);
+            _registryUploads = uploads.Select(MapRegistryUploadToRow).ToList();
         }
         catch (Exception ex)
         {
@@ -1141,9 +1147,11 @@ else
     {
         try
         {
-            var response = await Http.DeleteAsync($"/api/registry-uploads/{id}");
-            if (response.IsSuccessStatusCode)
-                await LoadRegistryUploads();
+            var userId = SamorodinkaTech.Fiducia.Infrastructure.Common.UserContextHelper.GetUserIdAsync(HttpContextAccessor.HttpContext!) ?? Guid.Empty;
+            var clientIp = HttpContextAccessor.HttpContext?.Connection?.RemoteIpAddress?.ToString() ?? "unknown";
+
+            await ParticipantWrite.DeleteRegistryUploadAsync(id, userId, clientIp);
+            await LoadRegistryUploads();
         }
         catch (Exception ex)
         {
@@ -1160,8 +1168,8 @@ else
 
         try
         {
-            var changes = await Http.GetFromJsonAsync<List<ParticipantChangeRow>>("/api/participant-changes");
-            _participantChanges = changes ?? new();
+            var changes = await ParticipantRead.GetChangesAsync(_leId);
+            _participantChanges = changes.Select(MapChangeToRow).ToList();
         }
         catch (Exception ex)
         {
@@ -1183,34 +1191,31 @@ else
 
         try
         {
+            var userId = SamorodinkaTech.Fiducia.Infrastructure.Common.UserContextHelper.GetUserIdAsync(HttpContextAccessor.HttpContext!) ?? Guid.Empty;
+            var clientIp = HttpContextAccessor.HttpContext?.Connection?.RemoteIpAddress?.ToString() ?? "unknown";
+
             var participant = _participants.FirstOrDefault(p => p.Id.ToString() == _paperParticipantId);
 
-            var dto = new
+            var model = new ChangeCreateModel
             {
-                participantId = Guid.Parse(_paperParticipantId),
-                participantType = participant?.ParticipantType ?? "FL",
-                lastName = (string?)null,
-                firstName = (string?)null,
-                middleName = (string?)null,
-                personInn = _paperPersonInn ?? participant?.PersonInn,
-                companyName = _paperCompanyName ?? participant?.CompanyName,
-                companyInn = _paperCompanyInn ?? participant?.CompanyInn,
-                sharePercent = _paperSharePercent ?? participant?.SharePercent,
-                shareAmount = _paperShareAmount ?? participant?.ShareAmount,
-                source = "paper",
-                date = _paperDateStr,
-                paperDocNumber = _paperDocNumber,
-                comment = _paperComment,
-                status = "approved"
+                LegalEntityId = _leId,
+                ParticipantId = Guid.Parse(_paperParticipantId),
+                ParticipantType = participant?.ParticipantType ?? "FL",
+                LastName = null,
+                FirstName = null,
+                MiddleName = null,
+                PersonInn = _paperPersonInn ?? participant?.PersonInn,
+                CompanyName = _paperCompanyName ?? participant?.CompanyName,
+                CompanyInn = _paperCompanyInn ?? participant?.CompanyInn,
+                SharePercent = _paperSharePercent ?? participant?.SharePercent,
+                ShareAmount = _paperShareAmount ?? participant?.ShareAmount,
+                Source = "paper",
+                Date = _paperDateStr,
+                PaperDocNumber = _paperDocNumber,
+                Comment = _paperComment
             };
 
-            var response = await Http.PostAsJsonAsync("/api/participant-changes", dto);
-            if (!response.IsSuccessStatusCode)
-            {
-                var body = await response.Content.ReadAsStringAsync();
-                _paperError = $"Ошибка ({(int)response.StatusCode}): {body}";
-                return;
-            }
+            await ParticipantWrite.CreateChangeAsync(model, userId, clientIp);
 
             // Сброс формы
             _paperParticipantId = null;
@@ -1230,7 +1235,7 @@ else
         catch (Exception ex)
         {
             Logger.LogWarning(ex, "Ошибка сохранения бумажного информирования");
-            _paperError = "Не удалось сохранить запись.";
+            _paperError = ex.Message;
         }
         finally
         {
@@ -1337,51 +1342,65 @@ else
 
         try
         {
-            var dto = new
-            {
-                participantType = _formParticipantType,
-                lastName = _formLastName,
-                firstName = _formFirstName,
-                middleName = _formMiddleName,
-                dulTypeId = _formDulTypeId,
-                passportSeries = _formPassportSeries,
-                passportNumber = _formPassportNumber,
-                passportIssuedBy = _formPassportIssuedBy,
-                passportIssueDate = DateOnly.TryParse(_formPassportIssueDateStr, out var pid) ? pid : (DateOnly?)null,
-                passportDepartmentCode = _formPassportDepartmentCode,
-                passportRegistrationAddress = _formPassportRegistrationAddress,
-                personInn = _formPersonInn,
-                citizenship = _formCitizenship,
-                companyName = _formCompanyName,
-                companyInn = _formCompanyInn,
-                companyOgrn = _formCompanyOgrn,
-                companyKpp = _formCompanyKpp,
-                companyAddress = _formCompanyAddress,
-                ogrnip = _formOgrnip,
-                sharePercent = _formSharePercent,
-                shareAmount = _formShareAmount,
-                paymentInfo = _formPaymentInfo,
-                shareRegistrationInfo = _formShareRegistrationInfo,
-                entryDate = DateOnly.TryParse(_formEntryDateStr, out var ed) ? ed : (DateOnly?)null,
-                exitDate = DateOnly.TryParse(_formExitDateStr, out var xd) ? xd : (DateOnly?)null,
-                isActive = string.IsNullOrEmpty(_formExitDateStr)
-            };
+            var userId = SamorodinkaTech.Fiducia.Infrastructure.Common.UserContextHelper.GetUserIdAsync(HttpContextAccessor.HttpContext!) ?? Guid.Empty;
+            var clientIp = HttpContextAccessor.HttpContext?.Connection?.RemoteIpAddress?.ToString() ?? "unknown";
 
-            HttpResponseMessage response;
             if (_editingParticipant is null)
             {
-                response = await Http.PostAsJsonAsync("/api/participants", dto);
+                var model = new ParticipantCreateModel
+                {
+                    LegalEntityId = _leId,
+                    ParticipantType = _formParticipantType,
+                    DulTypeCode = _dulTypes?.FirstOrDefault(t => t.Id == _formDulTypeId)?.Code,
+                    LastName = _formLastName,
+                    FirstName = _formFirstName,
+                    MiddleName = _formMiddleName,
+                    DulSeries = _formPassportSeries,
+                    DulNumber = _formPassportNumber,
+                    PassportIssuedBy = _formPassportIssuedBy,
+                    PassportIssueDate = DateOnly.TryParse(_formPassportIssueDateStr, out var pid) ? pid : (DateOnly?)null,
+                    PassportDepartmentCode = _formPassportDepartmentCode,
+                    PassportRegistrationAddress = _formPassportRegistrationAddress,
+                    PersonInn = _formPersonInn,
+                    Citizenship = _formCitizenship,
+                    CompanyName = _formCompanyName,
+                    CompanyInn = _formCompanyInn,
+                    CompanyOgrn = _formCompanyOgrn,
+                    CompanyKpp = _formCompanyKpp,
+                    CompanyAddress = _formCompanyAddress,
+                    Ogrnip = _formOgrnip,
+                    SharePercent = _formSharePercent,
+                    ShareAmount = _formShareAmount,
+                    PaymentInfo = _formPaymentInfo,
+                    ShareRegistrationInfo = _formShareRegistrationInfo,
+                    EntryDate = DateOnly.TryParse(_formEntryDateStr, out var ed) ? ed : (DateOnly?)null,
+                    ExitDate = DateOnly.TryParse(_formExitDateStr, out var xd) ? xd : (DateOnly?)null,
+                    IsActive = string.IsNullOrEmpty(_formExitDateStr)
+                };
+                await ParticipantWrite.CreateAsync(model, userId, clientIp);
             }
             else
             {
-                response = await Http.PutAsJsonAsync($"/api/participants/{_editingParticipant.Id}", dto);
-            }
-
-            if (!response.IsSuccessStatusCode)
-            {
-                var body = await response.Content.ReadAsStringAsync();
-                _participantError = $"Ошибка ({(int)response.StatusCode}): {body}";
-                return;
+                var model = new ParticipantUpdateModel
+                {
+                    ParticipantType = _formParticipantType,
+                    LastName = _formLastName,
+                    FirstName = _formFirstName,
+                    MiddleName = _formMiddleName,
+                    CompanyName = _formCompanyName,
+                    CompanyInn = _formCompanyInn,
+                    CompanyOgrn = _formCompanyOgrn,
+                    CompanyKpp = _formCompanyKpp,
+                    CompanyAddress = _formCompanyAddress,
+                    SharePercent = _formSharePercent,
+                    ShareAmount = _formShareAmount,
+                    PaymentInfo = _formPaymentInfo,
+                    ShareRegistrationInfo = _formShareRegistrationInfo,
+                    EntryDate = DateOnly.TryParse(_formEntryDateStr, out var ed2) ? ed2 : (DateOnly?)null,
+                    ExitDate = DateOnly.TryParse(_formExitDateStr, out var xd2) ? xd2 : (DateOnly?)null,
+                    IsActive = string.IsNullOrEmpty(_formExitDateStr)
+                };
+                await ParticipantWrite.UpdateAsync(_editingParticipant.Id, model, userId, clientIp);
             }
 
             CloseParticipantModal();
@@ -1390,7 +1409,7 @@ else
         catch (Exception ex)
         {
             Logger.LogWarning(ex, "Ошибка сохранения участника");
-            _participantError = "Не удалось сохранить участника.";
+            _participantError = ex.Message;
         }
         finally
         {
@@ -1402,9 +1421,11 @@ else
     {
         try
         {
-            var response = await Http.DeleteAsync($"/api/participants/{id}");
-            if (response.IsSuccessStatusCode)
-                await LoadData();
+            var userId = SamorodinkaTech.Fiducia.Infrastructure.Common.UserContextHelper.GetUserIdAsync(HttpContextAccessor.HttpContext!) ?? Guid.Empty;
+            var clientIp = HttpContextAccessor.HttpContext?.Connection?.RemoteIpAddress?.ToString() ?? "unknown";
+
+            await ParticipantWrite.DeleteAsync(id, userId, clientIp);
+            await LoadData();
         }
         catch (Exception ex)
         {
@@ -1419,9 +1440,11 @@ else
 
         try
         {
-            var response = await Http.PostAsync("/api/participants/import-from-spark", null);
-            if (response.IsSuccessStatusCode)
-                await LoadData();
+            var userId = SamorodinkaTech.Fiducia.Infrastructure.Common.UserContextHelper.GetUserIdAsync(HttpContextAccessor.HttpContext!) ?? Guid.Empty;
+            var clientIp = HttpContextAccessor.HttpContext?.Connection?.RemoteIpAddress?.ToString() ?? "unknown";
+
+            await ParticipantWrite.ImportFromSparkAsync(_leId, userId, clientIp);
+            await LoadData();
         }
         catch (Exception ex)
         {
@@ -1474,29 +1497,31 @@ else
 
         try
         {
-            var dto = new
-            {
-                sharePercent = _formTreasurySharePercent,
-                shareAmount = _formTreasuryShareAmount,
-                acquiredDate = DateOnly.TryParse(_formTreasuryAcquiredDateStr, out var ad) ? ad : (DateOnly?)null,
-                acquisitionBasis = _formTreasuryAcquisitionBasis
-            };
+            var userId = SamorodinkaTech.Fiducia.Infrastructure.Common.UserContextHelper.GetUserIdAsync(HttpContextAccessor.HttpContext!) ?? Guid.Empty;
+            var clientIp = HttpContextAccessor.HttpContext?.Connection?.RemoteIpAddress?.ToString() ?? "unknown";
 
-            HttpResponseMessage response;
             if (_editingTreasury is null)
             {
-                response = await Http.PostAsJsonAsync("/api/treasury-shares", dto);
+                var model = new TreasuryCreateModel
+                {
+                    LegalEntityId = _leId,
+                    SharePercent = _formTreasurySharePercent,
+                    ShareAmount = _formTreasuryShareAmount,
+                    AcquiredDate = DateOnly.TryParse(_formTreasuryAcquiredDateStr, out var ad) ? ad : (DateOnly?)null,
+                    AcquisitionBasis = _formTreasuryAcquisitionBasis
+                };
+                await ParticipantWrite.CreateTreasuryAsync(model, userId, clientIp);
             }
             else
             {
-                response = await Http.PutAsJsonAsync($"/api/treasury-shares/{_editingTreasury.Id}", dto);
-            }
-
-            if (!response.IsSuccessStatusCode)
-            {
-                var body = await response.Content.ReadAsStringAsync();
-                _treasuryError = $"Ошибка ({(int)response.StatusCode}): {body}";
-                return;
+                var model = new TreasuryUpdateModel
+                {
+                    SharePercent = _formTreasurySharePercent,
+                    ShareAmount = _formTreasuryShareAmount,
+                    AcquiredDate = DateOnly.TryParse(_formTreasuryAcquiredDateStr, out var ad2) ? ad2 : (DateOnly?)null,
+                    AcquisitionBasis = _formTreasuryAcquisitionBasis
+                };
+                await ParticipantWrite.UpdateTreasuryAsync(_editingTreasury.Id, model, userId, clientIp);
             }
 
             CloseTreasuryModal();
@@ -1505,7 +1530,7 @@ else
         catch (Exception ex)
         {
             Logger.LogWarning(ex, "Ошибка сохранения казначейской доли");
-            _treasuryError = "Не удалось сохранить казначейскую долю.";
+            _treasuryError = ex.Message;
         }
         finally
         {
@@ -1517,9 +1542,11 @@ else
     {
         try
         {
-            var response = await Http.DeleteAsync($"/api/treasury-shares/{id}");
-            if (response.IsSuccessStatusCode)
-                await LoadData();
+            var userId = SamorodinkaTech.Fiducia.Infrastructure.Common.UserContextHelper.GetUserIdAsync(HttpContextAccessor.HttpContext!) ?? Guid.Empty;
+            var clientIp = HttpContextAccessor.HttpContext?.Connection?.RemoteIpAddress?.ToString() ?? "unknown";
+
+            await ParticipantWrite.DeleteTreasuryAsync(id, userId, clientIp);
+            await LoadData();
         }
         catch (Exception ex)
         {
@@ -1599,6 +1626,90 @@ else
     }
 
     private RefDulType? _selectedDulType => _dulTypes?.FirstOrDefault(t => t.Id == _formDulTypeId);
+
+    // ── Mapping: Entity → Row DTO ───────────────────────────────────
+
+    private static ParticipantRow MapParticipantToRow(BoardParticipant p)
+    {
+        var primaryDoc = p.Person?.IdentityDocuments?.FirstOrDefault();
+        var activeCompany = p.Companies?.FirstOrDefault(c => c.IsActive);
+        var activeShare = p.Shares?.FirstOrDefault(s => s.IsActive);
+        return new ParticipantRow
+        {
+            Id = p.Id,
+            ParticipantType = p.ParticipantType,
+            FullName = p.Person?.FullName,
+            LastName = p.Person?.LastName,
+            FirstName = p.Person?.FirstName,
+            MiddleName = p.Person?.MiddleName,
+            DulTypeId = primaryDoc?.DulTypeId,
+            DulSeries = primaryDoc?.Series,
+            DulNumber = primaryDoc?.Number,
+            PassportIssuedBy = primaryDoc?.IssuedBy,
+            PassportIssueDate = primaryDoc?.IssueDate?.ToString("dd.MM.yyyy"),
+            PassportDepartmentCode = primaryDoc?.DepartmentCode,
+            PassportRegistrationAddress = primaryDoc?.RegistrationAddress,
+            PersonInn = p.Person?.Inn,
+            Citizenship = p.Person?.Citizenship,
+            CompanyName = activeCompany?.CompanyName ?? p.CompanyName,
+            CompanyInn = activeCompany?.CompanyInn ?? p.CompanyInn,
+            CompanyOgrn = activeCompany?.CompanyOgrn ?? p.CompanyOgrn,
+            CompanyKpp = activeCompany?.CompanyKpp ?? p.CompanyKpp,
+            CompanyAddress = activeCompany?.CompanyAddress ?? p.CompanyAddress,
+            Ogrnip = p.Person?.Ogrnip,
+            SharePercent = activeShare?.SharePercent,
+            ShareAmount = activeShare?.ShareAmount,
+            PaymentInfo = activeShare?.PaymentInfo,
+            ShareRegistrationInfo = activeShare?.ShareRegistrationInfo,
+            EntryDate = p.EntryDate?.ToString("dd.MM.yyyy"),
+            ExitDate = p.ExitDate?.ToString("dd.MM.yyyy"),
+            IsActive = p.IsActive
+        };
+    }
+
+    private static TreasuryRow MapTreasuryToRow(BoardTreasuryShare t) => new()
+    {
+        Id = t.Id,
+        SharePercent = t.SharePercent,
+        ShareAmount = t.ShareAmount,
+        AcquiredDate = t.AcquiredDate?.ToString("dd.MM.yyyy"),
+        AcquisitionBasis = t.AcquisitionBasis
+    };
+
+    private static RegistryUploadRow MapRegistryUploadToRow(BoardRegistryUpload u) => new()
+    {
+        Id = u.Id,
+        XmlFileId = u.XmlFileId,
+        SignatureFileId = u.SignatureFileId,
+        XmlOriginalName = u.XmlOriginalName,
+        SignatureOriginalName = u.SignatureOriginalName,
+        Status = u.Status,
+        ParticipantCount = u.ParticipantCount,
+        UploadedAt = u.UploadedAt.ToString("dd.MM.yyyy HH:mm")
+    };
+
+    private static ParticipantChangeRow MapChangeToRow(BoardParticipantChange c)
+    {
+        var computedName = c.ParticipantType == "UL"
+            ? c.CompanyName
+            : string.Join(" ", new[] { c.LastName, c.FirstName, c.MiddleName }
+                .Where(x => !string.IsNullOrWhiteSpace(x)));
+        return new ParticipantChangeRow
+        {
+            Id = c.Id,
+            ParticipantId = c.ParticipantId,
+            ParticipantType = c.ParticipantType,
+            ParticipantName = computedName,
+            DocumentOriginalName = c.DocumentOriginalName,
+            SubmittedAt = c.SubmittedAt.ToString("dd.MM.yyyy HH:mm"),
+            Status = c.Status,
+            ReviewComment = c.ReviewComment,
+            Source = c.Source,
+            Date = c.Date,
+            PaperDocNumber = c.PaperDocNumber,
+            Comment = c.Comment
+        };
+    }
 
     /// <summary>Конвертирует дату из формата dd.MM.yyyy в yyyy-MM-dd для HTML date input.</summary>
     private static string? ToHtmlDate(string? dateStr)

@@ -12,6 +12,7 @@
 @inject IHttpContextAccessor HttpContextAccessor
 @inject HttpClient Http
 @inject IJSRuntime JS
+@inject SamorodinkaTech.Fiducia.Domain.Interfaces.IShareRequestReadService ShareRequestRead
 @attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "LE_ADMIN,CEO,LAWYER")]
 
 <h3>Юридическое лицо</h3>
@@ -2118,13 +2119,28 @@
             _documentAccessLoading = true;
             StateHasChanged();
 
-            // Загружаем справочник типов документов
-            var refData = await Http.GetFromJsonAsync<RefDataDto>("/api/share-requests/ref-data");
-            if (refData?.DocumentGroups is not null)
-                _documentAccessGroups = refData.DocumentGroups;
+            // Загружаем справочник типов документов через IShareRequestReadService
+            var refData = await ShareRequestRead.GetRefDataAsync();
+            if (refData.DocumentGroups is not null)
+            {
+                _documentAccessGroups = refData.DocumentGroups.Select(g => new DocumentAccessGroupDto(
+                    g.Code,
+                    g.Name,
+                    g.Documents.Select(d => new DocumentTypeRefDto(
+                        d.Id, d.Code, d.Name, d.GroupCode, d.GroupName, d.IsElectronicAvailable, d.StorageYears
+                    )).ToList()
+                )).ToList();
+            }
 
             // Загружаем текущие настройки для ЮЛ
-            var accesses = await Http.GetFromJsonAsync<List<DocumentAccessDto>>("/api/legal-entity/document-access");
+            await using var accessCtx = await DbFactory.CreateDbContextAsync();
+            var leId = await SamorodinkaTech.Fiducia.Infrastructure.Common.UserContextHelper.GetLegalEntityIdAsync(accessCtx, HttpContextAccessor.HttpContext!);
+            var accesses = leId.HasValue
+                ? await accessCtx.LegalEntityDocumentAccesses
+                    .Where(x => x.LegalEntityId == leId.Value)
+                    .Select(x => new DocumentAccessDto(x.DocumentTypeCode, x.IsElectronicAvailable))
+                    .ToListAsync()
+                : new List<DocumentAccessDto>();
             _documentAccessSettings = new();
             if (accesses is not null)
             {
@@ -2179,8 +2195,6 @@
         _activeTab = 8;
         await LoadDocumentAccessAsync();
     }
-
-    private record RefDataDto(List<DocumentAccessGroupDto>? DocumentGroups, object? AccessMethods);
 
     private async Task LoadCharterAsync(SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext? ctx, Guid legalEntityId)
     {

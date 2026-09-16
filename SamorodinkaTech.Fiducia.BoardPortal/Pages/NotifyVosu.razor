@@ -1,9 +1,13 @@
 @page "/notify-vosu/{MeetingId:guid}"
 @using System.Net.Http.Json
-@inject HttpClient Http
+@using Microsoft.EntityFrameworkCore
+@using SamorodinkaTech.Fiducia.Domain.Interfaces
+@inject IDbContextFactory<SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext> DbFactory
+@inject IVosuNotificationService VosuNotificationService
 @inject NavigationManager Nav
 @inject IJSRuntime JS
 @inject ILogger<NotifyVosu> Logger
+@inject IHttpContextAccessor HttpContextAccessor
 @attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "CEO")]
 
 <PageTitle>Fiducia — Уведомление участников ВОСУ</PageTitle>
@@ -188,6 +192,7 @@
     private string? _error;
     private string? _success;
     private bool _isAgendaChange;
+    private Guid _legalEntityId;
 
     private DateOnly _meetingDate = DateOnly.FromDateTime(DateTime.Today.AddDays(30));
     private TimeOnly _meetingStartTime = new(14, 0);
@@ -203,8 +208,44 @@
     {
         try
         {
-            _preview = await Http.GetFromJsonAsync<MeetingPreviewDto>(
-                $"/api/vosu-notifications/preview/{MeetingId}");
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+            var leId = await LegalEntityHelper.GetLegalEntityIdAsync(ctx, HttpContextAccessor.HttpContext!);
+            if (leId is not null)
+            {
+                _legalEntityId = leId.Value;
+
+                var meeting = await ctx.OsaMeetings
+                    .Include(x => x.LegalEntity)
+                    .FirstOrDefaultAsync(x => x.Id == MeetingId && x.LegalEntityId == leId.Value);
+
+                if (meeting is not null)
+                {
+                    var participantCount = await ctx.BoardParticipants
+                        .CountAsync(x => x.LegalEntityId == leId.Value && x.IsActive);
+
+                    var currentUserId = Infrastructure.Common.UserContextHelper.GetUserIdAsync(HttpContextAccessor.HttpContext!) ?? Guid.Empty;
+                    var user = await ctx.Users.FindAsync(currentUserId);
+                    var ceoName = user is not null
+                        ? string.Join(" ", new[] { user.LastName, user.FirstName, user.MiddleName }
+                            .Where(x => !string.IsNullOrWhiteSpace(x)))
+                        : "";
+
+                    _preview = new MeetingPreviewDto
+                    {
+                        MeetingId = meeting.Id,
+                        Title = meeting.Title,
+                        MeetingDate = meeting.GosaWindowStart,
+                        MeetingStartTime = meeting.MeetingStartTime,
+                        MeetingVenue = meeting.MeetingVenue,
+                        RegistrationStartTime = meeting.RegistrationStartTime,
+                        ParticipantCount = participantCount,
+                        LegalEntityName = meeting.LegalEntity?.Name,
+                        LegalEntityOgrn = meeting.LegalEntity?.Ogrn,
+                        LegalEntityInn = meeting.LegalEntity?.Inn,
+                        CeoName = ceoName
+                    };
+                }
+            }
 
             if (_preview is not null)
             {
@@ -251,34 +292,29 @@
 
         try
         {
-            var request = new
+            var userId = LegalEntityHelper.GetUserIdAsync(HttpContextAccessor.HttpContext!) ?? Guid.Empty;
+
+            var model = new VosuNotificationSendModel
             {
-                meetingId = MeetingId,
-                meetingDate = _meetingDate,
-                meetingStartTime = _meetingStartTime,
-                meetingVenue = _meetingVenue,
-                registrationStartTime = _registrationStartTime,
-                agendaItems,
-                initiatorName = _initiatorName,
-                initiatorSharePercent = _initiatorSharePercent,
-                demandReceivedDate = _demandReceivedDate,
-                reviewLocation = _reviewLocation,
-                isAgendaChange = _isAgendaChange,
-                ceoName = _preview?.CeoName ?? ""
+                MeetingId = MeetingId,
+                LegalEntityId = _legalEntityId,
+                UserId = userId,
+                MeetingDate = _meetingDate,
+                MeetingStartTime = _meetingStartTime,
+                MeetingVenue = _meetingVenue,
+                RegistrationStartTime = _registrationStartTime,
+                AgendaItems = agendaItems,
+                InitiatorName = _initiatorName,
+                InitiatorSharePercent = _initiatorSharePercent,
+                DemandReceivedDate = _demandReceivedDate,
+                ReviewLocation = _reviewLocation,
+                IsAgendaChange = _isAgendaChange,
+                CeoName = _preview?.CeoName ?? ""
             };
 
-            var response = await Http.PostAsJsonAsync("/api/vosu-notifications/send", request);
-            var body = await response.Content.ReadAsStringAsync();
-
-            if (!response.IsSuccessStatusCode)
-            {
-                _error = $"Ошибка ({(int)response.StatusCode}): {body}";
-                return;
-            }
-
-            var result = System.Text.Json.JsonSerializer.Deserialize<SendResultDto>(body);
-            _success = $"Уведомления отправлены: {result?.SentCount ?? 0} участников, " +
-                       $"DOCX-файлов: {result?.FileCount ?? 0}";
+            var fileIds = await VosuNotificationService.SendAsync(model);
+            _success = $"Уведомления отправлены: {_preview?.ParticipantCount ?? 0} участников, " +
+                       $"DOCX-файлов: {fileIds.Count}";
         }
         catch (Exception ex)
         {
@@ -323,18 +359,18 @@
             .ToList();
     }
 
-    private record MeetingPreviewDto(
-        Guid MeetingId,
-        string? Title,
-        DateOnly? MeetingDate,
-        TimeOnly? MeetingStartTime,
-        string? MeetingVenue,
-        TimeOnly? RegistrationStartTime,
-        int ParticipantCount,
-        string? LegalEntityName,
-        string? LegalEntityOgrn,
-        string? LegalEntityInn,
-        string? CeoName);
-
-    private record SendResultDto(int SentCount, int FileCount, Guid MeetingId);
+    private class MeetingPreviewDto
+    {
+        public Guid MeetingId { get; init; }
+        public string? Title { get; init; }
+        public DateOnly? MeetingDate { get; init; }
+        public TimeOnly? MeetingStartTime { get; init; }
+        public string? MeetingVenue { get; init; }
+        public TimeOnly? RegistrationStartTime { get; init; }
+        public int ParticipantCount { get; init; }
+        public string? LegalEntityName { get; init; }
+        public string? LegalEntityOgrn { get; init; }
+        public string? LegalEntityInn { get; init; }
+        public string? CeoName { get; init; }
+    }
 }

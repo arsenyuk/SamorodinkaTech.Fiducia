@@ -171,22 +171,19 @@
             }
 
             var role = result.Claims.GetValueOrDefault("role", "MEMBER_BOARD");
-            Logger.LogDebug("[LOGIN] Роль из Claims: {RefRole}, проверка на SYS_ADMIN/LE_ADMIN", role);
-            if (role != "SYS_ADMIN" && role != "LE_ADMIN")
+            var roles = role.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            Logger.LogDebug("[LOGIN] Роли из Claims: {Roles}, проверка на SYS_ADMIN/LE_ADMIN", role);
+            if (!roles.Contains("SYS_ADMIN") && !roles.Contains("LE_ADMIN"))
             {
                 _errorMessage = "Доступ только для системных администраторов и администраторов ЮЛ";
-                Logger.LogDebug("[LOGIN] Доступ запрещён: роль {RefRole} != SYS_ADMIN/LE_ADMIN", role);
+                Logger.LogDebug("[LOGIN] Доступ запрещён: роли {Roles} не содержат SYS_ADMIN/LE_ADMIN", role);
                 await SecurityAuditService.LogEventAsync("ACCESS_DENIED", userIp,
                     $"Попытка входа с ролью {role} (требуется SYS_ADMIN или LE_ADMIN)",
                     userId: result.UserId, login: result.Login, entityName: "User", cancellationToken: default);
                 return;
             }
 
-            // Сохранение данных пользователя в localStorage
-            Logger.LogDebug("[LOGIN] Сохранение данных в localStorage");
-            await JS.InvokeVoidAsync("localStorage.setItem", "currentUserId", result.UserId?.ToString() ?? "");
-            await JS.InvokeVoidAsync("localStorage.setItem", "currentUserName", result.UserName ?? "");
-            await JS.InvokeVoidAsync("localStorage.setItem", "currentUserRole", role);
+            // Сохранение greetingShownAt в localStorage (единственная оставшаяся запись)
             await JS.InvokeVoidAsync("localStorage.setItem", "greetingShownAt", DateTime.UtcNow.ToString("o"));
 
             // Установка HttpOnly JWT cookie через браузерный fetch

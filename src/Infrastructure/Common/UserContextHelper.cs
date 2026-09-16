@@ -65,4 +65,14 @@ public static class UserContextHelper
 
         return (login, fullName);
     }
+
+    /// <summary>Получить ФИО пользователя по userId из БД.</summary>
+    public static async Task<string> GetFullNameAsync(FiduciaDbContext ctx, Guid userId)
+    {
+        var user = await ctx.Users.FindAsync(userId);
+        if (user is null) return "Гость";
+        return string.IsNullOrWhiteSpace(user.MiddleName)
+            ? $"{user.LastName} {user.FirstName}"
+            : $"{user.LastName} {user.FirstName} {user.MiddleName}";
+    }
 }

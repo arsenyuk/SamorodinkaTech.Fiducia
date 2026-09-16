@@ -1,8 +1,12 @@
 @page "/agenda-osu"
 @using System.Net.Http.Json
-@inject HttpClient Http
+@using Microsoft.EntityFrameworkCore
+@using SamorodinkaTech.Fiducia.Domain.Interfaces
+@inject IDbContextFactory<SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext> DbFactory
+@inject IAgendaItemService AgendaItemService
 @inject NavigationManager Nav
 @inject ILogger<AgendaOsu> Logger
+@inject IHttpContextAccessor HttpContextAccessor
 @attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "LE_ADMIN,CEO,LAWYER")]
 
 <PageTitle>Fiducia — Повестка ОСУ</PageTitle>
@@ -78,12 +82,22 @@ else
     private string? _filterStatus;
     private bool _loading = true;
     private string? _error;
+    private Guid _legalEntityId;
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
-            _items = await Http.GetFromJsonAsync<List<AgendaItemDto>>("/api/agenda-items?targetType=OSA") ?? new();
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+
+            var leId = await LegalEntityHelper.GetLegalEntityIdAsync(ctx, HttpContextAccessor.HttpContext!);
+            if (leId is not null)
+                _legalEntityId = leId.Value;
+
+            _items = await ctx.AgendaItems
+                .Where(i => i.TargetType == "OSA")
+                .Select(i => new AgendaItemDto(i.Id, i.Title, i.TargetType, i.Reason, i.Status, i.ShareRequestId, i.CreatedAt))
+                .ToListAsync();
         }
         catch (Exception ex)
         {
@@ -100,21 +114,14 @@ else
     {
         try
         {
-            var response = await Http.PostAsJsonAsync($"/api/agenda-items/{id}/accept", new { });
-            if (response.IsSuccessStatusCode)
-            {
-                Nav.NavigateTo("/agenda-osu", forceLoad: true);
-            }
-            else
-            {
-                var body = await response.Content.ReadAsStringAsync();
-                _error = $"Ошибка принятия: {body}";
-            }
+            var userId = LegalEntityHelper.GetUserIdAsync(HttpContextAccessor.HttpContext!) ?? Guid.Empty;
+            await AgendaItemService.AcceptAsync(id, userId, _legalEntityId);
+            Nav.NavigateTo("/agenda-osu", forceLoad: true);
         }
         catch (Exception ex)
         {
             Logger.LogWarning(ex, "Ошибка принятия пункта повестки {Id}", id);
-            _error = "Ошибка принятия пункта повестки";
+            _error = $"Ошибка принятия: {ex.Message}";
         }
     }
 
@@ -126,21 +133,14 @@ else
 
         try
         {
-            var response = await Http.PostAsJsonAsync($"/api/agenda-items/{id}/reject", new { });
-            if (response.IsSuccessStatusCode)
-            {
-                Nav.NavigateTo("/agenda-osu", forceLoad: true);
-            }
-            else
-            {
-                var body = await response.Content.ReadAsStringAsync();
-                _error = $"Ошибка отклонения: {body}";
-            }
+            var userId = LegalEntityHelper.GetUserIdAsync(HttpContextAccessor.HttpContext!) ?? Guid.Empty;
+            await AgendaItemService.RejectAsync(id, userId, _legalEntityId, null);
+            Nav.NavigateTo("/agenda-osu", forceLoad: true);
         }
         catch (Exception ex)
         {
             Logger.LogWarning(ex, "Ошибка отклонения пункта повестки {Id}", id);
-            _error = "Ошибка отклонения пункта повестки";
+            _error = $"Ошибка отклонения: {ex.Message}";
         }
     }
 

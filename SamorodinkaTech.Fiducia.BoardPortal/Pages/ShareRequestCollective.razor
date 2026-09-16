@@ -1,9 +1,13 @@
 @page "/share-requests/{Id:guid}/collective"
-@using System.Net.Http.Json
-@inject HttpClient Http
+@using Microsoft.EntityFrameworkCore
+@using SamorodinkaTech.Fiducia.Domain.Interfaces
 @inject NavigationManager Nav
 @inject IJSRuntime JS
 @inject ILogger<ShareRequestCollective> Logger
+@inject IShareRequestReadService ShareRequestRead
+@inject IShareRequestWriteService ShareRequestWrite
+@inject IHttpContextAccessor HttpContextAccessor
+@inject IDbContextFactory<SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext> DbFactory
 @attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "LE_ADMIN")]
 
 <PageTitle>Fiducia — Коллективное требование</PageTitle>
@@ -299,22 +303,51 @@ else
     private bool _isCeo;
     private bool _isBoardMember;
     private string? _ceoComment;
+    private Guid? _currentParticipantId;
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
-            _request = await Http.GetFromJsonAsync<CollectiveRequestDto>($"/api/share-requests/{Id}");
+            var entity = await ShareRequestRead.GetDetailAsync(Id);
+            _request = entity is not null ? MapToCollectiveRequestDto(entity) : null;
             if (_request is not null)
             {
-                var supportsResponse = await Http.GetFromJsonAsync<List<SupportDto>>($"/api/share-requests/{Id}/supports");
-                _supports = supportsResponse ?? new();
-                _currentUserHasSupported = _supports.Any(s => s.IsCurrentUser && s.IsActive);
-                _isCeo = await CheckIsCeoAsync();
-                _isBoardMember = await CheckIsBoardMemberAsync();
+                // Получаем текущего участника для определения IsCurrentUser
+                var userId = SamorodinkaTech.Fiducia.Infrastructure.Common.UserContextHelper.GetUserIdAsync(HttpContextAccessor.HttpContext!);
+                Guid? currentParticipantId = null;
+                if (userId.HasValue)
+                {
+                    await using var ctx = await DbFactory.CreateDbContextAsync();
+                    var leId = await LegalEntityHelper.GetLegalEntityIdAsync(ctx, HttpContextAccessor);
+                    if (leId.HasValue)
+                    {
+                        var user = await ctx.Users.FindAsync(userId.Value);
+                        var ecoParticipant = user is not null
+                            ? await SamorodinkaTech.Fiducia.Domain.Helpers.PersonHelper.FindParticipantByUserIdAsync(ctx, user.Id)
+                            : null;
+                        if (ecoParticipant is not null)
+                        {
+                            var bp = await ctx.BoardParticipants.FirstOrDefaultAsync(p =>
+                                p.LegalEntityId == leId.Value
+                                && p.EcosystemParticipantId == ecoParticipant.Id
+                                && p.IsActive);
+                            currentParticipantId = bp?.Id;
+                        }
+                    }
+                }
 
-                var filesResponse = await Http.GetFromJsonAsync<List<FileDto>>($"/api/share-requests/{Id}/files");
-                _files = filesResponse ?? new();
+                _currentParticipantId = currentParticipantId;
+
+                var supportEntities = await ShareRequestRead.GetSupportsAsync(Id);
+                _supports = supportEntities.Select(s => MapToSupportDto(s, currentParticipantId)).ToList();
+                _currentUserHasSupported = _supports.Any(s => s.IsCurrentUser && s.IsActive);
+                _isCeo = HttpContextAccessor.HttpContext?.User.IsInRole("CEO") ?? false;
+                _isBoardMember = (HttpContextAccessor.HttpContext?.User.IsInRole("MEMBER_BOARD") ?? false)
+                    || (HttpContextAccessor.HttpContext?.User.IsInRole("CHAIR_BOARD") ?? false);
+
+                var fileEntities = await ShareRequestRead.GetFilesAsync(Id);
+                _files = fileEntities.Select(MapToFileDto).ToList();
             }
         }
         catch (Exception ex)
@@ -328,56 +361,18 @@ else
         }
     }
 
-    private async Task<bool> CheckIsCeoAsync()
-    {
-        try
-        {
-            var response = await Http.GetAsync("/api/session/me");
-            if (response.IsSuccessStatusCode)
-            {
-                var me = await response.Content.ReadFromJsonAsync<SessionMe>();
-                return me?.Roles?.Contains("CEO") ?? false;
-            }
-        }
-        catch (Exception ex)
-        {
-            Logger.LogWarning(ex, "Ошибка проверки роли CEO");
-        }
-        return false;
-    }
-
-    private async Task<bool> CheckIsBoardMemberAsync()
-    {
-        try
-        {
-            var response = await Http.GetAsync("/api/session/me");
-            if (response.IsSuccessStatusCode)
-            {
-                var me = await response.Content.ReadFromJsonAsync<SessionMe>();
-                return me?.Roles?.Any(r => r == "MEMBER_BOARD" || r == "CHAIR_BOARD") ?? false;
-            }
-        }
-        catch (Exception ex)
-        {
-            Logger.LogWarning(ex, "Ошибка проверки роли члена СД");
-        }
-        return false;
-    }
-
     private async Task SupportRequestAsync()
     {
+        if (_currentParticipantId is null)
+        {
+            _error = "Не удалось определить участника";
+            return;
+        }
+
         try
         {
-            var response = await Http.PostAsJsonAsync($"/api/share-requests/{Id}/support", new { });
-            if (response.IsSuccessStatusCode)
-            {
-                Nav.NavigateTo($"/share-requests/{Id}/collective", forceLoad: true);
-            }
-            else
-            {
-                var body = await response.Content.ReadAsStringAsync();
-                _error = $"Ошибка поддержки: {body}";
-            }
+            await ShareRequestWrite.SupportAsync(Id, _currentParticipantId.Value);
+            Nav.NavigateTo($"/share-requests/{Id}/collective", forceLoad: true);
         }
         catch (Exception ex)
         {
@@ -391,18 +386,16 @@ else
         var confirmed = await JS.InvokeAsync<bool>("confirm", "Вы уверены, что хотите отозвать поддержку?");
         if (!confirmed) return;
 
+        if (_currentParticipantId is null)
+        {
+            _error = "Не удалось определить участника";
+            return;
+        }
+
         try
         {
-            var response = await Http.PostAsJsonAsync($"/api/share-requests/{Id}/withdraw", new { });
-            if (response.IsSuccessStatusCode)
-            {
-                Nav.NavigateTo($"/share-requests/{Id}/collective", forceLoad: true);
-            }
-            else
-            {
-                var body = await response.Content.ReadAsStringAsync();
-                _error = $"Ошибка отзыва: {body}";
-            }
+            await ShareRequestWrite.WithdrawAsync(Id, _currentParticipantId.Value);
+            Nav.NavigateTo($"/share-requests/{Id}/collective", forceLoad: true);
         }
         catch (Exception ex)
         {
@@ -419,17 +412,9 @@ else
 
         try
         {
-            var dto = new { Decision = decision, Comment = _ceoComment };
-            var response = await Http.PostAsJsonAsync($"/api/share-requests/{Id}/decide", dto);
-            if (response.IsSuccessStatusCode)
-            {
-                Nav.NavigateTo($"/share-requests/{Id}/collective", forceLoad: true);
-            }
-            else
-            {
-                var body = await response.Content.ReadAsStringAsync();
-                _error = $"Ошибка решения: {body}";
-            }
+            var approved = decision == "ACCEPTED";
+            await ShareRequestWrite.DecideAsync(Id, approved, _ceoComment);
+            Nav.NavigateTo($"/share-requests/{Id}/collective", forceLoad: true);
         }
         catch (Exception ex)
         {
@@ -469,7 +454,21 @@ else
 
     private record FileDto(Guid Id, Guid FileId, string FileName, long SizeBytes, string? ContentType, DateTime CreatedAt);
 
-    private record SessionMe(Guid Id, string? FullName, string[]? Roles);
+    private static CollectiveRequestDto MapToCollectiveRequestDto(Domain.Entities.ShareRequest r)
+        => new(r.Id, r.RequestTypeId, r.RequestType?.Code, r.RequestType?.Name,
+            r.Participant?.Person?.FullName ?? r.Participant?.CompanyName,
+            r.Payload, r.Status, r.CollectiveStatus,
+            r.ThresholdPercent, r.TotalSupportPercent, r.SupporterCount,
+            r.CreatedAt, r.SubmittedToCeoAt, r.CeoDecisionAt, r.CeoComment,
+            r.OrgIntentId);
+
+    private static SupportDto MapToSupportDto(Domain.Entities.ShareRequestSupport s, Guid? currentParticipantId)
+        => new(s.Id, s.Participant?.Person?.FullName ?? s.Participant?.CompanyName,
+            s.SharePercentAtSupport, s.SupportedAt, s.WithdrawnAt,
+            s.ParticipantId == currentParticipantId, s.WithdrawnAt == null);
+
+    private static FileDto MapToFileDto(Domain.Entities.ShareRequestFile f)
+        => new(f.Id, f.FileId, f.File?.OriginalName ?? "", f.File?.SizeBytes ?? 0, f.File?.ContentType, f.File?.CreatedAt ?? DateTime.MinValue);
 
     private static string FormatSize(long bytes)
     {

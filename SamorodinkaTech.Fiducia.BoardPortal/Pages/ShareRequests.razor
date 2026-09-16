@@ -1,9 +1,11 @@
 @page "/share-requests"
-@using System.Net.Http.Json
-@inject HttpClient Http
+@using SamorodinkaTech.Fiducia.Domain.Interfaces
 @inject NavigationManager Nav
 @inject IJSRuntime JS
 @inject ILogger<ShareRequests> Logger
+@inject IShareRequestReadService ShareRequestRead
+@inject IShareRequestWriteService ShareRequestWrite
+@inject IHttpContextAccessor HttpContextAccessor
 @attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "PARTICIPANT,CEO")]
 
 <PageTitle>Fiducia — Мои запросы</PageTitle>
@@ -102,14 +104,25 @@ else
     private string? _filterTypeId;
     private bool _loading = true;
     private string? _error;
+    private Guid? _userId;
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
-            _availableTypes = await Http.GetFromJsonAsync<List<RequestTypeDto>>("/api/share-requests/types") ?? new();
+            _userId = SamorodinkaTech.Fiducia.Infrastructure.Common.UserContextHelper.GetUserIdAsync(HttpContextAccessor.HttpContext!);
+            if (_userId is null)
+            {
+                _error = "Не удалось определить пользователя.";
+                return;
+            }
+
+            var types = await ShareRequestRead.GetTypesAsync();
+            _availableTypes = types.Select(MapToRequestTypeDto).ToList();
             _allTypes = _availableTypes.ToList();
-            _requests = await Http.GetFromJsonAsync<List<ShareRequestDto>>("/api/share-requests") ?? new();
+
+            var entities = await ShareRequestRead.GetListAsync(_userId.Value);
+            _requests = entities.Select(MapToShareRequestDto).ToList();
         }
         catch (Exception ex)
         {
@@ -126,21 +139,19 @@ else
     {
         try
         {
-            var response = await Http.PostAsJsonAsync("/api/share-requests", new { RequestTypeId = requestTypeId, Payload = (string?)null });
-            if (response.IsSuccessStatusCode)
+            if (_userId is null)
             {
-                Nav.NavigateTo("/share-requests", forceLoad: true);
+                _error = "Не удалось определить пользователя.";
+                return;
             }
-            else
-            {
-                var body = await response.Content.ReadAsStringAsync();
-                _error = $"Ошибка создания запроса: {body}";
-            }
+
+            await ShareRequestWrite.CreateAsync(_userId.Value, requestTypeId, null);
+            Nav.NavigateTo("/share-requests", forceLoad: true);
         }
         catch (Exception ex)
         {
             Logger.LogWarning(ex, "Ошибка создания запроса");
-            _error = "Ошибка создания запроса";
+            _error = $"Ошибка создания запроса: {ex.Message}";
         }
     }
 
@@ -152,21 +163,13 @@ else
 
         try
         {
-            var response = await Http.PostAsJsonAsync($"/api/share-requests/{id}/revoke", new { Notarized = true });
-            if (response.IsSuccessStatusCode)
-            {
-                Nav.NavigateTo("/share-requests", forceLoad: true);
-            }
-            else
-            {
-                var body = await response.Content.ReadAsStringAsync();
-                _error = $"Ошибка отзыва: {body}";
-            }
+            await ShareRequestWrite.RevokeAsync(id, true);
+            Nav.NavigateTo("/share-requests", forceLoad: true);
         }
         catch (Exception ex)
         {
             Logger.LogWarning(ex, "Ошибка отзыва запроса");
-            _error = "Ошибка отзыва запроса";
+            _error = $"Ошибка отзыва: {ex.Message}";
         }
     }
 
@@ -178,21 +181,13 @@ else
 
         try
         {
-            var response = await Http.PostAsJsonAsync($"/api/share-requests/{id}/submit", new { });
-            if (response.IsSuccessStatusCode)
-            {
-                Nav.NavigateTo("/share-requests", forceLoad: true);
-            }
-            else
-            {
-                var body = await response.Content.ReadAsStringAsync();
-                _error = $"Ошибка отправки: {body}";
-            }
+            await ShareRequestWrite.SubmitAsync(id);
+            Nav.NavigateTo("/share-requests", forceLoad: true);
         }
         catch (Exception ex)
         {
             Logger.LogWarning(ex, "Ошибка отправки запроса");
-            _error = "Ошибка отправки запроса";
+            _error = $"Ошибка отправки: {ex.Message}";
         }
     }
 
@@ -222,6 +217,15 @@ else
         >= 2 and <= 4 => "пункта",
         _ => "пунктов"
     };
+
+    private static RequestTypeDto MapToRequestTypeDto(Domain.Entities.RefRequestType rt)
+        => new(rt.Id, rt.Code, rt.Name, rt.RequiresFile);
+
+    private static ShareRequestDto MapToShareRequestDto(Domain.Entities.ShareRequest r)
+        => new(r.Id, r.RequestTypeId, r.RequestType?.Code, r.RequestType?.Name,
+            r.Status, r.Payload, r.CreatedAt, r.CompletedAt, r.RevokedAt,
+            r.RevokedByNotarized, r.VisibleToAll, r.DecisionStatus,
+            r.Items?.Count ?? 0);
 
     private record ShareRequestDto(Guid Id, Guid RequestTypeId, string? RequestTypeCode, string? RequestTypeName, string Status, string? Payload, DateTime CreatedAt, DateTime? CompletedAt, DateTime? RevokedAt, bool RevokedByNotarized, bool VisibleToAll, string? DecisionStatus, int ItemCount);
     private record RequestTypeDto(Guid Id, string Code, string Name, bool RequiresFile);

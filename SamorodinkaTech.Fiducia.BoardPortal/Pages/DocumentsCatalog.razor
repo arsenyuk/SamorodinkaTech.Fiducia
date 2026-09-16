@@ -1,6 +1,10 @@
 @page "/documents/catalog"
 @using System.Net.Http.Json
+@using SamorodinkaTech.Fiducia.Domain.Interfaces
 @inject HttpClient Http
+@inject IHttpContextAccessor HttpContextAccessor
+@inject IShareRequestReadService ShareRequestRead
+@inject IDbContextFactory<SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext> DbFactory
 @inject NavigationManager Nav
 @inject ILogger<DocumentsCatalog> Logger
 @attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "PARTICIPANT")]
@@ -131,8 +135,36 @@ else
     {
         try
         {
-            var response = await Http.GetFromJsonAsync<CatalogResponseDto>("/api/documents/catalog");
-            _groups = response?.Groups ?? new();
+            var userId = SamorodinkaTech.Fiducia.Infrastructure.Common.UserContextHelper.GetUserIdAsync(HttpContextAccessor.HttpContext!);
+            if (userId is null) { _error = "Пользователь не определён."; return; }
+
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+            var leId = await SamorodinkaTech.Fiducia.Infrastructure.Common.UserContextHelper.GetLegalEntityIdAsync(ctx, HttpContextAccessor.HttpContext!);
+            if (leId is null) { _error = "Юридическое лицо не определено."; return; }
+
+            var catalogGroups = await ShareRequestRead.GetDocumentCatalogAsync(leId.Value);
+            _groups = catalogGroups.Select(g => new CatalogGroupDto(
+                g.GroupName,
+                g.TotalFiles,
+                g.LatestProvisionDate,
+                g.Demands.Select(d => new CatalogDemandDto(
+                    d.ShareRequestId,
+                    d.DemandNumber,
+                    d.CreatedAt,
+                    d.Status,
+                    d.Items.Select(i => new CatalogItemDto(
+                        i.ItemId,
+                        i.Title,
+                        i.Files.Select(f => new CatalogFileDto(
+                            f.FileId,
+                            f.FileName,
+                            f.SizeBytes,
+                            f.ContentType,
+                            f.ProvisionDate
+                        )).ToList()
+                    )).ToList()
+                )).ToList()
+            )).ToList();
         }
         catch (Exception ex)
         {

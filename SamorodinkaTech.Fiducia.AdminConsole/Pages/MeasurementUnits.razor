@@ -2,7 +2,7 @@
 @using Microsoft.EntityFrameworkCore
 @inject IDbContextFactory<SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext> DbFactory
 @inject ILogger<MeasurementUnits> Logger
-@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "SYS_ADMIN")]
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "SYS_ADMIN,LE_ADMIN")]
 
 <h3>Единицы измерения сроков</h3>
 

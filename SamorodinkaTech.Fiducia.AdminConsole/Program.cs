@@ -102,6 +102,9 @@ builder.Services.AddScoped<IClientIpProvider, HttpContextIpProvider>();
 // Notification Service (US-009)
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IElectionNominationService, ElectionNominationService>();
+
+// Participant read service — чтение данных участников без loopback HTTP
+builder.Services.AddScoped<IParticipantReadService, ParticipantReadService>();
 builder.Services.AddSingleton<ILegalEntityGosaIntervalService, LegalEntityGosaIntervalService>();
 builder.Services.AddScoped<ITemplateInstantiationService, TemplateInstantiationService>();
 
