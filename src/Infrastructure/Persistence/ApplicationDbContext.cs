@@ -721,6 +721,7 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.Property(x => x.Id).HasColumnName("id");
             b.Property(x => x.LegalEntityId).HasColumnName("legal_entity_id").IsRequired();
             b.Property(x => x.SharePercent).HasColumnName("share_percent").HasColumnType("numeric(5,2)");
+            b.Property(x => x.ShareFraction).HasColumnName("share_fraction");
             b.Property(x => x.ShareAmount).HasColumnName("share_amount").HasColumnType("numeric(18,2)");
             b.Property(x => x.AcquiredDate).HasColumnName("acquired_date");
             b.Property(x => x.AcquisitionBasis).HasColumnName("acquisition_basis").HasMaxLength(500);
@@ -777,6 +778,7 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.Property(x => x.CompanyAddress).HasColumnName("company_address");
             b.Property(x => x.Ogrnip).HasColumnName("ogrnip").HasMaxLength(15);
             b.Property(x => x.SharePercent).HasColumnName("share_percent").HasColumnType("numeric(5,2)");
+            b.Property(x => x.ShareFraction).HasColumnName("share_fraction");
             b.Property(x => x.ShareAmount).HasColumnName("share_amount").HasColumnType("numeric(18,2)");
             b.Property(x => x.DocumentFileId).HasColumnName("document_file_id");
             b.Property(x => x.DocumentOriginalName).HasColumnName("document_original_name").HasMaxLength(255);
@@ -822,6 +824,7 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.Property(x => x.ParticipantId).HasColumnName("participant_id").IsRequired();
             b.Property(x => x.LegalEntityId).HasColumnName("legal_entity_id").IsRequired();
             b.Property(x => x.SharePercent).HasColumnName("share_percent").HasColumnType("numeric(5,2)");
+            b.Property(x => x.ShareFraction).HasColumnName("share_fraction");
             b.Property(x => x.ShareAmount).HasColumnName("share_amount").HasColumnType("numeric(18,2)");
             b.Property(x => x.PaymentInfo).HasColumnName("payment_info").HasMaxLength(500);
             b.Property(x => x.ShareRegistrationInfo).HasColumnName("share_registration_info").HasMaxLength(500);

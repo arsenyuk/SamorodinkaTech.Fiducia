@@ -168,7 +168,7 @@ else
                                 <td>
                                     @if (p.SharePercent.HasValue)
                                     {
-                                        <span class="fw-bold">@p.SharePercent.Value.ToString("0.##")%</span>
+                                        <span class="fw-bold">@SamorodinkaTech.Fiducia.Infrastructure.Common.ShareParser.Format(p.SharePercent, p.ShareFraction)</span>
                                     }
                                     else
                                     {
@@ -250,7 +250,7 @@ else
                                 <td>
                                     @if (t.SharePercent.HasValue)
                                     {
-                                        <span class="fw-bold">@t.SharePercent.Value.ToString("0.##")%</span>
+                                        <span class="fw-bold">@SamorodinkaTech.Fiducia.Infrastructure.Common.ShareParser.Format(t.SharePercent, t.ShareFraction)</span>
                                     }
                                     else
                                     {
@@ -484,8 +484,12 @@ else
                     <h6>Доля</h6>
                     <div class="row mb-3">
                         <div class="col-md-4">
-                            <label class="form-label">Размер доли (%)</label>
-                            <input type="number" step="0.01" class="form-control" @bind="_paperSharePercent" />
+                            <label class="form-label">Размер доли</label>
+                            <input type="text" class="form-control" @bind="_paperShareInput" placeholder="1/3 или 50" />
+                            @if (!string.IsNullOrEmpty(_paperShareError))
+                            {
+                                <div class="text-danger small">@_paperShareError</div>
+                            }
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Номинал (руб.)</label>
@@ -760,8 +764,12 @@ else
                     <h6>Доля в уставном капитале</h6>
                     <div class="row mb-3">
                         <div class="col-md-4">
-                            <label class="form-label">Размер доли (%)</label>
-                            <input type="number" step="0.01" class="form-control" @bind="_formSharePercent" />
+                            <label class="form-label">Размер доли</label>
+                            <input type="text" class="form-control" @bind="_formShareInput" placeholder="1/3 или 50" />
+                            @if (!string.IsNullOrEmpty(_formShareError))
+                            {
+                                <div class="text-danger small">@_formShareError</div>
+                            }
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Номинальная стоимость (руб.)</label>
@@ -822,8 +830,12 @@ else
 
                     <div class="row mb-3">
                         <div class="col-md-6">
-                            <label class="form-label">Размер доли (%)</label>
-                            <input type="number" step="0.01" class="form-control" @bind="_formTreasurySharePercent" />
+                            <label class="form-label">Размер доли</label>
+                            <input type="text" class="form-control" @bind="_formTreasuryShareInput" placeholder="1/3 или 50" />
+                            @if (!string.IsNullOrEmpty(_formTreasuryShareError))
+                            {
+                                <div class="text-danger small">@_formTreasuryShareError</div>
+                            }
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Номинальная стоимость (руб.)</label>
@@ -903,7 +915,8 @@ else
     private string? _formCompanyKpp;
     private string? _formCompanyAddress;
     private string? _formOgrnip;
-    private decimal? _formSharePercent;
+    private string? _formShareInput;
+    private string? _formShareError;
     private decimal? _formShareAmount;
     private string? _formPaymentInfo;
     private string? _formShareRegistrationInfo;
@@ -916,7 +929,8 @@ else
     private string? _treasuryError;
     private TreasuryRow? _editingTreasury;
 
-    private decimal? _formTreasurySharePercent;
+    private string? _formTreasuryShareInput;
+    private string? _formTreasuryShareError;
     private decimal? _formTreasuryShareAmount;
     private string? _formTreasuryAcquiredDateStr;
     private string? _formTreasuryAcquisitionBasis;
@@ -946,7 +960,8 @@ else
     private string? _paperAddress;
     private string? _paperCompanyName;
     private string? _paperCompanyInn;
-    private decimal? _paperSharePercent;
+    private string? _paperShareInput;
+    private string? _paperShareError;
     private decimal? _paperShareAmount;
     private string? _paperComment;
 
@@ -1196,6 +1211,24 @@ else
 
             var participant = _participants.FirstOrDefault(p => p.Id.ToString() == _paperParticipantId);
 
+            // Парсинг размера доли
+            decimal? parsedPaperSharePercent = null;
+            string? parsedPaperShareFraction = null;
+            if (!string.IsNullOrWhiteSpace(_paperShareInput))
+            {
+                try
+                {
+                    (parsedPaperSharePercent, parsedPaperShareFraction) = SamorodinkaTech.Fiducia.Infrastructure.Common.ShareParser.Parse(_paperShareInput);
+                }
+                catch (ArgumentException ex)
+                {
+                    _paperShareError = ex.Message;
+                    _savingPaper = false;
+                    StateHasChanged();
+                    return;
+                }
+            }
+
             var model = new ChangeCreateModel
             {
                 LegalEntityId = _leId,
@@ -1207,7 +1240,8 @@ else
                 PersonInn = _paperPersonInn ?? participant?.PersonInn,
                 CompanyName = _paperCompanyName ?? participant?.CompanyName,
                 CompanyInn = _paperCompanyInn ?? participant?.CompanyInn,
-                SharePercent = _paperSharePercent ?? participant?.SharePercent,
+                SharePercent = parsedPaperSharePercent ?? participant?.SharePercent,
+                ShareFraction = parsedPaperShareFraction ?? participant?.ShareFraction,
                 ShareAmount = _paperShareAmount ?? participant?.ShareAmount,
                 Source = "paper",
                 Date = _paperDateStr,
@@ -1226,7 +1260,8 @@ else
             _paperAddress = null;
             _paperCompanyName = null;
             _paperCompanyInn = null;
-            _paperSharePercent = null;
+            _paperShareInput = null;
+            _paperShareAmount = null;
             _paperShareAmount = null;
             _paperComment = null;
 
@@ -1274,8 +1309,9 @@ else
         _formCompanyKpp = p.CompanyKpp;
         _formCompanyAddress = p.CompanyAddress;
         _formOgrnip = p.Ogrnip;
-        _formSharePercent = p.SharePercent;
+        _formShareInput = !string.IsNullOrEmpty(p.ShareFraction) ? p.ShareFraction : p.SharePercent?.ToString("0.##");
         _formShareAmount = p.ShareAmount;
+        _formShareError = null;
         _formPaymentInfo = p.PaymentInfo;
         _formShareRegistrationInfo = p.ShareRegistrationInfo;
         _formEntryDateStr = ToHtmlDate(p.EntryDate);
@@ -1310,8 +1346,9 @@ else
         _formCompanyKpp = null;
         _formCompanyAddress = null;
         _formOgrnip = null;
-        _formSharePercent = null;
+        _formShareInput = null;
         _formShareAmount = null;
+        _formShareError = null;
         _formPaymentInfo = null;
         _formShareRegistrationInfo = null;
         _formEntryDateStr = null;
@@ -1320,8 +1357,27 @@ else
 
     private bool IsFormValid()
     {
-        var shareOk = _formSharePercent > 0;
-        var paymentRequired = _formSharePercent < 100;
+        decimal? parsedShare = null;
+        if (!string.IsNullOrWhiteSpace(_formShareInput))
+        {
+            try
+            {
+                (parsedShare, _) = SamorodinkaTech.Fiducia.Infrastructure.Common.ShareParser.Parse(_formShareInput);
+                _formShareError = null;
+            }
+            catch (ArgumentException ex)
+            {
+                _formShareError = ex.Message;
+                return false;
+            }
+        }
+        else
+        {
+            _formShareError = null;
+        }
+
+        var shareOk = parsedShare > 0;
+        var paymentRequired = parsedShare < 100;
         var paymentOk = !paymentRequired || !string.IsNullOrWhiteSpace(_formPaymentInfo);
 
         if (_formParticipantType == "FL")
@@ -1344,6 +1400,24 @@ else
         {
             var userId = SamorodinkaTech.Fiducia.Infrastructure.Common.UserContextHelper.GetUserIdAsync(HttpContextAccessor.HttpContext!) ?? Guid.Empty;
             var clientIp = HttpContextAccessor.HttpContext?.Connection?.RemoteIpAddress?.ToString() ?? "unknown";
+
+            // Парсинг размера доли
+            decimal? parsedSharePercent = null;
+            string? parsedShareFraction = null;
+            if (!string.IsNullOrWhiteSpace(_formShareInput))
+            {
+                try
+                {
+                    (parsedSharePercent, parsedShareFraction) = SamorodinkaTech.Fiducia.Infrastructure.Common.ShareParser.Parse(_formShareInput);
+                }
+                catch (ArgumentException ex)
+                {
+                    _formShareError = ex.Message;
+                    _savingParticipant = false;
+                    StateHasChanged();
+                    return;
+                }
+            }
 
             if (_editingParticipant is null)
             {
@@ -1369,7 +1443,8 @@ else
                     CompanyKpp = _formCompanyKpp,
                     CompanyAddress = _formCompanyAddress,
                     Ogrnip = _formOgrnip,
-                    SharePercent = _formSharePercent,
+                    SharePercent = parsedSharePercent,
+                    ShareFraction = parsedShareFraction,
                     ShareAmount = _formShareAmount,
                     PaymentInfo = _formPaymentInfo,
                     ShareRegistrationInfo = _formShareRegistrationInfo,
@@ -1392,7 +1467,8 @@ else
                     CompanyOgrn = _formCompanyOgrn,
                     CompanyKpp = _formCompanyKpp,
                     CompanyAddress = _formCompanyAddress,
-                    SharePercent = _formSharePercent,
+                    SharePercent = parsedSharePercent,
+                    ShareFraction = parsedShareFraction,
                     ShareAmount = _formShareAmount,
                     PaymentInfo = _formPaymentInfo,
                     ShareRegistrationInfo = _formShareRegistrationInfo,
@@ -1468,8 +1544,9 @@ else
     private void OpenEditTreasury(TreasuryRow t)
     {
         _editingTreasury = t;
-        _formTreasurySharePercent = t.SharePercent;
+        _formTreasuryShareInput = !string.IsNullOrEmpty(t.ShareFraction) ? t.ShareFraction : t.SharePercent?.ToString("0.##");
         _formTreasuryShareAmount = t.ShareAmount;
+        _formTreasuryShareError = null;
         _formTreasuryAcquiredDateStr = ToHtmlDate(t.AcquiredDate);
         _formTreasuryAcquisitionBasis = t.AcquisitionBasis;
         _showTreasuryModal = true;
@@ -1483,8 +1560,9 @@ else
 
     private void ResetTreasuryForm()
     {
-        _formTreasurySharePercent = null;
+        _formTreasuryShareInput = null;
         _formTreasuryShareAmount = null;
+        _formTreasuryShareError = null;
         _formTreasuryAcquiredDateStr = null;
         _formTreasuryAcquisitionBasis = null;
     }
@@ -1500,12 +1578,31 @@ else
             var userId = SamorodinkaTech.Fiducia.Infrastructure.Common.UserContextHelper.GetUserIdAsync(HttpContextAccessor.HttpContext!) ?? Guid.Empty;
             var clientIp = HttpContextAccessor.HttpContext?.Connection?.RemoteIpAddress?.ToString() ?? "unknown";
 
+            // Парсинг размера доли
+            decimal? parsedTreasurySharePercent = null;
+            string? parsedTreasuryShareFraction = null;
+            if (!string.IsNullOrWhiteSpace(_formTreasuryShareInput))
+            {
+                try
+                {
+                    (parsedTreasurySharePercent, parsedTreasuryShareFraction) = SamorodinkaTech.Fiducia.Infrastructure.Common.ShareParser.Parse(_formTreasuryShareInput);
+                }
+                catch (ArgumentException ex)
+                {
+                    _formTreasuryShareError = ex.Message;
+                    _savingTreasury = false;
+                    StateHasChanged();
+                    return;
+                }
+            }
+
             if (_editingTreasury is null)
             {
                 var model = new TreasuryCreateModel
                 {
                     LegalEntityId = _leId,
-                    SharePercent = _formTreasurySharePercent,
+                    SharePercent = parsedTreasurySharePercent,
+                    ShareFraction = parsedTreasuryShareFraction,
                     ShareAmount = _formTreasuryShareAmount,
                     AcquiredDate = DateOnly.TryParse(_formTreasuryAcquiredDateStr, out var ad) ? ad : (DateOnly?)null,
                     AcquisitionBasis = _formTreasuryAcquisitionBasis
@@ -1516,7 +1613,8 @@ else
             {
                 var model = new TreasuryUpdateModel
                 {
-                    SharePercent = _formTreasurySharePercent,
+                    SharePercent = parsedTreasurySharePercent,
+                    ShareFraction = parsedTreasuryShareFraction,
                     ShareAmount = _formTreasuryShareAmount,
                     AcquiredDate = DateOnly.TryParse(_formTreasuryAcquiredDateStr, out var ad2) ? ad2 : (DateOnly?)null,
                     AcquisitionBasis = _formTreasuryAcquisitionBasis
@@ -1580,6 +1678,7 @@ else
         public string? CompanyAddress { get; set; }
         public string? Ogrnip { get; set; }
         public decimal? SharePercent { get; set; }
+        public string? ShareFraction { get; set; }
         public decimal? ShareAmount { get; set; }
         public string? PaymentInfo { get; set; }
         public string? ShareRegistrationInfo { get; set; }
@@ -1592,6 +1691,7 @@ else
     {
         public Guid Id { get; set; }
         public decimal? SharePercent { get; set; }
+        public string? ShareFraction { get; set; }
         public decimal? ShareAmount { get; set; }
         public string? AcquiredDate { get; set; }
         public string? AcquisitionBasis { get; set; }
@@ -1658,6 +1758,7 @@ else
             CompanyAddress = activeCompany?.CompanyAddress ?? p.CompanyAddress,
             Ogrnip = p.Person?.Ogrnip,
             SharePercent = activeShare?.SharePercent,
+            ShareFraction = activeShare?.ShareFraction,
             ShareAmount = activeShare?.ShareAmount,
             PaymentInfo = activeShare?.PaymentInfo,
             ShareRegistrationInfo = activeShare?.ShareRegistrationInfo,
@@ -1671,6 +1772,7 @@ else
     {
         Id = t.Id,
         SharePercent = t.SharePercent,
+        ShareFraction = t.ShareFraction,
         ShareAmount = t.ShareAmount,
         AcquiredDate = t.AcquiredDate?.ToString("dd.MM.yyyy"),
         AcquisitionBasis = t.AcquisitionBasis

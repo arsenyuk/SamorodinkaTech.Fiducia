@@ -359,6 +359,7 @@ public static class ParticipantEndpoints
                         ParticipantId = entity.Id,
                         LegalEntityId = leId,
                         SharePercent = dto.SharePercent,
+                        ShareFraction = dto.ShareFraction,
                         ShareAmount = dto.ShareAmount,
                         PaymentInfo = dto.PaymentInfo,
                         ShareRegistrationInfo = dto.ShareRegistrationInfo,
@@ -491,6 +492,7 @@ public static class ParticipantEndpoints
                         ParticipantId = id,
                         LegalEntityId = entity.LegalEntityId,
                         SharePercent = dto.SharePercent,
+                        ShareFraction = dto.ShareFraction,
                         ShareAmount = dto.ShareAmount,
                         PaymentInfo = dto.PaymentInfo,
                         ShareRegistrationInfo = dto.ShareRegistrationInfo,
@@ -851,6 +853,7 @@ public static class ParticipantEndpoints
                     Id = Guid.NewGuid(),
                     LegalEntityId = leId,
                     SharePercent = dto.SharePercent,
+                    ShareFraction = dto.ShareFraction,
                     ShareAmount = dto.ShareAmount,
                     AcquiredDate = dto.AcquiredDate,
                     AcquisitionBasis = dto.AcquisitionBasis,
@@ -1254,6 +1257,7 @@ public static class ParticipantEndpoints
                     CompanyAddress = dto.CompanyAddress,
                     Ogrnip = dto.Ogrnip,
                     SharePercent = dto.SharePercent,
+                    ShareFraction = dto.ShareFraction,
                     ShareAmount = dto.ShareAmount,
                     DocumentFileId = dto.DocumentFileId,
                     DocumentOriginalName = dto.DocumentOriginalName,
@@ -1804,6 +1808,7 @@ public static class ParticipantEndpoints
         public string? CompanyAddress { get; init; }
         public string? Ogrnip { get; init; }
         public decimal? SharePercent { get; init; }
+        public string? ShareFraction { get; init; }
         public decimal? ShareAmount { get; init; }
         public string? PaymentInfo { get; init; }
         public string? ShareRegistrationInfo { get; init; }
@@ -1816,6 +1821,7 @@ public static class ParticipantEndpoints
     public record BoardTreasuryShareDto
     {
         public decimal? SharePercent { get; init; }
+        public string? ShareFraction { get; init; }
         public decimal? ShareAmount { get; init; }
         public DateOnly? AcquiredDate { get; init; }
         public string? AcquisitionBasis { get; init; }
@@ -1845,6 +1851,7 @@ public static class ParticipantEndpoints
         public string? CompanyAddress { get; init; }
         public string? Ogrnip { get; init; }
         public decimal? SharePercent { get; init; }
+        public string? ShareFraction { get; init; }
         public decimal? ShareAmount { get; init; }
         public Guid? DocumentFileId { get; init; }
         public string? DocumentOriginalName { get; init; }

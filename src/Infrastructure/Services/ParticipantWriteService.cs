@@ -197,6 +197,7 @@ public class ParticipantWriteService : IParticipantWriteService
                 ParticipantId = entity.Id,
                 LegalEntityId = leId,
                 SharePercent = model.SharePercent,
+                ShareFraction = model.ShareFraction,
                 ShareAmount = model.ShareAmount,
                 PaymentInfo = model.PaymentInfo,
                 ShareRegistrationInfo = model.ShareRegistrationInfo,
@@ -294,6 +295,7 @@ public class ParticipantWriteService : IParticipantWriteService
 
         var shareChanged = currentShare is null
             || model.SharePercent != currentShare.SharePercent
+            || model.ShareFraction != currentShare.ShareFraction
             || model.ShareAmount != currentShare.ShareAmount
             || model.PaymentInfo != currentShare.PaymentInfo
             || model.ShareRegistrationInfo != currentShare.ShareRegistrationInfo;
@@ -311,6 +313,7 @@ public class ParticipantWriteService : IParticipantWriteService
                 ParticipantId = id,
                 LegalEntityId = entity.LegalEntityId,
                 SharePercent = model.SharePercent,
+                ShareFraction = model.ShareFraction,
                 ShareAmount = model.ShareAmount,
                 PaymentInfo = model.PaymentInfo,
                 ShareRegistrationInfo = model.ShareRegistrationInfo,
@@ -578,6 +581,7 @@ public class ParticipantWriteService : IParticipantWriteService
             Id = Guid.NewGuid(),
             LegalEntityId = leId,
             SharePercent = model.SharePercent,
+            ShareFraction = model.ShareFraction,
             ShareAmount = model.ShareAmount,
             AcquiredDate = model.AcquiredDate,
             AcquisitionBasis = model.AcquisitionBasis,
@@ -607,6 +611,7 @@ public class ParticipantWriteService : IParticipantWriteService
             throw new KeyNotFoundException($"Казначейская доля {id} не найдена");
 
         entity.SharePercent = model.SharePercent;
+        entity.ShareFraction = model.ShareFraction;
         entity.ShareAmount = model.ShareAmount;
         entity.AcquiredDate = model.AcquiredDate;
         entity.AcquisitionBasis = model.AcquisitionBasis;
@@ -692,6 +697,7 @@ public class ParticipantWriteService : IParticipantWriteService
             CompanyAddress = model.CompanyAddress,
             Ogrnip = model.Ogrnip,
             SharePercent = model.SharePercent,
+            ShareFraction = model.ShareFraction,
             ShareAmount = model.ShareAmount,
             DocumentFileId = model.DocumentFileId,
             DocumentOriginalName = model.DocumentOriginalName,

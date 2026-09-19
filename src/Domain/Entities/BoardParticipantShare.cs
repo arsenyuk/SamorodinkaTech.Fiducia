@@ -21,6 +21,9 @@ public class BoardParticipantShare
     /// <summary>Процент доли (share_percent).</summary>
     public decimal? SharePercent { get; set; }
 
+    /// <summary>Доля в виде простой дроби, например "1/3" (share_fraction).</summary>
+    public string? ShareFraction { get; set; }
+
     /// <summary>Номинальная стоимость доли в рублях (share_amount).</summary>
     public decimal? ShareAmount { get; set; }
 

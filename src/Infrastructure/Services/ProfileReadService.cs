@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using SamorodinkaTech.Fiducia.Domain.Entities;
 using SamorodinkaTech.Fiducia.Domain.Interfaces;
+using SamorodinkaTech.Fiducia.Infrastructure.Common;
 using SamorodinkaTech.Fiducia.Infrastructure.Persistence;
 
 namespace SamorodinkaTech.Fiducia.Infrastructure.Services;
@@ -144,7 +145,7 @@ public class ProfileReadService : IProfileReadService
             parts.Add($"Паспорт: {ch.PassportSeries} {ch.PassportNumber}");
 
         if (ch.SharePercent.HasValue)
-            parts.Add($"Доля: {ch.SharePercent.Value:N2}%");
+            parts.Add($"Доля: {ShareParser.Format(ch.SharePercent, ch.ShareFraction)}");
 
         if (ch.ShareAmount.HasValue)
             parts.Add($"Номинал: {ch.ShareAmount.Value:N2} ₽");

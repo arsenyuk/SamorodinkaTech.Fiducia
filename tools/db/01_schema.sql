@@ -833,6 +833,7 @@ CREATE TABLE IF NOT EXISTS board_participant_share (
     participant_id uuid NOT NULL REFERENCES board_participant(id) ON DELETE RESTRICT,
     legal_entity_id uuid NOT NULL REFERENCES legal_entities(id) ON DELETE RESTRICT,
     share_percent numeric(5,2),
+    share_fraction text,
     share_amount numeric(18,2),
     payment_info varchar(500),
     share_registration_info varchar(500),
@@ -1597,6 +1598,7 @@ CREATE TABLE IF NOT EXISTS board_treasury_share (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     legal_entity_id uuid NOT NULL REFERENCES legal_entities(id) ON DELETE RESTRICT,
     share_percent numeric(5,2),
+    share_fraction text,
     share_amount numeric(18,2),
     acquired_date date,
     acquisition_basis varchar(500),
@@ -1661,6 +1663,7 @@ CREATE TABLE IF NOT EXISTS board_participant_change (
     ogrnip varchar(15),
     -- Доля
     share_percent numeric(5,2),
+    share_fraction text,
     share_amount numeric(18,2),
     -- Мета
     document_file_id uuid REFERENCES files(id) ON DELETE SET NULL,

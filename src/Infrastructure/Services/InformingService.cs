@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using SamorodinkaTech.Fiducia.Domain.Entities;
 using SamorodinkaTech.Fiducia.Domain.Interfaces;
+using SamorodinkaTech.Fiducia.Infrastructure.Common;
 using SamorodinkaTech.Fiducia.Infrastructure.Persistence;
 
 namespace SamorodinkaTech.Fiducia.Infrastructure.Services;
@@ -73,6 +74,7 @@ public class InformingService : IInformingService
             activeCompany?.CompanyAddress ?? participant.CompanyAddress,
             person?.Ogrnip,
             activeShare?.SharePercent,
+            activeShare?.ShareFraction,
             activeShare?.ShareAmount);
     }
 
@@ -118,7 +120,7 @@ public class InformingService : IInformingService
             parts.Add($"Паспорт: {ch.PassportSeries} {ch.PassportNumber}");
 
         if (ch.SharePercent.HasValue)
-            parts.Add($"Доля: {ch.SharePercent.Value:N2}%");
+            parts.Add($"Доля: {Common.ShareParser.Format(ch.SharePercent, ch.ShareFraction)}");
 
         if (ch.ShareAmount.HasValue)
             parts.Add($"Номинал: {ch.ShareAmount.Value:N2} ₽");

@@ -106,6 +106,9 @@ public record ParticipantCreateModel
     /// <summary>Размер доли (%).</summary>
     public decimal? SharePercent { get; init; }
 
+    /// <summary>Доля в виде простой дроби (share_fraction).</summary>
+    public string? ShareFraction { get; init; }
+
     /// <summary>Стоимость доли (руб.).</summary>
     public decimal? ShareAmount { get; init; }
 
@@ -158,6 +161,9 @@ public record ParticipantUpdateModel
     /// <summary>Размер доли (%).</summary>
     public decimal? SharePercent { get; init; }
 
+    /// <summary>Доля в виде простой дроби (share_fraction).</summary>
+    public string? ShareFraction { get; init; }
+
     /// <summary>Стоимость доли (руб.).</summary>
     public decimal? ShareAmount { get; init; }
 
@@ -186,6 +192,9 @@ public record TreasuryCreateModel
     /// <summary>Размер доли (%).</summary>
     public decimal? SharePercent { get; init; }
 
+    /// <summary>Доля в виде простой дроби (share_fraction).</summary>
+    public string? ShareFraction { get; init; }
+
     /// <summary>Стоимость доли (руб.).</summary>
     public decimal? ShareAmount { get; init; }
 
@@ -201,6 +210,9 @@ public record TreasuryUpdateModel
 {
     /// <summary>Размер доли (%).</summary>
     public decimal? SharePercent { get; init; }
+
+    /// <summary>Доля в виде простой дроби (share_fraction).</summary>
+    public string? ShareFraction { get; init; }
 
     /// <summary>Стоимость доли (руб.).</summary>
     public decimal? ShareAmount { get; init; }
@@ -280,6 +292,9 @@ public record ChangeCreateModel
 
     /// <summary>Размер доли (%).</summary>
     public decimal? SharePercent { get; init; }
+
+    /// <summary>Доля в виде простой дроби (share_fraction).</summary>
+    public string? ShareFraction { get; init; }
 
     /// <summary>Стоимость доли (руб.).</summary>
     public decimal? ShareAmount { get; init; }

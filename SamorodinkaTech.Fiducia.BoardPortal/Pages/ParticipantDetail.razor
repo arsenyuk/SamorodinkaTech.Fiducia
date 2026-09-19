@@ -65,7 +65,7 @@ else
                     <div class="fw-bold fs-5">
                         @if (_participant.SharePercent.HasValue)
                         {
-                            @($"{_participant.SharePercent.Value:0.##}%")
+                            @SamorodinkaTech.Fiducia.Infrastructure.Common.ShareParser.Format(_participant.SharePercent, _participant.ShareFraction)
                         }
                         else
                         {
@@ -384,6 +384,7 @@ else
             activeCompany?.CompanyAddress ?? p.CompanyAddress,
             p.Person?.Ogrnip,
             activeShare?.SharePercent,
+            activeShare?.ShareFraction,
             activeShare?.ShareAmount,
             activeShare?.PaymentInfo,
             activeShare?.ShareRegistrationInfo,
@@ -430,6 +431,7 @@ else
         string? CompanyAddress,
         string? Ogrnip,
         decimal? SharePercent,
+        string? ShareFraction,
         decimal? ShareAmount,
         string? PaymentInfo,
         string? ShareRegistrationInfo,

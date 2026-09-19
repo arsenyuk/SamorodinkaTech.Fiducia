@@ -69,8 +69,8 @@ INSERT INTO board_participant (id, legal_entity_id, participant_type, person_id,
     ('bbbb0000-0000-0000-0000-000000000020', 'dddd0000-0000-0000-0000-000000000001', 'FL', 'cccc0000-0000-0000-0000-000000000001', 'bbbb0000-0000-0000-0000-000000000001', TRUE, FALSE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000')
 ON CONFLICT (id) DO NOTHING;
 
-INSERT INTO board_participant_share (id, participant_id, legal_entity_id, share_percent, share_amount, payment_info, is_active, created_at, updated_at, created_by) VALUES
-    ('bbbb0000-0000-0000-0000-000000000030', 'bbbb0000-0000-0000-0000-000000000020', 'dddd0000-0000-0000-0000-000000000001', 15.00, 15000.00, 'Оплачено полностью', TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000')
+INSERT INTO board_participant_share (id, participant_id, legal_entity_id, share_percent, share_fraction, share_amount, payment_info, is_active, created_at, updated_at, created_by) VALUES
+    ('bbbb0000-0000-0000-0000-000000000030', 'bbbb0000-0000-0000-0000-000000000020', 'dddd0000-0000-0000-0000-000000000001', 15.00, NULL, 15000.00, 'Оплачено полностью', TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000')
 ON CONFLICT (id) DO NOTHING;
 
 -- ============================================================================

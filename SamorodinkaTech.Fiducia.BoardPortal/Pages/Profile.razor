@@ -146,8 +146,8 @@
                         @if (_share.SharePercent.HasValue)
                         {
                             <div class="row mb-2">
-                                <div class="col-md-4 text-muted">Процент доли</div>
-                                <div class="col-md-8">@_share.SharePercent.Value.ToString("N2")%</div>
+                                <div class="col-md-4 text-muted">Размер доли</div>
+                                <div class="col-md-8">@SamorodinkaTech.Fiducia.Infrastructure.Common.ShareParser.Format(_share.SharePercent, _share.ShareFraction)</div>
                             </div>
                         }
                         @if (_share.ShareAmount.HasValue)
