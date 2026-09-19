@@ -6,19 +6,7 @@ INSERT INTO legal_entities (id, name, short_name, inn, ogrn, okopf_id) VALUES
 ON CONFLICT (id) DO NOTHING;
 
 -- ============================================================================
--- Участники экосYSTEMы (замена persons)
--- ============================================================================
-INSERT INTO ecosystem_participants (id, legal_entity_id, last_name, first_name, middle_name, email, phone, login, user_id, created_at, created_by) VALUES
-    ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa01', 'dddd0000-0000-0000-0000-000000000001', 'Иванов', 'Иван', 'Иванович', 'ivanov@fiducia.local', '+79001112233', 'ivanov', '11111111-1111-1111-1111-111111111112', CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000'),
-    ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa02', 'dddd0000-0000-0000-0000-000000000001', 'Петрова', 'Мария', 'Сергеевна', 'petrova@fiducia.local', '+79002223344', 'petrova', '11111111-1111-1111-1111-111111111113', CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000'),
-    ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa03', 'dddd0000-0000-0000-0000-000000000001', 'Сидоров', 'Алексей', 'Петрович', 'sidorov@fiducia.local', '+79003334455', 'sidorov', '11111111-1111-1111-1111-111111111114', CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000'),
-    ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa04', 'dddd0000-0000-0000-0000-000000000001', 'Козлова', 'Елена', 'Дмитриевна', 'kozlova@fiducia.local', '+79004445566', 'kozlova', '11111111-1111-1111-1111-111111111115', CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000'),
-    ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa05', 'dddd0000-0000-0000-0000-000000000001', 'Новиков', 'Дмитрий', 'Александрович', 'novikov@fiducia.local', '+79005556677', 'novikov', '11111111-1111-1111-1111-111111111116', CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000'),
-    ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa06', 'dddd0000-0000-0000-0000-000000000001', 'Волков', 'Сергей', 'Андреевич', 'ceo@fiducia.local', '+79006667788', 'volkov', '11111111-1111-1111-1111-111111111117', CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000')
-ON CONFLICT (id) DO NOTHING;
-
--- ============================================================================
--- Тестовые пользователи (привязаны к ФЛ)
+-- Тестовые пользователи (СНАЧАЛА — ecosystem_participants ссылается на users)
 -- ============================================================================
 -- mpi_master_id НЕ заполняется в seed-скриптах — masterId получается
 -- динамически через ЕДИН API при привязке участника (EdinBindingService).
@@ -28,7 +16,8 @@ INSERT INTO users (id, login, last_name, first_name, email, phone, is_external, 
     ('11111111-1111-1111-1111-111111111114', 'sidorov', 'Сидоров', 'Алексей', 'sidorov@fiducia.local', '+79003334455', TRUE, CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000', FALSE),
     ('11111111-1111-1111-1111-111111111115', 'kozlova', 'Козлова', 'Елена', 'kozlova@fiducia.local', '+79004445566', TRUE, CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000', FALSE),
     ('11111111-1111-1111-1111-111111111116', 'novikov', 'Новиков', 'Дмитрий', 'novikov@fiducia.local', '+79005556677', FALSE, CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000', FALSE),
-    ('11111111-1111-1111-1111-111111111117', 'volkov', 'Волков', 'Сергей', 'ceo@fiducia.local', '+79006667788', FALSE, CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000', FALSE)
+    ('11111111-1111-1111-1111-111111111117', 'volkov', 'Волков', 'Сергей', 'ceo@fiducia.local', '+79006667788', FALSE, CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000', FALSE),
+    ('bbbb0000-0000-0000-0000-000000000002', 'sokolova', 'Соколова', 'Анна', 'participant@test.ru', '+79009998877', FALSE, CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000', FALSE)
 ON CONFLICT (id) DO NOTHING;
 
 -- Роли тестовых пользователей
@@ -38,23 +27,36 @@ INSERT INTO user_roles (id, user_id, role_id) VALUES
     ('aaaa0000-0000-0000-0000-000000000003', '11111111-1111-1111-1111-111111111114', '55555555-5555-5555-5555-555555555555'), -- Сидоров = EXTERNAL_DIRECTOR
     ('aaaa0000-0000-0000-0000-000000000004', '11111111-1111-1111-1111-111111111115', '55555555-5555-5555-5555-555555555555'), -- Козлова = EXTERNAL_DIRECTOR
     ('aaaa0000-0000-0000-0000-000000000005', '11111111-1111-1111-1111-111111111116', '33333333-3333-3333-3333-333333333333'), -- Новиков = CHAIR_BOARD
-    ('aaaa0000-0000-0000-0000-000000000006', '11111111-1111-1111-1111-111111111117', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaad4')  -- Волков = CEO (Генеральный директор)
+    ('aaaa0000-0000-0000-0000-000000000006', '11111111-1111-1111-1111-111111111117', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaad4'), -- Волков = CEO
+    ('bbbb0000-0000-0000-0000-000000000010', 'bbbb0000-0000-0000-0000-000000000002', '99999999-9999-9999-9999-999999999999')  -- Соколова = PARTICIPANT
 ON CONFLICT (user_id, role_id) DO NOTHING;
 
 -- ============================================================================
--- Тестовый участник ООО
+-- Участники экосистемы (ecosystem_persons + ecosystem_participants)
 -- ============================================================================
-INSERT INTO ecosystem_participants (id, legal_entity_id, last_name, first_name, middle_name, email, phone, login, user_id, created_at, created_by) VALUES
-    ('bbbb0000-0000-0000-0000-000000000001', 'dddd0000-0000-0000-0000-000000000001', 'Соколова', 'Анна', 'Викторовна', 'participant@test.ru', '+79009998877', 'sokolova', 'bbbb0000-0000-0000-0000-000000000002', CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000')
+INSERT INTO ecosystem_persons (id, last_name, first_name, middle_name, created_at, created_by) VALUES
+    ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa01', 'Иванов', 'Иван', 'Иванович', CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000'),
+    ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa02', 'Петрова', 'Мария', 'Сергеевна', CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000'),
+    ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa03', 'Сидоров', 'Алексей', 'Петрович', CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000'),
+    ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa04', 'Козлова', 'Елена', 'Дмитриевна', CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000'),
+    ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa05', 'Новиков', 'Дмитрий', 'Александрович', CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000'),
+    ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa06', 'Волков', 'Сергей', 'Андреевич', CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000'),
+    ('bbbb0000-0000-0000-0000-000000000011', 'Соколова', 'Анна', 'Викторовна', CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000')
 ON CONFLICT (id) DO NOTHING;
 
-INSERT INTO users (id, login, last_name, first_name, email, phone, is_external, created_at, created_by, is_system) VALUES
-    ('bbbb0000-0000-0000-0000-000000000002', 'sokolova', 'Соколова', 'Анна', 'participant@test.ru', '+79009998877', FALSE, CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000', FALSE)
+INSERT INTO ecosystem_participants (id, legal_entity_id, ecosystem_person_id, user_id, is_active, created_at, created_by) VALUES
+    ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaab01', 'dddd0000-0000-0000-0000-000000000001', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa01', '11111111-1111-1111-1111-111111111112', TRUE, CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000'),
+    ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaab02', 'dddd0000-0000-0000-0000-000000000001', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa02', '11111111-1111-1111-1111-111111111113', TRUE, CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000'),
+    ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaab03', 'dddd0000-0000-0000-0000-000000000001', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa03', '11111111-1111-1111-1111-111111111114', TRUE, CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000'),
+    ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaab04', 'dddd0000-0000-0000-0000-000000000001', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa04', '11111111-1111-1111-1111-111111111115', TRUE, CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000'),
+    ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaab05', 'dddd0000-0000-0000-0000-000000000001', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa05', '11111111-1111-1111-1111-111111111116', TRUE, CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000'),
+    ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaab06', 'dddd0000-0000-0000-0000-000000000001', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaa06', '11111111-1111-1111-1111-111111111117', TRUE, CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000'),
+    ('bbbb0000-0000-0000-0000-000000000001', 'dddd0000-0000-0000-0000-000000000001', 'bbbb0000-0000-0000-0000-000000000011', 'bbbb0000-0000-0000-0000-000000000002', TRUE, CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000')
 ON CONFLICT (id) DO NOTHING;
 
-INSERT INTO user_roles (id, user_id, role_id) VALUES
-    ('bbbb0000-0000-0000-0000-000000000010', 'bbbb0000-0000-0000-0000-000000000002', '99999999-9999-9999-9999-999999999999')
-ON CONFLICT (user_id, role_id) DO NOTHING;
+INSERT INTO board_participant (id, legal_entity_id, participant_type, person_id, ecosystem_participant_id, is_active, is_general_director, created_at, updated_at, created_by) VALUES
+    ('bbbb0000-0000-0000-0000-000000000020', 'dddd0000-0000-0000-0000-000000000001', 'FL', NULL, 'bbbb0000-0000-0000-0000-000000000001', TRUE, FALSE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000')
+ON CONFLICT (id) DO NOTHING;
 
 -- ============================================================================
 -- Демонстрационные данные СПАРК для ООО (ext_spark_company, ext_spark_manager,

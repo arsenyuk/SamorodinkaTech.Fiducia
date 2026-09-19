@@ -365,6 +365,7 @@ else
     {
         if (_currentParticipantId is null)
         {
+            Logger.LogWarning("Не удалось определить участника при поддержке требования {Id}", Id);
             _error = "Не удалось определить участника";
             return;
         }
@@ -388,6 +389,7 @@ else
 
         if (_currentParticipantId is null)
         {
+            Logger.LogWarning("Не удалось определить участника при отзыве поддержки требования {Id}", Id);
             _error = "Не удалось определить участника";
             return;
         }

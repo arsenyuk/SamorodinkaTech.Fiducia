@@ -27,6 +27,15 @@ a, .btn-link {
     padding-top: 1.1rem;
 }
 
+.top-row {
+    position: relative;
+    z-index: 1050;
+}
+
+.dropdown-menu {
+    z-index: 1060 !important;
+}
+
 .valid.modified:not([type=checkbox]) {
     outline: 1px solid #26b050;
 }

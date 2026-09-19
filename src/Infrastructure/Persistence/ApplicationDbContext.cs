@@ -709,7 +709,7 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.Property(x => x.CreatedAt).HasColumnName("created_at").IsRequired();
             b.Property(x => x.UpdatedAt).HasColumnName("updated_at").IsRequired();
             b.Property(x => x.CreatedBy).HasColumnName("created_by");
-            b.HasOne(x => x.Person).WithMany().HasForeignKey(x => x.PersonId);
+            b.HasOne(x => x.Person).WithMany(p => p.IdentityDocuments).HasForeignKey(x => x.PersonId);
             b.HasOne(x => x.DulType).WithMany().HasForeignKey(x => x.DulTypeId);
             b.HasIndex(x => x.PersonId).HasDatabaseName("ix_idoc_person");
         });

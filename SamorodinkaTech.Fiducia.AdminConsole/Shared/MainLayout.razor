@@ -19,8 +19,15 @@
         <div class="top-row px-4 d-flex justify-content-between align-items-center">
             <h5 class="mb-0">Fiducia Admin Console</h5>
             <div class="d-flex align-items-center gap-3">
-                <span>@_userName</span>
-                <a href="/logout" class="btn btn-sm btn-outline-secondary">Выход</a>
+                <div class="dropdown">
+                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button"
+                            data-bs-toggle="dropdown" aria-expanded="false">
+                        @_userName
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="/logout">Выход</a></li>
+                    </ul>
+                </div>
             </div>
         </div>
 

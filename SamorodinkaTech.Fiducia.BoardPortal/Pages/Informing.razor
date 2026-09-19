@@ -332,6 +332,7 @@ else
             var userId = SamorodinkaTech.Fiducia.Infrastructure.Common.UserContextHelper.GetUserIdAsync(HttpContextAccessor.HttpContext!);
             if (userId is null)
             {
+                Logger.LogWarning("Не удалось определить пользователя из JWT");
                 _error = "Не удалось определить пользователя.";
                 return;
             }
@@ -340,6 +341,7 @@ else
             var leId = await LegalEntityHelper.GetLegalEntityIdAsync(ctx, HttpContextAccessor);
             if (leId is null)
             {
+                Logger.LogWarning("Не удалось определить юридическое лицо для пользователя {UserId}", userId);
                 _error = "Не удалось определить юридическое лицо.";
                 return;
             }
@@ -439,6 +441,7 @@ else
                 await DbFactory.CreateDbContextAsync(), HttpContextAccessor);
             if (leId is null)
             {
+                Logger.LogWarning("Не удалось определить юридическое лицо для пользователя {UserId}", userId);
                 _error = "Не удалось определить юридическое лицо.";
                 return;
             }
