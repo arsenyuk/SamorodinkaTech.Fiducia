@@ -37,7 +37,7 @@ public class ProfileReadService : IProfileReadService
         if (ecoParticipant is not null)
         {
             participant = await ctx.BoardParticipants
-                .Include(bp => bp.Shares.Where(s => s.IsActive).Take(1))
+                .Include(bp => bp.Shares.Where(s => s.IsActive).OrderByDescending(s => s.CreatedAt).Take(1))
                 .FirstOrDefaultAsync(bp => bp.EcosystemParticipantId == ecoParticipant.Id, ct);
 
             if (participant is not null)

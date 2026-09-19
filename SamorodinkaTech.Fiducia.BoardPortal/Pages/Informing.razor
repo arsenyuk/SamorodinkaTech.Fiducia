@@ -43,31 +43,32 @@
         {
             @if (_currentParticipant.ParticipantType == "FL")
             {
-                <h6 class="mt-3">Данные физического лица</h6>
-                <div class="row mb-3">
-                    <div class="col-md-4">
-                        <label class="form-label">Фамилия <span class="text-danger">*</span></label>
-                        <input class="form-control" @bind="_formLastName" required />
+                <div class="row mb-3 align-items-center">
+                    <div class="col-auto">
+                        <span class="text-muted me-1">Фамилия <span class="text-danger">*</span></span>
+                        <input class="form-control d-inline-block" style="width:180px" @bind="_formLastName" required />
                     </div>
-                    <div class="col-md-4">
-                        <label class="form-label">Имя <span class="text-danger">*</span></label>
-                        <input class="form-control" @bind="_formFirstName" required />
+                    <div class="col-auto">
+                        <span class="text-muted me-1">Имя <span class="text-danger">*</span></span>
+                        <input class="form-control d-inline-block" style="width:150px" @bind="_formFirstName" required />
                     </div>
-                    <div class="col-md-4">
-                        <label class="form-label">Отчество</label>
-                        <input class="form-control" @bind="_formMiddleName" />
+                    <div class="col-auto">
+                        <span class="text-muted me-1">Отчество</span>
+                        <input class="form-control d-inline-block" style="width:180px" @bind="_formMiddleName" />
                     </div>
-                    <div class="col-md-3">
-                        <label class="form-label">ИНН</label>
-                        <input class="form-control" @bind="_formPersonInn" />
+                </div>
+                <div class="row mb-3 align-items-center">
+                    <div class="col-auto">
+                        <span class="text-muted me-1">ИНН</span>
+                        <input class="form-control d-inline-block" style="width:130px" @bind="_formPersonInn" />
                     </div>
-                    <div class="col-md-3">
-                        <label class="form-label">СНИЛС</label>
-                        <input class="form-control" @bind="_formSnils" />
+                    <div class="col-auto">
+                        <span class="text-muted me-1">СНИЛС</span>
+                        <input class="form-control d-inline-block" style="width:130px" @bind="_formSnils" />
                     </div>
-                    <div class="col-md-3">
-                        <label class="form-label">Гражданство</label>
-                        <input class="form-control" @bind="_formCitizenship" />
+                    <div class="col-auto">
+                        <span class="text-muted me-1">Гражданство</span>
+                        <input class="form-control d-inline-block" style="width:180px" @bind="_formCitizenship" />
                     </div>
                 </div>
                 <div class="row mb-3 align-items-center">
@@ -86,22 +87,22 @@
                         </select>
                     </div>
                 </div>
-                <div class="row mb-3">
-                    <div class="col-md-3 @(_dulTypes?.FirstOrDefault(t => t.Id == _currentParticipant.DulTypeId)?.HasSeries != true ? "invisible" : "")">
-                        <label class="form-label">Серия</label>
-                        <input class="form-control" @bind="_formPassportSeries" />
+                <div class="row mb-3 align-items-center">
+                    <div class="col-auto @(_dulTypes?.FirstOrDefault(t => t.Id == _currentParticipant.DulTypeId)?.HasSeries != true ? "d-none" : "")">
+                        <span class="text-muted me-1">Серия</span>
+                        <input class="form-control d-inline-block" style="width:80px" @bind="_formPassportSeries" />
                     </div>
-                    <div class="col-md-3">
-                        <label class="form-label">Номер</label>
-                        <input class="form-control" @bind="_formPassportNumber" />
+                    <div class="col-auto">
+                        <span class="text-muted me-1">Номер</span>
+                        <input class="form-control d-inline-block" style="width:100px" @bind="_formPassportNumber" />
                     </div>
-                    <div class="col-md-3 @(_dulTypes?.FirstOrDefault(t => t.Id == _currentParticipant.DulTypeId)?.HasDepartmentCode != true ? "invisible" : "")">
-                        <label class="form-label">Код подразделения</label>
-                        <input class="form-control" @bind="_formPassportDepartmentCode" />
+                    <div class="col-auto @(_dulTypes?.FirstOrDefault(t => t.Id == _currentParticipant.DulTypeId)?.HasDepartmentCode != true ? "d-none" : "")">
+                        <span class="text-muted me-1">Код подр.</span>
+                        <input class="form-control d-inline-block" style="width:100px" @bind="_formPassportDepartmentCode" />
                     </div>
-                    <div class="col-md-3">
-                        <label class="form-label">Дата выдачи</label>
-                        <input type="date" class="form-control" value="@_formPassportIssueDateStr"
+                    <div class="col-auto">
+                        <span class="text-muted me-1">Дата выдачи</span>
+                        <input type="date" class="form-control d-inline-block" style="width:150px" value="@_formPassportIssueDateStr"
                                @onchange="e => _formPassportIssueDateStr = e.Value?.ToString()" />
                     </div>
                 </div>
@@ -286,6 +287,7 @@
                     DulSeries = participantDto.DulSeries,
                     DulNumber = participantDto.DulNumber,
                     PassportIssuedBy = participantDto.PassportIssuedBy,
+                    PassportIssueDate = participantDto.PassportIssueDate,
                     PassportDepartmentCode = participantDto.PassportDepartmentCode,
                     PassportRegistrationAddress = participantDto.PassportRegistrationAddress,
                     PersonInn = participantDto.PersonInn,
@@ -345,6 +347,7 @@
         _formPassportSeries = p.DulSeries;
         _formPassportNumber = p.DulNumber;
         _formPassportIssuedBy = p.PassportIssuedBy;
+        _formPassportIssueDateStr = p.PassportIssueDate?.ToString("yyyy-MM-dd");
         _formPassportDepartmentCode = p.PassportDepartmentCode;
         _formPassportRegistrationAddress = p.PassportRegistrationAddress;
         _formCompanyName = p.CompanyName;
@@ -367,23 +370,25 @@
     {
         if (_currentParticipant is null) return false;
 
-        return !string.Equals(_formLastName, _currentParticipant.LastName, StringComparison.Ordinal)
-            || !string.Equals(_formFirstName, _currentParticipant.FirstName, StringComparison.Ordinal)
-            || !string.Equals(_formMiddleName, _currentParticipant.MiddleName, StringComparison.Ordinal)
-            || !string.Equals(_formPersonInn, _currentParticipant.PersonInn, StringComparison.Ordinal)
-            || !string.Equals(_formSnils, _currentParticipant.Snils, StringComparison.Ordinal)
-            || !string.Equals(_formCitizenship, _currentParticipant.Citizenship, StringComparison.Ordinal)
-            || !string.Equals(_formPassportSeries, _currentParticipant.DulSeries, StringComparison.Ordinal)
-            || !string.Equals(_formPassportNumber, _currentParticipant.DulNumber, StringComparison.Ordinal)
-            || !string.Equals(_formPassportIssuedBy, _currentParticipant.PassportIssuedBy, StringComparison.Ordinal)
-            || !string.Equals(_formPassportDepartmentCode, _currentParticipant.PassportDepartmentCode, StringComparison.Ordinal)
-            || !string.Equals(_formPassportRegistrationAddress, _currentParticipant.PassportRegistrationAddress, StringComparison.Ordinal)
-            || !string.Equals(_formCompanyName, _currentParticipant.CompanyName, StringComparison.Ordinal)
-            || !string.Equals(_formCompanyInn, _currentParticipant.CompanyInn, StringComparison.Ordinal)
-            || !string.Equals(_formCompanyOgrn, _currentParticipant.CompanyOgrn, StringComparison.Ordinal)
-            || !string.Equals(_formCompanyKpp, _currentParticipant.CompanyKpp, StringComparison.Ordinal)
-            || !string.Equals(_formCompanyAddress, _currentParticipant.CompanyAddress, StringComparison.Ordinal)
-            || !string.Equals(_formOgrnip, _currentParticipant.Ogrnip, StringComparison.Ordinal)
+        static string? Norm(string? s) => s?.Trim();
+
+        return !string.Equals(Norm(_formLastName), Norm(_currentParticipant.LastName), StringComparison.Ordinal)
+            || !string.Equals(Norm(_formFirstName), Norm(_currentParticipant.FirstName), StringComparison.Ordinal)
+            || !string.Equals(Norm(_formMiddleName), Norm(_currentParticipant.MiddleName), StringComparison.Ordinal)
+            || !string.Equals(Norm(_formPersonInn), Norm(_currentParticipant.PersonInn), StringComparison.Ordinal)
+            || !string.Equals(Norm(_formSnils), Norm(_currentParticipant.Snils), StringComparison.Ordinal)
+            || !string.Equals(Norm(_formCitizenship), Norm(_currentParticipant.Citizenship), StringComparison.Ordinal)
+            || !string.Equals(Norm(_formPassportSeries), Norm(_currentParticipant.DulSeries), StringComparison.Ordinal)
+            || !string.Equals(Norm(_formPassportNumber), Norm(_currentParticipant.DulNumber), StringComparison.Ordinal)
+            || !string.Equals(Norm(_formPassportIssuedBy), Norm(_currentParticipant.PassportIssuedBy), StringComparison.Ordinal)
+            || !string.Equals(Norm(_formPassportDepartmentCode), Norm(_currentParticipant.PassportDepartmentCode), StringComparison.Ordinal)
+            || !string.Equals(Norm(_formPassportRegistrationAddress), Norm(_currentParticipant.PassportRegistrationAddress), StringComparison.Ordinal)
+            || !string.Equals(Norm(_formCompanyName), Norm(_currentParticipant.CompanyName), StringComparison.Ordinal)
+            || !string.Equals(Norm(_formCompanyInn), Norm(_currentParticipant.CompanyInn), StringComparison.Ordinal)
+            || !string.Equals(Norm(_formCompanyOgrn), Norm(_currentParticipant.CompanyOgrn), StringComparison.Ordinal)
+            || !string.Equals(Norm(_formCompanyKpp), Norm(_currentParticipant.CompanyKpp), StringComparison.Ordinal)
+            || !string.Equals(Norm(_formCompanyAddress), Norm(_currentParticipant.CompanyAddress), StringComparison.Ordinal)
+            || !string.Equals(Norm(_formOgrnip), Norm(_currentParticipant.Ogrnip), StringComparison.Ordinal)
             || _formSharePercent != _currentParticipant.SharePercent
             || _formShareAmount != _currentParticipant.ShareAmount;
     }
@@ -510,6 +515,7 @@
         public string? Snils { get; set; }
         public string? Citizenship { get; set; }
         public string? PassportIssuedBy { get; set; }
+        public DateOnly? PassportIssueDate { get; set; }
         public string? PassportDepartmentCode { get; set; }
         public string? PassportRegistrationAddress { get; set; }
         public string? CompanyInn { get; set; }

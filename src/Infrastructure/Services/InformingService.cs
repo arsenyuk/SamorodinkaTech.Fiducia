@@ -29,8 +29,8 @@ public class InformingService : IInformingService
         if (ecoParticipant is null) return null;
 
         var participant = await ctx.BoardParticipants
-            .Include(bp => bp.Companies.Where(c => c.IsActive).Take(1))
-            .Include(bp => bp.Shares.Where(s => s.IsActive).Take(1))
+            .Include(bp => bp.Companies.Where(c => c.IsActive).OrderByDescending(c => c.CreatedAt).Take(1))
+            .Include(bp => bp.Shares.Where(s => s.IsActive).OrderByDescending(s => s.CreatedAt).Take(1))
             .FirstOrDefaultAsync(
                 bp => bp.LegalEntityId == legalEntityId
                    && bp.EcosystemParticipantId == ecoParticipant.Id, ct);
@@ -60,6 +60,7 @@ public class InformingService : IInformingService
             doc?.Series,
             doc?.Number,
             doc?.IssuedBy,
+            doc?.IssueDate,
             doc?.DepartmentCode,
             doc?.RegistrationAddress,
             person?.Inn,

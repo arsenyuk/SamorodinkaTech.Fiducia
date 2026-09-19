@@ -28,6 +28,7 @@ public record InformingParticipantDto(
     string? DulSeries,
     string? DulNumber,
     string? PassportIssuedBy,
+    DateOnly? PassportIssueDate,
     string? PassportDepartmentCode,
     string? PassportRegistrationAddress,
     string? PersonInn,

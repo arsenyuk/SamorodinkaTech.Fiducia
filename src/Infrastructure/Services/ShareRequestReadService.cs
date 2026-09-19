@@ -157,7 +157,7 @@ public class ShareRequestReadService : IShareRequestReadService
         var participants = await ctx.BoardParticipants
             .Where(p => p.LegalEntityId == request.LegalEntityId && p.IsActive)
             .Include(p => p.Person)
-            .Include(p => p.Shares.Where(s => s.IsActive).Take(1))
+            .Include(p => p.Shares.Where(s => s.IsActive).OrderByDescending(s => s.CreatedAt).Take(1))
             .ToListAsync();
 
         return participants.Select(p => new ShareRequestParticipantResult

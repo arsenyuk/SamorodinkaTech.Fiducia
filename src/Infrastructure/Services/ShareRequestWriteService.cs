@@ -202,7 +202,7 @@ public class ShareRequestWriteService : IShareRequestWriteService
             throw new InvalidOperationException("Поддержка доступна только для требований в статусе «Сбор поддержек»");
 
         var participant = await ctx.BoardParticipants
-            .Include(p => p.Shares.Where(s => s.IsActive).Take(1))
+            .Include(p => p.Shares.Where(s => s.IsActive).OrderByDescending(s => s.CreatedAt).Take(1))
             .FirstOrDefaultAsync(p => p.Id == participantId && p.IsActive, ct);
         if (participant is null)
             throw new InvalidOperationException("Участник не найден");
@@ -415,7 +415,7 @@ public class ShareRequestWriteService : IShareRequestWriteService
             throw new InvalidOperationException("Пользователь не привязан к участнику экосистемы");
 
         var participant = await ctx.BoardParticipants
-            .Include(p => p.Shares.Where(s => s.IsActive).Take(1))
+            .Include(p => p.Shares.Where(s => s.IsActive).OrderByDescending(s => s.CreatedAt).Take(1))
             .FirstOrDefaultAsync(p => p.LegalEntityId == leId && p.EcosystemParticipantId == ecoParticipant.Id && p.IsActive, ct);
         if (participant is null)
             throw new InvalidOperationException("Не найден участник для текущего пользователя");
@@ -692,7 +692,7 @@ public class ShareRequestWriteService : IShareRequestWriteService
 
         // Получаем ФИО инициатора из участника
         var initiatorParticipant = await ctx.BoardParticipants
-            .Include(p => p.Shares.Where(s => s.IsActive).Take(1))
+            .Include(p => p.Shares.Where(s => s.IsActive).OrderByDescending(s => s.CreatedAt).Take(1))
             .FirstOrDefaultAsync(p => p.Id == request.ParticipantId, ct);
         if (initiatorParticipant is not null)
         {
