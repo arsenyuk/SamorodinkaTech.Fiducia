@@ -91,6 +91,11 @@
 | ФЛ без имени — отклонение (400) | US-023 | `US023_ParticipantTests::BoardPortal_ParticipantFl_EmptyFirstName_ShouldReject` | [e2e-participant-list.md](e2e-participant-list.md) | ✅ Реализован |
 | Доля < 100% без оплаты — отклонение (400) | US-023 | `US023_ParticipantTests::BoardPortal_ParticipantFl_EmptyPayment_ShouldReject` | [e2e-participant-list.md](e2e-participant-list.md) | ✅ Реализован |
 | Доля 100% без оплаты — допустимо (201) | US-023 | `US023_ParticipantTests::BoardPortal_ParticipantFl_FullyPaidNoPayment_ShouldAccept` | [e2e-participant-list.md](e2e-participant-list.md) | ✅ Реализован |
+| Доля = 0 — отклонение (400) | US-023 | `US023_ParticipantTests::BoardPortal_ParticipantFl_ZeroShare_ShouldReject` | — | 📋 Запланирован |
+| Доля < 0 — отклонение (400) | US-023 | `US023_ParticipantTests::BoardPortal_ParticipantFl_NegativeShare_ShouldReject` | — | 📋 Запланирован |
+| Доля > 100% — отклонение (400) | US-023 | `US023_ParticipantTests::BoardPortal_ParticipantFl_OverHundredShare_ShouldReject` | — | 📋 Запланирован |
+| Дробь > 1 — отклонение (400) | US-023 | `US023_ParticipantTests::BoardPortal_ParticipantFl_FractionOverOne_ShouldReject` | — | 📋 Запланирован |
+| Знаменатель = 0 — отклонение (400) | US-023 | `US023_ParticipantTests::BoardPortal_ParticipantFl_ZeroDenominator_ShouldReject` | — | 📋 Запланирован |
 | Требования участника | US-020 | `US020_ShareRequestTests` | [e2e-share-request.md](e2e-share-request.md) | ✅ Реализован |
 | Каталог предоставленных документов | US-021 | `US021_DocumentCatalogTests` | [e2e-document-catalog.md](e2e-document-catalog.md) | ✅ Реализован |
 | Требование о созыве ВОСУ | — | `E2E_VosuDemandTests` | [e2e-vosu-demand.md](e2e-vosu-demand.md) | ✅ Пройден (2026-09-14) |

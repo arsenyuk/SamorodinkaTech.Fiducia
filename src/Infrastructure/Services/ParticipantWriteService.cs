@@ -57,9 +57,10 @@ public class ParticipantWriteService : IParticipantWriteService
                 throw new InvalidOperationException("Имя обязательно для физического лица");
         }
 
-        // Валидация доли и оплаты
-        if (model.SharePercent is not null && model.SharePercent <= 0)
-            throw new InvalidOperationException("Размер доли должен быть больше нуля");
+        // Валидация доли (общая с клиентом через ShareParser.ValidateServer)
+        ShareParser.ValidateServer(model.SharePercent);
+
+        // Валидация оплаты
         if (model.SharePercent is not null && model.SharePercent < 100 && string.IsNullOrWhiteSpace(model.PaymentInfo))
             throw new InvalidOperationException("Сведения об оплате доли обязательны при неполной оплате");
 
@@ -278,8 +279,7 @@ public class ParticipantWriteService : IParticipantWriteService
             if (string.IsNullOrWhiteSpace(model.FirstName))
                 throw new InvalidOperationException("Имя обязательно для физического лица");
         }
-        if (model.SharePercent is not null && model.SharePercent <= 0)
-            throw new InvalidOperationException("Размер доли должен быть больше нуля");
+        ShareParser.ValidateServer(model.SharePercent);
         if (model.SharePercent is not null && model.SharePercent < 100 && string.IsNullOrWhiteSpace(model.PaymentInfo))
             throw new InvalidOperationException("Сведения об оплате доли обязательны при неполной оплате");
 

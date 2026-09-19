@@ -28,7 +28,7 @@ public class US020_ShareRequestTests : BrowserFixture
         try
         {
             await SetupParticipantAsync(page, 1);
-            await AuthHelper.LoginAsBoardUserAsync(page, "zhirov.at1");
+            await AuthHelper.LoginAsBoardUserAsync(page, "zhirov.at");
 
             await page.GotoAsync(PortalUrls.GetUrl(Portal.BoardPortal, "/share-requests"));
             await AuthHelper.WaitForBlazorReady(page);
@@ -63,7 +63,7 @@ public class US020_ShareRequestTests : BrowserFixture
         try
         {
             await SetupParticipantAsync(page, 1);
-            await AuthHelper.LoginAsBoardUserAsync(page, "zhirov.at1");
+            await AuthHelper.LoginAsBoardUserAsync(page, "zhirov.at");
 
             await page.GotoAsync(PortalUrls.GetUrl(Portal.BoardPortal, "/share-requests"));
             await AuthHelper.WaitForBlazorReady(page);
@@ -95,7 +95,7 @@ public class US020_ShareRequestTests : BrowserFixture
         try
         {
             await SetupParticipantAsync(page, 1);
-            await AuthHelper.LoginAsBoardUserAsync(page, "zhirov.at1");
+            await AuthHelper.LoginAsBoardUserAsync(page, "zhirov.at");
 
             await page.GotoAsync(PortalUrls.GetUrl(Portal.BoardPortal, "/share-requests"));
             await AuthHelper.WaitForBlazorReady(page);
@@ -127,7 +127,7 @@ public class US020_ShareRequestTests : BrowserFixture
         try
         {
             await SetupParticipantAsync(page, 1);
-            await AuthHelper.LoginAsBoardUserAsync(page, "zhirov.at1");
+            await AuthHelper.LoginAsBoardUserAsync(page, "zhirov.at");
 
             await page.GotoAsync(PortalUrls.GetUrl(Portal.BoardPortal, "/share-requests"));
             await AuthHelper.WaitForBlazorReady(page);
@@ -162,7 +162,7 @@ public class US020_ShareRequestTests : BrowserFixture
         try
         {
             await SetupParticipantAsync(page, 1);
-            await AuthHelper.LoginAsBoardUserAsync(page, "zhirov.at1");
+            await AuthHelper.LoginAsBoardUserAsync(page, "zhirov.at");
 
             await page.GotoAsync(PortalUrls.GetUrl(Portal.BoardPortal, "/share-requests"));
             await AuthHelper.WaitForBlazorReady(page);

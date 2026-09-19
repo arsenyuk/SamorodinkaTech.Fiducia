@@ -32,8 +32,8 @@ public class US021_DocumentCatalogTests : BrowserFixture
             // Подготовка: Admin Console + регистрация участника через Board Portal
             await SetupParticipantAsync(page, 1);
 
-            // Логин как PARTICIPANT (zhirov.at1 — участник ЮЛ 1)
-            await AuthHelper.LoginAsBoardUserAsync(page, "zhirov.at1");
+            // Логин как PARTICIPANT (zhirov.at — участник ЮЛ 1)
+            await AuthHelper.LoginAsBoardUserAsync(page, "zhirov.at");
 
             await page.GotoAsync(PortalUrls.GetUrl(Portal.BoardPortal, "/documents/catalog"));
             await AuthHelper.WaitForBlazorReady(page);
@@ -71,7 +71,7 @@ public class US021_DocumentCatalogTests : BrowserFixture
         {
             await SetupParticipantAsync(page, 1);
 
-            await AuthHelper.LoginAsBoardUserAsync(page, "zhirov.at1");
+            await AuthHelper.LoginAsBoardUserAsync(page, "zhirov.at");
 
             await page.GotoAsync(PortalUrls.GetUrl(Portal.BoardPortal, "/documents/catalog"));
             await AuthHelper.WaitForBlazorReady(page);
@@ -108,7 +108,7 @@ public class US021_DocumentCatalogTests : BrowserFixture
         {
             await SetupParticipantAsync(page, 1);
 
-            await AuthHelper.LoginAsBoardUserAsync(page, "zhirov.at1");
+            await AuthHelper.LoginAsBoardUserAsync(page, "zhirov.at");
 
             await page.GotoAsync(PortalUrls.GetUrl(Portal.BoardPortal, "/documents/catalog"));
             await AuthHelper.WaitForBlazorReady(page);
@@ -141,7 +141,7 @@ public class US021_DocumentCatalogTests : BrowserFixture
         {
             await SetupParticipantAsync(page, 1);
 
-            await AuthHelper.LoginAsBoardUserAsync(page, "zhirov.at1");
+            await AuthHelper.LoginAsBoardUserAsync(page, "zhirov.at");
 
             await page.GotoAsync(PortalUrls.GetUrl(Portal.BoardPortal, "/documents/catalog"));
             await AuthHelper.WaitForBlazorReady(page);
@@ -177,7 +177,7 @@ public class US021_DocumentCatalogTests : BrowserFixture
         {
             await SetupParticipantAsync(page, 1);
 
-            await AuthHelper.LoginAsBoardUserAsync(page, "zhirov.at1");
+            await AuthHelper.LoginAsBoardUserAsync(page, "zhirov.at");
 
             await page.GotoAsync(PortalUrls.GetUrl(Portal.BoardPortal, "/documents/catalog"));
             await AuthHelper.WaitForBlazorReady(page);

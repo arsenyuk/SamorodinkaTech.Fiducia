@@ -160,44 +160,44 @@ public static class CharterTestDataFixed
             Gd: new() { Uid = "nechaev.va", Login = "nechaev.va", FullName = "Нечаев Василий Алексеевич", LastName = "Нечаев", FirstName = "Василий", MiddleName = "Алексеевич", Position = "Генеральный директор" },
             Participants:
             [
-                PersonData.CreateParticipant("Жиров Антон Тарасович", 60m, login: "zhirov.at1") with { Uid = "zhirov.at1" },
-                PersonData.CreateParticipant("Жирова Елена Тарасовна", 40m, login: "zhirova.et1") with { Uid = "zhirova.et1" },
+                PersonData.CreateParticipant("Жиров Антон Тарасович", 60m, login: "zhirov.at") with { Uid="zhirov.at" },
+                PersonData.CreateParticipant("Жирова Елена Тарасовна", 40m, login: "zhirova.et") with { Uid="zhirova.et" },
             ]),
         [2] = new(
             Gd: new() { Uid = "sobolev.dn", Login = "sobolev.dn", FullName = "Соболев Дмитрий Николаевич", LastName = "Соболев", FirstName = "Дмитрий", MiddleName = "Николаевич", Position = "Генеральный директор" },
             Participants:
             [
-                PersonData.CreateParticipant("Бирюков Олег Степанович", 34m, login: "birukov.os2") with { Uid = "birukov.os2" },
-                PersonData.CreateParticipant("Бирюкова Ирина Степановна", 33m, login: "birukova.is2") with { Uid = "birukova.is2" },
-                PersonData.CreateParticipant("Бирюков Станислав Степанович", 33m, login: "birukov.ss2") with { Uid = "birukov.ss2" },
+                PersonData.CreateParticipant("Бирюков Олег Степанович", 34m, login: "birukov.os") with { Uid="birukov.os" },
+                PersonData.CreateParticipant("Бирюкова Ирина Степановна", 33m, login: "birukova.is") with { Uid="birukova.is" },
+                PersonData.CreateParticipant("Бирюков Станислав Степанович", 33m, login: "birukov.ss") with { Uid="birukov.ss" },
             ]),
         [3] = new(
             Gd: new() { Uid = "tokarev.as", Login = "tokarev.as", FullName = "Токарев Андрей Сергеевич", LastName = "Токарев", FirstName = "Андрей", MiddleName = "Сергеевич", Position = "Генеральный директор" },
             Participants:
             [
-                PersonData.CreateParticipant("Вешняков Максим Юрьевич", 100m, login: "veshnyakov.my3") with { Uid = "veshnyakov.my3" },
+                PersonData.CreateParticipant("Вешняков Максим Юрьевич", 100m, login: "veshnyakov.my") with { Uid="veshnyakov.my" },
             ]),
         [4] = new(
             Gd: new() { Uid = "ermakov.ia", Login = "ermakov.ia", FullName = "Ермаков Игорь Александрович", LastName = "Ермаков", FirstName = "Игорь", MiddleName = "Александрович", Position = "Генеральный директор" },
             Participants:
             [
-                PersonData.CreateParticipant("Зубов Владимир Игоревич", 50m, login: "zubov.vi4") with { Uid = "zubov.vi4" },
-                PersonData.CreateParticipant("Зубова Наталья Игоревна", 50m, login: "zubova.ni4") with { Uid = "zubova.ni4" },
+                PersonData.CreateParticipant("Зубов Владимир Игоревич", 50m, login: "zubov.vi") with { Uid="zubov.vi" },
+                PersonData.CreateParticipant("Зубова Наталья Игоревна", 50m, login: "zubova.ni") with { Uid="zubova.ni" },
             ]),
         [5] = new(
             Gd: new() { Uid = "larionov.sp", Login = "larionov.sp", FullName = "Ларионов Сергей Павлович", LastName = "Ларионов", FirstName = "Сергей", MiddleName = "Павлович", Position = "Генеральный директор" },
             Participants:
             [
-                PersonData.CreateParticipant("Прохоров Алексей Викторович", 25m, login: "prokhorev.av5") with { Uid = "prokhorev.av5" },
-                PersonData.CreateParticipant("Прохорова Ольга Викторовна", 25m, login: "prokhoreva.ov5") with { Uid = "prokhoreva.ov5" },
-                PersonData.CreateParticipant("Прохоров Пётр Викторович", 50m, login: "prokhorev.pv5") with { Uid = "prokhorev.pv5" },
+                PersonData.CreateParticipant("Прохоров Алексей Викторович", 25m, login: "prokhorev.av") with { Uid="prokhorev.av" },
+                PersonData.CreateParticipant("Прохорова Ольга Викторовна", 25m, login: "prokhoreva.ov") with { Uid="prokhoreva.ov" },
+                PersonData.CreateParticipant("Прохоров Пётр Викторович", 50m, login: "prokhorev.pv") with { Uid="prokhorev.pv" },
             ]),
         [6] = new(
             Gd: new() { Uid = "savelyev.rt", Login = "savelyev.rt", FullName = "Савельев Роман Тимурович", LastName = "Савельев", FirstName = "Роман", MiddleName = "Тимурович", Position = "Генеральный директор" },
             Participants:
             [
-                PersonData.CreateParticipant("Широков Денис Александрович", 60m, login: "shirokov.da6") with { Uid = "shirokov.da6" },
-                PersonData.CreateParticipant("Широкова Мария Александровна", 40m, login: "shirokova.ma6") with { Uid = "shirokova.ma6" },
+                PersonData.CreateParticipant("Широков Денис Александрович", 60m, login: "shirokov.da") with { Uid="shirokov.da" },
+                PersonData.CreateParticipant("Широкова Мария Александровна", 40m, login: "shirokova.ma") with { Uid="shirokova.ma" },
             ]),
 
         // ════════════════════════════════════════════════════════════════
@@ -207,44 +207,44 @@ public static class CharterTestDataFixed
             Gd: null,
             Participants:
             [
-                PersonData.CreateParticipant("Комаров Степан Андреевич", 60m, isDirector: true, login: "komarov.sa7") with { Uid = "komarov.sa7" },
-                PersonData.CreateParticipant("Комарова Вера Андреевна", 40m, isDirector: true, login: "komarova.va7") with { Uid = "komarova.va7" },
+                PersonData.CreateParticipant("Комаров Степан Андреевич", 60m, isDirector: true, login: "komarov.sa") with { Uid="komarov.sa" },
+                PersonData.CreateParticipant("Комарова Вера Андреевна", 40m, isDirector: true, login: "komarova.va") with { Uid="komarova.va" },
             ]),
         [8] = new(
             Gd: null,
             Participants:
             [
-                PersonData.CreateParticipant("Лапин Дмитрий Сергеевич", 34m, isDirector: true, login: "lapin.ds8") with { Uid = "lapin.ds8" },
-                PersonData.CreateParticipant("Лапина Анна Сергеевна", 33m, isDirector: true, login: "lapina.as8") with { Uid = "lapina.as8" },
-                PersonData.CreateParticipant("Лапин Игорь Сергеевич", 33m, isDirector: true, login: "lapin.is8") with { Uid = "lapin.is8" },
+                PersonData.CreateParticipant("Лапин Дмитрий Сергеевич", 34m, isDirector: true, login: "lapin.ds") with { Uid="lapin.ds" },
+                PersonData.CreateParticipant("Лапина Анна Сергеевна", 33m, isDirector: true, login: "lapina.as") with { Uid="lapina.as" },
+                PersonData.CreateParticipant("Лапин Игорь Сергеевич", 33m, isDirector: true, login: "lapin.is") with { Uid="lapin.is" },
             ]),
         [9] = new(
             Gd: null,
             Participants:
             [
-                PersonData.CreateParticipant("Рябов Николай Вадимович", 100m, isDirector: true, login: "ryabov.nv9") with { Uid = "ryabov.nv9" },
+                PersonData.CreateParticipant("Рябов Николай Вадимович", 100m, isDirector: true, login: "ryabov.nv") with { Uid="ryabov.nv" },
             ]),
         [10] = new(
             Gd: null,
             Participants:
             [
-                PersonData.CreateParticipant("Евстигнеев Павел Данилович", 50m, isDirector: true, login: "evstignxeev.pd10") with { Uid = "evstignxeev.pd10" },
-                PersonData.CreateParticipant("Евстигнеева Татьяна Даниловна", 50m, isDirector: true, login: "evstignxeeva.td10") with { Uid = "evstignxeeva.td10" },
+                PersonData.CreateParticipant("Евстигнеев Павел Данилович", 50m, isDirector: true, login: "evstignxeev.pd") with { Uid="evstignxeev.pd" },
+                PersonData.CreateParticipant("Евстигнеева Татьяна Даниловна", 50m, isDirector: true, login: "evstignxeeva.td") with { Uid="evstignxeeva.td" },
             ]),
         [11] = new(
             Gd: null,
             Participants:
             [
-                PersonData.CreateParticipant("Калачёв Ринат Александрович", 25m, isDirector: true, login: "kalachev.ra11") with { Uid = "kalachev.ra11" },
-                PersonData.CreateParticipant("Калачёва Светлана Александровна", 25m, isDirector: true, login: "kalacheva.sa11") with { Uid = "kalacheva.sa11" },
-                PersonData.CreateParticipant("Калачёв Тимур Александрович", 50m, isDirector: true, login: "kalachev.ta11") with { Uid = "kalachev.ta11" },
+                PersonData.CreateParticipant("Калачёв Ринат Александрович", 25m, isDirector: true, login: "kalachev.ra") with { Uid="kalachev.ra" },
+                PersonData.CreateParticipant("Калачёва Светлана Александровна", 25m, isDirector: true, login: "kalacheva.sa") with { Uid="kalacheva.sa" },
+                PersonData.CreateParticipant("Калачёв Тимур Александрович", 50m, isDirector: true, login: "kalachev.ta") with { Uid="kalachev.ta" },
             ]),
         [12] = new(
             Gd: null,
             Participants:
             [
-                PersonData.CreateParticipant("Горбунов Евгений Леонидович", 60m, isDirector: true, login: "gorbunov.el12") with { Uid = "gorbunov.el12" },
-                PersonData.CreateParticipant("Горбунова Марина Леонидовна", 40m, isDirector: true, login: "gorbunova.ml12") with { Uid = "gorbunova.ml12" },
+                PersonData.CreateParticipant("Горбунов Евгений Леонидович", 60m, isDirector: true, login: "gorbunov.el") with { Uid="gorbunov.el" },
+                PersonData.CreateParticipant("Горбунова Марина Леонидовна", 40m, isDirector: true, login: "gorbunova.ml") with { Uid="gorbunova.ml" },
             ]),
 
         // ════════════════════════════════════════════════════════════════
@@ -254,44 +254,44 @@ public static class CharterTestDataFixed
             Gd: null,
             Participants:
             [
-                PersonData.CreateParticipant("Шестаков Пётр Николаевич", 60m, isDirector: true, login: "shestakov.pn13") with { Uid = "shestakov.pn13" },
-                PersonData.CreateParticipant("Шестакова Лариса Николаевна", 40m, isDirector: true, login: "shestakova.ln13") with { Uid = "shestakova.ln13" },
+                PersonData.CreateParticipant("Шестаков Пётр Николаевич", 60m, isDirector: true, login: "shestakov.pn") with { Uid="shestakov.pn" },
+                PersonData.CreateParticipant("Шестакова Лариса Николаевна", 40m, isDirector: true, login: "shestakova.ln") with { Uid="shestakova.ln" },
             ]),
         [14] = new(
             Gd: null,
             Participants:
             [
-                PersonData.CreateParticipant("Суханов Илья Максимович", 34m, isDirector: true, login: "sukhanov.im14") with { Uid = "sukhanov.im14" },
-                PersonData.CreateParticipant("Суханова Екатерина Максимовна", 33m, isDirector: true, login: "sukhanova.em14") with { Uid = "sukhanova.em14" },
-                PersonData.CreateParticipant("Суханов Кирилл Максимович", 33m, isDirector: true, login: "sukhanov.km14") with { Uid = "sukhanov.km14" },
+                PersonData.CreateParticipant("Суханов Илья Максимович", 34m, isDirector: true, login: "sukhanov.im") with { Uid="sukhanov.im" },
+                PersonData.CreateParticipant("Суханова Екатерина Максимовна", 33m, isDirector: true, login: "sukhanova.em") with { Uid="sukhanova.em" },
+                PersonData.CreateParticipant("Суханов Кирилл Максимович", 33m, isDirector: true, login: "sukhanov.km") with { Uid="sukhanov.km" },
             ]),
         [15] = new(
             Gd: null,
             Participants:
             [
-                PersonData.CreateParticipant("Бельский Глеб Андреевич", 100m, isDirector: true, login: "belsky.ga15") with { Uid = "belsky.ga15" },
+                PersonData.CreateParticipant("Бельский Глеб Андреевич", 100m, isDirector: true, login: "belsky.ga") with { Uid="belsky.ga" },
             ]),
         [16] = new(
             Gd: null,
             Participants:
             [
-                PersonData.CreateParticipant("Головин Святослав Алексеевич", 50m, isDirector: true, login: "golovin.sa16") with { Uid = "golovin.sa16" },
-                PersonData.CreateParticipant("Головина Надежда Алексеевна", 50m, isDirector: true, login: "golovina.na16") with { Uid = "golovina.na16" },
+                PersonData.CreateParticipant("Головин Святослав Алексеевич", 50m, isDirector: true, login: "golovin.sa") with { Uid="golovin.sa" },
+                PersonData.CreateParticipant("Головина Надежда Алексеевна", 50m, isDirector: true, login: "golovina.na") with { Uid="golovina.na" },
             ]),
         [17] = new(
             Gd: null,
             Participants:
             [
-                PersonData.CreateParticipant("Денисов Владислав Юрьевич", 25m, isDirector: true, login: "denisov.vy17") with { Uid = "denisov.vy17" },
-                PersonData.CreateParticipant("Денисова Ксения Юрьевна", 25m, isDirector: true, login: "denisova.ky17") with { Uid = "denisova.ky17" },
-                PersonData.CreateParticipant("Денисов Роман Юрьевич", 50m, isDirector: true, login: "denisov.ry17") with { Uid = "denisov.ry17" },
+                PersonData.CreateParticipant("Денисов Владислав Юрьевич", 25m, isDirector: true, login: "denisov.vy") with { Uid="denisov.vy" },
+                PersonData.CreateParticipant("Денисова Ксения Юрьевна", 25m, isDirector: true, login: "denisova.ky") with { Uid="denisova.ky" },
+                PersonData.CreateParticipant("Денисов Роман Юрьевич", 50m, isDirector: true, login: "denisov.ry") with { Uid="denisov.ry" },
             ]),
         [18] = new(
             Gd: null,
             Participants:
             [
-                PersonData.CreateParticipant("Ершов Тимур Сергеевич", 60m, isDirector: true, login: "ershov.ts18") with { Uid = "ershov.ts18" },
-                PersonData.CreateParticipant("Ершова Алиса Сергеевна", 40m, isDirector: true, login: "ershova.as18") with { Uid = "ershova.as18" },
+                PersonData.CreateParticipant("Ершов Тимур Сергеевич", 60m, isDirector: true, login: "ershov.ts") with { Uid="ershov.ts" },
+                PersonData.CreateParticipant("Ершова Алиса Сергеевна", 40m, isDirector: true, login: "ershova.as") with { Uid="ershova.as" },
             ]),
 
         // ════════════════════════════════════════════════════════════════
@@ -301,44 +301,44 @@ public static class CharterTestDataFixed
             Gd: new() { Uid = "likhachev.gv", Login = "likhachev.gv", FullName = "Лихачёв Глеб Викторович", LastName = "Лихачёв", FirstName = "Глеб", MiddleName = "Викторович", Position = "Генеральный директор" },
             Participants:
             [
-                PersonData.CreateParticipant("Фролов Станислав Андреевич", 60m, login: "frolov.sa19") with { Uid = "frolov.sa19" },
-                PersonData.CreateParticipant("Фролова Виктория Андреевна", 40m, login: "frolova.va19") with { Uid = "frolova.va19" },
+                PersonData.CreateParticipant("Фролов Станислав Андреевич", 60m, login: "frolov.sa") with { Uid="frolov.sa" },
+                PersonData.CreateParticipant("Фролова Виктория Андреевна", 40m, login: "frolova.va") with { Uid="frolova.va" },
             ]),
         [20] = new(
             Gd: new() { Uid = "matveev.yi", Login = "matveev.yi", FullName = "Матвеев Ярослав Игоревич", LastName = "Матвеев", FirstName = "Ярослав", MiddleName = "Игоревич", Position = "Генеральный директор" },
             Participants:
             [
-                PersonData.CreateParticipant("Харитонов Семён Павлович", 34m, login: "kharitonov.sp20") with { Uid = "kharitonov.sp20" },
-                PersonData.CreateParticipant("Харитонова Дарья Павловна", 33m, login: "kharitonova.dp20") with { Uid = "kharitonova.dp20" },
-                PersonData.CreateParticipant("Харитонов Илья Павлович", 33m, login: "kharitonov.ip20") with { Uid = "kharitonov.ip20" },
+                PersonData.CreateParticipant("Харитонов Семён Павлович", 34m, login: "kharitonov.sp") with { Uid="kharitonov.sp" },
+                PersonData.CreateParticipant("Харитонова Дарья Павловна", 33m, login: "kharitonova.dp") with { Uid="kharitonova.dp" },
+                PersonData.CreateParticipant("Харитонов Илья Павлович", 33m, login: "kharitonov.ip") with { Uid="kharitonov.ip" },
             ]),
         [21] = new(
             Gd: new() { Uid = "noskov.vs", Login = "noskov.vs", FullName = "Носков Виталий Сергеевич", LastName = "Носков", FirstName = "Виталий", MiddleName = "Сергеевич", Position = "Генеральный директор" },
             Participants:
             [
-                PersonData.CreateParticipant("Цветков Михаил Евгеньевич", 100m, login: "tsvetkov.me21") with { Uid = "tsvetkov.me21" },
+                PersonData.CreateParticipant("Цветков Михаил Евгеньевич", 100m, login: "tsvetkov.me") with { Uid="tsvetkov.me" },
             ]),
         [22] = new(
             Gd: new() { Uid = "ovchinnikov.so", Login = "ovchinnikov.so", FullName = "Овчинников Святослав Олегович", LastName = "Овчинников", FirstName = "Святослав", MiddleName = "Олегович", Position = "Генеральный директор" },
             Participants:
             [
-                PersonData.CreateParticipant("Чесноков Денис Валерьевич", 50m, login: "chesnokov.dv22") with { Uid = "chesnokov.dv22" },
-                PersonData.CreateParticipant("Чеснокова Оксана Валерьевна", 50m, login: "chesnokova.ov22") with { Uid = "chesnokova.ov22" },
+                PersonData.CreateParticipant("Чесноков Денис Валерьевич", 50m, login: "chesnokov.dv") with { Uid="chesnokov.dv" },
+                PersonData.CreateParticipant("Чеснокова Оксана Валерьевна", 50m, login: "chesnokova.ov") with { Uid="chesnokova.ov" },
             ]),
         [23] = new(
             Gd: new() { Uid = "pustyrnikov.iy", Login = "pustyrnikov.iy", FullName = "Пустырников Игорь Юрьевич", LastName = "Пустырников", FirstName = "Игорь", MiddleName = "Юрьевич", Position = "Генеральный директор" },
             Participants:
             [
-                PersonData.CreateParticipant("Шульга Тарас Игоревич", 25m, login: "shulga.ti23") with { Uid = "shulga.ti23" },
-                PersonData.CreateParticipant("Шульга Марина Игоревна", 25m, login: "shulga.mi23") with { Uid = "shulga.mi23" },
-                PersonData.CreateParticipant("Шульга Алексей Игоревич", 50m, login: "shulga.ai23") with { Uid = "shulga.ai23" },
+                PersonData.CreateParticipant("Шульга Тарас Игоревич", 25m, login: "shulga.ti") with { Uid="shulga.ti" },
+                PersonData.CreateParticipant("Шульга Марина Игоревна", 25m, login: "shulga.mi") with { Uid="shulga.mi" },
+                PersonData.CreateParticipant("Шульга Алексей Игоревич", 50m, login: "shulga.ai") with { Uid="shulga.ai" },
             ]),
         [24] = new(
             Gd: new() { Uid = "rtishchev.aa", Login = "rtishchev.aa", FullName = "Ртищев Аркадий Андреевич", LastName = "Ртищев", FirstName = "Аркадий", MiddleName = "Андреевич", Position = "Генеральный директор" },
             Participants:
             [
-                PersonData.CreateParticipant("Юдин Кирилл Леонидович", 60m, login: "yudin.kl24") with { Uid = "yudin.kl24" },
-                PersonData.CreateParticipant("Юдинова Анна Леонидовна", 40m, login: "yudinova.al24") with { Uid = "yudinova.al24" },
+                PersonData.CreateParticipant("Юдин Кирилл Леонидович", 60m, login: "yudin.kl") with { Uid="yudin.kl" },
+                PersonData.CreateParticipant("Юдинова Анна Леонидовна", 40m, login: "yudinova.al") with { Uid="yudinova.al" },
             ]),
 
         // ════════════════════════════════════════════════════════════════
@@ -348,44 +348,44 @@ public static class CharterTestDataFixed
             Gd: null,
             Participants:
             [
-                PersonData.CreateParticipant("Абрамов Роман Викторович", 60m, isDirector: true, login: "abramov.rv25") with { Uid = "abramov.rv25" },
-                PersonData.CreateParticipant("Абрамова Ирина Викторовна", 40m, isDirector: true, login: "abramova.iv25") with { Uid = "abramova.iv25" },
+                PersonData.CreateParticipant("Абрамов Роман Викторович", 60m, isDirector: true, login: "abramov.rv") with { Uid="abramov.rv" },
+                PersonData.CreateParticipant("Абрамова Ирина Викторовна", 40m, isDirector: true, login: "abramova.iv") with { Uid="abramova.iv" },
             ]),
         [26] = new(
             Gd: null,
             Participants:
             [
-                PersonData.CreateParticipant("Блинов Степан Андреевич", 34m, isDirector: true, login: "blinov.sa26") with { Uid = "blinov.sa26" },
-                PersonData.CreateParticipant("Блинова Татьяна Андреевна", 33m, isDirector: true, login: "blinova.ta26") with { Uid = "blinova.ta26" },
-                PersonData.CreateParticipant("Блинов Артём Андреевич", 33m, isDirector: true, login: "blinov.aa26") with { Uid = "blinov.aa26" },
+                PersonData.CreateParticipant("Блинов Степан Андреевич", 34m, isDirector: true, login: "blinov.sa") with { Uid="blinov.sa" },
+                PersonData.CreateParticipant("Блинова Татьяна Андреевна", 33m, isDirector: true, login: "blinova.ta") with { Uid="blinova.ta" },
+                PersonData.CreateParticipant("Блинов Артём Андреевич", 33m, isDirector: true, login: "blinov.aa") with { Uid="blinov.aa" },
             ]),
         [27] = new(
             Gd: null,
             Participants:
             [
-                PersonData.CreateParticipant("Виноградов Пётр Дмитриевич", 100m, isDirector: true, login: "vinogradov.pd27") with { Uid = "vinogradov.pd27" },
+                PersonData.CreateParticipant("Виноградов Пётр Дмитриевич", 100m, isDirector: true, login: "vinogradov.pd") with { Uid="vinogradov.pd" },
             ]),
         [28] = new(
             Gd: null,
             Participants:
             [
-                PersonData.CreateParticipant("Громов Ринат Игоревич", 50m, isDirector: true, login: "gromov.ri28") with { Uid = "gromov.ri28" },
-                PersonData.CreateParticipant("Громова Елена Игоревна", 50m, isDirector: true, login: "gromova.ei28") with { Uid = "gromova.ei28" },
+                PersonData.CreateParticipant("Громов Ринат Игоревич", 50m, isDirector: true, login: "gromov.ri") with { Uid="gromov.ri" },
+                PersonData.CreateParticipant("Громова Елена Игоревна", 50m, isDirector: true, login: "gromova.ei") with { Uid="gromova.ei" },
             ]),
         [29] = new(
             Gd: null,
             Participants:
             [
-                PersonData.CreateParticipant("Демидов Илья Сергеевич", 25m, isDirector: true, login: "demidov.is29") with { Uid = "demidov.is29" },
-                PersonData.CreateParticipant("Демидова Кристина Сергеевна", 25m, isDirector: true, login: "demidova.ks29") with { Uid = "demidova.ks29" },
-                PersonData.CreateParticipant("Демидов Тимур Сергеевич", 50m, isDirector: true, login: "demidov.ts29") with { Uid = "demidov.ts29" },
+                PersonData.CreateParticipant("Демидов Илья Сергеевич", 25m, isDirector: true, login: "demidov.is") with { Uid="demidov.is" },
+                PersonData.CreateParticipant("Демидова Кристина Сергеевна", 25m, isDirector: true, login: "demidova.ks") with { Uid="demidova.ks" },
+                PersonData.CreateParticipant("Демидов Тимур Сергеевич", 50m, isDirector: true, login: "demidov.ts") with { Uid="demidov.ts" },
             ]),
         [30] = new(
             Gd: null,
             Participants:
             [
-                PersonData.CreateParticipant("Ермаков Святослав Павлович", 60m, isDirector: true, login: "ermakov.sp30") with { Uid = "ermakov.sp30" },
-                PersonData.CreateParticipant("Ермакова Виктория Павловна", 40m, isDirector: true, login: "ermakova.vp30") with { Uid = "ermakova.vp30" },
+                PersonData.CreateParticipant("Ермаков Святослав Павлович", 60m, isDirector: true, login: "ermakov.sp") with { Uid="ermakov.sp" },
+                PersonData.CreateParticipant("Ермакова Виктория Павловна", 40m, isDirector: true, login: "ermakova.vp") with { Uid="ermakova.vp" },
             ]),
 
         // ════════════════════════════════════════════════════════════════
@@ -395,44 +395,44 @@ public static class CharterTestDataFixed
             Gd: null,
             Participants:
             [
-                PersonData.CreateParticipant("Жуков Денис Викторович", 60m, isDirector: true, login: "zhukov.dv31") with { Uid = "zhukov.dv31" },
-                PersonData.CreateParticipant("Жукова Светлана Викторовна", 40m, isDirector: true, login: "zhukova.sv31") with { Uid = "zhukova.sv31" },
+                PersonData.CreateParticipant("Жуков Денис Викторович", 60m, isDirector: true, login: "zhukov.dv") with { Uid="zhukov.dv" },
+                PersonData.CreateParticipant("Жукова Светлана Викторовна", 40m, isDirector: true, login: "zhukova.sv") with { Uid="zhukova.sv" },
             ]),
         [32] = new(
             Gd: null,
             Participants:
             [
-                PersonData.CreateParticipant("Зимовец Илья Сергеевич", 34m, isDirector: true, login: "zimovec.is32") with { Uid = "zimovec.is32" },
-                PersonData.CreateParticipant("Зимовец Анна Сергеевна", 33m, isDirector: true, login: "zimovec.as32") with { Uid = "zimovec.as32" },
-                PersonData.CreateParticipant("Зимовец Кирилл Сергеевич", 33m, isDirector: true, login: "zimovec.ks32") with { Uid = "zimovec.ks32" },
+                PersonData.CreateParticipant("Зимовец Илья Сергеевич", 34m, isDirector: true, login: "zimovec.is") with { Uid="zimovec.is" },
+                PersonData.CreateParticipant("Зимовец Анна Сергеевна", 33m, isDirector: true, login: "zimovec.as") with { Uid="zimovec.as" },
+                PersonData.CreateParticipant("Зимовец Кирилл Сергеевич", 33m, isDirector: true, login: "zimovec.ks") with { Uid="zimovec.ks" },
             ]),
         [33] = new(
             Gd: null,
             Participants:
             [
-                PersonData.CreateParticipant("Казаков Николай Олегович", 100m, isDirector: true, login: "kazakov.no33") with { Uid = "kazakov.no33" },
+                PersonData.CreateParticipant("Казаков Николай Олегович", 100m, isDirector: true, login: "kazakov.no") with { Uid="kazakov.no" },
             ]),
         [34] = new(
             Gd: null,
             Participants:
             [
-                PersonData.CreateParticipant("Ларин Ринат Андреевич", 50m, isDirector: true, login: "larin.ra34") with { Uid = "larin.ra34" },
-                PersonData.CreateParticipant("Ларина Ольга Андреевна", 50m, isDirector: true, login: "larina.oa34") with { Uid = "larina.oa34" },
+                PersonData.CreateParticipant("Ларин Ринат Андреевич", 50m, isDirector: true, login: "larin.ra") with { Uid="larin.ra" },
+                PersonData.CreateParticipant("Ларина Ольга Андреевна", 50m, isDirector: true, login: "larina.oa") with { Uid="larina.oa" },
             ]),
         [35] = new(
             Gd: null,
             Participants:
             [
-                PersonData.CreateParticipant("Мещеряков Артём Павлович", 25m, isDirector: true, login: "meshcheryakov.ap35") with { Uid = "meshcheryakov.ap35" },
-                PersonData.CreateParticipant("Мещерякова Елена Павловна", 25m, isDirector: true, login: "meshcheryakova.ep35") with { Uid = "meshcheryakova.ep35" },
-                PersonData.CreateParticipant("Мещеряков Владислав Павлович", 50m, isDirector: true, login: "meshcheryakov.vp35") with { Uid = "meshcheryakov.vp35" },
+                PersonData.CreateParticipant("Мещеряков Артём Павлович", 25m, isDirector: true, login: "meshcheryakov.ap") with { Uid="meshcheryakov.ap" },
+                PersonData.CreateParticipant("Мещерякова Елена Павловна", 25m, isDirector: true, login: "meshcheryakova.ep") with { Uid="meshcheryakova.ep" },
+                PersonData.CreateParticipant("Мещеряков Владислав Павлович", 50m, isDirector: true, login: "meshcheryakov.vp") with { Uid="meshcheryakov.vp" },
             ]),
         [36] = new(
             Gd: null,
             Participants:
             [
-                PersonData.CreateParticipant("Некрасов Дмитрий Викторович", 60m, isDirector: true, login: "nekrasov.dv36") with { Uid = "nekrasov.dv36" },
-                PersonData.CreateParticipant("Некрасова Мария Викторовна", 40m, isDirector: true, login: "nekrasova.mv36") with { Uid = "nekrasova.mv36" },
+                PersonData.CreateParticipant("Некрасов Дмитрий Викторович", 60m, isDirector: true, login: "nekrasov.dv") with { Uid="nekrasov.dv" },
+                PersonData.CreateParticipant("Некрасова Мария Викторовна", 40m, isDirector: true, login: "nekrasova.mv") with { Uid="nekrasova.mv" },
             ]),
 
         // ════════════════════════════════════════════════════════════════
@@ -442,102 +442,102 @@ public static class CharterTestDataFixed
             Gd: new() { Uid = "garin.sa", Login = "garin.sa", FullName = "Гарин Станислав Андреевич", LastName = "Гарин", FirstName = "Станислав", MiddleName = "Андреевич", Position = "Генеральный директор" },
             Participants:
             [
-                PersonData.CreateParticipant("Ельцов Игорь Вадимович", 60m, login: "eltsov.iv37") with { Uid = "eltsov.iv37" },
-                PersonData.CreateParticipant("Ельцов Вера Вадимовна", 40m, login: "eltsova.vv37") with { Uid = "eltsova.vv37" },
+                PersonData.CreateParticipant("Ельцов Игорь Вадимович", 60m, login: "eltsov.iv") with { Uid="eltsov.iv" },
+                PersonData.CreateParticipant("Ельцов Вера Вадимовна", 40m, login: "eltsova.vv") with { Uid="eltsova.vv" },
             ]),
         [38] = new(
             Gd: new() { Uid = "dementiev.rs", Login = "dementiev.rs", FullName = "Дементьев Роман Сергеевич", LastName = "Дементьев", FirstName = "Роман", MiddleName = "Сергеевич", Position = "Генеральный директор" },
             Participants:
             [
-                PersonData.CreateParticipant("Зубков Семён Александрович", 34m, login: "zubkov.sa38") with { Uid = "zubkov.sa38" },
-                PersonData.CreateParticipant("Зубкова Татьяна Александровна", 33m, login: "zubkova.ta38") with { Uid = "zubkova.ta38" },
-                PersonData.CreateParticipant("Зубков Аркадий Александрович", 33m, login: "zubkov.aa38") with { Uid = "zubkov.aa38" },
+                PersonData.CreateParticipant("Зубков Семён Александрович", 34m, login: "zubkov.sa") with { Uid="zubkov.sa" },
+                PersonData.CreateParticipant("Зубкова Татьяна Александровна", 33m, login: "zubkova.ta") with { Uid="zubkova.ta" },
+                PersonData.CreateParticipant("Зубков Аркадий Александрович", 33m, login: "zubkov.aa") with { Uid="zubkov.aa" },
             ]),
         [39] = new(
             Gd: new() { Uid = "efimov.yd", Login = "efimov.yd", FullName = "Ефимов Ярослав Дмитриевич", LastName = "Ефимов", FirstName = "Ярослав", MiddleName = "Дмитриевич", Position = "Генеральный директор" },
             Participants:
             [
-                PersonData.CreateParticipant("Ильин Максим Викторович", 100m, login: "ilin.mv39") with { Uid = "ilin.mv39" },
+                PersonData.CreateParticipant("Ильин Максим Викторович", 100m, login: "ilin.mv") with { Uid="ilin.mv" },
             ]),
         [40] = new(
             Gd: new() { Uid = "zhukov.dp", Login = "zhukov.dp", FullName = "Жуков Даниил Павлович", LastName = "Жуков", FirstName = "Даниил", MiddleName = "Павлович", Position = "Генеральный директор" },
             Participants:
             [
-                PersonData.CreateParticipant("Корнеев Алексей Сергеевич", 50m, login: "korneev.as40") with { Uid = "korneev.as40" },
-                PersonData.CreateParticipant("Корнеева Наталья Сергеевна", 50m, login: "korneeva.ns40") with { Uid = "korneeva.ns40" },
+                PersonData.CreateParticipant("Корнеев Алексей Сергеевич", 50m, login: "korneev.as") with { Uid="korneev.as" },
+                PersonData.CreateParticipant("Корнеева Наталья Сергеевна", 50m, login: "korneeva.ns") with { Uid="korneeva.ns" },
             ]),
         [41] = new(
             Gd: new() { Uid = "zaitsev.so", Login = "zaitsev.so", FullName = "Зайцев Святослав Олегович", LastName = "Зайцев", FirstName = "Святослав", MiddleName = "Олегович", Position = "Генеральный директор" },
             Participants:
             [
-                PersonData.CreateParticipant("Лебедев Тарас Валерьевич", 25m, login: "lebedev.tv41") with { Uid = "lebedev.tv41" },
-                PersonData.CreateParticipant("Лебедева Ольга Валерьевна", 25m, login: "lebedeva.ov41") with { Uid = "lebedeva.ov41" },
-                PersonData.CreateParticipant("Лебедев Пётр Валерьевич", 50m, login: "lebedev.pv41") with { Uid = "lebedev.pv41" },
+                PersonData.CreateParticipant("Лебедев Тарас Валерьевич", 25m, login: "lebedev.tv") with { Uid="lebedev.tv" },
+                PersonData.CreateParticipant("Лебедева Ольга Валерьевна", 25m, login: "lebedeva.ov") with { Uid="lebedeva.ov" },
+                PersonData.CreateParticipant("Лебедев Пётр Валерьевич", 50m, login: "lebedev.pv") with { Uid="lebedev.pv" },
             ]),
         [42] = new(
             Gd: new() { Uid = "ilin.vn", Login = "ilin.vn", FullName = "Ильин Владислав Николаевич", LastName = "Ильин", FirstName = "Владислав", MiddleName = "Николаевич", Position = "Генеральный директор" },
             Participants:
             [
-                PersonData.CreateParticipant("Мельников Станислав Дмитриевич", 60m, login: "melnikov.sd42") with { Uid = "melnikov.sd42" },
-                PersonData.CreateParticipant("Мельникова Виктория Дмитриевна", 40m, login: "melnikova.vd42") with { Uid = "melnikova.vd42" },
+                PersonData.CreateParticipant("Мельников Станислав Дмитриевич", 60m, login: "melnikov.sd") with { Uid="melnikov.sd" },
+                PersonData.CreateParticipant("Мельникова Виктория Дмитриевна", 40m, login: "melnikova.vd") with { Uid="melnikova.vd" },
             ]),
         [43] = new(
             Gd: new() { Uid = "kozlov.ra", Login = "kozlov.ra", FullName = "Козлов Ринат Алексеевич", LastName = "Козлов", FirstName = "Ринат", MiddleName = "Алексеевич", Position = "Генеральный директор" },
             Participants:
             [
-                PersonData.CreateParticipant("Носков Семён Олегович", 34m, login: "noskov.so43") with { Uid = "noskov.so43" },
-                PersonData.CreateParticipant("Носкова Анна Олеговна", 33m, login: "noskova.ao43") with { Uid = "noskova.ao43" },
-                PersonData.CreateParticipant("Носков Игорь Олегович", 33m, login: "noskov.io43") with { Uid = "noskov.io43" },
+                PersonData.CreateParticipant("Носков Семён Олегович", 34m, login: "noskov.so") with { Uid="noskov.so" },
+                PersonData.CreateParticipant("Носкова Анна Олеговна", 33m, login: "noskova.ao") with { Uid="noskova.ao" },
+                PersonData.CreateParticipant("Носков Игорь Олегович", 33m, login: "noskov.io") with { Uid="noskov.io" },
             ]),
         [44] = new(
             Gd: new() { Uid = "larionov.si", Login = "larionov.si", FullName = "Ларионов Станислав Игоревич", LastName = "Ларионов", FirstName = "Станислав", MiddleName = "Игоревич", Position = "Генеральный директор" },
             Participants:
             [
-                PersonData.CreateParticipant("Овсов Роман Андреевич", 50m, login: "ovsov.ra44") with { Uid = "ovsov.ra44" },
-                PersonData.CreateParticipant("Овсова Марина Андреевна", 50m, login: "ovsova.ma44") with { Uid = "ovsova.ma44" },
+                PersonData.CreateParticipant("Овсов Роман Андреевич", 50m, login: "ovsov.ra") with { Uid="ovsov.ra" },
+                PersonData.CreateParticipant("Овсова Марина Андреевна", 50m, login: "ovsova.ma") with { Uid="ovsova.ma" },
             ]),
         [45] = new(
             Gd: new() { Uid = "mikhailov.as", Login = "mikhailov.as", FullName = "Михайлов Артём Сергеевич", LastName = "Михайлов", FirstName = "Артём", MiddleName = "Сергеевич", Position = "Генеральный директор" },
             Participants:
             [
-                PersonData.CreateParticipant("Павлов Святослав Викторович", 60m, login: "pavlov.sv45") with { Uid = "pavlov.sv45" },
-                PersonData.CreateParticipant("Павлова Елена Викторовна", 40m, login: "pavlova.ev45") with { Uid = "pavlova.ev45" },
+                PersonData.CreateParticipant("Павлов Святослав Викторович", 60m, login: "pavlov.sv") with { Uid="pavlov.sv" },
+                PersonData.CreateParticipant("Павлова Елена Викторовна", 40m, login: "pavlova.ev") with { Uid="pavlova.ev" },
             ]),
         [46] = new(
             Gd: new() { Uid = "nechaev.dv", Login = "nechaev.dv", FullName = "Нечаев Данил Вадимович", LastName = "Нечаев", FirstName = "Данил", MiddleName = "Вадимович", Position = "Генеральный директор" },
             Participants:
             [
-                PersonData.CreateParticipant("Рогов Илья Николаевич", 60m, login: "rogov.in46") with { Uid = "rogov.in46" },
-                PersonData.CreateParticipant("Рогова Ксения Николаевна", 40m, login: "rogova.kn46") with { Uid = "rogova.kn46" },
+                PersonData.CreateParticipant("Рогов Илья Николаевич", 60m, login: "rogov.in") with { Uid="rogov.in" },
+                PersonData.CreateParticipant("Рогова Ксения Николаевна", 40m, login: "rogova.kn") with { Uid="rogova.kn" },
             ]),
         [47] = new(
             Gd: new() { Uid = "ovchinnikov.tr", Login = "ovchinnikov.tr", FullName = "Овчинников Тимур Романович", LastName = "Овчинников", FirstName = "Тимур", MiddleName = "Романович", Position = "Генеральный директор" },
             Participants:
             [
-                PersonData.CreateParticipant("Сафонов Аркадий Сергеевич", 60m, login: "safonov.as47") with { Uid = "safonov.as47" },
-                PersonData.CreateParticipant("Сафонова Дарья Сергеевна", 40m, login: "safonova.ds47") with { Uid = "safonova.ds47" },
+                PersonData.CreateParticipant("Сафонов Аркадий Сергеевич", 60m, login: "safonov.as") with { Uid="safonov.as" },
+                PersonData.CreateParticipant("Сафонова Дарья Сергеевна", 40m, login: "safonova.ds") with { Uid="safonova.ds" },
             ]),
         [48] = new(
             Gd: new() { Uid = "ponomarev.ip", Login = "ponomarev.ip", FullName = "Пономарёв Игорь Павлович", LastName = "Пономарёв", FirstName = "Игорь", MiddleName = "Павлович", Position = "Генеральный директор" },
             Participants:
             [
-                PersonData.CreateParticipant("Селезнёв Роман Олегович", 34m, login: "seleznev.ro48") with { Uid = "seleznev.ro48" },
-                PersonData.CreateParticipant("Селезнёва Вера Олеговна", 33m, login: "selezneva.vo48") with { Uid = "selezneva.vo48" },
-                PersonData.CreateParticipant("Селезнёв Максим Олегович", 33m, login: "seleznev.mo48") with { Uid = "seleznev.mo48" },
+                PersonData.CreateParticipant("Селезнёв Роман Олегович", 34m, login: "seleznev.ro") with { Uid="seleznev.ro" },
+                PersonData.CreateParticipant("Селезнёва Вера Олеговна", 33m, login: "selezneva.vo") with { Uid="selezneva.vo" },
+                PersonData.CreateParticipant("Селезнёв Максим Олегович", 33m, login: "seleznev.mo") with { Uid="seleznev.mo" },
             ]),
         [49] = new(
             Gd: new() { Uid = "ryabov.vs", Login = "ryabov.vs", FullName = "Рябов Владислав Сергеевич", LastName = "Рябов", FirstName = "Владислав", MiddleName = "Сергеевич", Position = "Генеральный директор" },
             Participants:
             [
-                PersonData.CreateParticipant("Тарасов Станислав Игоревич", 50m, login: "tarasov.si49") with { Uid = "tarasov.si49" },
-                PersonData.CreateParticipant("Тарасова Алиса Игоревна", 50m, login: "tarasova.ai49") with { Uid = "tarasova.ai49" },
+                PersonData.CreateParticipant("Тарасов Станислав Игоревич", 50m, login: "tarasov.si") with { Uid="tarasov.si" },
+                PersonData.CreateParticipant("Тарасова Алиса Игоревна", 50m, login: "tarasova.ai") with { Uid="tarasova.ai" },
             ]),
         [50] = new(
             Gd: new() { Uid = "savelyev.ro", Login = "savelyev.ro", FullName = "Савельев Ринат Олегович", LastName = "Савельев", FirstName = "Ринат", MiddleName = "Олегович", Position = "Генеральный директор" },
             Participants:
             [
-                PersonData.CreateParticipant("Уваров Пётр Вадимович", 60m, login: "uvarov.pv50") with { Uid = "uvarov.pv50" },
-                PersonData.CreateParticipant("Уварова Наталья Вадимовна", 40m, login: "uvarova.nv50") with { Uid = "uvarova.nv50" },
+                PersonData.CreateParticipant("Уваров Пётр Вадимович", 60m, login: "uvarov.pv") with { Uid="uvarov.pv" },
+                PersonData.CreateParticipant("Уварова Наталья Вадимовна", 40m, login: "uvarova.nv") with { Uid="uvarova.nv" },
             ]),
 
         // ════════════════════════════════════════════════════════════════
@@ -549,8 +549,8 @@ public static class CharterTestDataFixed
             Gd: new() { Uid = "tarasov.ev", Login = "tarasov.ev", FullName = "Тарасов Евгений Владимирович", LastName = "Тарасов", FirstName = "Евгений", MiddleName = "Владимирович", Position = "Генеральный директор" },
             Participants:
             [
-                PersonData.CreateParticipant("Андреев Павел Сергеевич", 60m, login: "andreev.ps51") with { Uid = "andreev.ps51" },
-                PersonData.CreateParticipant("Андреева Ольга Сергеевна", 40m, login: "andreeva.os51") with { Uid = "andreeva.os51" },
+                PersonData.CreateParticipant("Андреев Павел Сергеевич", 60m, login: "andreev.ps") with { Uid="andreev.ps" },
+                PersonData.CreateParticipant("Андреева Ольга Сергеевна", 40m, login: "andreeva.os") with { Uid="andreeva.os" },
             ]),
 
         // Модель 2: ГД — участник общества (Type A, ГД = участник)
@@ -558,8 +558,8 @@ public static class CharterTestDataFixed
             Gd: new() { Uid = "uvarov.di", Login = "uvarov.di", FullName = "Уваров Дмитрий Игоревич", LastName = "Уваров", FirstName = "Дмитрий", MiddleName = "Игоревич", Position = "Генеральный директор" },
             Participants:
             [
-                PersonData.CreateParticipant("Борисов Алексей Николаевич", 50m, login: "borisov.an52") with { Uid = "borisov.an52" },
-                PersonData.CreateParticipant("Борисова Елена Николаевна", 50m, login: "borisova.en52") with { Uid = "borisova.en52" },
+                PersonData.CreateParticipant("Борисов Алексей Николаевич", 50m, login: "borisov.an") with { Uid="borisov.an" },
+                PersonData.CreateParticipant("Борисова Елена Николаевна", 50m, login: "borisova.en") with { Uid="borisova.en" },
             ]),
 
         // Модель 3: Управляющий — ИП (Type D)
@@ -567,8 +567,8 @@ public static class CharterTestDataFixed
             Gd: null,
             Participants:
             [
-                PersonData.CreateParticipant("Волков Максим Андреевич", 60m, login: "volkov.ma53") with { Uid = "volkov.ma53" },
-                PersonData.CreateParticipant("Волкова Ирина Андреевна", 40m, login: "volkova.ia53") with { Uid = "volkova.ia53" },
+                PersonData.CreateParticipant("Волков Максим Андреевич", 60m, login: "volkov.ma") with { Uid="volkov.ma" },
+                PersonData.CreateParticipant("Волкова Ирина Андреевна", 40m, login: "volkova.ia") with { Uid="volkova.ia" },
             ]),
 
         // Модель 4: Управляющая организация (Type E)
@@ -576,8 +576,8 @@ public static class CharterTestDataFixed
             Gd: null,
             Participants:
             [
-                PersonData.CreateParticipant("Григорьев Денис Викторович", 50m, login: "grigoriev.dv54") with { Uid = "grigoriev.dv54" },
-                PersonData.CreateParticipant("Григорьева Анна Викторовна", 50m, login: "grigorieva.av54") with { Uid = "grigorieva.av54" },
+                PersonData.CreateParticipant("Григорьев Денис Викторович", 50m, login: "grigoriev.dv") with { Uid="grigoriev.dv" },
+                PersonData.CreateParticipant("Григорьева Анна Викторовна", 50m, login: "grigorieva.av") with { Uid="grigorieva.av" },
             ]),
 
         // Модель 5: Все участники — директора (Type B)
@@ -585,8 +585,8 @@ public static class CharterTestDataFixed
             Gd: null,
             Participants:
             [
-                PersonData.CreateParticipant("Давыдов Роман Сергеевич", 50m, isDirector: true, login: "davydov.rs55") with { Uid = "davydov.rs55" },
-                PersonData.CreateParticipant("Давыдова Ксения Сергеевна", 50m, isDirector: true, login: "davydova.ks55") with { Uid = "davydova.ks55" },
+                PersonData.CreateParticipant("Давыдов Роман Сергеевич", 50m, isDirector: true, login: "davydov.rs") with { Uid="davydov.rs" },
+                PersonData.CreateParticipant("Давыдова Ксения Сергеевна", 50m, isDirector: true, login: "davydova.ks") with { Uid="davydova.ks" },
             ]),
 
         // Модель 6: Все участники совместно (Type C)
@@ -594,8 +594,8 @@ public static class CharterTestDataFixed
             Gd: null,
             Participants:
             [
-                PersonData.CreateParticipant("Егоров Тимур Александрович", 60m, isDirector: true, login: "egorov.ta56") with { Uid = "egorov.ta56" },
-                PersonData.CreateParticipant("Егорова Виктория Александровна", 40m, isDirector: true, login: "egorova.va56") with { Uid = "egorova.va56" },
+                PersonData.CreateParticipant("Егоров Тимур Александрович", 60m, isDirector: true, login: "egorov.ta") with { Uid="egorov.ta" },
+                PersonData.CreateParticipant("Егорова Виктория Александровна", 40m, isDirector: true, login: "egorova.va") with { Uid="egorova.va" },
             ]),
 
         // Модель 7: Несколько ЕИО (Type F)
@@ -603,8 +603,8 @@ public static class CharterTestDataFixed
             Gd: null,
             Participants:
             [
-                PersonData.CreateParticipant("Жданов Илья Павлович", 50m, isDirector: true, login: "zhdanov.ip57") with { Uid = "zhdanov.ip57" },
-                PersonData.CreateParticipant("Жданова Мария Павловна", 50m, isDirector: true, login: "zhdanova.mp57") with { Uid = "zhdanova.mp57" },
+                PersonData.CreateParticipant("Жданов Илья Павлович", 50m, isDirector: true, login: "zhdanov.ip") with { Uid="zhdanov.ip" },
+                PersonData.CreateParticipant("Жданова Мария Павловна", 50m, isDirector: true, login: "zhdanova.mp") with { Uid="zhdanova.mp" },
             ]),
 
         // ── Вкладка «ГД»: тесты назначения генерального директора (58–63) ────
@@ -624,7 +624,7 @@ public static class CharterTestDataFixed
                 PersonData.CreateParticipantWithDul("Абрамов Сергей Александрович", 60m,
                     "21", "4520", "234567", login: "abramov.sa") with { Uid = "abramov.sa" },
                 PersonData.CreateParticipantWithDul("Абрамова Елена Петровна", 40m,
-                    "21", "4530", "345678", login: "abramova.ep59") with { Uid = "abramova.ep59" },
+                    "21", "4530", "345678", login: "abramova.ep") with { Uid="abramova.ep" },
             ]),
         // ГД — сохранение с СНИЛС
         [60] = new(
@@ -642,7 +642,7 @@ public static class CharterTestDataFixed
                 PersonData.CreateParticipantWithDul("Виноградов Максим Андреевич", 50m,
                     "21", "4550", "567890", login: "vinogradov.ma") with { Uid = "vinogradov.ma" },
                 PersonData.CreateParticipantWithDul("Виноградова Ольга Игоревна", 50m,
-                    "21", "4560", "678901", login: "vinogradova.oi61") with { Uid = "vinogradova.oi61" },
+                    "21", "4560", "678901", login: "vinogradova.oi") with { Uid="vinogradova.oi" },
             ]),
         // ExecBody=C — вкладка ГД НЕ отображается
         [62] = new(
@@ -652,7 +652,7 @@ public static class CharterTestDataFixed
                 PersonData.CreateParticipantWithDul("Громов Никита Владимирович", 50m,
                     "21", "4570", "789012", login: "gromov.nv") with { Uid = "gromov.nv" },
                 PersonData.CreateParticipantWithDul("Громова Анна Сергеевна", 50m,
-                    "21", "4580", "890123", login: "gromova.as62") with { Uid = "gromova.as62" },
+                    "21", "4580", "890123", login: "gromova.as") with { Uid="gromova.as" },
             ]),
         // Типовой устав с ExecBody=A — вкладка ГД отображается
         [63] = new(
@@ -675,7 +675,7 @@ public static class CharterTestDataFixed
                 PersonData.CreateParticipantWithDul("Ершов Денис Игоревич", 60m,
                     "21", "4610", "111111", login: "ershov.di") with { Uid = "ershov.di" },
                 PersonData.CreateParticipantWithDul("Ершова Анна Сергеевна", 40m,
-                    "21", "4620", "222222", login: "ershova.as64") with { Uid = "ershova.as64" },
+                    "21", "4620", "222222", login: "ershova.as") with { Uid="ershova.as" },
             ]),
         // Вариант 2: Председатель + Зам. председателя (3 участника)
         [65] = new(
@@ -685,9 +685,9 @@ public static class CharterTestDataFixed
                 PersonData.CreateParticipantWithDul("Жуков Станислав Андреевич", 50m,
                     "21", "4630", "333333", login: "zhukov.sa") with { Uid = "zhukov.sa" },
                 PersonData.CreateParticipantWithDul("Жукова Мария Петровна", 30m,
-                    "21", "4640", "444444", login: "zhukova.mp65") with { Uid = "zhukova.mp65" },
+                    "21", "4640", "444444", login: "zhukova.mp") with { Uid="zhukova.mp" },
                 PersonData.CreateParticipantWithDul("Жуков Алексей Иванович", 20m,
-                    "21", "4650", "555555", login: "zhukov.ai65") with { Uid = "zhukov.ai65" },
+                    "21", "4650", "555555", login: "zhukov.ai") with { Uid="zhukov.ai" },
             ]),
         // Вариант 3: Председатель + Секретарь (2 участника)
         [66] = new(
@@ -697,7 +697,7 @@ public static class CharterTestDataFixed
                 PersonData.CreateParticipantWithDul("Зимин Пётр Кириллович", 70m,
                     "21", "4660", "666666", login: "zimin.pk") with { Uid = "zimin.pk" },
                 PersonData.CreateParticipantWithDul("Зимина Ольга Дмитриевна", 30m,
-                    "21", "4670", "777777", login: "zimina.od66") with { Uid = "zimina.od66" },
+                    "21", "4670", "777777", login: "zimina.od") with { Uid="zimina.od" },
             ]),
         // ── Требование участника о созыве ВОСУ (67) ────
         [67] = new(
@@ -706,15 +706,15 @@ public static class CharterTestDataFixed
             Participants:
             [
                 PersonData.CreateParticipantWithDul("Петрова Мария Сергеевна", 40m,
-                    "21", "4515", "234567", login: "petrova.ms67") with { Uid = "petrova.ms67" },
+                    "21", "4515", "234567", login: "petrova.ms") with { Uid="petrova.ms" },
             ]),
         // ── Изменение сведений участника / версионирование ДУЛ (68) ────
         [68] = new(
             Gd: new() { Uid = "kazakov.nv", Login = "kazakov.nv", FullName = "Казаков Николай Викторович", LastName = "Казаков", FirstName = "Николай", MiddleName = "Викторович", Position = "Генеральный директор" },
             Participants:
             [
-                PersonData.CreateParticipantWithDul("Фролов Станислав Андреевич", 60m,
-                    "21", "4600", "111222", isDirector: true, login: "frolov.sa68") with { Uid = "frolov.sa68" },
+                PersonData.CreateParticipantWithDul("Климов Алексей Петрович", 60m,
+                    "21", "4600", "111222", isDirector: true, login: "klimov.ap") with { Uid = "klimov.ap" },
             ]),
     };
 

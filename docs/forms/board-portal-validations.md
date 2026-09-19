@@ -293,8 +293,43 @@ Unit-тесты: [`OsaMeetingValidatorTests`](../e2e-tests.md#маппинг-us-
 | Все endpoints | ЮЛ существует | "Юридическое лицо не найдено" | [`US023_ParticipantTests`](../e2e-tests.md#участники-ооо) |
 | Все endpoints | Тип ЮЛ = ООО | `Results.Forbid()` + аудит | [`US023_ParticipantTests`](../e2e-tests.md#участники-ооо) |
 | Все endpoints | ЮЛ выбрано | "Юридическое лицо не выбрано" | [`US023_ParticipantTests`](../e2e-tests.md#участники-ооо) |
+| POST/PUT participants | Доля = null | "Размер доли обязателен" | `ShareParserTests` |
+| POST/PUT participants | Доля < 0 | "Доля не может быть отрицательной" | `ShareParserTests` |
+| POST/PUT participants | Доля = 0 | "Доля не может быть равна нулю" | `ShareParserTests` |
+| POST/PUT participants | Доля > 100% | "Доля не может превышать 100%" | `ShareParserTests` |
+| POST/PUT participants | Доля < 100% + нет оплаты | "Сведения об оплате доли обязательны при неполной оплате" | `US023_ParticipantTests` |
 | Загрузка XML | Расширение `.xml` | "XML-файл должен иметь расширение .xml" | [`US023_ParticipantTests`](../e2e-tests.md#участники-ооо) |
 | Загрузка подписи | Расширение `.sig`/`.p7s` | "Файл подписи должен иметь расширение .sig или .p7s" | [`US023_ParticipantTests`](../e2e-tests.md#участники-ооо) |
+
+### Серверная валидация доли (ShareParser.ValidateServer)
+
+**Файл:** `src/Infrastructure/Common/ShareParser.cs` → `ValidateServer(decimal?)`
+
+Используется в `ParticipantWriteService` (Create/Update) и `ParticipantEndpoints` (POST/PUT).
+Правила **идентичны** клиентским — единая точка истины.
+
+| Правило | Сообщение | Клиентский аналог |
+|---------|-----------|-------------------|
+| null | "Размер доли обязателен" | "Значение не может быть пустым" |
+| < 0 | "Доля не может быть отрицательной" | "Доля не может быть отрицательной" |
+| = 0 | "Доля не может быть равна нулю" | "Доля не может быть равна нулю" |
+| > 100 | "Доля не может превышать 100%" | "Доля не может превышать 100%" |
+
+### Клиентская валидация доли (ShareParser.Parse)
+
+**Файл:** `src/Infrastructure/Common/ShareParser.cs`
+
+| Формат ввода | Правило | Сообщение | Unit-тест |
+|-------------|---------|-----------|-----------|
+| Любой | Пустое значение | "Значение не может быть пустым" | `Parse_Empty_ThrowsArgumentException` |
+| Дробь | Знаменатель = 0 | "Знаменатель не может быть нулём" | `Parse_ZeroDenominator_ThrowsArgumentException` |
+| Дробь | Числитель = 0 | "Доля не может быть равна нулю" | `Parse_ZeroFraction_ThrowsArgumentException` |
+| Дробь | Числитель < 0 или знаменатель < 0 | "Доля не может быть отрицательной" | `Parse_NegativeFraction_ThrowsArgumentException` |
+| Дробь | Числитель > знаменателя | "Доля не может превышать 100% (дробь больше 1)" | `Parse_FractionOverOne_ThrowsArgumentException` |
+| Процент | Значение < 0 | "Доля не может быть отрицательной" | `Parse_NegativePercent_ThrowsArgumentException` |
+| Процент | Значение = 0 | "Доля не может быть равна нулю" | `Parse_ZeroPercent_ThrowsArgumentException` |
+| Процент | Значение > 100 | "Доля не может превышать 100%" | `Parse_PercentOver100_ThrowsArgumentException` |
+| Любой | Нечисловое значение | "Некорректное числовое значение: ..." | `Parse_NonNumeric_ThrowsArgumentException` |
 
 ---
 

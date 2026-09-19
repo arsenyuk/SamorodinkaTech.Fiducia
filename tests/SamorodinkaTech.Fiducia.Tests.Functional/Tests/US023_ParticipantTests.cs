@@ -29,7 +29,7 @@ public class US023_ParticipantTests : BrowserFixture
         try
         {
             await SetupParticipantAsync(page, 1);
-            await AuthHelper.LoginAsBoardUserAsync(page, "zhirov.at1");
+            await AuthHelper.LoginAsBoardUserAsync(page, "zhirov.at");
 
             await page.GotoAsync(PortalUrls.GetUrl(Portal.BoardPortal, "/participants"));
             await AuthHelper.WaitForBlazorReady(page);
@@ -62,7 +62,7 @@ public class US023_ParticipantTests : BrowserFixture
         try
         {
             await SetupParticipantAsync(page, 1);
-            await AuthHelper.LoginAsBoardUserAsync(page, "zhirov.at1");
+            await AuthHelper.LoginAsBoardUserAsync(page, "zhirov.at");
 
             await page.GotoAsync(PortalUrls.GetUrl(Portal.BoardPortal, "/participants"));
             await AuthHelper.WaitForBlazorReady(page);
@@ -92,7 +92,7 @@ public class US023_ParticipantTests : BrowserFixture
         try
         {
             await SetupParticipantAsync(page, 1);
-            await AuthHelper.LoginAsBoardUserAsync(page, "zhirov.at1");
+            await AuthHelper.LoginAsBoardUserAsync(page, "zhirov.at");
 
             await page.GotoAsync(PortalUrls.GetUrl(Portal.BoardPortal, "/participants"));
             await AuthHelper.WaitForBlazorReady(page);
@@ -122,7 +122,7 @@ public class US023_ParticipantTests : BrowserFixture
         try
         {
             await SetupParticipantAsync(page, 1);
-            await AuthHelper.LoginAsBoardUserAsync(page, "zhirov.at1");
+            await AuthHelper.LoginAsBoardUserAsync(page, "zhirov.at");
 
             await page.GotoAsync(PortalUrls.GetUrl(Portal.BoardPortal, "/participants"));
             await AuthHelper.WaitForBlazorReady(page);
@@ -157,7 +157,7 @@ public class US023_ParticipantTests : BrowserFixture
         try
         {
             await SetupParticipantAsync(page, 1);
-            await AuthHelper.LoginAsBoardUserAsync(page, "zhirov.at1");
+            await AuthHelper.LoginAsBoardUserAsync(page, "zhirov.at");
 
             await page.GotoAsync(PortalUrls.GetUrl(Portal.BoardPortal, "/participants"));
             await AuthHelper.WaitForBlazorReady(page);

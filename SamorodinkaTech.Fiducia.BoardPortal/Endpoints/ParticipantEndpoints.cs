@@ -197,9 +197,12 @@ public static class ParticipantEndpoints
                     }
                 }
 
-                // Валидация доли и оплаты
-                if (dto.SharePercent is not null && dto.SharePercent <= 0)
-                    return Results.BadRequest(new { error = "Размер доли должен быть больше нуля" });
+                // Валидация доли (обща с клиентом через ShareParser.ValidateServer)
+                try { ShareParser.ValidateServer(dto.SharePercent); }
+                catch (ArgumentException ex)
+                {
+                    return Results.BadRequest(new { error = ex.Message });
+                }
                 if (dto.SharePercent is not null && dto.SharePercent < 100 && string.IsNullOrWhiteSpace(dto.PaymentInfo))
                     return Results.BadRequest(new { error = "Сведения об оплате доли обязательны при неполной оплате" });
 
@@ -458,8 +461,11 @@ public static class ParticipantEndpoints
                     if (string.IsNullOrWhiteSpace(dto.FirstName))
                         return Results.BadRequest(new { error = "Имя обязательно для физического лица" });
                 }
-                if (dto.SharePercent is not null && dto.SharePercent <= 0)
-                    return Results.BadRequest(new { error = "Размер доли должен быть больше нуля" });
+                try { ShareParser.ValidateServer(dto.SharePercent); }
+                catch (ArgumentException ex)
+                {
+                    return Results.BadRequest(new { error = ex.Message });
+                }
                 if (dto.SharePercent is not null && dto.SharePercent < 100 && string.IsNullOrWhiteSpace(dto.PaymentInfo))
                     return Results.BadRequest(new { error = "Сведения об оплате доли обязательны при неполной оплате" });
 
