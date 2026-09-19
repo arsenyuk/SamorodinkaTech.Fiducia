@@ -1,0 +1,289 @@
+@page "/profile"
+@using Microsoft.EntityFrameworkCore
+@using SamorodinkaTech.Fiducia.Domain.Entities
+@using SamorodinkaTech.Fiducia.Infrastructure.Common
+@inject IDbContextFactory<SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext> DbFactory
+@inject IHttpContextAccessor HttpContextAccessor
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+
+<PageTitle>Fiducia — Профиль</PageTitle>
+
+<div class="container">
+    @if (_loading)
+    {
+        <div class="text-center py-4">
+            <div class="spinner-border text-primary" role="status"></div>
+        </div>
+    }
+    else if (_person is null && _user is null)
+    {
+        <div class="alert alert-warning">Профиль не найден.</div>
+    }
+    else
+    {
+        <h3 class="mb-4">Профиль</h3>
+
+        @* ── Основные сведения ──────────────────────────────────── *@
+        <div class="card mb-4">
+            <div class="card-header"><strong>Основные сведения</strong></div>
+            <div class="card-body">
+                @if (_person is not null)
+                {
+                    <div class="row mb-2">
+                        <div class="col-md-4 text-muted">ФИО</div>
+                        <div class="col-md-8">@_person.FullName</div>
+                    </div>
+                    @if (!string.IsNullOrEmpty(_person.Inn))
+                    {
+                        <div class="row mb-2">
+                            <div class="col-md-4 text-muted">ИНН</div>
+                            <div class="col-md-8">@_person.Inn</div>
+                        </div>
+                    }
+                    @if (!string.IsNullOrEmpty(_person.Snils))
+                    {
+                        <div class="row mb-2">
+                            <div class="col-md-4 text-muted">СНИЛС</div>
+                            <div class="col-md-8">@_person.Snils</div>
+                        </div>
+                    }
+                    @if (!string.IsNullOrEmpty(_person.Citizenship))
+                    {
+                        <div class="row mb-2">
+                            <div class="col-md-4 text-muted">Гражданство</div>
+                            <div class="col-md-8">@_person.Citizenship</div>
+                        </div>
+                    }
+                }
+                else if (_user is not null)
+                {
+                    <div class="row mb-2">
+                        <div class="col-md-4 text-muted">ФИО</div>
+                        <div class="col-md-8">@_user.LastName @_user.FirstName</div>
+                    </div>
+                    <div class="row mb-2">
+                        <div class="col-md-4 text-muted">Логин</div>
+                        <div class="col-md-8">@_user.Login</div>
+                    </div>
+                }
+            </div>
+        </div>
+
+        @* ── Принадлежность к ЮЛ ──────────────────────────────────── *@
+        @if (_legalEntity is not null)
+        {
+            <div class="card mb-4">
+                <div class="card-header"><strong>Принадлежность к юридическому лицу</strong></div>
+                <div class="card-body">
+                    <div class="row mb-2">
+                        <div class="col-md-4 text-muted">Наименование</div>
+                        <div class="col-md-8">@_legalEntity.Name</div>
+                    </div>
+                    @if (!string.IsNullOrEmpty(_legalEntity.Inn))
+                    {
+                        <div class="row mb-2">
+                            <div class="col-md-4 text-muted">ИНН</div>
+                            <div class="col-md-8">@_legalEntity.Inn</div>
+                        </div>
+                    }
+                    @if (_participant is not null)
+                    {
+                        <div class="row mb-2">
+                            <div class="col-md-4 text-muted">Статус</div>
+                            <div class="col-md-8">
+                                @if (_participant.IsActive)
+                                {
+                                    <span class="badge bg-success">Действующий участник</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary">Не активен</span>
+                                }
+                            </div>
+                        </div>
+                        @if (_participant.EntryDate.HasValue)
+                        {
+                            <div class="row mb-2">
+                                <div class="col-md-4 text-muted">Дата вхождения</div>
+                                <div class="col-md-8">@_participant.EntryDate.Value.ToString("dd.MM.yyyy")</div>
+                            </div>
+                        }
+                    }
+                </div>
+            </div>
+        }
+
+        @* ── Доля в уставном капитале ──────────────────────────────── *@
+        @if (_share is not null)
+        {
+            <div class="card mb-4">
+                <div class="card-header"><strong>Доля в уставном капитале</strong></div>
+                <div class="card-body">
+                    @if (_share.SharePercent.HasValue)
+                    {
+                        <div class="row mb-2">
+                            <div class="col-md-4 text-muted">Процент доли</div>
+                            <div class="col-md-8">@_share.SharePercent.Value.ToString("N2")%</div>
+                        </div>
+                    }
+                    @if (_share.ShareAmount.HasValue)
+                    {
+                        <div class="row mb-2">
+                            <div class="col-md-4 text-muted">Номинальная стоимость</div>
+                            <div class="col-md-8">@_share.ShareAmount.Value.ToString("N2") ₽</div>
+                        </div>
+                    }
+                    @if (!string.IsNullOrEmpty(_share.PaymentInfo))
+                    {
+                        <div class="row mb-2">
+                            <div class="col-md-4 text-muted">Оплата</div>
+                            <div class="col-md-8">@_share.PaymentInfo</div>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+
+        @* ── Документы, удостоверяющие личность ──────────────────── *@
+        @if (_identityDocuments.Count > 0)
+        {
+            <div class="card mb-4">
+                <div class="card-header"><strong>Документы, удостоверяющие личность</strong></div>
+                <div class="card-body">
+                    <div class="accordion" id="docsAccordion">
+                        @foreach (var (doc, index) in _identityDocuments.Select((d, i) => (d, i)))
+                        {
+                            var collapseId = $"docCollapse{index}";
+                            <div class="accordion-item">
+                                <h2 class="accordion-header">
+                                    <button class="accordion-button collapsed" type="button"
+                                            data-bs-toggle="collapse" data-bs-target="#@collapseId"
+                                            aria-expanded="false" aria-controls="@collapseId">
+                                        @(doc.DulType?.Name ?? "Документ") — @(doc.Series) @(doc.Number)
+                                        @if (doc.IsActive)
+                                        {
+                                            <span class="badge bg-success ms-2">Активный</span>
+                                        }
+                                    </button>
+                                </h2>
+                                <div id="@collapseId" class="accordion-collapse collapse" data-bs-parent="#docsAccordion">
+                                    <div class="accordion-body">
+                                        @if (!string.IsNullOrEmpty(doc.IssuedBy))
+                                        {
+                                            <div class="row mb-2">
+                                                <div class="col-md-4 text-muted">Кем выдан</div>
+                                                <div class="col-md-8">@doc.IssuedBy</div>
+                                            </div>
+                                        }
+                                        @if (doc.IssueDate.HasValue)
+                                        {
+                                            <div class="row mb-2">
+                                                <div class="col-md-4 text-muted">Дата выдачи</div>
+                                                <div class="col-md-8">@doc.IssueDate.Value.ToString("dd.MM.yyyy")</div>
+                                            </div>
+                                        }
+                                        @if (!string.IsNullOrEmpty(doc.DepartmentCode))
+                                        {
+                                            <div class="row mb-2">
+                                                <div class="col-md-4 text-muted">Код подразделения</div>
+                                                <div class="col-md-8">@doc.DepartmentCode</div>
+                                            </div>
+                                        }
+                                        @if (!string.IsNullOrEmpty(doc.RegistrationAddress))
+                                        {
+                                            <div class="row mb-2">
+                                                <div class="col-md-4 text-muted">Адрес регистрации</div>
+                                                <div class="col-md-8">@doc.RegistrationAddress</div>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+    }
+</div>
+
+@code {
+    private bool _loading = true;
+    private Person? _person;
+    private User? _user;
+    private LegalEntity? _legalEntity;
+    private BoardParticipant? _participant;
+    private BoardParticipantShare? _share;
+    private List<IdentityDocument> _identityDocuments = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var userId = UserContextHelper.GetUserIdAsync(HttpContextAccessor.HttpContext!);
+            if (userId is null) return;
+
+            await using var ctx = await DbFactory.CreateDbContextAsync();
+
+            _user = await ctx.Users.FindAsync(userId);
+            if (_user is null) return;
+
+            var ecoParticipant = await ctx.EcosystemParticipants
+                .FirstOrDefaultAsync(ep => ep.UserId == userId);
+
+            if (ecoParticipant is not null)
+            {
+                _participant = await ctx.BoardParticipants
+                    .Include(bp => bp.Shares.Where(s => s.IsActive).Take(1))
+                    .FirstOrDefaultAsync(bp => bp.EcosystemParticipantId == ecoParticipant.Id);
+
+                if (_participant is not null)
+                {
+                    _legalEntity = await ctx.LegalEntities.FindAsync(_participant.LegalEntityId);
+                    _share = _participant.Shares.FirstOrDefault();
+
+                    if (_participant.PersonId.HasValue)
+                    {
+                        _person = await ctx.Persons
+                            .Include(p => p.IdentityDocuments).ThenInclude(d => d.DulType)
+                            .FirstOrDefaultAsync(p => p.Id == _participant.PersonId.Value);
+
+                        if (_person is not null)
+                            _identityDocuments = _person.IdentityDocuments
+                                .OrderByDescending(d => d.IsActive)
+                                .ThenByDescending(d => d.CreatedAt)
+                                .ToList();
+                    }
+                }
+            }
+
+            // Если нет участника, но есть person через ecosystem_participant
+            if (_person is null && ecoParticipant is not null && ecoParticipant.EcosystemPersonId != Guid.Empty)
+            {
+                var ecoPerson = await ctx.EcosystemPersons.FindAsync(ecoParticipant.EcosystemPersonId);
+                if (ecoPerson is not null)
+                {
+                    _person = await ctx.Persons
+                        .Include(p => p.IdentityDocuments).ThenInclude(d => d.DulType)
+                        .FirstOrDefaultAsync(p => p.LastName == ecoPerson.LastName
+                            && p.FirstName == ecoPerson.FirstName
+                            && p.MiddleName == ecoPerson.MiddleName);
+
+                    if (_person is not null)
+                        _identityDocuments = _person.IdentityDocuments
+                            .OrderByDescending(d => d.IsActive)
+                            .ThenByDescending(d => d.CreatedAt)
+                            .ToList();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            // Логирование опущено — профиль не критичен
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+}

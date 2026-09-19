@@ -71,6 +71,7 @@
         }
         catch (HttpRequestException)
         {
+            Logger.LogWarning("Статья закона не найдена: {Article}", Article);
             _error = $"Статья закона не найдена: {Article}";
         }
         catch (Exception ex)
