@@ -227,4 +227,36 @@ public class ParticipantWriteServiceTests : IDisposable
         await act.Should().ThrowAsync<InvalidOperationException>()
             .WithMessage("*Фамилия обязательна*");
     }
+
+    /// <summary>
+    /// Электронное информирование автоматически применяется: change получает статус approved.
+    /// </summary>
+    [Fact]
+    public async Task CreateChangeAsync_ElectronicSource_AppliesChangeAutomatically()
+    {
+        var okopfId = WriteServiceTestBase.SeedOkopf(_ctx, "12300");
+        var le = WriteServiceTestBase.SeedLegalEntity(_ctx, okopfId);
+        var user = WriteServiceTestBase.SeedUser(_ctx);
+        var participantRole = WriteServiceTestBase.SeedRole(_ctx, "PARTICIPANT");
+        WriteServiceTestBase.SeedUserRole(_ctx, user.Id, participantRole.Id);
+        var bp = WriteServiceTestBase.SeedBoardParticipant(_ctx, le.Id);
+
+        var model = new ChangeCreateModel
+        {
+            LegalEntityId = le.Id,
+            ParticipantId = bp.Id,
+            ParticipantType = "FL",
+            LastName = "Электронов",
+            FirstName = "Тест",
+            Source = "electronic"
+        };
+
+        var id = await _sut.CreateChangeAsync(model, user.Id, "127.0.0.1");
+
+        Refresh();
+        var change = _ctx.BoardParticipantChanges.FirstOrDefault(c => c.Id == id);
+        change.Should().NotBeNull();
+        change!.Status.Should().Be("approved");
+        change.LastName.Should().Be("Электронов");
+    }
 }

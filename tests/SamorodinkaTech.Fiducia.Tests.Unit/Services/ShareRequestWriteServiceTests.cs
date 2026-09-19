@@ -200,4 +200,89 @@ public class ShareRequestWriteServiceTests : IDisposable
         await act.Should().ThrowAsync<InvalidOperationException>()
             .WithMessage("*не может быть рассмотрено*");
     }
+
+    [Fact]
+    public async Task CreateAsync_ValidRequest_ReturnsId()
+    {
+        var okopfId = WriteServiceTestBase.SeedOkopf(_ctx, "12300");
+        var le = WriteServiceTestBase.SeedLegalEntity(_ctx, okopfId);
+        var rt = WriteServiceTestBase.SeedRequestType(_ctx, "EXIT_APPLICATION");
+        var user = WriteServiceTestBase.SeedUser(_ctx, "participant1");
+        var eco = WriteServiceTestBase.SeedEcosystemParticipant(_ctx, user.Id, le.Id);
+        var bp = WriteServiceTestBase.SeedBoardParticipant(_ctx, le.Id, ecosystemParticipantId: eco.Id);
+
+        var resultId = await _sut.CreateAsync(user.Id, rt.Id, "Текст требования", null);
+
+        resultId.Should().NotBeEmpty();
+        Refresh();
+        var sr = _ctx.ShareRequests.FirstOrDefault(r => r.Id == resultId);
+        sr.Should().NotBeNull();
+        sr!.Status.Should().Be("draft");
+        sr.Text.Should().Be("Текст требования");
+    }
+
+    [Fact]
+    public async Task CreateAsync_UnknownRequestType_Throws()
+    {
+        var okopfId = WriteServiceTestBase.SeedOkopf(_ctx, "12300");
+        var le = WriteServiceTestBase.SeedLegalEntity(_ctx, okopfId);
+        var user = WriteServiceTestBase.SeedUser(_ctx, "participant1");
+        var eco = WriteServiceTestBase.SeedEcosystemParticipant(_ctx, user.Id, le.Id);
+        var bp = WriteServiceTestBase.SeedBoardParticipant(_ctx, le.Id, ecosystemParticipantId: eco.Id);
+
+        var act = () => _sut.CreateAsync(user.Id, Guid.NewGuid(), "Текст", null);
+        await act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*Неизвестный тип*");
+    }
+
+    [Fact]
+    public async Task CreateAsync_UserNotLinkedToParticipant_Throws()
+    {
+        var okopfId = WriteServiceTestBase.SeedOkopf(_ctx, "12300");
+        var le = WriteServiceTestBase.SeedLegalEntity(_ctx, okopfId);
+        var rt = WriteServiceTestBase.SeedRequestType(_ctx, "EXIT_APPLICATION");
+        var user = WriteServiceTestBase.SeedUser(_ctx, "orphan");
+
+        var act = () => _sut.CreateAsync(user.Id, rt.Id, "Текст", null);
+        await act.Should().ThrowAsync<InvalidOperationException>();
+    }
+
+    [Fact]
+    public async Task CreateCollectiveAsync_ValidRequest_CreatesWithInitiatorSupport()
+    {
+        var okopfId = WriteServiceTestBase.SeedOkopf(_ctx, "12300");
+        var le = WriteServiceTestBase.SeedLegalEntity(_ctx, okopfId);
+        var rt = WriteServiceTestBase.SeedRequestType(_ctx, "DEMAND_VOSU");
+        var user = WriteServiceTestBase.SeedUser(_ctx, "initiator");
+        var eco = WriteServiceTestBase.SeedEcosystemParticipant(_ctx, user.Id, le.Id);
+        var bp = WriteServiceTestBase.SeedBoardParticipant(_ctx, le.Id, ecosystemParticipantId: eco.Id);
+        WriteServiceTestBase.SeedShare(_ctx, bp.Id, le.Id, 30m);
+
+        var resultId = await _sut.CreateCollectiveAsync(user.Id, rt.Id, "Коллективное требование", null);
+
+        resultId.Should().NotBeEmpty();
+        Refresh();
+        var sr = _ctx.ShareRequests.FirstOrDefault(r => r.Id == resultId);
+        sr.Should().NotBeNull();
+        sr!.IsCollective.Should().BeTrue();
+        sr.Text.Should().Be("Коллективное требование");
+
+        var support = _ctx.ShareRequestSupports.FirstOrDefault(s => s.ShareRequestId == resultId);
+        support.Should().NotBeNull();
+        support!.ParticipantId.Should().Be(bp.Id);
+    }
+
+    [Fact]
+    public async Task CreateCollectiveAsync_UnknownRequestType_Throws()
+    {
+        var okopfId = WriteServiceTestBase.SeedOkopf(_ctx, "12300");
+        var le = WriteServiceTestBase.SeedLegalEntity(_ctx, okopfId);
+        var user = WriteServiceTestBase.SeedUser(_ctx, "initiator");
+        var eco = WriteServiceTestBase.SeedEcosystemParticipant(_ctx, user.Id, le.Id);
+        var bp = WriteServiceTestBase.SeedBoardParticipant(_ctx, le.Id, ecosystemParticipantId: eco.Id);
+
+        var act = () => _sut.CreateCollectiveAsync(user.Id, Guid.NewGuid(), "Текст", null);
+        await act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*Неизвестный тип требования*");
+    }
 }

@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -19,6 +20,7 @@ public static class WriteServiceTestBase
     {
         var options = new DbContextOptionsBuilder<FiduciaDbContext>()
             .UseInMemoryDatabase(databaseName: dbName ?? Guid.NewGuid().ToString())
+            .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
         var config = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?> { ["Edin:Enabled"] = "false" })
@@ -37,6 +39,7 @@ public static class WriteServiceTestBase
         var dbGuid = dbName ?? Guid.NewGuid().ToString();
         var options = new DbContextOptionsBuilder<FiduciaDbContext>()
             .UseInMemoryDatabase(databaseName: dbGuid)
+            .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
             .Options;
         var config = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?> { ["Edin:Enabled"] = "false" })
