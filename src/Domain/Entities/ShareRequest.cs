@@ -24,6 +24,9 @@ public class ShareRequest
     /// <summary>Статус: draft (черновик) / submitted (подано) / accepted (принято) / rejected (отклонено) / revoked (отозвано) / completed (завершено).</summary>
     public string Status { get; set; } = "draft";
 
+    /// <summary>Текст требования (text).</summary>
+    public string? Text { get; set; }
+
     /// <summary>Специфичные данные по типу запроса в формате JSON (payload).</summary>
     public string? Payload { get; set; }
 

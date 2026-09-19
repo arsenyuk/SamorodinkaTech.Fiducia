@@ -47,7 +47,7 @@ public class ShareRequestWriteService : IShareRequestWriteService
     }
 
     /// <inheritdoc />
-    public async Task<Guid> CreateAsync(Guid userId, Guid requestTypeId, string? payload, CancellationToken ct = default)
+    public async Task<Guid> CreateAsync(Guid userId, Guid requestTypeId, string? text, string? payload, CancellationToken ct = default)
     {
         await using var ctx = await _dbFactory.CreateDbContextAsync();
 
@@ -85,9 +85,9 @@ public class ShareRequestWriteService : IShareRequestWriteService
         // Специфичная валидация по типам
         var activeShareForValidation = await ctx.BoardParticipantShares
             .FirstOrDefaultAsync(s => s.ParticipantId == participant.Id && s.IsActive, ct);
-        var validationError = await ValidateRequestTypeAsync(ctx, requestType, leId.Value, payload, activeShareForValidation?.SharePercent, ct);
+        var validationError = await ValidateRequestTypeAsync(ctx, requestType, leId.Value, participant.Id, payload, activeShareForValidation?.SharePercent, ct);
         if (validationError is not null)
-            throw new InvalidOperationException(validationError);
+            throw new InvalidOperationException(validationError.Message);
 
         var entity = new ShareRequest
         {
@@ -96,6 +96,7 @@ public class ShareRequestWriteService : IShareRequestWriteService
             ParticipantId = participant.Id,
             RequestTypeId = requestTypeId,
             Status = "draft",
+            Text = text,
             Payload = payload,
             CreatedBy = userId
         };
@@ -121,7 +122,7 @@ public class ShareRequestWriteService : IShareRequestWriteService
     }
 
     /// <inheritdoc />
-    public async Task UpdatePayloadAsync(Guid id, string payload, CancellationToken ct = default)
+    public async Task UpdatePayloadAsync(Guid id, string? text, string? payload, CancellationToken ct = default)
     {
         await using var ctx = await _dbFactory.CreateDbContextAsync();
 
@@ -131,10 +132,12 @@ public class ShareRequestWriteService : IShareRequestWriteService
 
         ValidateStatusForOperation(item, "update");
 
-        item.Payload = payload;
+        item.Text = text;
+        if (payload is not null)
+            item.Payload = payload;
         await ctx.SaveChangesAsync(ct);
 
-        _logger.LogInformation("Обновлён payload запроса {RequestId}", id);
+        _logger.LogInformation("Обновлён запрос {RequestId}", id);
     }
 
     /// <inheritdoc />
@@ -397,7 +400,7 @@ public class ShareRequestWriteService : IShareRequestWriteService
     }
 
     /// <inheritdoc />
-    public async Task<Guid> CreateCollectiveAsync(Guid userId, Guid requestTypeId, string? payload, CancellationToken ct = default)
+    public async Task<Guid> CreateCollectiveAsync(Guid userId, Guid requestTypeId, string? text, string? payload, CancellationToken ct = default)
     {
         await using var ctx = await _dbFactory.CreateDbContextAsync();
 
@@ -473,6 +476,7 @@ public class ShareRequestWriteService : IShareRequestWriteService
             ParticipantId = participant.Id,
             RequestTypeId = requestTypeId,
             Status = "draft",
+            Text = text,
             Payload = payload,
             CreatedBy = userId,
             IsCollective = true,
@@ -682,21 +686,9 @@ public class ShareRequestWriteService : IShareRequestWriteService
         if (legalEntity is null)
             throw new InvalidOperationException("Юридическое лицо не найдено");
 
-        // ФИО инициатора (из payload)
+        // ФИО инициатора
         string? initiatorName = null;
         decimal? initiatorSharePercent = null;
-        if (!string.IsNullOrEmpty(request.Payload))
-        {
-            try
-            {
-                var payload = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(request.Payload);
-                if (payload.TryGetProperty("text", out var _)) { /* текст требования */ }
-            }
-            catch
-            {
-                /* не JSON — пропускаем */
-            }
-        }
 
         // Получаем ФИО инициатора из участника
         var initiatorParticipant = await ctx.BoardParticipants
@@ -863,19 +855,30 @@ public class ShareRequestWriteService : IShareRequestWriteService
             throw new InvalidOperationException(result.Error);
     }
 
-    /// <summary>Специфичная валидация по типу запроса.</summary>
-    private static async Task<string?> ValidateRequestTypeAsync(
-        FiduciaDbContext ctx, RefRequestType requestType, Guid leId, string? payload, decimal? participantSharePercent = null, CancellationToken ct = default)
-    {
-        // Общая проверка: нет ли уже активного запроса того же типа
-        var existingPending = await ctx.ShareRequests
-            .AnyAsync(r => r.LegalEntityId == leId
-                && r.RequestTypeId == requestType.Id
-                && (r.Status == "draft" || r.Status == "submitted"), ct);
-        if (existingPending)
-            return $"Уже есть активное требование типа «{requestType.Name}»";
+    private record DuplicateRequestResult(string Message, Guid PreviousRequestId);
 
-        return requestType.Code switch
+    /// <summary>Специфичная валидация по типу запроса.</summary>
+    private static async Task<DuplicateRequestResult?> ValidateRequestTypeAsync(
+        FiduciaDbContext ctx, RefRequestType requestType, Guid leId, Guid participantId, string? payload, decimal? participantSharePercent = null, CancellationToken ct = default)
+    {
+        // Проверка: нет ли уже запроса того же типа от данного участника
+        var existing = await ctx.ShareRequests
+            .Include(r => r.OrgIntent)
+                .ThenInclude(i => i!.Stages)
+            .FirstOrDefaultAsync(r => r.LegalEntityId == leId
+                && r.RequestTypeId == requestType.Id
+                && r.ParticipantId == participantId, ct);
+        if (existing is not null)
+        {
+            var deadline = existing.OrgIntent?.Stages
+                .Where(s => s.PlannedEnd.HasValue)
+                .Max(s => s.PlannedEnd);
+            var deadlineStr = deadline?.ToString("dd.MM.yyyy") ?? "не установлен";
+            var message = $"Уже есть активное требование типа «{requestType.Name}». Крайний срок: {deadlineStr}. [{existing.Id}]";
+            return new DuplicateRequestResult(message, existing.Id);
+        }
+
+        var typeError = requestType.Code switch
         {
             "NOTARY_LIST_MAINTENANCE" => await ValidateNotaryListMaintenanceAsync(ctx, leId, ct),
             "PREEMPTIVE_LIST" => await ValidatePreemptiveListAsync(ctx, leId, ct),
@@ -889,6 +892,8 @@ public class ShareRequestWriteService : IShareRequestWriteService
             "CHANGE_CHARTER_PROVISION" => await ValidateChangeCharterProvisionAsync(ctx, leId, ct),
             _ => null
         };
+
+        return typeError is not null ? new DuplicateRequestResult(typeError, Guid.Empty) : null;
     }
 
     private static async Task<string?> ValidateNotaryListMaintenanceAsync(FiduciaDbContext ctx, Guid leId, CancellationToken ct)

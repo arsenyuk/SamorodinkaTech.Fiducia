@@ -312,11 +312,11 @@ public static class ShareRequestEndpoints
                 // Специфичная валидация по типам
                 var activeShareForValidation = await ctx.BoardParticipantShares
                     .FirstOrDefaultAsync(s => s.ParticipantId == participant.Id && s.IsActive);
-                var validationError = await ValidateRequestTypeAsync(ctx, requestType, leId!.Value, dto, activeShareForValidation?.SharePercent);
+                var validationError = await ValidateRequestTypeAsync(ctx, requestType, leId!.Value, participant.Id, dto, activeShareForValidation?.SharePercent);
                 if (validationError is not null)
                 {
-                    logger.LogWarning("Ошибка валидации типа запроса: {ValidationError}", validationError);
-                    return Results.BadRequest(new { error = validationError });
+                    logger.LogWarning("Ошибка валидации типа запроса: {ValidationError}", validationError.Message);
+                    return Results.BadRequest(new { error = validationError.Message });
                 }
 
                 var entity = new ShareRequest
@@ -2010,19 +2010,30 @@ public static class ShareRequestEndpoints
         }
     }
 
-    /// <summary>Специфичная валидация по типу запроса.</summary>
-    private static async Task<string?> ValidateRequestTypeAsync(
-        FiduciaDbContext ctx, RefRequestType requestType, Guid leId, ShareRequestCreateDto dto, decimal? participantSharePercent = null)
-    {
-        // Общая проверка: нет ли уже активного запроса того же типа
-        var existingPending = await ctx.ShareRequests
-            .AnyAsync(r => r.LegalEntityId == leId
-                && r.RequestTypeId == requestType.Id
-                && (r.Status == "draft" || r.Status == "submitted"));
-        if (existingPending)
-            return $"Уже есть активное требование типа «{requestType.Name}»";
+    private record DuplicateRequestResult(string Message, Guid PreviousRequestId);
 
-        return requestType.Code switch
+    /// <summary>Специфичная валидация по типу запроса.</summary>
+    private static async Task<DuplicateRequestResult?> ValidateRequestTypeAsync(
+        FiduciaDbContext ctx, RefRequestType requestType, Guid leId, Guid participantId, ShareRequestCreateDto dto, decimal? participantSharePercent = null)
+    {
+        // Проверка: нет ли уже запроса того же типа от данного участника
+        var existing = await ctx.ShareRequests
+            .Include(r => r.OrgIntent)
+                .ThenInclude(i => i!.Stages)
+            .FirstOrDefaultAsync(r => r.LegalEntityId == leId
+                && r.RequestTypeId == requestType.Id
+                && r.ParticipantId == participantId);
+        if (existing is not null)
+        {
+            var deadline = existing.OrgIntent?.Stages
+                .Where(s => s.PlannedEnd.HasValue)
+                .Max(s => s.PlannedEnd);
+            var deadlineStr = deadline?.ToString("dd.MM.yyyy") ?? "не установлен";
+            var message = $"Уже есть активное требование типа «{requestType.Name}». Крайний срок: {deadlineStr}. [{existing.Id}]";
+            return new DuplicateRequestResult(message, existing.Id);
+        }
+
+        var typeError = requestType.Code switch
         {
             "NOTARY_LIST_MAINTENANCE" => await ValidateNotaryListMaintenanceAsync(ctx, leId),
             "PREEMPTIVE_LIST" => await ValidatePreemptiveListAsync(ctx, leId),
@@ -2036,6 +2047,8 @@ public static class ShareRequestEndpoints
             "CHANGE_CHARTER_PROVISION" => await ValidateChangeCharterProvisionAsync(ctx, leId),
             _ => null
         };
+
+        return typeError is not null ? new DuplicateRequestResult(typeError, Guid.Empty) : null;
     }
 
     private static async Task<string?> ValidateNotaryListMaintenanceAsync(FiduciaDbContext ctx, Guid leId)

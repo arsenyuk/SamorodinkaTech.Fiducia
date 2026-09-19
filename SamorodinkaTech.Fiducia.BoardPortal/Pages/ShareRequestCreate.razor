@@ -22,7 +22,13 @@
 
 @if (_error is not null)
 {
-    <div class="alert alert-danger">@_error</div>
+    <div class="alert alert-danger">
+        @_error
+        @if (_previousRequestId.HasValue)
+        {
+            <a href="/share-requests/@_previousRequestId" class="alert-link ms-1">Просмотреть заявку</a>
+        }
+    </div>
 }
 
 @if (_loading)
@@ -389,6 +395,7 @@ else
     private bool _loading = true;
     private bool _isSubmitting;
     private string? _error;
+    private Guid? _previousRequestId;
     private Guid? _userId;
 
     // Поля формы
@@ -467,14 +474,15 @@ else
                     _selectedType = _availableTypes.FirstOrDefault(t => t.Id == request.RequestTypeId);
                     if (_selectedType is not null)
                     {
-                        // Восстанавливаем данные из payload
+                        // Восстанавливаем текст из колонки text
+                        _demandText = entity.Text;
+
+                        // Восстанавливаем типоспецифичные данные из payload
                         if (!string.IsNullOrEmpty(request.Payload))
                         {
                             try
                             {
                                 var payload = System.Text.Json.JsonSerializer.Deserialize<JsonElement>(request.Payload);
-                                if (payload.TryGetProperty("text", out var textProp))
-                                    _demandText = textProp.GetString();
                                 if (payload.TryGetProperty("reason", out var reasonProp))
                                     _demandReason = reasonProp.GetString();
                                 if (payload.TryGetProperty("newCharterNumber", out var charterProp))
@@ -648,15 +656,17 @@ else
 
         _isSubmitting = true;
         _error = null;
+        _previousRequestId = null;
 
         try
         {
             string? payload = BuildPayload();
+            string? text = BuildText();
             Guid requestId;
 
             if (IsEditMode)
             {
-                await ShareRequestWrite.UpdatePayloadAsync(Id!.Value, payload ?? "");
+                await ShareRequestWrite.UpdatePayloadAsync(Id!.Value, text, payload);
                 requestId = Id!.Value;
             }
             else
@@ -668,7 +678,7 @@ else
                         _error = "Не удалось определить пользователя.";
                         return;
                     }
-                    requestId = await ShareRequestWrite.CreateCollectiveAsync(_userId.Value, _selectedType.Id, payload);
+                    requestId = await ShareRequestWrite.CreateCollectiveAsync(_userId.Value, _selectedType.Id, text, payload);
                 }
                 else
                 {
@@ -677,7 +687,7 @@ else
                         _error = "Не удалось определить пользователя.";
                         return;
                     }
-                    requestId = await ShareRequestWrite.CreateAsync(_userId.Value, _selectedType.Id, payload);
+                    requestId = await ShareRequestWrite.CreateAsync(_userId.Value, _selectedType.Id, text, payload);
                 }
             }
 
@@ -716,7 +726,8 @@ else
         catch (Exception ex)
         {
             Logger.LogWarning(ex, "Ошибка сохранения запроса");
-            _error = $"Ошибка сохранения запроса: {ex.Message}";
+            _error = ExtractErrorMessage(ex.Message);
+            _previousRequestId = ExtractRequestId(ex.Message);
         }
         finally
         {
@@ -730,15 +741,17 @@ else
 
         _isSubmitting = true;
         _error = null;
+        _previousRequestId = null;
 
         try
         {
             string? payload = BuildPayload();
+            string? text = BuildText();
             Guid requestId;
 
             if (IsEditMode)
             {
-                await ShareRequestWrite.UpdatePayloadAsync(Id!.Value, payload ?? "");
+                await ShareRequestWrite.UpdatePayloadAsync(Id!.Value, text, payload);
                 requestId = Id!.Value;
             }
             else
@@ -750,7 +763,7 @@ else
                         _error = "Не удалось определить пользователя.";
                         return;
                     }
-                    requestId = await ShareRequestWrite.CreateCollectiveAsync(_userId.Value, _selectedType.Id, payload);
+                    requestId = await ShareRequestWrite.CreateCollectiveAsync(_userId.Value, _selectedType.Id, text, payload);
                 }
                 else
                 {
@@ -759,7 +772,7 @@ else
                         _error = "Не удалось определить пользователя.";
                         return;
                     }
-                    requestId = await ShareRequestWrite.CreateAsync(_userId.Value, _selectedType.Id, payload);
+                    requestId = await ShareRequestWrite.CreateAsync(_userId.Value, _selectedType.Id, text, payload);
                 }
             }
 
@@ -790,7 +803,7 @@ else
 
         if (_selectedType.Code == "DEMAND_VOSU")
         {
-            return System.Text.Json.JsonSerializer.Serialize(new { text = _demandText, reason = _demandReason });
+            return System.Text.Json.JsonSerializer.Serialize(new { reason = _demandReason });
         }
         if (_selectedType.Code == "CHANGE_STANDARD_CHARTER_NUMBER")
         {
@@ -801,16 +814,13 @@ else
             return System.Text.Json.JsonSerializer.Serialize(new
             {
                 documentTypeCodes = _selectedDocumentTypeCodes.ToList(),
-                accessMethodCode = _selectedAccessMethodCode,
-                text = _demandText
+                accessMethodCode = _selectedAccessMethodCode
             });
-        }
-        if (!string.IsNullOrWhiteSpace(_demandText))
-        {
-            return System.Text.Json.JsonSerializer.Serialize(new { text = _demandText });
         }
         return null;
     }
+
+    private string? BuildText() => _selectedType is null ? null : _demandText;
 
     private void ToggleDocumentType(string code, object? isChecked)
     {
@@ -948,4 +958,13 @@ else
 
     private static AccessMethodDto MapToAccessMethodDto(Domain.Interfaces.DocumentAccessMethod m)
         => new(m.Id, m.Code, m.Name, m.Description, m.DeadlineDays);
+
+    private static string ExtractErrorMessage(string message)
+        => System.Text.RegularExpressions.Regex.Replace(message, @"\s*\[[0-9a-f-]+\]\s*$", "").Trim();
+
+    private static Guid? ExtractRequestId(string message)
+    {
+        var match = System.Text.RegularExpressions.Regex.Match(message, @"\[([0-9a-f-]+)\]");
+        return match.Success && Guid.TryParse(match.Groups[1].Value, out var id) ? id : null;
+    }
 }

@@ -50,11 +50,11 @@ else
                 </div>
             </div>
             <hr />
-            @if (!string.IsNullOrEmpty(_request.Payload))
+            @if (!string.IsNullOrEmpty(_request.Text))
             {
                 <div class="mb-3">
                     <strong>Текст требования:</strong>
-                    <p class="mt-1">@_request.Payload</p>
+                    <p class="mt-1">@_request.Text</p>
                 </div>
             }
             @if (_files.Count > 0)
@@ -444,7 +444,7 @@ else
     };
 
     private record CollectiveRequestDto(Guid Id, Guid RequestTypeId, string? RequestTypeCode, string? RequestTypeName,
-        string? InitiatorName, string? Payload, string Status, string? CollectiveStatus,
+        string? InitiatorName, string? Text, string? Payload, string Status, string? CollectiveStatus,
         decimal? ThresholdPercent, decimal TotalSupportPercent, int SupporterCount,
         DateTime CreatedAt, DateTime? SubmittedToCeoAt, DateTime? CeoDecisionAt, string? CeoComment,
         Guid? OrgIntentId);
@@ -457,7 +457,7 @@ else
     private static CollectiveRequestDto MapToCollectiveRequestDto(Domain.Entities.ShareRequest r)
         => new(r.Id, r.RequestTypeId, r.RequestType?.Code, r.RequestType?.Name,
             r.Participant?.Person?.FullName ?? r.Participant?.CompanyName,
-            r.Payload, r.Status, r.CollectiveStatus,
+            r.Text, r.Payload, r.Status, r.CollectiveStatus,
             r.ThresholdPercent, r.TotalSupportPercent, r.SupporterCount,
             r.CreatedAt, r.SubmittedToCeoAt, r.CeoDecisionAt, r.CeoComment,
             r.OrgIntentId);

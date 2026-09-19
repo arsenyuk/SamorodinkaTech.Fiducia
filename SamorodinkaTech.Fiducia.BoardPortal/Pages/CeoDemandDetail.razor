@@ -80,19 +80,12 @@
                     </div>
                 </div>
                 <hr />
-                @if (!string.IsNullOrEmpty(_demand.Payload))
+                @if (!string.IsNullOrEmpty(_demand.Text))
                 {
                     <div class="mb-3">
                         <strong>Текст требования:</strong>
                         <div class="mt-1 p-3 bg-light rounded">
-                            @if (TryParsePayloadText(_demand.Payload, out var text))
-                            {
-                                <p class="mb-0">@text</p>
-                            }
-                            else
-                            {
-                                <p class="mb-0">@_demand.Payload</p>
-                            }
+                            <p class="mb-0">@_demand.Text</p>
                         </div>
                     </div>
                 }
@@ -295,6 +288,7 @@
                     RequestTypeCode = r.RequestType?.Code,
                     InitiatorName = ceoDetail.Participant?.Person?.FullName
                                     ?? ceoDetail.Participant?.CompanyName,
+                    Text = r.Text,
                     Payload = r.Payload,
                     Status = r.Status,
                     CollectiveStatus = r.CollectiveStatus,
@@ -432,22 +426,6 @@
             .ToList();
     }
 
-    private static bool TryParsePayloadText(string payload, out string? text)
-    {
-        text = null;
-        try
-        {
-            var json = JsonSerializer.Deserialize<JsonElement>(payload);
-            if (json.TryGetProperty("text", out var textProp))
-            {
-                text = textProp.GetString();
-                return text is not null;
-            }
-        }
-        catch { /* не JSON */ }
-        return false;
-    }
-
     private static bool TryParsePayloadReason(string payload, out string? reason)
     {
         reason = null;
@@ -478,6 +456,7 @@
         public string? RequestTypeName { get; init; }
         public string? RequestTypeCode { get; init; }
         public string? InitiatorName { get; init; }
+        public string? Text { get; init; }
         public string? Payload { get; init; }
         public string? Status { get; init; }
         public string? CollectiveStatus { get; init; }

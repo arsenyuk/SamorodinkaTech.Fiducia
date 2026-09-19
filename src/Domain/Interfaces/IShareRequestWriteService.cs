@@ -9,14 +9,16 @@ public interface IShareRequestWriteService
     /// <summary>Создать одиночный запрос.</summary>
     /// <param name="userId">Идентификатор пользователя-создателя.</param>
     /// <param name="requestTypeId">Идентификатор типа запроса (ref_request_type).</param>
-    /// <param name="payload">JSON-данные запроса.</param>
+    /// <param name="text">Текст требования.</param>
+    /// <param name="payload">JSON-данные запроса (типоспецифичные).</param>
     /// <returns>Идентификатор созданного запроса.</returns>
-    Task<Guid> CreateAsync(Guid userId, Guid requestTypeId, string? payload, CancellationToken ct = default);
+    Task<Guid> CreateAsync(Guid userId, Guid requestTypeId, string? text, string? payload, CancellationToken ct = default);
 
-    /// <summary>Обновить payload черновика.</summary>
+    /// <summary>Обновить текст и payload черновика.</summary>
     /// <param name="id">Идентификатор запроса.</param>
+    /// <param name="text">Текст требования.</param>
     /// <param name="payload">Новые JSON-данные.</param>
-    Task UpdatePayloadAsync(Guid id, string payload, CancellationToken ct = default);
+    Task UpdatePayloadAsync(Guid id, string? text, string? payload, CancellationToken ct = default);
 
     /// <summary>Отправить запрос (перевод draft → submitted).</summary>
     /// <param name="id">Идентификатор запроса.</param>
@@ -46,9 +48,10 @@ public interface IShareRequestWriteService
     /// <summary>Создать коллективное требование с автоматическим добавлением поддержки инициатора.</summary>
     /// <param name="userId">Идентификатор пользователя-инициатора.</param>
     /// <param name="requestTypeId">Идентификатор типа требования.</param>
+    /// <param name="text">Текст требования.</param>
     /// <param name="payload">JSON-данные требования.</param>
     /// <returns>Идентификатор созданного запроса.</returns>
-    Task<Guid> CreateCollectiveAsync(Guid userId, Guid requestTypeId, string? payload, CancellationToken ct = default);
+    Task<Guid> CreateCollectiveAsync(Guid userId, Guid requestTypeId, string? text, string? payload, CancellationToken ct = default);
 
     /// <summary>Добавить пункт в структурированное требование.</summary>
     /// <param name="requestId">Идентификатор запроса.</param>

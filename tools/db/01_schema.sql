@@ -918,6 +918,7 @@ CREATE TABLE IF NOT EXISTS share_request (
     participant_id uuid NOT NULL REFERENCES board_participant(id) ON DELETE RESTRICT,
     request_type_id uuid NOT NULL REFERENCES ref_request_type(id) ON DELETE RESTRICT,
     status varchar(20) NOT NULL DEFAULT 'draft',
+    text text,
     payload jsonb,
     notarization_id uuid REFERENCES notarization(id) ON DELETE SET NULL,
     revoked_at timestamp with time zone,

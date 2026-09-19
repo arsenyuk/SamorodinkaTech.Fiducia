@@ -145,7 +145,7 @@ else
                 return;
             }
 
-            await ShareRequestWrite.CreateAsync(_userId.Value, requestTypeId, null);
+            await ShareRequestWrite.CreateAsync(_userId.Value, requestTypeId, null, null);
             Nav.NavigateTo("/share-requests", forceLoad: true);
         }
         catch (Exception ex)
@@ -223,10 +223,10 @@ else
 
     private static ShareRequestDto MapToShareRequestDto(Domain.Entities.ShareRequest r)
         => new(r.Id, r.RequestTypeId, r.RequestType?.Code, r.RequestType?.Name,
-            r.Status, r.Payload, r.CreatedAt, r.CompletedAt, r.RevokedAt,
+            r.Status, r.Text, r.Payload, r.CreatedAt, r.CompletedAt, r.RevokedAt,
             r.RevokedByNotarized, r.VisibleToAll, r.DecisionStatus,
             r.Items?.Count ?? 0);
 
-    private record ShareRequestDto(Guid Id, Guid RequestTypeId, string? RequestTypeCode, string? RequestTypeName, string Status, string? Payload, DateTime CreatedAt, DateTime? CompletedAt, DateTime? RevokedAt, bool RevokedByNotarized, bool VisibleToAll, string? DecisionStatus, int ItemCount);
+    private record ShareRequestDto(Guid Id, Guid RequestTypeId, string? RequestTypeCode, string? RequestTypeName, string Status, string? Text, string? Payload, DateTime CreatedAt, DateTime? CompletedAt, DateTime? RevokedAt, bool RevokedByNotarized, bool VisibleToAll, string? DecisionStatus, int ItemCount);
     private record RequestTypeDto(Guid Id, string Code, string Name, bool RequiresFile);
 }
