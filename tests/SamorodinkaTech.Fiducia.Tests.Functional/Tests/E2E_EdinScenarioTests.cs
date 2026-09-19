@@ -30,7 +30,7 @@ public class E2E_EdinScenarioTests : BrowserFixture
         try
         {
             // ── Шаг 1: SYS_ADMIN логинится ──────────────────────────────
-            await AuthHelper.LoginAsAdminAsync(adminPage, "v.vasilyeva", "1");
+            await AuthHelper.LoginAsAdminAsync(adminPage, CharterTestDataFixed.SysAdminLogin, "1");
             await adminPage.ScreenshotAsync(new() { Path = "/tmp/e2e-after-login.png" });
             Console.WriteLine($"[DEBUG] After login URL: {adminPage.Url}");
 
@@ -116,7 +116,7 @@ public class E2E_EdinScenarioTests : BrowserFixture
         try
         {
             // ── Шаги 1–6: Setup (из сценария 1) ─────────────────────────
-            await AuthHelper.LoginAsAdminAsync(adminPage, "v.vasilyeva", "1");
+            await AuthHelper.LoginAsAdminAsync(adminPage, CharterTestDataFixed.SysAdminLogin, "1");
 
             var leName = $"ООО «ЕДИН Дедуп {DateTime.UtcNow:yyyyMMddHHmmss}»";
             var leInn = InnTestHelper.GenerateValidInn();

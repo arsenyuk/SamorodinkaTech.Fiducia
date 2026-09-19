@@ -646,6 +646,7 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.Property(x => x.Citizenship).HasColumnName("citizenship").HasMaxLength(100);
             b.Property(x => x.Snils).HasColumnName("snils").HasMaxLength(14);
             b.Property(x => x.Ogrnip).HasColumnName("ogrnip").HasMaxLength(15);
+            b.Property(x => x.Email).HasColumnName("email").HasMaxLength(255);
             b.Property(x => x.CreatedAt).HasColumnName("created_at").IsRequired();
             b.Property(x => x.UpdatedAt).HasColumnName("updated_at").IsRequired();
             b.Property(x => x.CreatedBy).HasColumnName("created_by");
@@ -771,6 +772,7 @@ public class FiduciaDbContext : Microsoft.EntityFrameworkCore.DbContext, IApplic
             b.Property(x => x.PassportRegistrationAddress).HasColumnName("passport_registration_address");
             b.Property(x => x.PersonInn).HasColumnName("person_inn").HasMaxLength(12);
             b.Property(x => x.Citizenship).HasColumnName("citizenship").HasMaxLength(100);
+            b.Property(x => x.Email).HasColumnName("email").HasMaxLength(255);
             b.Property(x => x.CompanyName).HasColumnName("company_name").HasMaxLength(500);
             b.Property(x => x.CompanyInn).HasColumnName("company_inn").HasMaxLength(12);
             b.Property(x => x.CompanyOgrn).HasColumnName("company_ogrn").HasMaxLength(15);

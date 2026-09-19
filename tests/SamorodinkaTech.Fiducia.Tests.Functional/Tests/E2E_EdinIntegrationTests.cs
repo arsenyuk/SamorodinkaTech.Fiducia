@@ -28,7 +28,7 @@ public class E2E_EdinIntegrationTests : BrowserFixture
 
         try
         {
-            await AuthHelper.LoginAsAdminAsync(page, "v.vasilyeva", "1");
+            await AuthHelper.LoginAsAdminAsync(page, CharterTestDataFixed.SysAdminLogin, "1");
 
             // Навигация на /users (страница не в sidebar — прямой переход)
             await page.GotoAsync(PortalUrls.GetUrl(Portal.AdminConsole, "/users"));
@@ -72,7 +72,7 @@ public class E2E_EdinIntegrationTests : BrowserFixture
 
         try
         {
-            await AuthHelper.LoginAsAdminAsync(page, "v.vasilyeva", "1");
+            await AuthHelper.LoginAsAdminAsync(page, CharterTestDataFixed.SysAdminLogin, "1");
 
             // Навигация на /users (страница не в sidebar — прямой переход)
             await page.GotoAsync(PortalUrls.GetUrl(Portal.AdminConsole, "/users"));
@@ -118,7 +118,7 @@ public class E2E_EdinIntegrationTests : BrowserFixture
 
         try
         {
-            await AuthHelper.LoginAsAdminAsync(page, "v.vasilyeva", "1");
+            await AuthHelper.LoginAsAdminAsync(page, CharterTestDataFixed.SysAdminLogin, "1");
 
             // Навигация на /users (страница не в sidebar — прямой переход)
             await page.GotoAsync(PortalUrls.GetUrl(Portal.AdminConsole, "/users"));

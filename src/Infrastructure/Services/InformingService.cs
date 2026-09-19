@@ -75,7 +75,8 @@ public class InformingService : IInformingService
             person?.Ogrnip,
             activeShare?.SharePercent,
             activeShare?.ShareFraction,
-            activeShare?.ShareAmount);
+            activeShare?.ShareAmount,
+            person?.Email);
     }
 
     /// <inheritdoc />

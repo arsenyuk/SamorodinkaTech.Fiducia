@@ -170,6 +170,13 @@ else
                         <span class="text-muted">Гражданство:</span>
                         <div>@(_participant.Citizenship ?? "—")</div>
                     </div>
+                    @if (!string.IsNullOrWhiteSpace(_participant.Email))
+                    {
+                        <div class="col-md-4">
+                            <span class="text-muted">Email:</span>
+                            <div>@_participant.Email</div>
+                        </div>
+                    }
                 </div>
             </div>
         </div>
@@ -377,6 +384,7 @@ else
             null, // PassportRegistrationAddress — загружается из IdentityDocument
             p.Person?.Inn,
             p.Person?.Citizenship,
+            p.Person?.Email,
             activeCompany?.CompanyName ?? p.CompanyName,
             activeCompany?.CompanyInn ?? p.CompanyInn,
             activeCompany?.CompanyOgrn ?? p.CompanyOgrn,
@@ -424,6 +432,7 @@ else
         string? PassportRegistrationAddress,
         string? PersonInn,
         string? Citizenship,
+        string? Email,
         string? CompanyName,
         string? CompanyInn,
         string? CompanyOgrn,

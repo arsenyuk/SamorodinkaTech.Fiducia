@@ -70,6 +70,10 @@
                         <span class="text-muted me-1">Гражданство</span>
                         <input class="form-control d-inline-block" style="width:220px" @bind="_formCitizenship" />
                     </div>
+                    <div class="col-auto">
+                        <span class="text-muted me-1">Email</span>
+                        <input type="email" class="form-control d-inline-block" style="width:220px" @bind="_formEmail" />
+                    </div>
                 </div>
                 <div class="row mb-3 align-items-center">
                     <div class="col-auto">
@@ -246,6 +250,7 @@
     private string? _formPersonInn;
     private string? _formSnils;
     private string? _formCitizenship;
+    private string? _formEmail;
     private string? _formPassportSeries;
     private string? _formPassportNumber;
     private string? _formPassportIssuedBy;
@@ -313,6 +318,7 @@
                     PersonInn = participantDto.PersonInn,
                     Snils = participantDto.Snils,
                     Citizenship = participantDto.Citizenship,
+                    Email = participantDto.Email,
                     CompanyName = participantDto.CompanyName,
                     CompanyInn = participantDto.CompanyInn,
                     CompanyOgrn = participantDto.CompanyOgrn,
@@ -364,6 +370,7 @@
         _formPersonInn = p.PersonInn;
         _formSnils = p.Snils;
         _formCitizenship = p.Citizenship;
+        _formEmail = p.Email;
         _formPassportSeries = p.DulSeries;
         _formPassportNumber = p.DulNumber;
         _formPassportIssuedBy = p.PassportIssuedBy;
@@ -400,6 +407,7 @@
             || !string.Equals(Norm(_formPersonInn), Norm(_currentParticipant.PersonInn), StringComparison.Ordinal)
             || !string.Equals(Norm(_formSnils), Norm(_currentParticipant.Snils), StringComparison.Ordinal)
             || !string.Equals(Norm(_formCitizenship), Norm(_currentParticipant.Citizenship), StringComparison.Ordinal)
+            || !string.Equals(Norm(_formEmail), Norm(_currentParticipant.Email), StringComparison.Ordinal)
             || !string.Equals(Norm(_formPassportSeries), Norm(_currentParticipant.DulSeries), StringComparison.Ordinal)
             || !string.Equals(Norm(_formPassportNumber), Norm(_currentParticipant.DulNumber), StringComparison.Ordinal)
             || !string.Equals(Norm(_formPassportIssuedBy), Norm(_currentParticipant.PassportIssuedBy), StringComparison.Ordinal)
@@ -426,6 +434,12 @@
             if (string.IsNullOrWhiteSpace(_formLastName) || string.IsNullOrWhiteSpace(_formFirstName))
             {
                 _error = "Фамилия и Имя обязательны";
+                StateHasChanged();
+                return;
+            }
+            if (!string.IsNullOrWhiteSpace(_formEmail) && !Domain.Validation.EmailValidator.IsValid(_formEmail))
+            {
+                _error = "Некорректный формат email";
                 StateHasChanged();
                 return;
             }
@@ -503,6 +517,7 @@
                 PassportRegistrationAddress = _formPassportRegistrationAddress ?? _currentParticipant.PassportRegistrationAddress,
                 PersonInn = _formPersonInn ?? _currentParticipant.PersonInn,
                 Citizenship = _formCitizenship ?? _currentParticipant.Citizenship,
+                Email = _formEmail,
                 CompanyName = _formCompanyName ?? _currentParticipant.CompanyName,
                 CompanyInn = _formCompanyInn ?? _currentParticipant.CompanyInn,
                 CompanyOgrn = _formCompanyOgrn ?? _currentParticipant.CompanyOgrn,
@@ -567,6 +582,7 @@
         public string? PersonInn { get; set; }
         public string? Snils { get; set; }
         public string? Citizenship { get; set; }
+        public string? Email { get; set; }
         public string? PassportIssuedBy { get; set; }
         public DateOnly? PassportIssueDate { get; set; }
         public string? PassportDepartmentCode { get; set; }

@@ -770,6 +770,7 @@ CREATE TABLE IF NOT EXISTS person (
     citizenship varchar(100),
     snils varchar(14),
     ogrnip varchar(15),
+    email varchar(255),
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     created_by uuid
@@ -1653,6 +1654,7 @@ CREATE TABLE IF NOT EXISTS board_participant_change (
     passport_registration_address text,
     person_inn varchar(12),
     citizenship varchar(100),
+    email varchar(255),
     -- ЮЛ
     company_name varchar(500),
     company_inn varchar(12),

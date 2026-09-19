@@ -42,4 +42,5 @@ public record InformingParticipantDto(
     string? Ogrnip,
     decimal? SharePercent,
     string? ShareFraction,
-    decimal? ShareAmount);
+    decimal? ShareAmount,
+    string? Email);

@@ -56,6 +56,9 @@ public class BoardParticipantChange
     /// <summary>Гражданство (citizenship).</summary>
     public string? Citizenship { get; set; }
 
+    /// <summary>Адрес электронной почты (email).</summary>
+    public string? Email { get; set; }
+
     // ── ЮЛ ────────────────────────────────────────────────────────
 
     /// <summary>Наименование юридического лица (company_name).</summary>

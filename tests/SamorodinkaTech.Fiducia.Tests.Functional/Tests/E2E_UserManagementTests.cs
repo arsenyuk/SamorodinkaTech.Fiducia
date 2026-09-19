@@ -25,7 +25,7 @@ public class E2E_UserManagementTests : BrowserFixture
         try
         {
         var page = await CreateAdminConsolePageAsync();
-        await AuthHelper.LoginAsAdminAsync(page, "v.vasilyeva", "1");
+        await AuthHelper.LoginAsAdminAsync(page, CharterTestDataFixed.SysAdminLogin, "1");
 
         // Создать тестовое ЮЛ
         await AdminConsoleHelper.CreateLegalEntityAsync(page, "Тестовое ЮЛ", "7701234567");
@@ -69,7 +69,7 @@ public class E2E_UserManagementTests : BrowserFixture
         try
         {
         var page = await CreateAdminConsolePageAsync();
-        await AuthHelper.LoginAsAdminAsync(page, "v.vasilyeva", "1");
+        await AuthHelper.LoginAsAdminAsync(page, CharterTestDataFixed.SysAdminLogin, "1");
 
         // Создать тестовое ЮЛ
         await AdminConsoleHelper.CreateLegalEntityAsync(page, "Тестовое ЮЛ 2", "7701234568");
@@ -123,7 +123,7 @@ public class E2E_UserManagementTests : BrowserFixture
         try
         {
         var page = await CreateAdminConsolePageAsync();
-        await AuthHelper.LoginAsAdminAsync(page, "v.vasilyeva", "1");
+        await AuthHelper.LoginAsAdminAsync(page, CharterTestDataFixed.SysAdminLogin, "1");
 
         // Создать тестовое ЮЛ
         await AdminConsoleHelper.CreateLegalEntityAsync(page, "Тестовое ЮЛ 3", "7701234569");
@@ -178,7 +178,7 @@ public class E2E_UserManagementTests : BrowserFixture
         try
         {
         var page = await CreateAdminConsolePageAsync();
-        await AuthHelper.LoginAsAdminAsync(page, "v.vasilyeva", "1");
+        await AuthHelper.LoginAsAdminAsync(page, CharterTestDataFixed.SysAdminLogin, "1");
 
         // Создать тестовое ЮЛ и добавить сотрудника
         await AdminConsoleHelper.CreateLegalEntityAsync(page, "Тестовое ЮЛ ФИО", "7701234570");

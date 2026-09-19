@@ -716,6 +716,10 @@ else
                                 <input class="form-control" @bind="_formCitizenship" />
                             </div>
                             <div class="col-md-4">
+                                <label class="form-label">Email</label>
+                                <input type="email" class="form-control" @bind="_formEmail" />
+                            </div>
+                            <div class="col-md-4">
                                 <label class="form-label">ОГРНИП</label>
                                 <input class="form-control" @bind="_formOgrnip" />
                             </div>
@@ -951,6 +955,7 @@ else
     private string? _formPassportRegistrationAddress;
     private string? _formPersonInn;
     private string? _formCitizenship;
+    private string? _formEmail;
     private string? _formCompanyName;
     private string? _formCompanyInn;
     private string? _formCompanyOgrn;
@@ -1348,6 +1353,7 @@ else
         _formPassportRegistrationAddress = p.PassportRegistrationAddress;
         _formPersonInn = p.PersonInn;
         _formCitizenship = p.Citizenship;
+        _formEmail = p.Email;
         _formCompanyName = p.CompanyName;
         _formCompanyInn = p.CompanyInn;
         _formCompanyOgrn = p.CompanyOgrn;
@@ -1386,6 +1392,7 @@ else
         _formPassportRegistrationAddress = null;
         _formPersonInn = null;
         _formCitizenship = null;
+        _formEmail = null;
         _formCompanyName = null;
         _formCompanyInn = null;
         _formCompanyOgrn = null;
@@ -1483,6 +1490,7 @@ else
                     PassportRegistrationAddress = _formPassportRegistrationAddress,
                     PersonInn = _formPersonInn,
                     Citizenship = _formCitizenship,
+                    Email = _formEmail,
                     CompanyName = _formCompanyName,
                     CompanyInn = _formCompanyInn,
                     CompanyOgrn = _formCompanyOgrn,
@@ -1508,6 +1516,7 @@ else
                     LastName = _formLastName,
                     FirstName = _formFirstName,
                     MiddleName = _formMiddleName,
+                    Email = _formEmail,
                     CompanyName = _formCompanyName,
                     CompanyInn = _formCompanyInn,
                     CompanyOgrn = _formCompanyOgrn,
@@ -1718,6 +1727,7 @@ else
         public string? PassportRegistrationAddress { get; set; }
         public string? PersonInn { get; set; }
         public string? Citizenship { get; set; }
+        public string? Email { get; set; }
         public string? CompanyName { get; set; }
         public string? CompanyInn { get; set; }
         public string? CompanyOgrn { get; set; }
@@ -1798,6 +1808,7 @@ else
             PassportRegistrationAddress = primaryDoc?.RegistrationAddress,
             PersonInn = p.Person?.Inn,
             Citizenship = p.Person?.Citizenship,
+            Email = p.Person?.Email,
             CompanyName = activeCompany?.CompanyName ?? p.CompanyName,
             CompanyInn = activeCompany?.CompanyInn ?? p.CompanyInn,
             CompanyOgrn = activeCompany?.CompanyOgrn ?? p.CompanyOgrn,

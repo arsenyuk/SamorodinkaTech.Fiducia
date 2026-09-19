@@ -259,4 +259,65 @@ public class ParticipantWriteServiceTests : IDisposable
         change!.Status.Should().Be("approved");
         change.LastName.Should().Be("Электронов");
     }
+
+    /// <summary>
+    /// Некорректный email при создании участника — выбрасывается исключение.
+    /// </summary>
+    [Fact]
+    public async Task CreateAsync_InvalidEmail_Throws()
+    {
+        var okopfId = WriteServiceTestBase.SeedOkopf(_ctx, "12300");
+        var le = WriteServiceTestBase.SeedLegalEntity(_ctx, okopfId);
+        var user = WriteServiceTestBase.SeedUser(_ctx);
+        var role = WriteServiceTestBase.SeedRole(_ctx, "LE_ADMIN");
+        WriteServiceTestBase.SeedUserRole(_ctx, user.Id, role.Id);
+        WriteServiceTestBase.SeedEcosystemParticipant(_ctx, user.Id, le.Id);
+
+        var model = new ParticipantCreateModel
+        {
+            LegalEntityId = le.Id,
+            ParticipantType = "FL",
+            LastName = "Тестов",
+            FirstName = "Иван",
+            Email = "not-an-email",
+            SharePercent = 100m
+        };
+
+        var act = () => _sut.CreateAsync(model, user.Id, "127.0.0.1");
+        await act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*email*");
+    }
+
+    /// <summary>
+    /// Корректный email при создании участника — сохраняется в Person.
+    /// </summary>
+    [Fact]
+    public async Task CreateAsync_ValidEmail_SavesToPerson()
+    {
+        var okopfId = WriteServiceTestBase.SeedOkopf(_ctx, "12300");
+        var le = WriteServiceTestBase.SeedLegalEntity(_ctx, okopfId);
+        var user = WriteServiceTestBase.SeedUser(_ctx);
+        var role = WriteServiceTestBase.SeedRole(_ctx, "LE_ADMIN");
+        WriteServiceTestBase.SeedUserRole(_ctx, user.Id, role.Id);
+        WriteServiceTestBase.SeedEcosystemParticipant(_ctx, user.Id, le.Id);
+
+        var model = new ParticipantCreateModel
+        {
+            LegalEntityId = le.Id,
+            ParticipantType = "FL",
+            LastName = "Тестов",
+            FirstName = "Иван",
+            Email = "ivan@example.com",
+            SharePercent = 100m
+        };
+
+        var id = await _sut.CreateAsync(model, user.Id, "127.0.0.1");
+
+        Refresh();
+        var bp = _ctx.BoardParticipants.FirstOrDefault(p => p.Id == id);
+        bp.Should().NotBeNull();
+        var person = _ctx.Persons.FirstOrDefault(p => p.Id == bp!.PersonId);
+        person.Should().NotBeNull();
+        person!.Email.Should().Be("ivan@example.com");
+    }
 }

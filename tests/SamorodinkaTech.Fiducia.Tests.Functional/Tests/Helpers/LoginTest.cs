@@ -17,7 +17,7 @@ public class LoginTest
 
         try
         {
-            await AuthHelper.LoginAsAdminAsync(page, "v.vasilyeva", "1");
+            await AuthHelper.LoginAsAdminAsync(page, CharterTestDataFixed.SysAdminLogin, "1");
             var url = page.Url;
             Console.WriteLine($"[Test] URL после входа: {url}");
             url.Should().Contain("/main");

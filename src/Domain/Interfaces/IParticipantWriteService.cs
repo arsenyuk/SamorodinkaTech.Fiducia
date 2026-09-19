@@ -85,6 +85,9 @@ public record ParticipantCreateModel
     /// <summary>Гражданство.</summary>
     public string? Citizenship { get; init; }
 
+    /// <summary>Адрес электронной почты.</summary>
+    public string? Email { get; init; }
+
     /// <summary>Наименование ЮЛ (для UL).</summary>
     public string? CompanyName { get; init; }
 
@@ -142,6 +145,9 @@ public record ParticipantUpdateModel
 
     /// <summary>Отчество (для ФЛ).</summary>
     public string? MiddleName { get; init; }
+
+    /// <summary>Адрес электронной почты.</summary>
+    public string? Email { get; init; }
 
     /// <summary>Наименование ЮЛ (для UL).</summary>
     public string? CompanyName { get; init; }
@@ -271,6 +277,9 @@ public record ChangeCreateModel
 
     /// <summary>Гражданство.</summary>
     public string? Citizenship { get; init; }
+
+    /// <summary>Адрес электронной почты.</summary>
+    public string? Email { get; init; }
 
     /// <summary>Наименование ЮЛ (для UL).</summary>
     public string? CompanyName { get; init; }

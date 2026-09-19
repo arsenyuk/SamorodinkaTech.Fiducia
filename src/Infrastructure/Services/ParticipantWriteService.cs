@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using SamorodinkaTech.Fiducia.Domain.Entities;
 using SamorodinkaTech.Fiducia.Domain.Interfaces;
 using SamorodinkaTech.Fiducia.Domain.Services;
+using SamorodinkaTech.Fiducia.Domain.Validation;
 using SamorodinkaTech.Fiducia.Infrastructure.Common;
 using SamorodinkaTech.Fiducia.Infrastructure.Persistence;
 
@@ -55,6 +56,8 @@ public class ParticipantWriteService : IParticipantWriteService
                 throw new InvalidOperationException("Фамилия обязательна для физического лица");
             if (string.IsNullOrWhiteSpace(model.FirstName))
                 throw new InvalidOperationException("Имя обязательно для физического лица");
+            if (!string.IsNullOrWhiteSpace(model.Email) && !EmailValidator.IsValid(model.Email))
+                throw new InvalidOperationException("Некорректный формат email");
         }
 
         // Валидация доли (общая с клиентом через ShareParser.ValidateServer)
@@ -77,6 +80,7 @@ public class ParticipantWriteService : IParticipantWriteService
                 MiddleName = model.MiddleName,
                 Inn = model.PersonInn,
                 Citizenship = model.Citizenship,
+                Email = model.Email,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
                 CreatedBy = userId
@@ -288,6 +292,17 @@ public class ParticipantWriteService : IParticipantWriteService
         entity.ExitDate = model.ExitDate;
         entity.IsActive = model.IsActive ?? true;
         entity.UpdatedAt = DateTime.UtcNow;
+
+        // ── Обновление Person (если ФЛ) ─────────────────────
+        if (participantType == "FL" && entity.PersonId.HasValue)
+        {
+            var person = await ctx.Persons.FindAsync(new object[] { entity.PersonId.Value }, ct);
+            if (person is not null && model.Email != null)
+            {
+                person.Email = model.Email;
+                person.UpdatedAt = DateTime.UtcNow;
+            }
+        }
 
         // ── SCD Type 2: версионирование доли ───────────────────
         var currentShare = await ctx.BoardParticipantShares
@@ -671,6 +686,8 @@ public class ParticipantWriteService : IParticipantWriteService
             throw new InvalidOperationException("Фамилия обязательна");
         if (string.IsNullOrWhiteSpace(model.FirstName))
             throw new InvalidOperationException("Имя обязательно");
+        if (!string.IsNullOrWhiteSpace(model.Email) && !EmailValidator.IsValid(model.Email))
+            throw new InvalidOperationException("Некорректный формат email");
 
         var entity = new BoardParticipantChange
         {
@@ -690,6 +707,7 @@ public class ParticipantWriteService : IParticipantWriteService
             PassportRegistrationAddress = model.PassportRegistrationAddress,
             PersonInn = model.PersonInn,
             Citizenship = model.Citizenship,
+            Email = model.Email,
             CompanyName = model.CompanyName,
             CompanyInn = model.CompanyInn,
             CompanyOgrn = model.CompanyOgrn,
@@ -1065,6 +1083,8 @@ public class ParticipantWriteService : IParticipantWriteService
                 }
                 if (!string.IsNullOrEmpty(entity.PersonInn) && participant.Person is not null)
                     participant.Person.Inn = entity.PersonInn;
+                if (entity.Email != null && participant.Person is not null)
+                    participant.Person.Email = entity.Email;
             }
         }
 

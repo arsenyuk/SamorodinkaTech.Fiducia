@@ -35,6 +35,9 @@ public class Person
     /// <summary>ОГРНИП (ogrnip). Заполняется для ИП.</summary>
     public string? Ogrnip { get; set; }
 
+    /// <summary>Адрес электронной почты (email).</summary>
+    public string? Email { get; set; }
+
     /// <summary>Документы, удостоверяющие личность.</summary>
     public ICollection<IdentityDocument> IdentityDocuments { get; set; } = new List<IdentityDocument>();
 
