@@ -10,7 +10,7 @@
             "cwd": "${workspaceFolder}/SamorodinkaTech.Fiducia.BoardPortal",
             "env": {
                 "ASPNETCORE_ENVIRONMENT": "Development",
-                "ASPNETCORE_URLS": "http://localhost:5000"
+                "ASPNETCORE_URLS": "http://localhost:5002"
             },
             "launchBrowser": {
                 "enabled": true,

@@ -72,7 +72,7 @@
                     <div class="mb-3">
                         <label class="form-label">ИНН *</label>
                         <input class="form-control @(_createInnError is not null ? "is-invalid" : "")"
-                               @bind="_createInn" maxlength="12" @oninput="() => _createInnError = null" data-testid="le-inn" />
+                               @bind="_createInn" maxlength="10" @oninput="() => _createInnError = null" data-testid="le-inn" />
                         @if (_createInnError is not null)
                         {
                             <div class="invalid-feedback">@_createInnError</div>
@@ -197,9 +197,9 @@
             return;
         }
 
-        if (_createInn.Length != 10 && _createInn.Length != 12)
+        if (_createInn.Length != 10)
         {
-            _createInnError = "ИНН: 10 или 12 цифр.";
+            _createInnError = "ИНН юридического лица должен содержать 10 цифр.";
             return;
         }
 

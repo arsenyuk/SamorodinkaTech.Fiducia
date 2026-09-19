@@ -11,7 +11,33 @@
                 "/property:GenerateFullPaths=true",
                 "/consoleloggerparameters:NoSummary"
             ],
-            "problemMatcher": "$msCompile"
+            "problemMatcher": "$msCompile",
+            "group": "build"
+        },
+        {
+            "label": "rebuild & run",
+            "type": "shell",
+            "command": "./rebuild-and-run.sh",
+            "isBackground": true,
+            "problemMatcher": {
+                "pattern": {
+                    "regexp": "^$"
+                },
+                "background": {
+                    "activeOnStart": true,
+                    "beginsPattern": "===",
+                    "endsPattern": "Tail логов"
+                }
+            },
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated",
+                "clear": true
+            },
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
         }
     ]
 }
