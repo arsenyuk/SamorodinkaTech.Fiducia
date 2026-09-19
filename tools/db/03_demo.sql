@@ -56,12 +56,12 @@ ON CONFLICT (id) DO NOTHING;
 
 -- Физическое лицо для Соколовой
 INSERT INTO person (id, last_name, first_name, middle_name, inn, citizenship, snils, created_at, created_by) VALUES
-    ('cccc0000-0000-0000-0000-000000000001', 'Соколова', 'Анна', 'Викторовна', '770123456789', 'Российская Федерация', '123-456-789 01', CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000')
+    ('cccc0000-0000-0000-0000-000000000001', 'Соколова', 'Анна', 'Викторовна', '770123456789', 'Российская Федерация', '12345678901', CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000')
 ON CONFLICT (id) DO NOTHING;
 
 -- Паспорт для Соколовой
 INSERT INTO identity_documents (id, person_id, dul_type_id, series, number, issued_by, issue_date, department_code, registration_address, is_active, created_at, updated_at, created_by)
-SELECT 'cccc0000-0000-0000-0000-000000000002', 'cccc0000-0000-0000-0000-000000000001', id, '45 15', '123456', 'ОВД г. Москвы', '2020-03-15', '770-001', 'г. Москва, ул. Пушкина, д. 10', TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000'
+SELECT 'cccc0000-0000-0000-0000-000000000002', 'cccc0000-0000-0000-0000-000000000001', id, '4515', '123456', 'ОВД г. Москвы', '2020-03-15', '770-001', 'г. Москва, ул. Пушкина, д. 10', TRUE, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, '00000000-0000-0000-0000-000000000000'
 FROM ref_dul_type WHERE code = '21'
 ON CONFLICT (id) DO NOTHING;
 
