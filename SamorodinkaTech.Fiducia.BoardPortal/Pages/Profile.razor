@@ -1,9 +1,10 @@
 @page "/profile"
-@using Microsoft.EntityFrameworkCore
 @using SamorodinkaTech.Fiducia.Domain.Entities
+@using SamorodinkaTech.Fiducia.Domain.Interfaces
 @using SamorodinkaTech.Fiducia.Infrastructure.Common
-@inject IDbContextFactory<SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext> DbFactory
+@inject IProfileReadService ProfileRead
 @inject IHttpContextAccessor HttpContextAccessor
+@inject NavigationManager Nav
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 
 <PageTitle>Fiducia — Профиль</PageTitle>
@@ -23,7 +24,7 @@
     {
         <h3 class="mb-4">Профиль</h3>
 
-        @* ── Основные сведения ──────────────────────────────────── *@
+        @* ── Блок: Основные сведения (всегда виден) ─────────────── *@
         <div class="card mb-4">
             <div class="card-header"><strong>Основные сведения</strong></div>
             <div class="card-body">
@@ -33,20 +34,6 @@
                         <div class="col-md-4 text-muted">ФИО</div>
                         <div class="col-md-8">@_person.FullName</div>
                     </div>
-                    @if (!string.IsNullOrEmpty(_person.Inn))
-                    {
-                        <div class="row mb-2">
-                            <div class="col-md-4 text-muted">ИНН</div>
-                            <div class="col-md-8">@_person.Inn</div>
-                        </div>
-                    }
-                    @if (!string.IsNullOrEmpty(_person.Snils))
-                    {
-                        <div class="row mb-2">
-                            <div class="col-md-4 text-muted">СНИЛС</div>
-                            <div class="col-md-8">@_person.Snils</div>
-                        </div>
-                    }
                     @if (!string.IsNullOrEmpty(_person.Citizenship))
                     {
                         <div class="row mb-2">
@@ -66,14 +53,43 @@
                         <div class="col-md-8">@_user.Login</div>
                     </div>
                 }
+                @if (_isParticipant)
+                {
+                    <hr />
+                    <p class="text-muted mb-2">Согласно <LawReferenceLink Article="article-14fz-31-1" Text="п. 3 ст. 31.1 Закона № 14-ФЗ" />, вы обязаны информировать общество об изменении сведений.</p>
+                    <a href="/informing" class="btn btn-outline-primary btn-sm">
+                        <span class="oi oi-info me-1"></span>Информирование
+                    </a>
+                }
             </div>
         </div>
 
-        @* ── Принадлежность к ЮЛ ──────────────────────────────────── *@
-        @if (_legalEntity is not null)
+        @* ── Вкладки ────────────────────────────────────────────── *@
+        <ul class="nav nav-tabs mb-3">
+            @if (_legalEntity is not null)
+            {
+                <li class="nav-item">
+                    <button class="nav-link @(_activeTab == "entity" ? "active" : "")" @onclick='() => _activeTab = "entity"'>Юридическое лицо</button>
+                </li>
+            }
+            @if (_identityDocuments.Count > 0)
+            {
+                <li class="nav-item">
+                    <button class="nav-link @(_activeTab == "docs" ? "active" : "")" @onclick='() => _activeTab = "docs"'>ДУЛ</button>
+                </li>
+            }
+            @if (_isParticipant)
+            {
+                <li class="nav-item">
+                    <button class="nav-link @(_activeTab == "history" ? "active" : "")" @onclick='() => _activeTab = "history"'>История информирования</button>
+                </li>
+            }
+        </ul>
+
+        @* ── Вкладка: Юридическое лицо ────────────────────────── *@
+        @if (_activeTab == "entity" && _legalEntity is not null)
         {
-            <div class="card mb-4">
-                <div class="card-header"><strong>Принадлежность к юридическому лицу</strong></div>
+            <div class="card">
                 <div class="card-body">
                     <div class="row mb-2">
                         <div class="col-md-4 text-muted">Наименование</div>
@@ -101,6 +117,20 @@
                                 }
                             </div>
                         </div>
+                        @if (!string.IsNullOrEmpty(_boardRoleName))
+                        {
+                            <div class="row mb-2">
+                                <div class="col-md-4 text-muted">Должность в СД</div>
+                                <div class="col-md-8">@_boardRoleName</div>
+                            </div>
+                        }
+                        @if (_participant.IsGeneralDirector)
+                        {
+                            <div class="row mb-2">
+                                <div class="col-md-4 text-muted">Генеральный директор</div>
+                                <div class="col-md-8"><span class="badge bg-primary">ГД</span></div>
+                            </div>
+                        }
                         @if (_participant.EntryDate.HasValue)
                         {
                             <div class="row mb-2">
@@ -109,47 +139,59 @@
                             </div>
                         }
                     }
-                </div>
-            </div>
-        }
-
-        @* ── Доля в уставном капитале ──────────────────────────────── *@
-        @if (_share is not null)
-        {
-            <div class="card mb-4">
-                <div class="card-header"><strong>Доля в уставном капитале</strong></div>
-                <div class="card-body">
-                    @if (_share.SharePercent.HasValue)
+                    @if (_share is not null)
                     {
-                        <div class="row mb-2">
-                            <div class="col-md-4 text-muted">Процент доли</div>
-                            <div class="col-md-8">@_share.SharePercent.Value.ToString("N2")%</div>
-                        </div>
-                    }
-                    @if (_share.ShareAmount.HasValue)
-                    {
-                        <div class="row mb-2">
-                            <div class="col-md-4 text-muted">Номинальная стоимость</div>
-                            <div class="col-md-8">@_share.ShareAmount.Value.ToString("N2") ₽</div>
-                        </div>
-                    }
-                    @if (!string.IsNullOrEmpty(_share.PaymentInfo))
-                    {
-                        <div class="row mb-2">
-                            <div class="col-md-4 text-muted">Оплата</div>
-                            <div class="col-md-8">@_share.PaymentInfo</div>
-                        </div>
+                        <hr />
+                        <h6 class="mb-3">Доля в уставном капитале</h6>
+                        @if (_share.SharePercent.HasValue)
+                        {
+                            <div class="row mb-2">
+                                <div class="col-md-4 text-muted">Процент доли</div>
+                                <div class="col-md-8">@_share.SharePercent.Value.ToString("N2")%</div>
+                            </div>
+                        }
+                        @if (_share.ShareAmount.HasValue)
+                        {
+                            <div class="row mb-2">
+                                <div class="col-md-4 text-muted">Номинальная стоимость</div>
+                                <div class="col-md-8">@_share.ShareAmount.Value.ToString("N2") ₽</div>
+                            </div>
+                        }
+                        @if (!string.IsNullOrEmpty(_share.PaymentInfo))
+                        {
+                            <div class="row mb-2">
+                                <div class="col-md-4 text-muted">Оплата</div>
+                                <div class="col-md-8">@_share.PaymentInfo</div>
+                            </div>
+                        }
                     }
                 </div>
             </div>
         }
 
-        @* ── Документы, удостоверяющие личность ──────────────────── *@
-        @if (_identityDocuments.Count > 0)
+        @* ── Вкладка: ДУЛ ────────────────────────────────────── *@
+        @if (_activeTab == "docs")
         {
-            <div class="card mb-4">
-                <div class="card-header"><strong>Документы, удостоверяющие личность</strong></div>
+            <div class="card">
                 <div class="card-body">
+                    @if (_person is not null)
+                    {
+                        @if (!string.IsNullOrEmpty(_person.Inn))
+                        {
+                            <div class="row mb-2">
+                                <div class="col-md-4 text-muted">ИНН</div>
+                                <div class="col-md-8">@_person.Inn</div>
+                            </div>
+                        }
+                        @if (!string.IsNullOrEmpty(_person.Snils))
+                        {
+                            <div class="row mb-2">
+                                <div class="col-md-4 text-muted">СНИЛС</div>
+                                <div class="col-md-8">@_person.Snils</div>
+                            </div>
+                        }
+                        <hr />
+                    }
                     <div class="accordion" id="docsAccordion">
                         @foreach (var (doc, index) in _identityDocuments.Select((d, i) => (d, i)))
                         {
@@ -204,17 +246,60 @@
                 </div>
             </div>
         }
+
+        @* ── Вкладка: История информирования ────────────────────── *@
+        @if (_activeTab == "history")
+        {
+            <div class="card">
+                <div class="card-body">
+                    @if (_changeHistoryItems.Count == 0)
+                    {
+                        <p class="text-muted mb-0">Информирование ещё не подавалось.</p>
+                    }
+                    else
+                    {
+                    <table class="table table-sm table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>Дата подачи</th>
+                                <th>Что изменено</th>
+                                <th>Статус</th>
+                                <th>Рассмотрел</th>
+                                <th>Комментарий</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var ch in _changeHistoryItems)
+                            {
+                                <tr>
+                                    <td>@ch.SubmittedAt.ToString("dd.MM.yyyy HH:mm")</td>
+                                    <td>@ch.Description</td>
+                                    <td>@GetStatusBadge(ch.Status)</td>
+                                    <td>@(ch.ReviewedByLogin ?? "—")</td>
+                                    <td>@(ch.ReviewComment ?? "—")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                    }
+                </div>
+            </div>
+        }
     }
 </div>
 
 @code {
     private bool _loading = true;
-    private Person? _person;
+    private string _activeTab = "entity";
     private User? _user;
+    private Person? _person;
     private LegalEntity? _legalEntity;
     private BoardParticipant? _participant;
     private BoardParticipantShare? _share;
+    private string? _boardRoleName;
     private List<IdentityDocument> _identityDocuments = new();
+    private bool _isParticipant;
+    private List<ChangeHistoryItem> _changeHistoryItems = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -223,59 +308,22 @@
             var userId = UserContextHelper.GetUserIdAsync(HttpContextAccessor.HttpContext!);
             if (userId is null) return;
 
-            await using var ctx = await DbFactory.CreateDbContextAsync();
+            var profile = await ProfileRead.GetProfileAsync(userId.Value);
+            if (profile is null) return;
 
-            _user = await ctx.Users.FindAsync(userId);
-            if (_user is null) return;
+            _user = profile.User;
+            _person = profile.Person;
+            _legalEntity = profile.LegalEntity;
+            _participant = profile.Participant;
+            _share = profile.Share;
+            _boardRoleName = profile.BoardRoleName;
+            _identityDocuments = profile.IdentityDocuments;
+            _isParticipant = profile.IsParticipant;
+            _changeHistoryItems = profile.ChangeHistory;
 
-            var ecoParticipant = await ctx.EcosystemParticipants
-                .FirstOrDefaultAsync(ep => ep.UserId == userId);
-
-            if (ecoParticipant is not null)
-            {
-                _participant = await ctx.BoardParticipants
-                    .Include(bp => bp.Shares.Where(s => s.IsActive).Take(1))
-                    .FirstOrDefaultAsync(bp => bp.EcosystemParticipantId == ecoParticipant.Id);
-
-                if (_participant is not null)
-                {
-                    _legalEntity = await ctx.LegalEntities.FindAsync(_participant.LegalEntityId);
-                    _share = _participant.Shares.FirstOrDefault();
-
-                    if (_participant.PersonId.HasValue)
-                    {
-                        _person = await ctx.Persons
-                            .Include(p => p.IdentityDocuments).ThenInclude(d => d.DulType)
-                            .FirstOrDefaultAsync(p => p.Id == _participant.PersonId.Value);
-
-                        if (_person is not null)
-                            _identityDocuments = _person.IdentityDocuments
-                                .OrderByDescending(d => d.IsActive)
-                                .ThenByDescending(d => d.CreatedAt)
-                                .ToList();
-                    }
-                }
-            }
-
-            // Если нет участника, но есть person через ecosystem_participant
-            if (_person is null && ecoParticipant is not null && ecoParticipant.EcosystemPersonId != Guid.Empty)
-            {
-                var ecoPerson = await ctx.EcosystemPersons.FindAsync(ecoParticipant.EcosystemPersonId);
-                if (ecoPerson is not null)
-                {
-                    _person = await ctx.Persons
-                        .Include(p => p.IdentityDocuments).ThenInclude(d => d.DulType)
-                        .FirstOrDefaultAsync(p => p.LastName == ecoPerson.LastName
-                            && p.FirstName == ecoPerson.FirstName
-                            && p.MiddleName == ecoPerson.MiddleName);
-
-                    if (_person is not null)
-                        _identityDocuments = _person.IdentityDocuments
-                            .OrderByDescending(d => d.IsActive)
-                            .ThenByDescending(d => d.CreatedAt)
-                            .ToList();
-                }
-            }
+            // Вкладка по умолчанию — первая доступная
+            if (_legalEntity is null && _identityDocuments.Count == 0 && _changeHistoryItems.Count == 0)
+                _activeTab = "";
         }
         catch (Exception ex)
         {
@@ -286,4 +334,12 @@
             _loading = false;
         }
     }
+
+    private static MarkupString GetStatusBadge(string? status) => status switch
+    {
+        "pending" => new("<span class='badge bg-warning text-dark'>Ожидает</span>"),
+        "approved" => new("<span class='badge bg-success'>Одобрено</span>"),
+        "rejected" => new("<span class='badge bg-danger'>Отклонено</span>"),
+        _ => new($"<span class='badge bg-secondary'>{status ?? "—"}</span>")
+    };
 }

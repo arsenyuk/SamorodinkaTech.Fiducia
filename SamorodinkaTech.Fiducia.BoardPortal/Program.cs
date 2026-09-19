@@ -133,6 +133,12 @@ builder.Services.AddScoped<IParticipantReadService, ParticipantReadService>();
 // Participant write service — запись данных участников без loopback HTTP
 builder.Services.AddScoped<IParticipantWriteService, ParticipantWriteService>();
 
+// Profile read service — чтение данных профиля пользователя
+builder.Services.AddScoped<IProfileReadService, ProfileReadService>();
+
+// Informing service — информирование об изменении сведений
+builder.Services.AddScoped<IInformingService, InformingService>();
+
 // Share request read service — чтение данных заявок без loopback HTTP
 builder.Services.AddScoped<IShareRequestReadService, ShareRequestReadService>();
 
