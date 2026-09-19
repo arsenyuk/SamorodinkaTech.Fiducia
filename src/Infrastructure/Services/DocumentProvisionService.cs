@@ -85,60 +85,68 @@ public class DocumentProvisionService : IDocumentProvisionService
 
         int seq = maxSeq;
 
-        foreach (var group in groups)
+        await using var transaction = await ctx.Database.BeginTransactionAsync(ct);
+        try
         {
-            seq++;
-            var item = new ShareRequestItem
+            foreach (var group in groups)
             {
-                Id = Guid.NewGuid(),
-                ShareRequestId = shareRequestId,
-                SequenceNumber = seq,
-                Title = group.GroupName,
-                Description = $"Запрошенные типы: {string.Join(", ", group.TypeCodes)}",
-                Status = "pending"
-            };
-            ctx.ShareRequestItems.Add(item);
-
-            _logger.LogDebug(
-                "DB_CREATE ShareRequestItem Id={ItemId} ShareRequestId={RequestId} Title={Title}",
-                item.Id, item.ShareRequestId, item.Title);
-
-            await ctx.SaveChangesAsync(ct);
-
-            // Ищем и прикрепляем файлы для каждого типа в группе
-            foreach (var typeCode in group.TypeCodes)
-            {
-                var fileIds = FindFilesForDocumentType(typeCode, charter);
-                foreach (var fileId in fileIds)
+                seq++;
+                var item = new ShareRequestItem
                 {
-                    var exists = await ctx.ShareRequestItemFiles
-                        .AnyAsync(f => f.ShareRequestItemId == item.Id && f.FileId == fileId, ct);
-                    if (exists) continue;
+                    Id = Guid.NewGuid(),
+                    ShareRequestId = shareRequestId,
+                    SequenceNumber = seq,
+                    Title = group.GroupName,
+                    Description = $"Запрошенные типы: {string.Join(", ", group.TypeCodes)}",
+                    Status = "pending"
+                };
+                ctx.ShareRequestItems.Add(item);
 
-                    var itemFile = new ShareRequestItemFile
+                _logger.LogDebug(
+                    "DB_CREATE ShareRequestItem Id={ItemId} ShareRequestId={RequestId} Title={Title}",
+                    item.Id, item.ShareRequestId, item.Title);
+
+                // Ищем и прикрепляем файлы для каждого типа в группе
+                int fileCount = 0;
+                foreach (var typeCode in group.TypeCodes)
+                {
+                    var fileIds = FindFilesForDocumentType(typeCode, charter);
+                    foreach (var fileId in fileIds)
                     {
-                        Id = Guid.NewGuid(),
-                        ShareRequestItemId = item.Id,
-                        FileId = fileId
-                    };
-                    ctx.ShareRequestItemFiles.Add(itemFile);
+                        var exists = await ctx.ShareRequestItemFiles
+                            .AnyAsync(f => f.ShareRequestItemId == item.Id && f.FileId == fileId, ct);
+                        if (exists) continue;
 
-                    _logger.LogDebug(
-                        "DB_CREATE ShareRequestItemFile Id={Id} ShareRequestItemId={ItemId} FileId={FileId}",
-                        itemFile.Id, itemFile.ShareRequestItemId, itemFile.FileId);
+                        var itemFile = new ShareRequestItemFile
+                        {
+                            Id = Guid.NewGuid(),
+                            ShareRequestItemId = item.Id,
+                            FileId = fileId
+                        };
+                        ctx.ShareRequestItemFiles.Add(itemFile);
+                        fileCount++;
+
+                        _logger.LogDebug(
+                            "DB_CREATE ShareRequestItemFile Id={Id} ShareRequestItemId={ItemId} FileId={FileId}",
+                            itemFile.Id, itemFile.ShareRequestItemId, itemFile.FileId);
+                    }
+                }
+
+                // Обновляем статус пункта если есть файлы
+                if (fileCount > 0)
+                {
+                    item.Status = "approved";
                 }
             }
 
             await ctx.SaveChangesAsync(ct);
-
-            // Обновляем статус пункта если есть файлы
-            var fileCount = await ctx.ShareRequestItemFiles
-                .CountAsync(f => f.ShareRequestItemId == item.Id, ct);
-            if (fileCount > 0)
-            {
-                item.Status = "approved";
-                await ctx.SaveChangesAsync(ct);
-            }
+            await transaction.CommitAsync(ct);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Требование {Id}: ошибка автоподгрузки документов, откат транзакции", shareRequestId);
+            await transaction.RollbackAsync(ct);
+            throw;
         }
 
         _logger.LogInformation(

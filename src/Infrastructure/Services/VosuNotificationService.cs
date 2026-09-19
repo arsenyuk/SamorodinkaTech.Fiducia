@@ -71,134 +71,143 @@ public class VosuNotificationService : IVosuNotificationService
     public async Task<List<Guid>> SendAsync(VosuNotificationSendModel model, CancellationToken ct = default)
     {
         await using var ctx = await _dbFactory.CreateDbContextAsync(ct);
-
-        var meeting = await ctx.OsaMeetings
-            .Include(x => x.LegalEntity)
-            .FirstOrDefaultAsync(x => x.Id == model.MeetingId && x.LegalEntityId == model.LegalEntityId, ct);
-        if (meeting is null)
-            throw new InvalidOperationException("Собрание не найдено");
-
-        var legalEntity = meeting.LegalEntity;
-        if (legalEntity is null)
-            throw new InvalidOperationException("Юридическое лицо не найдено");
-
-        // Обновляем поля собрания
-        meeting.GosaWindowStart = model.MeetingDate;
-        meeting.MeetingStartTime = model.MeetingStartTime;
-        meeting.MeetingVenue = model.MeetingVenue;
-        meeting.RegistrationStartTime = model.RegistrationStartTime;
-        await ctx.SaveChangesAsync(ct);
-
-        // Загружаем активных участников
-        var participants = await ctx.BoardParticipants
-            .Where(x => x.LegalEntityId == model.LegalEntityId && x.IsActive)
-            .Include(x => x.EcosystemParticipant)
-            .ToListAsync(ct);
-
-        if (participants.Count == 0)
-            throw new InvalidOperationException("Нет активных участников для отправки уведомления");
-
-        // Получаем ФИО ГД
-        var currentUser = await ctx.Users.FindAsync(new object[] { model.UserId }, ct);
-        var ceoFullName = currentUser is not null
-            ? string.Join(" ", new[] { currentUser.LastName, currentUser.FirstName, currentUser.MiddleName }
-                .Where(x => !string.IsNullOrWhiteSpace(x)))
-            : model.CeoName;
-
-        int sentCount = 0;
-        var fileIds = new List<Guid>();
-
-        foreach (var participant in participants)
+        await using var transaction = await ctx.Database.BeginTransactionAsync(ct);
+        try
         {
-            var participantName = participant.ParticipantType == "FL"
-                ? participant.Person?.FullName
-                : participant.CompanyName;
+            var meeting = await ctx.OsaMeetings
+                .Include(x => x.LegalEntity)
+                .FirstOrDefaultAsync(x => x.Id == model.MeetingId && x.LegalEntityId == model.LegalEntityId, ct);
+            if (meeting is null)
+                throw new InvalidOperationException("Собрание не найдено");
 
-            // Формируем текст уведомления
-            var (title, body) = await _textBuilder.BuildVosuAgendaChangeAsync(
-                legalEntity.Name, participantName,
-                model.MeetingDate, model.MeetingStartTime, model.MeetingVenue);
+            var legalEntity = meeting.LegalEntity;
+            if (legalEntity is null)
+                throw new InvalidOperationException("Юридическое лицо не найдено");
 
-            // Отправляем уведомление в системе
-            var recipientUserId = participant.EcosystemParticipant?.UserId;
-            if (recipientUserId.HasValue)
+            // Обновляем поля собрания
+            meeting.GosaWindowStart = model.MeetingDate;
+            meeting.MeetingStartTime = model.MeetingStartTime;
+            meeting.MeetingVenue = model.MeetingVenue;
+            meeting.RegistrationStartTime = model.RegistrationStartTime;
+
+            // Загружаем активных участников
+            var participants = await ctx.BoardParticipants
+                .Where(x => x.LegalEntityId == model.LegalEntityId && x.IsActive)
+                .Include(x => x.EcosystemParticipant)
+                .ToListAsync(ct);
+
+            if (participants.Count == 0)
+                throw new InvalidOperationException("Нет активных участников для отправки уведомления");
+
+            // Получаем ФИО ГД
+            var currentUser = await ctx.Users.FindAsync(new object[] { model.UserId }, ct);
+            var ceoFullName = currentUser is not null
+                ? string.Join(" ", new[] { currentUser.LastName, currentUser.FirstName, currentUser.MiddleName }
+                    .Where(x => !string.IsNullOrWhiteSpace(x)))
+                : model.CeoName;
+
+            int sentCount = 0;
+            var fileIds = new List<Guid>();
+
+            foreach (var participant in participants)
             {
-                await _notificationService.SendAsync(
-                    NotificationTypeCode,
-                    title, body,
-                    recipientUserId.Value,
-                    meetingId: meeting.Id,
-                    cancellationToken: ct);
-                sentCount++;
+                var participantName = participant.ParticipantType == "FL"
+                    ? participant.Person?.FullName
+                    : participant.CompanyName;
+
+                // Формируем текст уведомления
+                var (title, body) = await _textBuilder.BuildVosuAgendaChangeAsync(
+                    legalEntity.Name, participantName,
+                    model.MeetingDate, model.MeetingStartTime, model.MeetingVenue);
+
+                // Отправляем уведомление в системе
+                var recipientUserId = participant.EcosystemParticipant?.UserId;
+                if (recipientUserId.HasValue)
+                {
+                    await _notificationService.SendAsync(
+                        NotificationTypeCode,
+                        title, body,
+                        recipientUserId.Value,
+                        meetingId: meeting.Id,
+                        cancellationToken: ct);
+                    sentCount++;
+                }
+
+                // Определяем адрес участника
+                string? participantAddress = participant.ParticipantType == "FL"
+                    ? (participant.PersonId.HasValue
+                        ? ctx.IdentityDocuments.FirstOrDefault(x => x.PersonId == participant.PersonId.Value && x.IsActive)?.RegistrationAddress
+                        : null)
+                    : participant.CompanyAddress;
+
+                // Генерируем DOCX для участника
+                var docxData = new VosuNotificationData
+                {
+                    LegalEntityName = legalEntity.Name,
+                    LegalEntityOgrn = legalEntity.Ogrn,
+                    LegalEntityInn = legalEntity.Inn,
+                    ParticipantFullName = participantName ?? "Неизвестный",
+                    ParticipantAddress = participantAddress,
+                    MeetingDate = model.MeetingDate,
+                    MeetingStartTime = model.MeetingStartTime,
+                    MeetingVenue = model.MeetingVenue,
+                    RegistrationStartTime = model.RegistrationStartTime,
+                    AgendaItems = model.AgendaItems ?? new List<string>(),
+                    InitiatorName = model.InitiatorName,
+                    InitiatorSharePercent = model.InitiatorSharePercent,
+                    DemandReceivedDate = model.DemandReceivedDate,
+                    ReviewLocation = model.ReviewLocation,
+                    CeoName = ceoFullName,
+                    NotificationDate = DateOnly.FromDateTime(DateTime.UtcNow),
+                    IsAgendaChange = model.IsAgendaChange
+                };
+
+                var docxBytes = await _docxGenerator.GenerateAsync(docxData, ct);
+                using var ms = new MemoryStream(docxBytes);
+                var sanitized = SanitizePattern.Replace(participantName ?? "unknown", "_");
+                var fileName = $"{FilePrefix}{sanitized}.docx";
+
+                var storageKey = await _fileStorage.SaveAsync(ms, fileName, DocxContentType, ct);
+
+                var fileEntry = new FileEntry
+                {
+                    Id = Guid.NewGuid(),
+                    OriginalName = fileName,
+                    ContentType = DocxContentType,
+                    SizeBytes = docxBytes.Length,
+                    StorageProvider = "LOCAL",
+                    StorageKeyOrPath = storageKey,
+                    Extension = "docx",
+                    FileType = FileType,
+                    DisplayName = $"Уведомление ВОСУ — {participantName}",
+                    CreatedAt = DateTime.UtcNow,
+                    CreatedBy = model.UserId
+                };
+                ctx.Files.Add(fileEntry);
+
+                var link = new OsaMeetingFile
+                {
+                    Id = Guid.NewGuid(),
+                    OsaMeetingId = meeting.Id,
+                    FileId = fileEntry.Id
+                };
+                ctx.OsaMeetingFiles.Add(link);
+                fileIds.Add(fileEntry.Id);
             }
 
-            // Определяем адрес участника
-            string? participantAddress = participant.ParticipantType == "FL"
-                ? (participant.PersonId.HasValue
-                    ? ctx.IdentityDocuments.FirstOrDefault(x => x.PersonId == participant.PersonId.Value && x.IsActive)?.RegistrationAddress
-                    : null)
-                : participant.CompanyAddress;
+            await ctx.SaveChangesAsync(ct);
+            await transaction.CommitAsync(ct);
 
-            // Генерируем DOCX для участника
-            var docxData = new VosuNotificationData
-            {
-                LegalEntityName = legalEntity.Name,
-                LegalEntityOgrn = legalEntity.Ogrn,
-                LegalEntityInn = legalEntity.Inn,
-                ParticipantFullName = participantName ?? "Неизвестный",
-                ParticipantAddress = participantAddress,
-                MeetingDate = model.MeetingDate,
-                MeetingStartTime = model.MeetingStartTime,
-                MeetingVenue = model.MeetingVenue,
-                RegistrationStartTime = model.RegistrationStartTime,
-                AgendaItems = model.AgendaItems ?? new List<string>(),
-                InitiatorName = model.InitiatorName,
-                InitiatorSharePercent = model.InitiatorSharePercent,
-                DemandReceivedDate = model.DemandReceivedDate,
-                ReviewLocation = model.ReviewLocation,
-                CeoName = ceoFullName,
-                NotificationDate = DateOnly.FromDateTime(DateTime.UtcNow),
-                IsAgendaChange = model.IsAgendaChange
-            };
+            _logger.LogInformation("Отправлено уведомлений ВОСУ: {Count}, файлов DOCX: {FileCount}",
+                sentCount, fileIds.Count);
 
-            var docxBytes = await _docxGenerator.GenerateAsync(docxData, ct);
-            using var ms = new MemoryStream(docxBytes);
-            var sanitized = SanitizePattern.Replace(participantName ?? "unknown", "_");
-            var fileName = $"{FilePrefix}{sanitized}.docx";
-
-            var storageKey = await _fileStorage.SaveAsync(ms, fileName, DocxContentType, ct);
-
-            var fileEntry = new FileEntry
-            {
-                Id = Guid.NewGuid(),
-                OriginalName = fileName,
-                ContentType = DocxContentType,
-                SizeBytes = docxBytes.Length,
-                StorageProvider = "LOCAL",
-                StorageKeyOrPath = storageKey,
-                Extension = "docx",
-                FileType = FileType,
-                DisplayName = $"Уведомление ВОСУ — {participantName}",
-                CreatedAt = DateTime.UtcNow,
-                CreatedBy = model.UserId
-            };
-            ctx.Files.Add(fileEntry);
-
-            var link = new OsaMeetingFile
-            {
-                Id = Guid.NewGuid(),
-                OsaMeetingId = meeting.Id,
-                FileId = fileEntry.Id
-            };
-            ctx.OsaMeetingFiles.Add(link);
-            fileIds.Add(fileEntry.Id);
+            return fileIds;
         }
-
-        await ctx.SaveChangesAsync(ct);
-
-        _logger.LogInformation("Отправлено уведомлений ВОСУ: {Count}, файлов DOCX: {FileCount}",
-            sentCount, fileIds.Count);
-
-        return fileIds;
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Собрание {MeetingId}: ошибка отправки уведомлений ВОСУ, откат транзакции", model.MeetingId);
+            await transaction.RollbackAsync(ct);
+            throw;
+        }
     }
 }

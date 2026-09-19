@@ -713,16 +713,28 @@ public class ParticipantWriteService : IParticipantWriteService
         };
 
         ctx.BoardParticipantChanges.Add(entity);
-        await ctx.SaveChangesAsync(ct);
+
+        await using var transaction = await ctx.Database.BeginTransactionAsync(ct);
+        try
+        {
+            // ── Автоприменение для электронных информирований ───
+            if (entity.Source == "electronic")
+            {
+                await ApplyParticipantChangeAsync(ctx, entity, ct);
+            }
+
+            await ctx.SaveChangesAsync(ct);
+            await transaction.CommitAsync(ct);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "[{Ip}] Ошибка создания/применения информирования об изменении сведений participant={ParticipantId}, откат транзакции", clientIp, model.ParticipantId);
+            await transaction.RollbackAsync(ct);
+            throw;
+        }
 
         _logger.LogInformation("[{Ip}] Создано информирование об изменении сведений: participant={ParticipantId}, id={Id}",
             clientIp, model.ParticipantId, entity.Id);
-
-        // ── Автоприменение для электронных информирований ───
-        if (entity.Source == "electronic")
-        {
-            await ApplyParticipantChangeAsync(ctx, entity, ct);
-        }
 
         return entity.Id;
     }
@@ -1095,7 +1107,6 @@ public class ParticipantWriteService : IParticipantWriteService
 
         entity.Status = "approved";
         entity.UpdatedAt = now;
-        await ctx.SaveChangesAsync(ct);
     }
 
     /// <summary>

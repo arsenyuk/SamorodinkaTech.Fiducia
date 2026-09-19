@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using SamorodinkaTech.Fiducia.Domain.Entities;
 using SamorodinkaTech.Fiducia.Domain.Interfaces;
 using SamorodinkaTech.Fiducia.Domain.Models.Ldap;
+using SamorodinkaTech.Fiducia.Infrastructure.Persistence;
 
 namespace SamorodinkaTech.Fiducia.Infrastructure.Authentication;
 
@@ -184,7 +185,6 @@ public class LdapAuthProvider : IAuthProvider
         };
 
         _db.Users.Add(user);
-        await _db.SaveChangesAsync();
 
         // Привязка роли SYS_ADMIN
         var userRole = new UserRole
@@ -194,7 +194,20 @@ public class LdapAuthProvider : IAuthProvider
         };
 
         _db.UserRoles.Add(userRole);
-        await _db.SaveChangesAsync();
+
+        var concreteCtx = (FiduciaDbContext)_db;
+        await using var transaction = await concreteCtx.Database.BeginTransactionAsync();
+        try
+        {
+            await _db.SaveChangesAsync();
+            await transaction.CommitAsync();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "LDAP SSO: ошибка создания sysadmin {Login}, откат транзакции", ldapUser.LoginName);
+            await transaction.RollbackAsync();
+            throw;
+        }
 
         _logger.LogInformation(
             "LDAP SSO: создан sysadmin {Login} (UserId={UserId})",

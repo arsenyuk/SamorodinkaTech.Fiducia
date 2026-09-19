@@ -102,7 +102,6 @@ public class ShareRequestWriteService : IShareRequestWriteService
         };
 
         ctx.ShareRequests.Add(entity);
-        await ctx.SaveChangesAsync(ct);
 
         // Если выход требует единогласного решения ОСУ — помечаем для рассмотрения ОСУ
         if (requestType.Code == "EXIT_APPLICATION")
@@ -113,9 +112,10 @@ public class ShareRequestWriteService : IShareRequestWriteService
                 entity.IsCollective = true;
                 entity.CollectiveStatus = "OSU_REVIEW";
                 entity.Status = "submitted";
-                await ctx.SaveChangesAsync(ct);
             }
         }
+
+        await ctx.SaveChangesAsync(ct);
 
         _logger.LogInformation("Создан запрос {RequestId} типа {RequestTypeCode} пользователем {UserId}", entity.Id, requestType.Code, userId);
         return entity.Id;
@@ -311,241 +311,254 @@ public class ShareRequestWriteService : IShareRequestWriteService
     public async Task DecideAsync(Guid id, bool approved, string? reason, CancellationToken ct = default)
     {
         await using var ctx = await _dbFactory.CreateDbContextAsync();
-
-        var decision = approved ? "ACCEPTED" : "REJECTED";
-
-        var request = await ctx.ShareRequests
-            .Include(r => r.RequestType)
-            .FirstOrDefaultAsync(r => r.Id == id, ct);
-        if (request is null)
-            throw new InvalidOperationException("Требование не найдено");
-
-        ValidateStatusForOperation(request, "submit_decision");
-
-        if (request.IsCollective)
+        await using var transaction = await ctx.Database.BeginTransactionAsync(ct);
+        try
         {
-            request.CollectiveStatus = decision;
-        }
-        else
-        {
-            request.Status = decision;
-        }
-        request.CeoComment = reason;
+            var decision = approved ? "ACCEPTED" : "REJECTED";
 
-        request.CeoDecisionAt = DateTime.UtcNow;
-        request.CompletedAt = DateTime.UtcNow;
-        request.SubmittedToCeoAt ??= DateTime.UtcNow;
+            var request = await ctx.ShareRequests
+                .Include(r => r.RequestType)
+                .FirstOrDefaultAsync(r => r.Id == id, ct);
+            if (request is null)
+                throw new InvalidOperationException("Требование не найдено");
 
-        await ctx.SaveChangesAsync(ct);
+            ValidateStatusForOperation(request, "submit_decision");
 
-        _logger.LogInformation("Решение по требованию {RequestId}: {Decision}", id, decision);
-
-        // Если требование принято и тип = DEMAND_VOSU — создаём план ВОСУ
-        if (approved && request.RequestType?.Code == "DEMAND_VOSU")
-        {
-            var orgIntentId = await CreateVosuPlanAsync(ctx, request.LegalEntityId, ct);
-            if (orgIntentId.HasValue)
+            if (request.IsCollective)
             {
-                request.OrgIntentId = orgIntentId.Value;
-                await ctx.SaveChangesAsync(ct);
+                request.CollectiveStatus = decision;
+            }
+            else
+            {
+                request.Status = decision;
+            }
+            request.CeoComment = reason;
 
-                // Фиксируем: данное требование — инициирующее для ВОСУ
-                var demandLink = new VosuDemandLink
+            request.CeoDecisionAt = DateTime.UtcNow;
+            request.CompletedAt = DateTime.UtcNow;
+            request.SubmittedToCeoAt ??= DateTime.UtcNow;
+
+            _logger.LogInformation("Решение по требованию {RequestId}: {Decision}", id, decision);
+
+            // Если требование принято и тип = DEMAND_VOSU — создаём план ВОСУ
+            if (approved && request.RequestType?.Code == "DEMAND_VOSU")
+            {
+                var orgIntentId = await CreateVosuPlanAsync(ctx, request.LegalEntityId, ct);
+                if (orgIntentId.HasValue)
                 {
-                    Id = Guid.NewGuid(),
-                    OrgIntentId = orgIntentId.Value,
-                    ShareRequestId = request.Id,
-                    IsInitiating = true,
-                    CreatedBy = request.DecidedByUserId ?? request.CreatedBy,
-                    CreatedAt = DateTime.UtcNow
-                };
-                ctx.VosuDemandLinks.Add(demandLink);
-                await ctx.SaveChangesAsync(ct);
-            }
-        }
+                    request.OrgIntentId = orgIntentId.Value;
 
-        // Если требование принято и тип = DEMAND_VOSA — создаём план ВОСА
-        if (approved && request.RequestType?.Code == "DEMAND_VOSA")
-        {
-            var orgIntentId = await CreateVosaPlanAsync(ctx, request.LegalEntityId, ct);
-            if (orgIntentId.HasValue)
+                    // Фиксируем: данное требование — инициирующее для ВОСУ
+                    var demandLink = new VosuDemandLink
+                    {
+                        Id = Guid.NewGuid(),
+                        OrgIntentId = orgIntentId.Value,
+                        ShareRequestId = request.Id,
+                        IsInitiating = true,
+                        CreatedBy = request.DecidedByUserId ?? request.CreatedBy,
+                        CreatedAt = DateTime.UtcNow
+                    };
+                    ctx.VosuDemandLinks.Add(demandLink);
+                }
+            }
+
+            // Если требование принято и тип = DEMAND_VOSA — создаём план ВОСА
+            if (approved && request.RequestType?.Code == "DEMAND_VOSA")
             {
-                request.OrgIntentId = orgIntentId.Value;
-                await ctx.SaveChangesAsync(ct);
+                var orgIntentId = await CreateVosaPlanAsync(ctx, request.LegalEntityId, ct);
+                if (orgIntentId.HasValue)
+                {
+                    request.OrgIntentId = orgIntentId.Value;
+                }
             }
-        }
 
-        // Если требование принято и тип = REQUEST_INFORMATION — автоматически подгружаем документы
-        if (approved && request.RequestType?.Code == "REQUEST_INFORMATION")
-        {
-            await _documentProvisionService.AutoProvisionDocumentsAsync(request.Id);
-        }
-
-        // Если требование принято и тип = EXIT_APPLICATION — помечаем участника как выбывшего
-        if (approved && request.RequestType?.Code == "EXIT_APPLICATION")
-        {
-            var exitingParticipant = await ctx.BoardParticipants
-                .FirstOrDefaultAsync(p => p.Id == request.ParticipantId, ct);
-            if (exitingParticipant is not null)
+            // Если требование принято и тип = REQUEST_INFORMATION — автоматически подгружаем документы
+            if (approved && request.RequestType?.Code == "REQUEST_INFORMATION")
             {
-                exitingParticipant.ExitDate = DateOnly.FromDateTime(DateTime.UtcNow);
-                exitingParticipant.IsActive = false;
-                await ctx.SaveChangesAsync(ct);
+                await _documentProvisionService.AutoProvisionDocumentsAsync(request.Id);
             }
-        }
 
-        // Уведомляем всех поддержавших
-        await NotifySupportersAsync(ctx, request, ct);
-        await ctx.SaveChangesAsync(ct);
+            // Если требование принято и тип = EXIT_APPLICATION — помечаем участника как выбывшего
+            if (approved && request.RequestType?.Code == "EXIT_APPLICATION")
+            {
+                var exitingParticipant = await ctx.BoardParticipants
+                    .FirstOrDefaultAsync(p => p.Id == request.ParticipantId, ct);
+                if (exitingParticipant is not null)
+                {
+                    exitingParticipant.ExitDate = DateOnly.FromDateTime(DateTime.UtcNow);
+                    exitingParticipant.IsActive = false;
+                }
+            }
+
+            // Уведомляем всех поддержавших
+            await NotifySupportersAsync(ctx, request, ct);
+
+            await ctx.SaveChangesAsync(ct);
+            await transaction.CommitAsync(ct);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Требование {RequestId}: ошибка при принятии решения, откат транзакции", id);
+            await transaction.RollbackAsync(ct);
+            throw;
+        }
     }
 
     /// <inheritdoc />
     public async Task<Guid> CreateCollectiveAsync(Guid userId, Guid requestTypeId, string? text, string? payload, CancellationToken ct = default)
     {
         await using var ctx = await _dbFactory.CreateDbContextAsync();
-
-        var leId = await ResolveLegalEntityIdAsync(ctx, userId);
-        if (leId is null)
-            throw new InvalidOperationException("Юридическое лицо не выбрано");
-
-        // Находим текущего участника
-        var user = await ctx.Users.FindAsync(userId);
-        var ecoParticipant = user is not null ? await PersonHelper.FindParticipantByUserIdAsync(ctx, user.Id, ct) : null;
-        if (ecoParticipant is null)
-            throw new InvalidOperationException("Пользователь не привязан к участнику экосистемы");
-
-        var participant = await ctx.BoardParticipants
-            .Include(p => p.Shares.Where(s => s.IsActive).OrderByDescending(s => s.CreatedAt).Take(1))
-            .FirstOrDefaultAsync(p => p.LegalEntityId == leId && p.EcosystemParticipantId == ecoParticipant.Id && p.IsActive, ct);
-        if (participant is null)
-            throw new InvalidOperationException("Не найден участник для текущего пользователя");
-
-        var activeShare = participant.Shares.FirstOrDefault();
-
-        // Проверяем тип требования
-        var requestType = await ctx.RequestTypes.FindAsync(requestTypeId);
-        if (requestType is null)
-            throw new InvalidOperationException($"Неизвестный тип требования: {requestTypeId}");
-
-        var le = await ctx.LegalEntities
-            .Include(x => x.RefOkopf)
-            .FirstOrDefaultAsync(x => x.Id == leId, ct);
-        var okopfCode = le?.RefOkopf?.Code;
-        var isLlc = OkopfTypeMapper.IsLlc(okopfCode);
-        var isNjsc = okopfCode == OkopfTypeMapper.NjscCode;
-        var isPjsc = OkopfTypeMapper.IsPjsc(okopfCode);
-
-        if ((isLlc && !requestType.IsForLlc) || (isNjsc && !requestType.IsForNjsc) || (isPjsc && !requestType.IsForPjsc))
-            throw new InvalidOperationException($"Тип требования «{requestType.Name}» не доступен для данного типа организации");
-
-        // Определяем порог по типу запроса (ст. 35 14-ФЗ / ст. 55 208-ФЗ)
-        var charter = await ctx.LegalEntityCharters.FindAsync(leId);
-        decimal? charterThreshold = requestType.Code is "DEMAND_VOSU" or "DEMAND_VOSA"
-            ? charter?.VosuThresholdPercent
-            : null;
-
-        var systemSettingKey = requestType.Code switch
+        await using var transaction = await ctx.Database.BeginTransactionAsync(ct);
+        try
         {
-            "DEMAND_VOSU" => Domain.Constants.SystemSettingKeys.VosuDefaultThresholdPercent,
-            "DEMAND_VOSA" => Domain.Constants.SystemSettingKeys.VosaDefaultThresholdPercent,
-            _ => null
-        };
+            var leId = await ResolveLegalEntityIdAsync(ctx, userId);
+            if (leId is null)
+                throw new InvalidOperationException("Юридическое лицо не выбрано");
 
-        decimal? systemDefault = null;
-        if (systemSettingKey is not null)
-        {
-            var setting = await ctx.SystemSettings.FirstOrDefaultAsync(x => x.Key == systemSettingKey, ct);
-            if (setting is not null && decimal.TryParse(setting.Value, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var parsed))
-                systemDefault = parsed;
-        }
+            // Находим текущего участника
+            var user = await ctx.Users.FindAsync(userId);
+            var ecoParticipant = user is not null ? await PersonHelper.FindParticipantByUserIdAsync(ctx, user.Id, ct) : null;
+            if (ecoParticipant is null)
+                throw new InvalidOperationException("Пользователь не привязан к участнику экосистемы");
 
-        // Определяем: направлять ли требование СД (вместо ГД)
-        bool isForBoard = charter?.BoardDecidesConveningOsu == true
-            && requestType.ConsideredByOsu;
+            var participant = await ctx.BoardParticipants
+                .Include(p => p.Shares.Where(s => s.IsActive).OrderByDescending(s => s.CreatedAt).Take(1))
+                .FirstOrDefaultAsync(p => p.LegalEntityId == leId && p.EcosystemParticipantId == ecoParticipant.Id && p.IsActive, ct);
+            if (participant is null)
+                throw new InvalidOperationException("Не найден участник для текущего пользователя");
 
-        // Определяем: хватает ли доли участнику для прямого направления
-        var effectiveThreshold = charterThreshold ?? systemDefault;
-        var participantShare = activeShare?.SharePercent ?? 0m;
-        var hasEnoughShare = effectiveThreshold.HasValue && participantShare >= effectiveThreshold.Value;
+            var activeShare = participant.Shares.FirstOrDefault();
 
-        // Создаём запрос
-        var entity = new ShareRequest
-        {
-            Id = Guid.NewGuid(),
-            LegalEntityId = leId!.Value,
-            ParticipantId = participant.Id,
-            RequestTypeId = requestTypeId,
-            Status = "draft",
-            Text = text,
-            Payload = payload,
-            CreatedBy = userId,
-            IsCollective = true,
-            ThresholdPercent = effectiveThreshold,
-            TotalSupportPercent = participantShare,
-            SupporterCount = 1,
-            CollectiveStatus = hasEnoughShare
-                ? (isForBoard ? "BOARD_REVIEW" : "SUBMITTED_TO_CEO")
-                : effectiveThreshold.HasValue
-                    ? "COLLECTING"
-                    : isForBoard ? "BOARD_REVIEW" : "SUBMITTED_TO_CEO"
-        };
+            // Проверяем тип требования
+            var requestType = await ctx.RequestTypes.FindAsync(requestTypeId);
+            if (requestType is null)
+                throw new InvalidOperationException($"Неизвестный тип требования: {requestTypeId}");
 
-        // Автоматически добавляем поддержку инициатора
-        var initiatorSupport = new ShareRequestSupport
-        {
-            Id = Guid.NewGuid(),
-            ShareRequestId = entity.Id,
-            ParticipantId = participant.Id,
-            SharePercentAtSupport = activeShare?.SharePercent ?? 0m,
-            SupportedAt = DateTime.UtcNow
-        };
+            var le = await ctx.LegalEntities
+                .Include(x => x.RefOkopf)
+                .FirstOrDefaultAsync(x => x.Id == leId, ct);
+            var okopfCode = le?.RefOkopf?.Code;
+            var isLlc = OkopfTypeMapper.IsLlc(okopfCode);
+            var isNjsc = okopfCode == OkopfTypeMapper.NjscCode;
+            var isPjsc = OkopfTypeMapper.IsPjsc(okopfCode);
 
-        if (!effectiveThreshold.HasValue)
-            entity.SubmittedToCeoAt = DateTime.UtcNow;
+            if ((isLlc && !requestType.IsForLlc) || (isNjsc && !requestType.IsForNjsc) || (isPjsc && !requestType.IsForPjsc))
+                throw new InvalidOperationException($"Тип требования «{requestType.Name}» не доступен для данного типа организации");
 
-        ctx.ShareRequests.Add(entity);
-        ctx.ShareRequestSupports.Add(initiatorSupport);
-        await ctx.SaveChangesAsync(ct);
+            // Определяем порог по типу запроса (ст. 35 14-ФЗ / ст. 55 208-ФЗ)
+            var charter = await ctx.LegalEntityCharters.FindAsync(leId);
+            decimal? charterThreshold = requestType.Code is "DEMAND_VOSU" or "DEMAND_VOSA"
+                ? charter?.VosuThresholdPercent
+                : null;
 
-        // Если требование сразу направлено ГД (достаточная доля) — уведомляем CEO и инициатора
-        if (entity.CollectiveStatus == "SUBMITTED_TO_CEO")
-        {
-            entity.SubmittedToCeoAt ??= DateTime.UtcNow;
-            await ctx.SaveChangesAsync(ct);
-            await NotifyCeoAsync(ctx, entity, ct);
-            await NotifyInitiatorAsync(ctx, entity, ct);
-            await ctx.SaveChangesAsync(ct);
-        }
-
-        // Если требование направлено СД — создаём пункт повестки заседания СД
-        if (entity.CollectiveStatus == "BOARD_REVIEW")
-        {
-            var activeBoard = await ctx.BoardsOfDirectors
-                .Include(b => b.OsaMeeting)
-                .Where(b => b.OsaMeeting!.LegalEntityId == leId && b.EndedAt == null)
-                .OrderByDescending(b => b.ElectionYear)
-                .FirstOrDefaultAsync(ct);
-            if (activeBoard is not null)
+            var systemSettingKey = requestType.Code switch
             {
-                var agendaItem = new AgendaItem
-                {
-                    Id = Guid.NewGuid(),
-                    BoardOfDirectorsId = activeBoard.Id,
-                    LegalEntityId = leId!.Value,
-                    ShareRequestId = entity.Id,
-                    Title = $"Требование: {requestType.Name}",
-                    TargetType = "BOARD_MEETING",
-                    Reason = "Требование участника (ст. 35 14-ФЗ)",
-                    Status = "PENDING"
-                };
-                ctx.AgendaItems.Add(agendaItem);
-                await ctx.SaveChangesAsync(ct);
-            }
-        }
+                "DEMAND_VOSU" => Domain.Constants.SystemSettingKeys.VosuDefaultThresholdPercent,
+                "DEMAND_VOSA" => Domain.Constants.SystemSettingKeys.VosaDefaultThresholdPercent,
+                _ => null
+            };
 
-        _logger.LogInformation("Создано коллективное требование {RequestId} типа {RequestTypeCode} пользователем {UserId}",
-            entity.Id, requestType.Code, userId);
-        return entity.Id;
+            decimal? systemDefault = null;
+            if (systemSettingKey is not null)
+            {
+                var setting = await ctx.SystemSettings.FirstOrDefaultAsync(x => x.Key == systemSettingKey, ct);
+                if (setting is not null && decimal.TryParse(setting.Value, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var parsed))
+                    systemDefault = parsed;
+            }
+
+            // Определяем: направлять ли требование СД (вместо ГД)
+            bool isForBoard = charter?.BoardDecidesConveningOsu == true
+                && requestType.ConsideredByOsu;
+
+            // Определяем: хватает ли доли участнику для прямого направления
+            var effectiveThreshold = charterThreshold ?? systemDefault;
+            var participantShare = activeShare?.SharePercent ?? 0m;
+            var hasEnoughShare = effectiveThreshold.HasValue && participantShare >= effectiveThreshold.Value;
+
+            // Создаём запрос
+            var entity = new ShareRequest
+            {
+                Id = Guid.NewGuid(),
+                LegalEntityId = leId!.Value,
+                ParticipantId = participant.Id,
+                RequestTypeId = requestTypeId,
+                Status = "draft",
+                Text = text,
+                Payload = payload,
+                CreatedBy = userId,
+                IsCollective = true,
+                ThresholdPercent = effectiveThreshold,
+                TotalSupportPercent = participantShare,
+                SupporterCount = 1,
+                CollectiveStatus = hasEnoughShare
+                    ? (isForBoard ? "BOARD_REVIEW" : "SUBMITTED_TO_CEO")
+                    : effectiveThreshold.HasValue
+                        ? "COLLECTING"
+                        : isForBoard ? "BOARD_REVIEW" : "SUBMITTED_TO_CEO"
+            };
+
+            // Автоматически добавляем поддержку инициатора
+            var initiatorSupport = new ShareRequestSupport
+            {
+                Id = Guid.NewGuid(),
+                ShareRequestId = entity.Id,
+                ParticipantId = participant.Id,
+                SharePercentAtSupport = activeShare?.SharePercent ?? 0m,
+                SupportedAt = DateTime.UtcNow
+            };
+
+            if (!effectiveThreshold.HasValue)
+                entity.SubmittedToCeoAt = DateTime.UtcNow;
+
+            ctx.ShareRequests.Add(entity);
+            ctx.ShareRequestSupports.Add(initiatorSupport);
+
+            // Если требование сразу направлено ГД (достаточная доля) — уведомляем CEO и инициатора
+            if (entity.CollectiveStatus == "SUBMITTED_TO_CEO")
+            {
+                entity.SubmittedToCeoAt ??= DateTime.UtcNow;
+                await NotifyCeoAsync(ctx, entity, ct);
+                await NotifyInitiatorAsync(ctx, entity, ct);
+            }
+
+            // Если требование направлено СД — создаём пункт повестки заседания СД
+            if (entity.CollectiveStatus == "BOARD_REVIEW")
+            {
+                var activeBoard = await ctx.BoardsOfDirectors
+                    .Include(b => b.OsaMeeting)
+                    .Where(b => b.OsaMeeting!.LegalEntityId == leId && b.EndedAt == null)
+                    .OrderByDescending(b => b.ElectionYear)
+                    .FirstOrDefaultAsync(ct);
+                if (activeBoard is not null)
+                {
+                    var agendaItem = new AgendaItem
+                    {
+                        Id = Guid.NewGuid(),
+                        BoardOfDirectorsId = activeBoard.Id,
+                        LegalEntityId = leId!.Value,
+                        ShareRequestId = entity.Id,
+                        Title = $"Требование: {requestType.Name}",
+                        TargetType = "BOARD_MEETING",
+                        Reason = "Требование участника (ст. 35 14-ФЗ)",
+                        Status = "PENDING"
+                    };
+                    ctx.AgendaItems.Add(agendaItem);
+                }
+            }
+
+            await ctx.SaveChangesAsync(ct);
+            await transaction.CommitAsync(ct);
+
+            _logger.LogInformation("Создано коллективное требование {RequestId} типа {RequestTypeCode} пользователем {UserId}",
+                entity.Id, requestType.Code, userId);
+            return entity.Id;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Ошибка создания коллективного требования типа {RequestTypeId} пользователем {UserId}, откат транзакции", requestTypeId, userId);
+            await transaction.RollbackAsync(ct);
+            throw;
+        }
     }
 
     /// <inheritdoc />
