@@ -46,44 +46,98 @@ else if (_selectedType is null)
     var osuTypes = _availableTypes.Where(t => t.ConsideredByOsu).ToList();
     if (osuTypes.Count > 0)
     {
+        var osuAvailable = osuTypes.Where(t => t.IsAvailable).ToList();
+        var osuUnavailable = osuTypes.Where(t => !t.IsAvailable).ToList();
+
         <h5 class="mb-3">Требования, рассматриваемые ОСУ</h5>
-        <div class="row g-3 mb-4">
-            @foreach (var rt in osuTypes)
-            {
-                <div class="col-md-6">
-                    <div class="card h-100" style="cursor:pointer" @onclick="() => SelectType(rt)">
-                        <div class="card-body">
-                            <h5 class="card-title">@rt.Name</h5>
-                            <p class="card-text text-muted small mb-0">
-                                @GetDescription(rt.Code)
-                            </p>
+
+        @if (osuAvailable.Count > 0)
+        {
+            <div class="row g-3 mb-4">
+                @foreach (var rt in osuAvailable)
+                {
+                    <div class="col-md-6">
+                        <div class="card h-100" style="cursor:pointer" @onclick="() => SelectType(rt)">
+                            <div class="card-body">
+                                <h5 class="card-title">@rt.Name</h5>
+                                <p class="card-text text-muted small mb-0">
+                                    @GetDescription(rt.Code)
+                                </p>
+                            </div>
                         </div>
                     </div>
-                </div>
-            }
-        </div>
+                }
+            </div>
+        }
+
+        @if (osuUnavailable.Count > 0)
+        {
+            <h6 class="text-muted mb-2">Недоступные</h6>
+            <div class="row g-3 mb-4">
+                @foreach (var rt in osuUnavailable)
+                {
+                    <div class="col-md-6">
+                        <div class="card h-100 border-secondary bg-light">
+                            <div class="card-body">
+                                <h5 class="card-title text-muted">@rt.Name</h5>
+                                <p class="card-text small text-danger mb-0">
+                                    @rt.UnavailabilityReason
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
     }
 
     @* ── Требования, удовлетворяемые ГД ──────────────────────────── *@
     var gdTypes = _availableTypes.Where(t => !t.ConsideredByOsu).ToList();
     if (gdTypes.Count > 0)
     {
+        var gdAvailable = gdTypes.Where(t => t.IsAvailable).ToList();
+        var gdUnavailable = gdTypes.Where(t => !t.IsAvailable).ToList();
+
         <h5 class="mb-3">Требования, удовлетворяемые ГД</h5>
-        <div class="row g-3">
-            @foreach (var rt in gdTypes)
-            {
-                <div class="col-md-6">
-                    <div class="card h-100" style="cursor:pointer" @onclick="() => SelectType(rt)">
-                        <div class="card-body">
-                            <h5 class="card-title">@rt.Name</h5>
-                            <p class="card-text text-muted small mb-0">
-                                @GetDescription(rt.Code)
-                            </p>
+
+        @if (gdAvailable.Count > 0)
+        {
+            <div class="row g-3 mb-4">
+                @foreach (var rt in gdAvailable)
+                {
+                    <div class="col-md-6">
+                        <div class="card h-100" style="cursor:pointer" @onclick="() => SelectType(rt)">
+                            <div class="card-body">
+                                <h5 class="card-title">@rt.Name</h5>
+                                <p class="card-text text-muted small mb-0">
+                                    @GetDescription(rt.Code)
+                                </p>
+                            </div>
                         </div>
                     </div>
-                </div>
-            }
-        </div>
+                }
+            </div>
+        }
+
+        @if (gdUnavailable.Count > 0)
+        {
+            <h6 class="text-muted mb-2">Недоступные</h6>
+            <div class="row g-3 mb-4">
+                @foreach (var rt in gdUnavailable)
+                {
+                    <div class="col-md-6">
+                        <div class="card h-100 border-secondary bg-light">
+                            <div class="card-body">
+                                <h5 class="card-title text-muted">@rt.Name</h5>
+                                <p class="card-text small text-danger mb-0">
+                                    @rt.UnavailabilityReason
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
     }
 }
 else
@@ -435,11 +489,15 @@ else
             {
                 charter = await ctx.LegalEntityCharters.FindAsync(leId.Value);
                 extraSettings = await ctx.LegalEntityExtraSettings.FirstOrDefaultAsync(x => x.LegalEntityId == leId.Value);
-                le = await ctx.LegalEntities.FirstOrDefaultAsync(x => x.Id == leId.Value);
+                le = await ctx.LegalEntities.Include(x => x.RefOkopf).FirstOrDefaultAsync(x => x.Id == leId.Value);
             }
 
             var types = await ShareRequestRead.GetTypesAsync();
-            _availableTypes = types.Select(rt => MapToRequestTypeDto(rt, charter, extraSettings, le)).ToList();
+            var okopfCode = le?.RefOkopf?.Code;
+            var isLlc = Domain.Validation.OkopfTypeMapper.IsLlc(okopfCode);
+            var isNjsc = Domain.Validation.OkopfTypeMapper.IsNjsc(okopfCode);
+            var isPjsc = Domain.Validation.OkopfTypeMapper.IsPjsc(okopfCode);
+            _availableTypes = types.Select(rt => MapToRequestTypeDto(rt, charter, extraSettings, le, isLlc, isNjsc, isPjsc)).ToList();
 
             // Загружаем долю участника для подсказок
             try
@@ -924,12 +982,17 @@ else
         Domain.Entities.RefRequestType rt,
         Domain.Entities.LegalEntityCharter? charter,
         Domain.Entities.LegalEntityExtraSettings? extraSettings,
-        Domain.Entities.LegalEntity? le)
+        Domain.Entities.LegalEntity? le,
+        bool isLlc, bool isNjsc, bool isPjsc)
     {
         var isCollective = IsCollectiveType(rt.Code);
         var requiresThreshold = rt.Code is "DEMAND_VOSU" or "DEMAND_VOSA";
         decimal? thresholdPercent = requiresThreshold ? charter?.VosuThresholdPercent : null;
-        var isAvailable = rt.Code switch
+
+        // Проверка соответствия типа организации
+        var isForOrgType = (isLlc && rt.IsForLlc) || (isNjsc && rt.IsForNjsc) || (isPjsc && rt.IsForPjsc);
+
+        var isAvailable = isForOrgType && rt.Code switch
         {
             "EXIT_APPLICATION" => charter?.ExitAllowed ?? false,
             "PREEMPTIVE_LIST" => charter?.PreemptiveRight ?? true,
@@ -937,21 +1000,36 @@ else
             "CONVERT_STANDARD_TO_CUSTOM_CHARTER" => le?.StandardCharterId.HasValue ?? false,
             "CHANGE_STANDARD_CHARTER_NUMBER" => le?.StandardCharterId.HasValue ?? false,
             "CHANGE_CUSTOM_CHARTER_PROVISION" => !(le?.StandardCharterId.HasValue ?? true),
+            "EXCLUDE_PARTICIPANT" => charter?.ExecutiveBody == 'A',
             _ => true
         };
-        var unavailabilityReason = rt.Code switch
-        {
-            "EXIT_APPLICATION" when !(charter?.ExitAllowed ?? false) => "Выход из общества не предусмотрен уставом",
-            "NOTARY_LIST_MAINTENANCE" when extraSettings?.NotaryListApproved == true => "Ведение списка через нотариат уже утверждено",
-            "CONVERT_STANDARD_TO_CUSTOM_CHARTER" when !(le?.StandardCharterId.HasValue ?? false) => "Текущий устав уже является индивидуальным",
-            "CHANGE_STANDARD_CHARTER_NUMBER" when !(le?.StandardCharterId.HasValue ?? false) => "Текущий устав уже является индивидуальным",
-            "CHANGE_CUSTOM_CHARTER_PROVISION" when le?.StandardCharterId.HasValue ?? true => "Текущий устав является типовым — используйте «Изменить номер типового устава»",
-            _ => null
-        };
+
+        var unavailabilityReason = !isForOrgType
+            ? $"Недоступно для {OrgTypeLabel(le)}"
+            : rt.Code switch
+            {
+                "EXIT_APPLICATION" when !(charter?.ExitAllowed ?? false) => "Выход из общества не предусмотрен уставом",
+                "NOTARY_LIST_MAINTENANCE" when extraSettings?.NotaryListApproved == true => "Ведение списка через нотариат уже утверждено",
+                "CONVERT_STANDARD_TO_CUSTOM_CHARTER" when !(le?.StandardCharterId.HasValue ?? false) => "Текущий устав уже является индивидуальным",
+                "CHANGE_STANDARD_CHARTER_NUMBER" when !(le?.StandardCharterId.HasValue ?? false) => "Текущий устав уже является индивидуальным",
+                "CHANGE_CUSTOM_CHARTER_PROVISION" when le?.StandardCharterId.HasValue ?? true => "Текущий устав является типовым — используйте «Изменить номер типового устава»",
+                "EXCLUDE_PARTICIPANT" when charter?.ExecutiveBody != 'A' => "Требование об исключении доступно только при единоличном исполнительном органе (генеральный директор)",
+                _ => null
+            };
+
         var legalBasis = GetLegalBasis(rt.Code);
 
         return new RequestTypeDto(rt.Id, rt.Code, rt.Name, rt.RequiresFile, rt.ConsideredByOsu,
             requiresThreshold, thresholdPercent, legalBasis, isCollective, isAvailable, unavailabilityReason);
+    }
+
+    private static string OrgTypeLabel(Domain.Entities.LegalEntity? le)
+    {
+        var code = le?.RefOkopf?.Code;
+        if (code == "12300") return "ООО";
+        if (code == "12267") return "НАО";
+        if (code == "12247") return "ПАО";
+        return "данного типа организации";
     }
 
     private static ExistingRequestDto MapToExistingRequestDto(Domain.Entities.ShareRequest r)

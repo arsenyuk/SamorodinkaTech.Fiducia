@@ -273,7 +273,7 @@ Unit-тесты: [`OsaMeetingValidatorTests`](../e2e-tests.md#маппинг-us-
 | EXIT_APPLICATION | Доля <= макс. | "Ваша доля ({n}%) выше максимальной для выхода ({m}%)" | [`US020_ShareRequestTests`](../e2e-tests.md#участники-ооо) |
 | CHANGE_STANDARD_CHARTER_NUMBER | Номер типового сейчас | "Текущий устав не является типовым" | [`US020_ShareRequestTests`](../e2e-tests.md#участники-ооо) |
 | CHANGE_STANDARD_CHARTER_NUMBER | Номер отличается | "Новый номер типового устава должен отличаться от текущего" | [`US020_ShareRequestTests`](../e2e-tests.md#участники-ооо) |
-| CONVERT_TO_CUSTOM | Нетиповой сейчас | "Текущий устав уже является индивидуальным" | [`US020_ShareRequestTests`](../e2e-tests.md#участники-ооо) |
+| CONVERT_TO_CUSTOM | Индивидуальный сейчас | "Текущий устав уже является индивидуальным" | [`US020_ShareRequestTests`](../e2e-tests.md#участники-ооо) |
 | CONVERT_TO_CUSTOM | Файл устава | "Необходимо приложить файл проекта устава" | [`US020_ShareRequestTests`](../e2e-tests.md#участники-ооо) |
 | CONVERT_TO_NJSC | Сейчас ООО | "Преобразование в НАО доступно только для ООО" | [`US020_ShareRequestTests`](../e2e-tests.md#участники-ооо) |
 | CONVERT_TO_PJSC | Сейчас НАО | "Преобразование в ПАО доступно только для НАО" | [`US020_ShareRequestTests`](../e2e-tests.md#участники-ооо) |

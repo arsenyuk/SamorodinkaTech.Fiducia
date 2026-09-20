@@ -680,7 +680,7 @@
                             <div class="d-flex align-items-center gap-2 flex-nowrap">
                                 <label class="form-label mb-0 fw-bold text-nowrap">Тип устава</label>
                                 <select class="form-select form-select-sm flex-grow-1" @bind:get="_editCharterNumber" @bind:set="OnCharterNumberSet">
-                                    <option value="">Нетиповой (индивидуальный) устав</option>
+                                    <option value="">Индивидуальный устав</option>
                                     @for (int i = 1; i <= 36; i++)
                                     {
                                         var num = i.ToString("D2");
@@ -1066,7 +1066,7 @@
     private bool _isLoadingCharter;
     private StandardCharterInfo? _charterSettings;
 
-    // Нетиповой устав
+    // Индивидуальный устав
     private bool _customExitAllowed;
     private decimal? _customExitAllowedMinSharePercent;
     private decimal? _customExitAllowedMaxSharePercent;

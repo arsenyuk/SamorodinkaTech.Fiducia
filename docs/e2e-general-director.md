@@ -42,11 +42,11 @@
 
 | # | Метод | entityIndex | ExecutiveBody | Устав | Вкладка «ГД» | Проверка |
 |---|-------|:-----------:|:---:|-------|:---:|----------|
-| 1 | `TabVisible_ShouldAssignParticipantAndSave` | 58 | A | Нетиповой | Видна | Назначение 1-го участника ГД + СНИЛС |
-| 2 | `TwoParticipants_ShouldSelectSecond` | 59 | A | Нетиповой | Видна | Выбор 2-го участника |
-| 3 | `SaveWithSnils_ShouldPersistData` | 60 | A | Нетиповой | Видна | Сохранение + проверка после навигации |
-| 4 | `ExecBodyB_TabNotVisible` | 61 | B | Нетиповой | НЕ видна | — |
-| 5 | `ExecBodyC_TabNotVisible` | 62 | C | Нетиповой | НЕ видна | — |
+| 1 | `TabVisible_ShouldAssignParticipantAndSave` | 58 | A | Индивидуальный | Видна | Назначение 1-го участника ГД + СНИЛС |
+| 2 | `TwoParticipants_ShouldSelectSecond` | 59 | A | Индивидуальный | Видна | Выбор 2-го участника |
+| 3 | `SaveWithSnils_ShouldPersistData` | 60 | A | Индивидуальный | Видна | Сохранение + проверка после навигации |
+| 4 | `ExecBodyB_TabNotVisible` | 61 | B | Индивидуальный | НЕ видна | — |
+| 5 | `ExecBodyC_TabNotVisible` | 62 | C | Индивидуальный | НЕ видна | — |
 | 6 | `StandardCharter_ExecBodyA_TabVisible` | 63 | A | Типовой №1 | Видна | Назначение ГД при типовом уставе |
 
 ---

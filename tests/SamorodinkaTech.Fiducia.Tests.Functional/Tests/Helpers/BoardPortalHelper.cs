@@ -229,12 +229,12 @@ public static class BoardPortalHelper
     }
 
     // ══════════════════════════════════════════════════════════════════════
-    // Нетиповой устав
+    // Индивидуальный устав
     // ══════════════════════════════════════════════════════════════════════
 
     /// <summary>
-    /// Выбрать "Нетиповой устав" на вкладке "Устав" страницы /legal-entities.
-    /// Выбирает option с value="" или text containing "Нетиповой" в first select.
+    /// Выбрать "Индивидуальный устав" на вкладке "Устав" страницы /legal-entities.
+    /// Выбирает option с value="" или text containing "Индивидуальный" в first select.
     /// </summary>
     public static async Task SelectCustomCharterAsync(IPage page)
     {
@@ -253,7 +253,7 @@ public static class BoardPortalHelper
             }");
         await page.WaitForTimeoutAsync(500);
 
-        // Select "Нетиповой" option — первый option в charter type select
+        // Select "Индивидуальный" option — первый option в charter type select
         var charterSelect = page.Locator("select.form-select-sm.flex-grow-1");
         if (await charterSelect.CountAsync() > 0)
         {
@@ -360,28 +360,28 @@ public static class BoardPortalHelper
 
         // Все 17 параметров индивидуального устава
         content.Should().Contain("Исполнительный орган",
-            "Нетиповой устав: 'Исполнительный орган'");
+            "Индивидуальный устав: 'Исполнительный орган'");
         content.Should().Contain("Выход участника",
-            "Нетиповой устав: 'Выход участника'");
+            "Индивидуальный устав: 'Выход участника'");
         content.Should().Contain("Преимущественное право",
-            "Нетиповой устав: 'Преимущественное право'");
+            "Индивидуальный устав: 'Преимущественное право'");
         content.Should().Contain("Совет директоров",
-            "Нетиповой устав: 'Совет директоров'");
+            "Индивидуальный устав: 'Совет директоров'");
         content.Should().Contain("Подтверждение протокола",
-            "Нетиповой устав: 'Подтверждение протокола'");
+            "Индивидуальный устав: 'Подтверждение протокола'");
         content.Should().Contain("Обязательный аудит",
-            "Нетиповой устав: 'Обязательный аудит'");
+            "Индивидуальный устав: 'Обязательный аудит'");
         content.Should().Contain("Ревизионная комиссия",
-            "Нетиповой устав: 'Ревизионная комиссия'");
+            "Индивидуальный устав: 'Ревизионная комиссия'");
         content.Should().Contain("Срок полномочий",
-            "Нетиповой устав: 'Срок полномочий'");
+            "Индивидуальный устав: 'Срок полномочий'");
         content.Should().Contain("Переход доли наследникам",
-            "Нетиповой устав: 'Переход доли наследникам'");
+            "Индивидуальный устав: 'Переход доли наследникам'");
 
         // Проверяем наличие select-элементов (минимум 6: ExecutiveBody, Exit, Preemptive, Board, Audit, Revision)
         var selects = page.Locator("select.form-select");
         (await selects.CountAsync()).Should().BeGreaterThanOrEqualTo(6,
-            "Нетиповой устав должен содержать минимум 6 select для параметров");
+            "Индивидуальный устав должен содержать минимум 6 select для параметров");
     }
 
     /// <summary>

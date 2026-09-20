@@ -7,14 +7,14 @@ public static class CustomCharterTestData
 {
     // LDAP user data
     public const string LdapUid = "test.ns.charter";
-    public const string LdapCn = "Нетиповой Тест Уставович";
-    public const string LdapSn = "Нетиповой";
+    public const string LdapCn = "Индивидуальный Тест Уставович";
+    public const string LdapSn = "Индивидуальный";
     public const string LdapGivenName = "Тест";
     public const string LdapPassword = "test1234";
 
     public const string SysAdminDisplayName = "Васильева Вера Васильевна";
 
-    public const string EmployeeLastName = "Нетиповой";
+    public const string EmployeeLastName = "Индивидуальный";
     public const string EmployeeFirstName = "Тест";
     public const string EmployeeMiddleName = "Уставович";
     public const string EmployeePosition = "Генеральный директор";
@@ -107,7 +107,7 @@ public static class CustomCharterTestData
     /// Сгенерировать ФИО участника для индивидуального устава.
     /// </summary>
     public static string GetParticipantFullName(int testIndex, int participantIndex) =>
-        $"Участник {participantIndex} Нетиповой{testIndex:D2}";
+        $"Участник {participantIndex} Индивидуальный{testIndex:D2}";
 
     /// <summary>
     /// Сгенерировать части ФИО участника (LastName, FirstName, MiddleName).
