@@ -25,7 +25,7 @@ public class ParticipantReadService : IParticipantReadService
 
         return await ctx.BoardParticipants
             .Include(p => p.EcosystemParticipant)
-            .Include(p => p.Person).ThenInclude(person => person.IdentityDocuments)
+            .Include(p => p.Person).ThenInclude(person => person!.IdentityDocuments)
             .Include(p => p.Companies.Where(c => c.IsActive).OrderByDescending(c => c.CreatedAt).Take(1))
             .Include(p => p.Shares.Where(s => s.IsActive).OrderByDescending(s => s.CreatedAt).Take(1))
             .Where(p => p.LegalEntityId == legalEntityId)

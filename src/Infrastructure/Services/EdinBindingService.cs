@@ -73,7 +73,7 @@ public class EdinBindingService : IEdinBindingService
             return new EdinBindingResult
             {
                 Error = $"ЕДИН: статус {resolveResult.Status}. " +
-                        (resolveResult.HasDefects ? $"Дефекты: {string.Join(", ", resolveResult.Defects)}" : "MasterId не определён")
+                        (resolveResult.HasDefects ? $"Дефекты: {string.Join(", ", resolveResult.Defects ?? [])}" : "MasterId не определён")
             };
         }
 

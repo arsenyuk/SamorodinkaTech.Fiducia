@@ -113,7 +113,7 @@ public class OosuNotificationService : IOosuNotificationService
                     : participant.CompanyName;
 
                 var (title, body) = await _textBuilder.BuildOosuMeetingNotificationAsync(
-                    legalEntity.Name, participantName,
+                    legalEntity.Name!, participantName!,
                     model.MeetingDate, model.MeetingStartTime, model.MeetingVenue);
 
                 var recipientUserId = participant.EcosystemParticipant?.UserId;

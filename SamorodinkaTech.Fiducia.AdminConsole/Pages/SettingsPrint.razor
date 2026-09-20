@@ -183,8 +183,8 @@
             if (s.TryGetValue("print_orientation", out var po) && !string.IsNullOrEmpty(po)) _pageOrientation = po;
             if (s.TryGetValue("print_paper_size", out var ps) && !string.IsNullOrEmpty(ps)) _paperSize = ps;
             if (s.TryGetValue("print_page_numbering", out var pn) && !string.IsNullOrEmpty(pn)) _pageNumbering = pn;
-            if (s.TryGetValue("print_header_text", out var ht)) _headerText = ht;
-            if (s.TryGetValue("print_footer_text", out var ft)) _footerText = ft;
+            if (s.TryGetValue("print_header_text", out var ht)) _headerText = ht ?? "";
+            if (s.TryGetValue("print_footer_text", out var ft)) _footerText = ft ?? "";
             if (s.TryGetValue("print_show_watermark", out var sw) && bool.TryParse(sw, out var swv)) _showWatermark = swv;
             if (s.TryGetValue("print_show_stamp", out var ss) && bool.TryParse(ss, out var ssv)) _showStamp = ssv;
             if (s.TryGetValue("print_auto_decline_dates", out var ad) && bool.TryParse(ad, out var adv)) _autoDeclineDates = adv;

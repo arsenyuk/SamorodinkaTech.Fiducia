@@ -59,7 +59,7 @@ public class MockLdapService : ILdapService
         else if (filter.Contains("memberOf="))
         {
             var groupDn = ExtractValue(filter, "memberOf");
-            if (_groups.TryGetValue(groupDn, out var members))
+            if (groupDn is not null && _groups.TryGetValue(groupDn, out var members))
                 results.AddRange(members);
         }
         else

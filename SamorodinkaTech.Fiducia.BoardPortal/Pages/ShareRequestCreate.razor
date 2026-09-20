@@ -497,7 +497,10 @@ else
             var isLlc = Domain.Validation.OkopfTypeMapper.IsLlc(okopfCode);
             var isNjsc = Domain.Validation.OkopfTypeMapper.IsNjsc(okopfCode);
             var isPjsc = Domain.Validation.OkopfTypeMapper.IsPjsc(okopfCode);
-            _availableTypes = types.Select(rt => MapToRequestTypeDto(rt, charter, extraSettings, le, isLlc, isNjsc, isPjsc)).ToList();
+            _availableTypes = types
+                .Where(rt => (isLlc && rt.IsForLlc) || (isNjsc && rt.IsForNjsc) || (isPjsc && rt.IsForPjsc))
+                .Select(rt => MapToRequestTypeDto(rt, charter, extraSettings, le, isLlc, isNjsc, isPjsc))
+                .ToList();
 
             // Загружаем долю участника для подсказок
             try

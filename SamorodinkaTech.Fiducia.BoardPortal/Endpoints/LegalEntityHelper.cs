@@ -27,7 +27,7 @@ public static class LegalEntityHelper
 
     /// <summary>Перегрузка для Blazor (login из JWT через HttpContextAccessor).</summary>
     public static async Task<Guid?> GetLegalEntityIdAsync(FiduciaDbContext ctx, IHttpContextAccessor httpCtxAccessor)
-        => await UserContextHelper.GetLegalEntityIdAsync(ctx, httpCtxAccessor.HttpContext);
+        => await UserContextHelper.GetLegalEntityIdAsync(ctx, httpCtxAccessor.HttpContext!);
 
     /// <summary>Получить login из JWT.</summary>
     public static async Task<string?> GetLoginFromJwtAsync(FiduciaDbContext ctx, HttpContext http)

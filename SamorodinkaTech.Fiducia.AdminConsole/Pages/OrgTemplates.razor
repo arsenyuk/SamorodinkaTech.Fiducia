@@ -199,7 +199,7 @@
             await using var ctx = await DbFactory.CreateDbContextAsync();
             var boardId = _hasBoardOfDirectors
                 ? await ctx.BoardsOfDirectors
-                    .Where(x => x.OsaMeeting.LegalEntityId == _currentLe.Id && x.Status.Code == "ACTIVE")
+                    .Where(x => x.OsaMeeting!.LegalEntityId == _currentLe.Id && x.Status!.Code == "ACTIVE")
                     .Select(x => (Guid?)x.Id)
                     .FirstOrDefaultAsync()
                 : null;

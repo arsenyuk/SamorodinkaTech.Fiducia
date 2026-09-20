@@ -1695,7 +1695,7 @@ public static class ShareRequestEndpoints
                         LegalEntityName = legalEntity.Name,
                         LegalEntityOgrn = legalEntity.Ogrn,
                         LegalEntityInn = legalEntity.Inn,
-                        ParticipantFullName = participantName,
+                        ParticipantFullName = participantName!,
                         ParticipantAddress = participant.ParticipantType == "FL"
                             ? (participant.PersonId.HasValue
                                 ? ctx.IdentityDocuments.FirstOrDefault(x => x.PersonId == participant.PersonId.Value && x.IsActive)?.RegistrationAddress
@@ -2025,7 +2025,7 @@ public static class ShareRequestEndpoints
                 && r.ParticipantId == participantId);
         if (existing is not null)
         {
-            var deadline = existing.OrgIntent?.Stages
+            var deadline = existing.OrgIntent?.Stages?
                 .Where(s => s.PlannedEnd.HasValue)
                 .Max(s => s.PlannedEnd);
             var deadlineStr = deadline?.ToString("dd.MM.yyyy") ?? "не установлен";

@@ -81,7 +81,7 @@
                     <!-- Сегодня -->
                     @if (Data?.Today != default)
                     {
-                        var todayDN = Data.Today.DayNumber;
+                        var todayDN = Data!.Today.DayNumber;
                         var startDN = Data.CalendarDays[0].Date.DayNumber;
                         var todayPos = (int)((todayDN - startDN) * _dayCellWidth + _dayCellWidth / 2.0);
                         <div class="gantt-today-line" style="left:@(todayPos)px; height:@(_totalHeightPx)px"></div>

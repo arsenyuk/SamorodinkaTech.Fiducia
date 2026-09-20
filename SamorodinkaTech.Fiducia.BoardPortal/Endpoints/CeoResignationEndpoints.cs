@@ -107,7 +107,7 @@ public static class CeoResignationEndpoints
 
                     // Формируем текст уведомления
                     var (title, body) = await textBuilder.BuildCeoResignationAsync(
-                        legalEntity.Name, participantName, ceoFullName, request.ResignationDate);
+                        legalEntity.Name!, participantName!, ceoFullName, request.ResignationDate);
 
                     // Отправляем уведомление
                     var recipientUserId = participant.EcosystemParticipant?.UserId;
@@ -126,7 +126,7 @@ public static class CeoResignationEndpoints
                         LegalEntityName = legalEntity.Name,
                         LegalEntityOgrn = legalEntity.Ogrn,
                         LegalEntityInn = legalEntity.Inn,
-                        ParticipantFullName = participantName,
+                        ParticipantFullName = participantName!,
                         ParticipantAddress = participant.ParticipantType == "FL"
                             ? (participant.PersonId.HasValue
                                 ? ctx.IdentityDocuments.FirstOrDefault(x => x.PersonId == participant.PersonId.Value && x.IsActive)?.RegistrationAddress

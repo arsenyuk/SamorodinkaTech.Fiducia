@@ -1,4 +1,5 @@
 @page "/share-requests"
+@using Microsoft.EntityFrameworkCore
 @using SamorodinkaTech.Fiducia.Domain.Interfaces
 @inject NavigationManager Nav
 @inject IJSRuntime JS
@@ -6,6 +7,7 @@
 @inject IShareRequestReadService ShareRequestRead
 @inject IShareRequestWriteService ShareRequestWrite
 @inject IHttpContextAccessor HttpContextAccessor
+@inject IDbContextFactory<SamorodinkaTech.Fiducia.Infrastructure.Persistence.FiduciaDbContext> DbFactory
 @attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "PARTICIPANT,CEO")]
 
 <PageTitle>Fiducia — Мои запросы</PageTitle>
@@ -26,9 +28,12 @@
 else
 {
     @* ── Кнопка создания ──────────────────────────────────────────── *@
-    <a href="/share-requests/create" class="btn btn-primary mb-3">
-        <span class="oi oi-plus"></span> Подать требование или запрос
-    </a>
+    @if (_availableTypes.Count > 0)
+    {
+        <a href="/share-requests/create" class="btn btn-primary mb-3">
+            <span class="oi oi-plus"></span> Подать требование или запрос
+        </a>
+    }
 
     @* ── Фильтр ────────────────────────────────────────────────────── *@
     <div class="mb-3">
@@ -119,7 +124,25 @@ else
             }
 
             var types = await ShareRequestRead.GetTypesAsync();
-            _availableTypes = types.Select(MapToRequestTypeDto).ToList();
+
+            // Определяем тип организации для фильтрации
+            var leId = await LegalEntityHelper.GetLegalEntityIdAsync(
+                await DbFactory.CreateDbContextAsync(), HttpContextAccessor);
+            bool isLlc = false, isNjsc = false, isPjsc = false;
+            if (leId.HasValue)
+            {
+                await using var ctx = await DbFactory.CreateDbContextAsync();
+                var le = await ctx.LegalEntities
+                    .Include(x => x.RefOkopf)
+                    .FirstOrDefaultAsync(x => x.Id == leId.Value);
+                isLlc = Domain.Validation.OkopfTypeMapper.IsLlc(le?.RefOkopf?.Code);
+                isNjsc = Domain.Validation.OkopfTypeMapper.IsNjsc(le?.RefOkopf?.Code);
+                isPjsc = Domain.Validation.OkopfTypeMapper.IsPjsc(le?.RefOkopf?.Code);
+            }
+
+            _availableTypes = types
+                .Where(rt => (isLlc && rt.IsForLlc) || (isNjsc && rt.IsForNjsc) || (isPjsc && rt.IsForPjsc))
+                .Select(MapToRequestTypeDto).ToList();
             _allTypes = _availableTypes.ToList();
 
             var entities = await ShareRequestRead.GetListAsync(_userId.Value);

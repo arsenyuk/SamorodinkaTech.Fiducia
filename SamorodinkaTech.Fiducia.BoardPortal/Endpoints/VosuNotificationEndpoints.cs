@@ -93,7 +93,7 @@ public static class VosuNotificationEndpoints
 
                     // Формируем текст уведомления
                     var (title, body) = await textBuilder.BuildVosuAgendaChangeAsync(
-                        legalEntity.Name, participantName,
+                        legalEntity.Name!, participantName!,
                         request.MeetingDate, request.MeetingStartTime, request.MeetingVenue);
 
                     // Отправляем уведомление в системе (через EcosystemParticipant.UserId)
@@ -114,7 +114,7 @@ public static class VosuNotificationEndpoints
                         LegalEntityName = legalEntity.Name,
                         LegalEntityOgrn = legalEntity.Ogrn,
                         LegalEntityInn = legalEntity.Inn,
-                        ParticipantFullName = participantName,
+                        ParticipantFullName = participantName!,
                         ParticipantAddress = participant.ParticipantType == "FL"
                             ? (participant.PersonId.HasValue
                                 ? ctx.IdentityDocuments.FirstOrDefault(x => x.PersonId == participant.PersonId.Value && x.IsActive)?.RegistrationAddress
@@ -136,7 +136,7 @@ public static class VosuNotificationEndpoints
 
                     var docxBytes = await docxGenerator.GenerateAsync(docxData);
                     using var ms = new MemoryStream(docxBytes);
-                    var sanitized = Regex.Replace(participantName, @"[^\w\-]", "_");
+                    var sanitized = Regex.Replace(participantName!, @"[^\w\-]", "_");
                     var fileName = $"Уведомление_ВОСУ_{sanitized}.docx";
 
                     var storageKey = await fileStorage.SaveAsync(ms, fileName,
@@ -312,7 +312,7 @@ public static class VosuNotificationEndpoints
                         : participant.CompanyName;
 
                     var (title, body) = await textBuilder.BuildOosuMeetingNotificationAsync(
-                        legalEntity.Name, participantName,
+                        legalEntity.Name!, participantName!,
                         request.MeetingDate, request.MeetingStartTime, request.MeetingVenue);
 
                     var recipientUserId = participant.EcosystemParticipant?.UserId;
@@ -331,7 +331,7 @@ public static class VosuNotificationEndpoints
                         LegalEntityName = legalEntity.Name,
                         LegalEntityOgrn = legalEntity.Ogrn,
                         LegalEntityInn = legalEntity.Inn,
-                        ParticipantFullName = participantName,
+                        ParticipantFullName = participantName!,
                         ParticipantAddress = participant.ParticipantType == "FL"
                             ? (participant.PersonId.HasValue
                                 ? ctx.IdentityDocuments.FirstOrDefault(x => x.PersonId == participant.PersonId.Value && x.IsActive)?.RegistrationAddress
@@ -350,7 +350,7 @@ public static class VosuNotificationEndpoints
 
                     var docxBytes = await docxGenerator.GenerateAsync(docxData);
                     using var ms = new MemoryStream(docxBytes);
-                    var sanitized = Regex.Replace(participantName, @"[^\w\-]", "_");
+                    var sanitized = Regex.Replace(participantName!, @"[^\w\-]", "_");
                     var fileName = $"Уведомление_ООСУ_{sanitized}.docx";
 
                     var storageKey = await fileStorage.SaveAsync(ms, fileName,

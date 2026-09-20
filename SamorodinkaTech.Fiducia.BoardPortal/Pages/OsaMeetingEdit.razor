@@ -1076,7 +1076,7 @@
                 // Деактивируем предыдущий действующий СД (не связанный с текущим ОСА)
                 var prevBoard = await ctx.BoardsOfDirectors
                     .Where(b => b.OsaMeetingId != editingMeetingId.Value
-                             && b.Status.Code == "ACTIVE")
+                             && b.Status!.Code == "ACTIVE")
                     .OrderByDescending(b => b.StartedAt)
                     .FirstOrDefaultAsync();
                 if (prevBoard != null)
@@ -2355,7 +2355,7 @@
                 .Select(x => new MeetingFileVm
                 {
                     Id = x.Id,
-                    FileType = x.File!.FileType,
+                    FileType = x.File!.FileType!,
                     DisplayName = x.File.DisplayName,
                     FileName = x.File.OriginalName,
                     SizeBytes = x.File.SizeBytes
@@ -2644,7 +2644,7 @@
         var newBoardName = editElectionYear.HasValue ? $"Совет директоров {editElectionYear.Value}" : "новый состав";
 
         var prevBoard = await ctx.BoardsOfDirectors
-            .Where(b => b.Status.Code == "ACTIVE")
+            .Where(b => b.Status!.Code == "ACTIVE")
             .OrderByDescending(b => b.StartedAt)
             .FirstOrDefaultAsync();
         if (prevBoard != null)

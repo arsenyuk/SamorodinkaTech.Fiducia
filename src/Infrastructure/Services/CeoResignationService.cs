@@ -143,7 +143,7 @@ public class CeoResignationService : ICeoResignationService
 
             // Формируем текст уведомления
             var (title, body) = await _textBuilder.BuildCeoResignationAsync(
-                legalEntity.Name, participantName, ceoFullName, model.ResignationDate);
+                legalEntity.Name!, participantName!, ceoFullName, model.ResignationDate);
 
             // Отправляем уведомление
             var recipientUserId = participant.EcosystemParticipant?.UserId;

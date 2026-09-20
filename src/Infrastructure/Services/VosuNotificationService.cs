@@ -117,7 +117,7 @@ public class VosuNotificationService : IVosuNotificationService
 
                 // Формируем текст уведомления
                 var (title, body) = await _textBuilder.BuildVosuAgendaChangeAsync(
-                    legalEntity.Name, participantName,
+                    legalEntity.Name!, participantName!,
                     model.MeetingDate, model.MeetingStartTime, model.MeetingVenue);
 
                 // Отправляем уведомление в системе
