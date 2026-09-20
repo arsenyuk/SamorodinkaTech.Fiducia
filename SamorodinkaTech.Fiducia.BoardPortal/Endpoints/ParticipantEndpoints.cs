@@ -55,8 +55,11 @@ public static class ParticipantEndpoints
                 .Include(p => p.Companies.Where(c => c.IsActive).Take(1))
                 .Include(p => p.Shares.Where(s => s.IsActive).Take(1))
                 .Where(p => p.LegalEntityId == leId.Value)
-                .OrderByDescending(p => p.Shares.Where(s => s.IsActive).Select(s => s.SharePercent).FirstOrDefault())
                 .ToListAsync();
+
+            items = items
+                .OrderByDescending(p => p.Shares.FirstOrDefault()?.SharePercent ?? 0m)
+                .ToList();
 
             return Results.Ok(items.Select(p => MapParticipantToDto(p, activeCompany: p.Companies.FirstOrDefault(), activeShare: p.Shares.FirstOrDefault())));
         });

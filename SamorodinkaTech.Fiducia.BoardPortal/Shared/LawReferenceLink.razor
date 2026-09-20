@@ -65,9 +65,9 @@
         {
             var url = $"laws/{Article}.txt";
             var md = await Http.GetStringAsync(url);
-            var firstLine = md.Split('\n', 2)[0].TrimStart('#').Trim();
-            _title = string.IsNullOrEmpty(firstLine) ? "Статья закона" : firstLine;
-            _html = Markdig.Markdown.ToHtml(md);
+            var parts = md.Split('\n', 2);
+            _title = string.IsNullOrEmpty(parts[0].TrimStart('#').Trim()) ? "Статья закона" : parts[0].TrimStart('#').Trim();
+            _html = parts.Length > 1 ? Markdig.Markdown.ToHtml(parts[1].TrimStart('\n')) : "";
         }
         catch (HttpRequestException)
         {

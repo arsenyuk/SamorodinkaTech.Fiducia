@@ -23,14 +23,17 @@ public class ParticipantReadService : IParticipantReadService
     {
         await using var ctx = await _dbFactory.CreateDbContextAsync();
 
-        return await ctx.BoardParticipants
+        var items = await ctx.BoardParticipants
             .Include(p => p.EcosystemParticipant)
             .Include(p => p.Person).ThenInclude(person => person!.IdentityDocuments)
             .Include(p => p.Companies.Where(c => c.IsActive).OrderByDescending(c => c.CreatedAt).Take(1))
             .Include(p => p.Shares.Where(s => s.IsActive).OrderByDescending(s => s.CreatedAt).Take(1))
             .Where(p => p.LegalEntityId == legalEntityId)
-            .OrderByDescending(p => p.Shares.Where(s => s.IsActive).Select(s => s.SharePercent).FirstOrDefault())
             .ToListAsync();
+
+        return items
+            .OrderByDescending(p => p.Shares.FirstOrDefault()?.SharePercent ?? 0m)
+            .ToList();
     }
 
     /// <inheritdoc />
