@@ -43,101 +43,71 @@ else if (_selectedType is null)
     <p class="text-muted mb-4">Выберите тип требования или запроса:</p>
 
     @* ── Требования, рассматриваемые ОСУ ─────────────────────────── *@
-    var osuTypes = _availableTypes.Where(t => t.ConsideredByOsu).ToList();
+    var osuTypes = _availableTypes.Where(t => t.ConsideredByOsu && t.IsAvailable).ToList();
     if (osuTypes.Count > 0)
     {
-        var osuAvailable = osuTypes.Where(t => t.IsAvailable).ToList();
-        var osuUnavailable = osuTypes.Where(t => !t.IsAvailable).ToList();
-
         <h5 class="mb-3">Требования, рассматриваемые ОСУ</h5>
 
-        @if (osuAvailable.Count > 0)
-        {
-            <div class="row g-3 mb-4">
-                @foreach (var rt in osuAvailable)
-                {
-                    <div class="col-md-6">
-                        <div class="card h-100" style="cursor:pointer" @onclick="() => SelectType(rt)">
-                            <div class="card-body">
-                                <h5 class="card-title">@rt.Name</h5>
-                                <p class="card-text text-muted small mb-0">
-                                    @GetDescription(rt.Code)
-                                </p>
-                            </div>
+        <div class="row g-3 mb-4">
+            @foreach (var rt in osuTypes)
+            {
+                <div class="col-md-6">
+                    <div class="card h-100" style="cursor:pointer" @onclick="() => SelectType(rt)">
+                        <div class="card-body">
+                            <h5 class="card-title">@rt.Name</h5>
+                            <p class="card-text text-muted small mb-0">
+                                @GetDescription(rt.Code)
+                            </p>
                         </div>
                     </div>
-                }
-            </div>
-        }
-
-        @if (osuUnavailable.Count > 0)
-        {
-            <h6 class="text-muted mb-2">Недоступные</h6>
-            <div class="row g-3 mb-4">
-                @foreach (var rt in osuUnavailable)
-                {
-                    <div class="col-md-6">
-                        <div class="card h-100 border-secondary bg-light">
-                            <div class="card-body">
-                                <h5 class="card-title text-muted">@rt.Name</h5>
-                                <p class="card-text small text-danger mb-0">
-                                    @rt.UnavailabilityReason
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                }
-            </div>
-        }
+                </div>
+            }
+        </div>
     }
 
     @* ── Требования, удовлетворяемые ГД ──────────────────────────── *@
-    var gdTypes = _availableTypes.Where(t => !t.ConsideredByOsu).ToList();
+    var gdTypes = _availableTypes.Where(t => !t.ConsideredByOsu && t.IsAvailable).ToList();
     if (gdTypes.Count > 0)
     {
-        var gdAvailable = gdTypes.Where(t => t.IsAvailable).ToList();
-        var gdUnavailable = gdTypes.Where(t => !t.IsAvailable).ToList();
-
         <h5 class="mb-3">Требования, удовлетворяемые ГД</h5>
 
-        @if (gdAvailable.Count > 0)
-        {
-            <div class="row g-3 mb-4">
-                @foreach (var rt in gdAvailable)
-                {
-                    <div class="col-md-6">
-                        <div class="card h-100" style="cursor:pointer" @onclick="() => SelectType(rt)">
-                            <div class="card-body">
-                                <h5 class="card-title">@rt.Name</h5>
-                                <p class="card-text text-muted small mb-0">
-                                    @GetDescription(rt.Code)
-                                </p>
-                            </div>
+        <div class="row g-3 mb-4">
+            @foreach (var rt in gdTypes)
+            {
+                <div class="col-md-6">
+                    <div class="card h-100" style="cursor:pointer" @onclick="() => SelectType(rt)">
+                        <div class="card-body">
+                            <h5 class="card-title">@rt.Name</h5>
+                            <p class="card-text text-muted small mb-0">
+                                @GetDescription(rt.Code)
+                            </p>
                         </div>
                     </div>
-                }
-            </div>
-        }
+                </div>
+            }
+        </div>
+    }
 
-        @if (gdUnavailable.Count > 0)
-        {
-            <h6 class="text-muted mb-2">Недоступные</h6>
-            <div class="row g-3 mb-4">
-                @foreach (var rt in gdUnavailable)
-                {
-                    <div class="col-md-6">
-                        <div class="card h-100 border-secondary bg-light">
-                            <div class="card-body">
-                                <h5 class="card-title text-muted">@rt.Name</h5>
-                                <p class="card-text small text-danger mb-0">
-                                    @rt.UnavailabilityReason
-                                </p>
-                            </div>
+    @* ── Недоступные (общая секция) ────────────────────────────────── *@
+    var allUnavailable = _availableTypes.Where(t => !t.IsAvailable).ToList();
+    @if (allUnavailable.Count > 0)
+    {
+        <h6 class="text-muted mb-2">Недоступные</h6>
+        <div class="row g-3 mb-4">
+            @foreach (var rt in allUnavailable)
+            {
+                <div class="col-md-6">
+                    <div class="card h-100 border-secondary bg-light">
+                        <div class="card-body">
+                            <h5 class="card-title text-muted">@rt.Name</h5>
+                            <p class="card-text small text-danger mb-0">
+                                @rt.UnavailabilityReason
+                            </p>
                         </div>
                     </div>
-                }
-            </div>
-        }
+                </div>
+            }
+        </div>
     }
 }
 else
